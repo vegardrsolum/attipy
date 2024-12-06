@@ -23,4 +23,4 @@ Homepage = "https://github.com/vegardrsolum/attitudex"
 Issues = "https://github.com/vegardrsolum/attitudex/issues"
 
 [tool.hatch.version]
-path = "src/smsfusion/__about__.py"
+path = "src/attitudex/__about__.py"
