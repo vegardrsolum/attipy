@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sensx"
+name = "attipy"
 authors = [
   { name="Vegard R. Solum", email="vegard.rorvik.solum@gmail.com" },
 ]
-description = "Sensor fusion and attitude utilities"
+description = "Attitude and motion sensing toolkit"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,8 +19,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/vegardrsolum/sensx"
-Issues = "https://github.com/vegardrsolum/sensx/issues"
+Homepage = "https://github.com/vegardrsolum/attipy"
+Issues = "https://github.com/vegardrsolum/attipy/issues"
 
 [tool.hatch.version]
-path = "src/sensx/__about__.py"
+path = "src/attipy/__about__.py"
