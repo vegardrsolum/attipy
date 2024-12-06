@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "attitudex"
+name = "sensx"
 authors = [
   { name="Vegard R. Solum", email="vegard.rorvik.solum@gmail.com" },
 ]
-description = "Attitude and sensor fusion utilities"
+description = "Sensor fusion and attitude utilities"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,8 +19,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/vegardrsolum/attitudex"
-Issues = "https://github.com/vegardrsolum/attitudex/issues"
+Homepage = "https://github.com/vegardrsolum/sensx"
+Issues = "https://github.com/vegardrsolum/sensx/issues"
 
 [tool.hatch.version]
-path = "src/attitudex/__about__.py"
+path = "src/sensx/__about__.py"
