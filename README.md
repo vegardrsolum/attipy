@@ -1,2 +1,2 @@
-# attitudex
-Attitude and sensor fusion utilities
+# SensX
+Sensor fusion and attitude utilities
