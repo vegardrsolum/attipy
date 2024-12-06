@@ -1,2 +1,2 @@
-# SensX
-Sensor fusion and attitude utilities
+# AttiPy
+Attitude and motion sensing toolkit
