@@ -509,10 +509,10 @@ class AHRS(AHRSMixin):
         g_var: ArrayLike | None = None,
     ) -> Self:
         """
-        Update/correct the AINS' state estimate with aiding measurements, and project
+        Update/correct the AHRS' state estimate with aiding measurements, and project
         ahead using IMU measurements.
 
-        If no aiding measurements are provided, the AINS is simply propagated ahead
+        If no aiding measurements are provided, the AHRS is simply propagated ahead
         using dead reckoning with the IMU measurements.
 
         Parameters
@@ -545,7 +545,7 @@ class AHRS(AHRSMixin):
 
         Returns
         -------
-        AidedINS
+        AHRS
             A reference to the instance itself after the update.
         """
 
