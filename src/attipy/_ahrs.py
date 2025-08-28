@@ -6,14 +6,14 @@ from numpy.typing import ArrayLike, NDArray
 
 from smsfusion.constants import ERR_GYRO_MOTION2
 
-from ._ins import _dhda_head, _h_head, _roll_pitch_from_acc, _signed_smallest_angle
-from ._transforms import (
+from smsfusion._ins import _dhda_head, _h_head, _roll_pitch_from_acc, _signed_smallest_angle
+from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
     _quaternion_from_euler,
     _rot_matrix_from_quaternion,
 )
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
 
 
 class AHRSMixin:

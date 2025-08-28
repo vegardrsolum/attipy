@@ -20,7 +20,8 @@ classifiers = [
 dependencies = [
   "numba",
   "numpy",
-  "scipy"  # required by numba
+  "scipy",  # required by numba
+  "waveresponse",
 ]
 
 [project.urls]
