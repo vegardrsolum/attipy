@@ -3,10 +3,12 @@ from typing import Self
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
-
-from smsfusion.constants import ERR_GYRO_MOTION2
-
-from smsfusion._ins import _dhda_head, _h_head, _roll_pitch_from_acc, _signed_smallest_angle
+from smsfusion._ins import (
+    _dhda_head,
+    _h_head,
+    _roll_pitch_from_acc,
+    _signed_smallest_angle,
+)
 from smsfusion._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
@@ -14,6 +16,7 @@ from smsfusion._transforms import (
     _rot_matrix_from_quaternion,
 )
 from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from smsfusion.constants import ERR_GYRO_MOTION2
 
 
 class AHRSMixin:
