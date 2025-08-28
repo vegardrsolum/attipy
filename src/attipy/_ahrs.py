@@ -241,7 +241,7 @@ class StrapdownAHRS(AHRSMixin):
         return self
 
 
-class MiniAHRS(AHRSMixin):
+class AHRS(AHRSMixin):
     """
     Aided inertial navigation system (AINS) using a multiplicative extended
     Kalman filter (MEKF).
