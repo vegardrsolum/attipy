@@ -21,10 +21,10 @@ from smsfusion.constants import ERR_GYRO_MOTION2
 
 class AHRSMixin:
     """
-    Mixin class for inertial navigation systems (INS).
+    Mixin class for attitude and heading reference systems (AHRS).
 
-    Requires that the inheriting class has an `_x` attribute which is a 1D numpy array
-    of length 7 containing the following elements in order:
+    Requires that the inheriting class has an `_x` attribute which is a 1D numpy
+    array of length 7 containing the following elements in order:
 
         * Attitude as unit quaternion (4 elements).
         * Gyroscope bias in x, y, z directions (3 elements).
@@ -142,10 +142,10 @@ class AHRSMixin:
 
 class StrapdownAHRS(AHRSMixin):
     """
-    Strapdown Attitude and Heading Reference System (AHRS).
+    Strapdown attitude and heading reference system (AHRS).
 
     This class provides an interface for estimating the attitude of a moving body
-    by integrating the *strapdown navigation equations*.
+    by integrating the *strapdown navigation equation*.
 
     Parameters
     ----------
@@ -159,8 +159,8 @@ class StrapdownAHRS(AHRSMixin):
 
     Notes
     -----
-    The quaternion provided as part of the initial state will be normalized to
-    ensure unity.
+    The quaternion provided as part of the initial state will be normalized to ensure
+    unity.
     """
 
     def __init__(self, fs: float, x0: ArrayLike) -> None:
@@ -177,14 +177,11 @@ class StrapdownAHRS(AHRSMixin):
 
         Parameters
         ----------
-        x_new : numpy.ndarray, shape (10,)
+        x_new : numpy.ndarray, shape (7,)
             New state vector, containing the following elements in order:
 
-            * Position in x-, y-, and z-direction (3 elements).
-            * Velocity in x-, y-, and z-direction (3 elements).
-            * Attitude as unit quaternion (4 elements). Should be given as
-              [q1, q2, q3, q4], where q1 is the real part and q1, q2 and q3
-              are the three imaginary parts.
+            * Attitude as unit quaternion (4 elements).
+            * Gyroscope bias in x, y, z directions (3 elements).
 
         Notes
         -----
@@ -192,7 +189,7 @@ class StrapdownAHRS(AHRSMixin):
         ensure unity.
         """
         self._x = np.asarray_chkfinite(x_new).reshape(7).copy()
-        self._x[:4] = _normalize(self._x[:4])
+        self._x[0:4] = _normalize(self._x[0:4])
 
     def update(
         self,
@@ -200,9 +197,9 @@ class StrapdownAHRS(AHRSMixin):
         degrees: bool = False,
     ) -> Self:
         """
-        Update the AHRS states by integrating the *strapdown navigation equations*.
-
-        Assuming constant inputs (i.e., angular velocities) over the sampling period.
+        Update the AHRS' states by dead reckoning, i.e., by integrating the *strapdown
+        navigation equation* while assuming constant inputs (i.e., angular velocities)
+        over the sampling period.
 
         The states are updated according to::
 
