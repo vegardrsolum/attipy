@@ -243,26 +243,25 @@ class StrapdownAHRS(AHRSMixin):
 
 class AHRS(AHRSMixin):
     """
-    Aided inertial navigation system (AINS) using a multiplicative extended
-    Kalman filter (MEKF).
+    Attitude and heading reference system (AHRS).
+
+    The internal filter is a multiplicative extended Kalman filter (MEKF).
 
     Parameters
     ----------
     fs : float
         Sampling rate in Hz.
     x0_prior : array-like, shape (7,), default (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        Initial (a priori) 7-element INS state estimate:
+        Initial (a priori) 7-element AHRS state estimate:
 
         * Attitude (unit quaternion) - 4 elements
         * Gyroscope bias (x, y, z) - 3 elements
 
-        Defaults to a zero vector, but with the attitude part as a unit quaternion
-        (i.e., no rotation).
-    P0_prior : array-like (shape (12, 12) or (15, 15)), default np.eye(12) * 1e-6 (:const:`smsfusion.constants.P0`)
-        Initial (a priori) estimate of the error covariance matrix, **P**. If not given, a
-        small diagonal matrix will be used. If the accelerometer bias is excluded from the
-        error estimate (see ``ignore_bias_acc``), the covariance matrix should be of shape
-        (12, 12), otherwise (15, 15).
+        Defaults to attitude as the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e.,
+        no rotation), and no bias.
+    P0_prior : array-like, shape (6, 6), default np.eye(6) * 1e-6
+        Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
+        to a small diagonal matrix (np.eye(6) * 1e-6).
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
@@ -272,12 +271,13 @@ class AHRS(AHRSMixin):
 
         Defaults to error characteristics of SMS Motion gen. 2.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED' (North-East-Down)
-        (default) or 'ENU' (East-North-Up). The body's (or IMU sensor's) degrees of freedom
-        will be expressed relative to this frame. Furthermore, the aiding heading angle is
-        also interpreted relative to this frame according to the right-hand rule.
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
+        sensor's) degrees of freedom will be expressed relative to this frame.
+        Furthermore, the aiding heading angle is also interpreted relative to this
+        frame according to the right-hand rule.
     cold_start : bool, default True
-        Whether to start the AINS filter in a 'cold' (default) or 'warm' state.
+        Whether to start the AHRS in a 'cold' (default) or 'warm' state.
         A cold state indicates that the provided initial conditions are uncertain,
         and possibly far from the true state. Thus, to reduce the risk of divergence,
         an initial vertical alignment (i.e., roll and pitch calibration) is performed
