@@ -16,7 +16,6 @@ from smsfusion._transforms import (
     _rot_matrix_from_quaternion,
 )
 from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
-from smsfusion.constants import ERR_GYRO_MOTION2
 
 
 class AHRSMixin:
@@ -269,7 +268,8 @@ class AHRS(AHRSMixin):
         * ``B``: Bias stability in rad/s.
         * ``tau_cb``: Bias correlation time in seconds.
 
-        Defaults to error characteristics of SMS Motion gen. 2.
+        Defaults to {'N': 0.0001, 'B': 0.00005, 'tau_cb': 50.0} which are typical
+        values for low-cost MEMS gyroscopes.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
@@ -294,7 +294,7 @@ class AHRS(AHRSMixin):
         fs: float,
         x0_prior: ArrayLike = (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         P0_prior: ArrayLike = 1e-6 * np.eye(6),
-        err_gyro: dict[str, float] = ERR_GYRO_MOTION2,
+        err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
         nav_frame: str = "NED",
         cold_start: bool = True,
     ) -> None:
