@@ -3,19 +3,134 @@ from typing import Self
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
-from smsfusion._ins import (
-    _dhda_head,
-    _h_head,
-    _roll_pitch_from_acc,
-    _signed_smallest_angle,
-)
-from smsfusion._transforms import (
+
+from ._transforms import (
     _angular_matrix_from_quaternion,
     _euler_from_quaternion,
     _quaternion_from_euler,
     _rot_matrix_from_quaternion,
 )
-from smsfusion._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+
+
+def _roll_pitch_from_acc(f, nav_frame):
+    """
+    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
+
+    Parameters
+    ----------
+    f: array-like
+        Specific force (i.e., acceleration) measurement vector (fx, fy, fz).
+    nav_frame: {'NED', 'ENU'}
+        Navigation frame. Should be either 'NED' or 'ENU'.
+
+    Returns
+    -------
+    roll: float
+        Estimated roll angle in radians.
+    pitch: float
+        Estimated pitch angle in radians.
+    """
+
+    fx, fy, fz = f
+
+    if nav_frame.lower() == "ned":
+        roll = np.arctan2(-fy, -fz)
+        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    elif nav_frame.lower() == "enu":
+        roll = np.arctan2(fy, fz)
+        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    else:
+        raise ValueError("Invalid navigation frame. Should be 'NED' or 'ENU'.")
+
+    return roll, pitch
+
+
+def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
+    """
+    Convert the given angle to the smallest angle between [-180., 180) degrees.
+
+    Parameters
+    ----------
+    angle : float
+        Value of angle.
+    degrees : bool, default True
+        Specify whether ``angle`` is given degrees or radians.
+
+    Returns
+    -------
+    float
+        The smallest angle between [-180., 180) degrees (or  [-pi, pi] radians).
+    """
+    base = 180.0 if degrees else np.pi
+    return (angle + base) % (2.0 * base) - base
+
+
+def _h_head(q: NDArray[np.float64]) -> float:
+    """
+    Compute yaw angle from unit quaternion.
+
+    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
+    unit quaternion here to avoid singularities.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    Returns
+    -------
+    float
+        Yaw angle in the NED reference frame.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
+    """
+    q_w, q_x, q_y, q_z = q
+    u_y = 2.0 * (q_x * q_y + q_z * q_w)
+    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
+
+
+@njit  # type: ignore[misc]
+def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute yaw angle gradient wrt to the unit quaternion.
+
+    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
+    unit quaternion here to avoid singularities.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Yaw angle gradient vector.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
+    """
+    q_w, q_x, q_y, q_z = q
+    u_y = 2.0 * (q_x * q_y + q_z * q_w)
+    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    u = u_y / u_x
+
+    duda_scale = 1.0 / u_x**2
+    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
+    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
+    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
+    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
+
+    dhda = 1.0 / (1.0 + u**2) * duda
+
+    return dhda  # type: ignore[no-any-return]
 
 
 class AHRSMixin:

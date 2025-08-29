@@ -1,13 +1,12 @@
 from typing import Self
-from warnings import warn
 
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
-from smsfusion._transforms import _euler_from_quaternion
-from smsfusion._vectorops import _normalize, _quaternion_product
 
 from ._ahrs import AHRS
+from ._transforms import _euler_from_quaternion
+from ._vectorops import _normalize, _quaternion_product
 
 
 class FixedIntervalSmoother:
@@ -36,10 +35,6 @@ class FixedIntervalSmoother:
     """
 
     def __init__(self, ains: AHRS, cov_smoothing: bool = True) -> None:
-        warn(
-            "FixedIntervalSmoother is experimental and may change or be removed in the future.",
-            UserWarning,
-        )
         self._ains = ains
         self._cov_smoothing = cov_smoothing
 

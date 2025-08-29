@@ -21,7 +21,6 @@ dependencies = [
   "numba",
   "numpy",
   "scipy",  # required by numba
-  "waveresponse",
 ]
 
 [project.urls]
