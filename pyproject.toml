@@ -17,6 +17,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+  "numba",
+  "numpy",
+  "scipy",  # required by numba
+]
 
 [project.urls]
 Homepage = "https://github.com/vegardrsolum/attipy"
