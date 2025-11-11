@@ -61,7 +61,6 @@ jobs:
           retention-days: 1
 
   deploy-prod:
-    if: ${{ inputs.pipeline == 'production' }}
     runs-on: ubuntu-latest
     needs: build
     env:
