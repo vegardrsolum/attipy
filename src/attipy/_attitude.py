@@ -88,11 +88,25 @@ class EulerZYX(AttitudeBase):
     """
     Euler (ZYX) angle representation of a rotation in 3D space.
 
+    Defined as:
+
+        A = R_z(theta_z) @ R_y(theta_y) @ R_x(theta_x)
+
+    where,
+
+    - theta_z is a first rotation about the navigation frame's Z-axis.
+    - theta_y is a subsequent rotation about the intermediate Y-axis.
+    - theta_x is a final rotation about the second intermediate X-axis to arrive
+      at the body frame.
+
+    and A is the attitude matrix (transforming vectors from the body frame to
+    the navigation frame).
+
     Parameters
     ----------
     theta : ArrayLike
-        The 3-element Euler (ZYX) angles, [theta_z, theta_y, theta_x], representing
-        rotations about the Z, Y, and X axes, respectively.
+        The 3-element Euler (ZYX) angles, [theta_x, theta_y, theta_z], representing
+        rotations about the X, Y, and Z axes, respectively.
     degrees : bool, default False
         If True, the input angles are interpreted as degrees. Otherwise, they are
         interpreted as radians. Internally, angles are stored as radians.
