@@ -88,6 +88,17 @@ class EulerZYX(AttitudeBase):
     """
     Euler (ZYX) angle representation of a rotation in 3D space.
 
+    The ZYX Euler angles describe how to transition from the 'navigation' frame to
+    the 'body' frame through three consecutive intrinsic and passive rotations in
+    the ZYX order:
+
+    - A rotation by an angle gamma (often called yaw) about the navigation frame's
+      z-axis.
+    - A subsequent rotation by an angle beta (often called pitch) about the intermediate
+      frame's y-axis.
+    - A final rotation by an angle alpha (often called roll) about the second intermediate
+      frame's x-axis to arrive at the body frame.
+
     Defined as:
 
         A = R_z(theta_z) @ R_y(theta_y) @ R_x(theta_x)
