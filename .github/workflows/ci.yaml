@@ -33,7 +33,3 @@ jobs:
 
       - name: Run unit-tests
         run: hatch run test:unit
-
-      - name: Build documentation
-        run: hatch run docs:build
-        if: ${{ (matrix.python-version == '3.12') && (matrix.os == 'ubuntu-latest')}}
