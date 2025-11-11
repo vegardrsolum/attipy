@@ -90,24 +90,17 @@ class EulerZYX(AttitudeBase):
 
     The ZYX Euler angles describe how to transition from the 'navigation' frame to
     the 'body' frame through three consecutive intrinsic and passive rotations in
-    the ZYX order:
-
-    - A rotation by an angle gamma (often called yaw) about the navigation frame's
-      z-axis.
-    - A subsequent rotation by an angle beta (often called pitch) about the intermediate
-      frame's y-axis.
-    - A final rotation by an angle alpha (often called roll) about the second intermediate
-      frame's x-axis to arrive at the body frame.
+    the ZYX order.
 
     Defined as:
 
-        A = R_z(theta_z) @ R_y(theta_y) @ R_x(theta_x)
+        A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
 
     where,
 
-    - theta_z is a first rotation about the navigation frame's Z-axis.
-    - theta_y is a subsequent rotation about the intermediate Y-axis.
-    - theta_x is a final rotation about the second intermediate X-axis to arrive
+    - gamma is a first rotation about the navigation frame's Z-axis.
+    - beta is a second rotation about the intermediate Y-axis.
+    - alpha is a final rotation about the second intermediate X-axis to arrive
       at the body frame.
 
     and A is the attitude matrix (transforming vectors from the body frame to
