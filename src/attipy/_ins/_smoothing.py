@@ -5,8 +5,8 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ._ahrs import AHRS
-from ._transforms import _euler_from_quaternion
-from ._vectorops import _normalize, _quaternion_product
+from .._transforms import _euler_from_quaternion
+from .._vectorops import _normalize, _quaternion_product
 
 
 class FixedIntervalSmoother:
