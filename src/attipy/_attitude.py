@@ -31,6 +31,30 @@ class AttitudeBase(ABC):
         array_str = np.array2string(self._toarray())
         return f"{class_name}({array_str})"
 
+    @classmethod
+    @abstractmethod
+    def _from_matrix(cls, matrix: np.ndarray) -> np.ndarray:
+        """
+        Create an array-representation of the attitude from a rotation matrix.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    @abstractmethod
+    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
+        """
+        Return the rotation matrix representation of the attitude.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    @classmethod
+    def from_object(cls, obj):
+        """
+        Create an instance of the class from another attitude object.
+        """
+        A = obj._as_matrix(obj._toarray())
+        array = cls._from_matrix(A)
+        return cls(array)
+
 
 class AttitudeMatrix(AttitudeBase):
     """
@@ -55,6 +79,13 @@ class AttitudeMatrix(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._A
+
+    @classmethod
+    def _from_matrix(cls, matrix: np.ndarray):
+        return cls(matrix)
+
+    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
+        return array
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -135,6 +166,13 @@ class UnitQuaternion(AttitudeBase):
         return self._q
 
     @classmethod
+    def _from_matrix(cls, matrix: np.ndarray):
+        raise NotImplementedError("Not implemented.")
+
+    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("Not implemented.")
+
+    @classmethod
     def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "UnitQuaternion":
         """
         Create a UnitQuaternion from (ZYX) Euler angles.
@@ -196,6 +234,13 @@ class EulerZYX(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._theta
+
+    @classmethod
+    def _from_matrix(cls, matrix: np.ndarray):
+        raise NotImplementedError("Not implemented.")
+
+    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("Not implemented.")
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "EulerZYX":
