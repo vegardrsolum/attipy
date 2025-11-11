@@ -14,25 +14,6 @@ class AttitudeBase(ABC):
         raise NotImplementedError("Not implemented.")
 
 
-class UnitQuaternion(AttitudeBase):
-    """
-    Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
-
-    Parameters
-    ----------
-    q : ArrayLike
-        The 4-element unit quaternion, (q_w, q_x, q_y, q_z), where q_w is the scalar
-        part, and q_x, q_y and q_z are the vector parts.
-    """
-
-    def __init__(self, q: ArrayLike) -> None:
-        self._q = _normalize(np.asarray_chkfinite(q))
-
-    @property
-    def value(self) -> np.ndarray:
-        return self._q.copy()
-
-
 class AttitudeMatrix(AttitudeBase):
     """
     Rotation matrix (or direction cosine matrix) representation of a rotation in
@@ -63,3 +44,22 @@ class AttitudeMatrix(AttitudeBase):
             q = q.value
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
+
+
+class UnitQuaternion(AttitudeBase):
+    """
+    Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
+
+    Parameters
+    ----------
+    q : ArrayLike
+        The 4-element unit quaternion, (q_w, q_x, q_y, q_z), where q_w is the scalar
+        part, and q_x, q_y and q_z are the vector parts.
+    """
+
+    def __init__(self, q: ArrayLike) -> None:
+        self._q = _normalize(np.asarray_chkfinite(q))
+
+    @property
+    def value(self) -> np.ndarray:
+        return self._q.copy()
