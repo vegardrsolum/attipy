@@ -135,3 +135,25 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
     )
     return rot
+
+
+@njit  # type: ignore[misc]
+def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the unit quaternion from Euler angles.
+    """
+
+    alpha_half, beta_half, gamma_half = euler / 2.0
+    cos_alpha = np.cos(alpha_half)
+    sin_alpha = np.sin(alpha_half)
+    cos_beta = np.cos(beta_half)
+    sin_beta = np.sin(beta_half)
+    cos_gamma = np.cos(gamma_half)
+    sin_gamma = np.sin(gamma_half)
+
+    q_w = cos_alpha * cos_beta * cos_gamma + sin_alpha * sin_beta * sin_gamma
+    q_x = sin_alpha * cos_beta * cos_gamma - cos_alpha * sin_beta * sin_gamma
+    q_y = cos_alpha * sin_beta * cos_gamma + sin_alpha * cos_beta * sin_gamma
+    q_z = cos_alpha * cos_beta * sin_gamma - sin_alpha * sin_beta * cos_gamma
+
+    return np.array([q_w, q_x, q_y, q_z])

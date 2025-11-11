@@ -7,6 +7,7 @@ from ._transforms import (
     _euler_from_quaternion,
     _rot_matrix_from_euler,
     _rot_matrix_from_quaternion,
+    _quaternion_from_euler,
 )
 from ._vectorops import _normalize
 
@@ -78,6 +79,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
+        q = np.asarray_chkfinite(q, dtype=float).reshape(4)
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -98,6 +100,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(euler, EulerZYX):
             euler = euler.toarray()
+        euler = np.asarray_chkfinite(euler, dtype=float).reshape(3)
         A = _rot_matrix_from_euler(euler)
         return cls(A)
 
@@ -130,6 +133,27 @@ class UnitQuaternion(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._q
+
+    @classmethod
+    def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "UnitQuaternion":
+        """
+        Create a UnitQuaternion from (ZYX) Euler angles.
+
+        Parameters
+        ----------
+        euler : ArrayLike or EulerZYX
+            The (ZYX) Euler angles, [alpha, beta, gamma], representing the 3D rotation.
+
+        Returns
+        -------
+        UnitQuaternion
+            The corresponding unit quaternion, q.
+        """
+        if isinstance(euler, EulerZYX):
+            euler = euler.toarray()
+        euler = np.asarray_chkfinite(euler, dtype=float).reshape(3)
+        q = _quaternion_from_euler(euler)
+        return cls(q)
 
 
 class EulerZYX(AttitudeBase):
