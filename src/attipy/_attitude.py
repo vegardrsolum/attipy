@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -5,7 +7,14 @@ from ._vectorops import _normalize
 from ._transforms import _rot_matrix_from_quaternion
 
 
-class UnitQuaternion:
+class AttitudeBase(ABC):
+    @property
+    @abstractmethod
+    def value(self):
+        raise NotImplementedError("Not implemented.")
+
+
+class UnitQuaternion(AttitudeBase):
     """
     Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
 
@@ -24,7 +33,7 @@ class UnitQuaternion:
         return self._q.copy()
 
 
-class AttitudeMatrix:
+class AttitudeMatrix(AttitudeBase):
     """
     Rotation matrix (or direction cosine matrix) representation of a rotation in
     3D space.
