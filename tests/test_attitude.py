@@ -13,6 +13,10 @@ class Test_AttitudeMatrix:
         A = AttitudeMatrix.from_quaternion([1.0, 0.0, 0.0, 0.0])
         np.testing.assert_allclose(A.toarray(), np.eye(3))
 
+    def test_from_euler_zyx(self):
+        A = AttitudeMatrix.from_euler_zyx([0.0, 0.0, 0.0])
+        np.testing.assert_allclose(A.toarray(), np.eye(3))
+
 
 class Test_UnitQuaternion:
     def test__init__(self):

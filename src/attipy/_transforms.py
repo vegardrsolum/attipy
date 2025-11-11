@@ -55,6 +55,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     )
     return rot
 
+
 @njit  # type: ignore[misc]
 def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
@@ -81,3 +82,56 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
 
     return np.array([alpha, beta, gamma])
+
+
+@njit  # type: ignore[misc]
+def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the rotation matrix (from-body-to-origin) from Euler angles.
+
+
+    Parameters
+    ----------
+    euler : numpy.ndarray, shape (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (alpha): Rotation about the x-axis.
+            - Pitch (beta): Rotation about the y-axis.
+            - Yaw (gamma): Rotation about the z-axis.
+
+    Notes
+    -----
+    The Euler angles describe how to transition from the 'origin' frame to the 'body'
+    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
+    However, the returned rotation matrix represents the transformation of a vector
+    from the 'body' frame to the 'origin' frame.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3, 3)
+        Rotation matrix.
+    """
+    alpha, beta, gamma = euler
+    cos_gamma = np.cos(gamma)
+    sin_gamma = np.sin(gamma)
+    cos_beta = np.cos(beta)
+    sin_beta = np.sin(beta)
+    cos_alpha = np.cos(alpha)
+    sin_alpha = np.sin(alpha)
+
+    rot_00 = cos_gamma * cos_beta
+    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+
+    rot_10 = sin_gamma * cos_beta
+    rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
+    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+
+    rot_20 = -sin_beta
+    rot_21 = cos_beta * sin_alpha
+    rot_22 = cos_beta * cos_alpha
+
+    rot = np.array(
+        [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
+    )
+    return rot

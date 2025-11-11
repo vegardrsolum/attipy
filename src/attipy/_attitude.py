@@ -3,7 +3,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._transforms import _rot_matrix_from_quaternion, _euler_from_quaternion
+from ._transforms import (
+    _euler_from_quaternion,
+    _rot_matrix_from_euler,
+    _rot_matrix_from_quaternion,
+)
 from ._vectorops import _normalize
 
 
@@ -64,6 +68,26 @@ class AttitudeMatrix(AttitudeBase):
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
         A = _rot_matrix_from_quaternion(q)
+        return cls(A)
+
+    @classmethod
+    def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "AttitudeMatrix":
+        """
+        Create an AttitudeMatrix from (ZYX) Euler angles.
+
+        Parameters
+        ----------
+        euler : ArrayLike or EulerZYX
+            The (ZYX) Euler angles, [alpha, beta, gamma], representing the 3D rotation.
+
+        Returns
+        -------
+        AttitudeMatrix
+            The corresponding attitude matrix, A.
+        """
+        if isinstance(euler, EulerZYX):
+            euler = euler.toarray()
+        A = _rot_matrix_from_euler(euler)
         return cls(A)
 
 
