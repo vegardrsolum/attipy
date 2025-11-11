@@ -5,9 +5,9 @@ from numpy.typing import ArrayLike
 
 from ._transforms import (
     _euler_from_quaternion,
+    _quaternion_from_euler,
     _rot_matrix_from_euler,
     _rot_matrix_from_quaternion,
-    _quaternion_from_euler,
 )
 from ._vectorops import _normalize
 
