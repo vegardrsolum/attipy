@@ -1,7 +1,7 @@
-from attipy import Attitude
+from attipy import UnitQuaternion
 
 
-class Test_Attitude:
+class Test_UnitQuaternion:
     def test__init__(self):
-        att = Attitude()
-        assert isinstance(att, Attitude)
+        q = UnitQuaternion([1.0, 0.0, 0.0, 0.0])
+
