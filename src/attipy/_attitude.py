@@ -56,7 +56,7 @@ class AttitudeMatrix(AttitudeBase):
 
 class UnitQuaternion(AttitudeBase):
     """
-    Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
+    Unit quaternion representation, [q_w, q_x, q_y, q_z], of a rotation in 3D space.
 
     Defined as:
 
@@ -73,8 +73,8 @@ class UnitQuaternion(AttitudeBase):
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, (q_w, q_x, q_y, q_z), where q_w is the scalar
-        part, and q_x, q_y and q_z are the vector parts.
+        The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
+        part, and q_x, q_y and q_z are the vector parts, respectively.
     """
 
     def __init__(self, q: ArrayLike) -> None:
@@ -86,12 +86,12 @@ class UnitQuaternion(AttitudeBase):
 
 class EulerZYX(AttitudeBase):
     """
-    Euler (ZYX) angles representation of a rotation in 3D space.
+    Euler (ZYX) angle representation of a rotation in 3D space.
 
     Parameters
     ----------
     theta : ArrayLike
-        The 3-element Euler (ZYX) angles, (theta_z, theta_y, theta_x), representing
+        The 3-element Euler (ZYX) angles, [theta_z, theta_y, theta_x], representing
         rotations about the Z, Y, and X axes, respectively.
     degrees : bool, default False
         If True, the input angles are interpreted as degrees. Otherwise, they are
