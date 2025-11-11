@@ -31,14 +31,6 @@ class AttitudeBase(ABC):
         array_str = np.array2string(self._toarray())
         return f"{class_name}({array_str})"
 
-    @classmethod
-    @abstractmethod
-    def _from_matrix(cls, matrix: np.ndarray) -> np.ndarray:
-        """
-        Create an array-representation of the attitude from a rotation matrix.
-        """
-        raise NotImplementedError("Not implemented.")
-
     @abstractmethod
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
         """
@@ -46,18 +38,12 @@ class AttitudeBase(ABC):
         """
         raise NotImplementedError("Not implemented.")
 
-    @classmethod
-    def from_object(cls, obj):
+    @property
+    def A(self) -> np.ndarray:
         """
-        Create an instance of the class from another attitude object.
+        Return the rotation matrix representation of the attitude.
         """
-        if not isinstance(obj, AttitudeBase):
-            raise TypeError(
-                "Input object must be an instance of AttitudeBase or its subclasses."
-            )
-        A = obj._as_matrix(obj._toarray())
-        array = cls._from_matrix(A)
-        return cls(array)
+        return AttitudeMatrix(self._as_matrix(self._toarray()))
 
 
 class AttitudeMatrix(AttitudeBase):
@@ -83,10 +69,6 @@ class AttitudeMatrix(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._A
-
-    @classmethod
-    def _from_matrix(cls, matrix: np.ndarray):
-        return cls(matrix)
 
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
         return array
@@ -169,10 +151,6 @@ class UnitQuaternion(AttitudeBase):
     def _toarray(self) -> np.ndarray:
         return self._q
 
-    @classmethod
-    def _from_matrix(cls, matrix: np.ndarray):
-        raise NotImplementedError("Not implemented.")
-
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
         return _rot_matrix_from_quaternion(array)
 
@@ -238,10 +216,6 @@ class EulerZYX(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._theta
-
-    @classmethod
-    def _from_matrix(cls, matrix: np.ndarray):
-        raise NotImplementedError("Not implemented.")
 
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
         return _rot_matrix_from_euler(array)
