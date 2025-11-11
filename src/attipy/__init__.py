@@ -1,5 +1,3 @@
-from ._ahrs import AHRS
-from ._attitude import Attitude
-from ._smoothing import FixedIntervalSmoother
+from ._attitude import AttitudeMatrix, UnitQuaternion
 
-__all__ = ["Attitude", "AHRS", "FixedIntervalSmoother"]
+__all__ = ["AttitudeMatrix", "UnitQuaternion"]
