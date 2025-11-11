@@ -43,7 +43,7 @@ class AttitudeMatrix(AttitudeBase):
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        self._A = np.asarray_chkfinite(A).reshape(3, 3)
+        self._A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
         if self._A.shape != (3, 3):
             raise ValueError("Attitude matrix must be a 3x3 matrix.")
 
@@ -115,7 +115,7 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _normalize(np.asarray_chkfinite(q).reshape(4))
+        self._q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4))
 
     def _toarray(self) -> np.ndarray:
         return self._q
@@ -154,7 +154,7 @@ class EulerZYX(AttitudeBase):
     """
 
     def __init__(self, theta: ArrayLike, degrees: bool = False) -> None:
-        self._theta = np.asarray_chkfinite(theta).reshape(3)
+        self._theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         self._degrees = degrees
         if self._degrees:
             self._theta *= np.pi / 180
