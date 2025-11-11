@@ -123,7 +123,7 @@ class UnitQuaternion(AttitudeBase):
 
 class EulerZYX(AttitudeBase):
     """
-    Euler (ZYX) angle representation of a rotation in 3D space.
+    (ZYX) Euler angle representation of a rotation in 3D space.
 
     The ZYX Euler angles describe how to transition from the 'navigation' frame to
     the 'body' frame through three consecutive intrinsic and passive rotations in
