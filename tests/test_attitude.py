@@ -35,3 +35,8 @@ class Test_EulerZYX:
         theta = [10.0, 20.0, 30.0]
         euler = EulerZYX(theta, degrees=True)
         np.testing.assert_allclose(euler.toarray(), (np.pi / 180.0) * np.array(theta))
+
+    def test_from_quaternion(self):
+        q = [1.0, 0.0, 0.0, 0.0]
+        euler = EulerZYX.from_quaternion(q)
+        np.testing.assert_allclose(euler.toarray(), np.array([0.0, 0.0, 0.0]))

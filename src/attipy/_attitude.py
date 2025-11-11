@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._transforms import _rot_matrix_from_quaternion
+from ._transforms import _rot_matrix_from_quaternion, _euler_from_quaternion
 from ._vectorops import _normalize
 
 
@@ -124,3 +124,10 @@ class EulerZYX(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._theta
+
+    @classmethod
+    def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "EulerZYX":
+        if isinstance(q, UnitQuaternion):
+            q = q.toarray()
+        theta = _euler_from_quaternion(q)
+        return cls(theta)
