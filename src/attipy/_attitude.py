@@ -109,7 +109,7 @@ class EulerZYX(AttitudeBase):
     Parameters
     ----------
     theta : ArrayLike
-        The 3-element Euler (ZYX) angles, [theta_x, theta_y, theta_z], representing
+        The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
         rotations about the X, Y, and Z axes, respectively.
     degrees : bool, default False
         If True, the input angles are interpreted as degrees. Otherwise, they are
