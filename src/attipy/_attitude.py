@@ -31,7 +31,8 @@ class AttitudeMatrix(AttitudeBase):
 
         v_n = A @ v_b
 
-    where
+    where,
+
     - A is the 3x3 attitude matrix.
     - v_b is a vector expressed in the body frame.
     - v_n is the same vector expressed in the navigation frame.
@@ -56,6 +57,18 @@ class AttitudeMatrix(AttitudeBase):
 class UnitQuaternion(AttitudeBase):
     """
     Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
+
+    Defined as:
+
+        [0, v_n] = q* ⊗ [0, v_b] ⊗ q
+
+    where,
+
+    - q* is the conjugate of the unit quaternion q.
+    - v_b is a vector expressed in the body frame.
+    - v_n is the same vector expressed in the navigation frame.
+
+    and ⊗ denotes quaternion multiplication (Hamilton product).
 
     Parameters
     ----------
