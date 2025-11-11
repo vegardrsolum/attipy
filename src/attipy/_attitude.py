@@ -51,6 +51,10 @@ class AttitudeBase(ABC):
         """
         Create an instance of the class from another attitude object.
         """
+        if not isinstance(obj, AttitudeBase):
+            raise TypeError(
+                "Input object must be an instance of AttitudeBase or its subclasses."
+            )
         A = obj._as_matrix(obj._toarray())
         array = cls._from_matrix(A)
         return cls(array)
