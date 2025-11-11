@@ -8,9 +8,11 @@ from ._vectorops import _normalize
 
 
 class AttitudeBase(ABC):
-    @property
     @abstractmethod
-    def value(self):
+    def toarray(self):
+        """
+        Return the attitude representation as a ``numpy.ndarray``.
+        """
         raise NotImplementedError("Not implemented.")
 
 
@@ -34,14 +36,13 @@ class AttitudeMatrix(AttitudeBase):
         if self._A.shape != (3, 3):
             raise ValueError("Attitude matrix must be a 3x3 matrix.")
 
-    @property
-    def value(self) -> np.ndarray:
+    def toarray(self) -> np.ndarray:
         return self._A.copy()
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
         if isinstance(q, UnitQuaternion):
-            q = q.value
+            q = q.toarray()
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -60,8 +61,7 @@ class UnitQuaternion(AttitudeBase):
     def __init__(self, q: ArrayLike) -> None:
         self._q = _normalize(np.asarray_chkfinite(q).reshape(4))
 
-    @property
-    def value(self) -> np.ndarray:
+    def toarray(self) -> np.ndarray:
         return self._q.copy()
 
 
@@ -85,6 +85,5 @@ class EulerZYX(AttitudeBase):
         if self._degrees:
             self._theta *= np.pi / 180
 
-    @property
-    def value(self) -> np.ndarray:
+    def toarray(self) -> np.ndarray:
         return self._theta.copy()
