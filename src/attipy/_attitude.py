@@ -25,11 +25,10 @@ class AttitudeBase(ABC):
         """
         return self._toarray().copy()
 
-    def __str__(self):
-        return np.array2string(self._toarray())
-    
     def __repr__(self):
-        return f"{self.__class__.__name__}({np.array2string(self._toarray())})"
+        class_name = self.__class__.__name__
+        array_str = np.array2string(self._toarray())
+        return f"{class_name}({array_str})"
 
 
 class AttitudeMatrix(AttitudeBase):
@@ -55,6 +54,12 @@ class AttitudeMatrix(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._A
+
+    def __repr__(self):
+        class_name = self.__class__.__name__
+        array_str = np.array2string(self._toarray())
+        array_str = ("\n " + len(class_name) * " ").join(array_str.split("\n"))
+        return f"{class_name}({array_str})"
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
