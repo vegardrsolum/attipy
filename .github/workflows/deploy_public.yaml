@@ -1,9 +1,9 @@
 name: Deploy Public
 
 env:
-  REPO_NAME: smsfusion-python
-  REPO_NAME_SHORT: smsfusion
-  SRC_ROOT_PATH: "./src/smsfusion"
+  REPO_NAME: attipy
+  REPO_NAME_SHORT: attipy
+  SRC_ROOT_PATH: "./src/attipy"
 
 on:
   workflow_dispatch:
