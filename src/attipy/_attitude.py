@@ -58,7 +58,7 @@ class AttitudeMatrix(AttitudeBase):
         return self._A.copy()
 
     @classmethod
-    def from_quaternion(cls, q: ArrayLike | UnitQuaternion) -> "AttitudeMatrix":
+    def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
         if isinstance(q, UnitQuaternion):
             q = q.value
         A = _rot_matrix_from_quaternion(q)
