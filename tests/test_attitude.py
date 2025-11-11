@@ -23,6 +23,11 @@ class Test_UnitQuaternion:
         q = UnitQuaternion([1.0, 0.0, 0.0, 0.0])
         np.testing.assert_allclose(q.toarray(), [1.0, 0.0, 0.0, 0.0])
 
+    def test_from_euler_zyx(self):
+        euler = np.array([0.0, 0.0, 0.0])
+        q = UnitQuaternion.from_euler_zyx(euler)
+        np.testing.assert_allclose(q.toarray(), [1.0, 0.0, 0.0, 0.0])
+
 
 class Test_EulerZYX:
     def test__init__(self):
