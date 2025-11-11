@@ -1,6 +1,6 @@
 import numpy as np
 
-from attipy import UnitQuaternion, AttitudeMatrix
+from attipy import AttitudeMatrix, UnitQuaternion
 
 
 class Test_UnitQuaternion:

@@ -1,9 +1,8 @@
-from warnings import warn
-
 import numpy as np
 from numba import njit
-from numpy.typing import ArrayLike, NDArray
-from smsfusion._vectorops import _normalize
+from numpy.typing import NDArray
+
+from ._vectorops import _normalize
 
 
 @njit  # type: ignore[misc]
@@ -57,79 +56,3 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
         ]
     )
     return rot
-
-
-@njit  # type: ignore[misc]
-def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute the Euler angles (ZYX convention) from a unit quaternion.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion (representing transformation from-body-to-origin).
-
-    Returns
-    -------
-    numpy.ndarray, shape (3,)
-        Vector of Euler angles in radians (ZYX convention). Contains the following
-        three Euler angles in order:
-            - Roll (alpha): Rotation about the x-axis.
-            - Pitch (beta): Rotation about the y-axis.
-            - Yaw (gamma): Rotation about the z-axis.
-    """
-    q_w, q_x, q_y, q_z = q
-
-    alpha = np.arctan2(2.0 * (q_y * q_z + q_x * q_w), 1.0 - 2.0 * (q_x**2 + q_y**2))
-    beta = -np.arcsin(2.0 * (q_x * q_z - q_y * q_w))
-    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
-
-    return np.array([alpha, beta, gamma])
-
-
-@njit  # type: ignore[misc]
-def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute the unit quaternion (representing transformation from-body-to-origin)
-    from Euler angles using the ZYX convention.
-
-    Parameters
-    ----------
-    euler : numpy.ndarray, shape (3,)
-        Vector of Euler angles in radians (ZYX convention). Contains the following
-        three Euler angles in order:
-
-            - Roll (alpha): Rotation about the x-axis.
-            - Pitch (beta): Rotation about the y-axis.
-            - Yaw (gamma): Rotation about the z-axis.
-    degrees : bool, default False
-        Whether provided Euler angles are in degrees or radians.
-
-    Return
-    ------
-    numpy.ndarray, shape (4,)
-        Unit quaternion.
-
-    Notes
-    -----
-    The Euler angles describe how to transition from the 'origin' frame to the 'body'
-    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
-    However, the returned unit quaternion represents the transformation from the
-    'body' frame to the 'origin' frame.
-
-    """
-    alpha2, beta2, gamma2 = euler / 2.0  # half angles
-    cos_alpha2 = np.cos(alpha2)
-    sin_alpha2 = np.sin(alpha2)
-    cos_beta2 = np.cos(beta2)
-    sin_beta2 = np.sin(beta2)
-    cos_gamma2 = np.cos(gamma2)
-    sin_gamma2 = np.sin(gamma2)
-
-    # Quaternion
-    q_w = cos_gamma2 * cos_beta2 * cos_alpha2 + sin_gamma2 * sin_beta2 * sin_alpha2
-    q_x = cos_gamma2 * cos_beta2 * sin_alpha2 - sin_gamma2 * sin_beta2 * cos_alpha2
-    q_y = cos_gamma2 * sin_beta2 * cos_alpha2 + sin_gamma2 * cos_beta2 * sin_alpha2
-    q_z = sin_gamma2 * cos_beta2 * cos_alpha2 - cos_gamma2 * sin_beta2 * sin_alpha2
-
-    return _normalize(np.array([q_w, q_x, q_y, q_z]))  # type: ignore[no-any-return]  # see _normalize

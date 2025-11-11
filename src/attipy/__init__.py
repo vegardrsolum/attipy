@@ -1,3 +1,3 @@
-from ._attitude import UnitQuaternion, AttitudeMatrix
+from ._attitude import AttitudeMatrix, UnitQuaternion
 
 __all__ = ["AttitudeMatrix", "UnitQuaternion"]

@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._vectorops import _normalize
 from ._transforms import _rot_matrix_from_quaternion
+from ._vectorops import _normalize
 
 
 class AttitudeBase(ABC):
