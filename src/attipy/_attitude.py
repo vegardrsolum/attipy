@@ -174,7 +174,7 @@ class UnitQuaternion(AttitudeBase):
         raise NotImplementedError("Not implemented.")
 
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        raise NotImplementedError("Not implemented.")
+        return _rot_matrix_from_quaternion(array)
 
     @classmethod
     def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "UnitQuaternion":
@@ -244,7 +244,7 @@ class EulerZYX(AttitudeBase):
         raise NotImplementedError("Not implemented.")
 
     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        raise NotImplementedError("Not implemented.")
+        return _rot_matrix_from_euler(array)
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "EulerZYX":
