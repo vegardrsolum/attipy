@@ -6,18 +6,13 @@ from ._vectorops import _normalize
 
 class UnitQuaternion:
     """
-    Unit quaternion representation of a rotation in 3D space.
+    Unit quaternion representation, (q_w, q_x, q_y, q_z), of a rotation in 3D space.
 
     Parameters
     ----------
-    q_w : float
-        The scalar part of the unit quaternion.
-    q_x : float
-        The x component of the vector part of the unit quaternion.
-    q_y : float
-        The y component of the vector part of the unit quaternion.
-    q_z : float
-        The z component of the vector part of the unit quaternion.
+    q : ArrayLike
+        The 4-element unit quaternion, (q_w, q_x, q_y, q_z), where q_w is the scalar
+        part, and q_x, q_y and q_z are the vector parts.
     """
 
     def __init__(self, q: ArrayLike) -> None:
