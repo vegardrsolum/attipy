@@ -25,6 +25,12 @@ class AttitudeBase(ABC):
         """
         return self._toarray().copy()
 
+    def __str__(self):
+        return np.array2string(self._toarray())
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({np.array2string(self._toarray())})"
+
 
 class AttitudeMatrix(AttitudeBase):
     """
