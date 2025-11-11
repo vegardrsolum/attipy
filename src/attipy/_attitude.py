@@ -48,6 +48,19 @@ class AttitudeMatrix(AttitudeBase):
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
+        """
+        Create an AttitudeMatrix from a unit quaternion.
+
+        Parameters
+        ----------
+        q : ArrayLike or UnitQuaternion
+            The unit quaternion, [q_w, q_x, q_y, q_z], representing the 3D rotation.
+
+        Returns
+        -------
+        AttitudeMatrix
+            The corresponding attitude matrix, A.
+        """
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
         A = _rot_matrix_from_quaternion(q)
