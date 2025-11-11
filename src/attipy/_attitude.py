@@ -2,6 +2,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ._vectorops import _normalize
+from ._transforms import _rot_matrix_from_quaternion
 
 
 class UnitQuaternion:
@@ -46,3 +47,10 @@ class AttitudeMatrix:
     @property
     def value(self) -> np.ndarray:
         return self._A.copy()
+
+    @classmethod
+    def from_quaternion(cls, q: ArrayLike | UnitQuaternion) -> "AttitudeMatrix":
+        if isinstance(q, UnitQuaternion):
+            q = q.value
+        A = _rot_matrix_from_quaternion(q)
+        return cls(A)
