@@ -74,6 +74,9 @@ class EulerZYX(AttitudeBase):
     theta : ArrayLike
         The 3-element Euler (ZYX) angles, (theta_z, theta_y, theta_x), representing
         rotations about the Z, Y, and X axes, respectively.
+    degrees : bool, default False
+        If True, the input angles are interpreted as degrees. Otherwise, they are
+        interpreted as radians. Internally, angles are stored as radians.
     """
 
     def __init__(self, theta: ArrayLike, degrees: bool = False) -> None:
