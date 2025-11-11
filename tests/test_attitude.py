@@ -21,6 +21,11 @@ class Test_UnitQuaternion:
 
 
 class Test_EulerZYX:
+    def test__init__(self):
+        theta = np.array([np.pi/8, np.pi/4, np.pi/2])
+        euler = EulerZYX(theta)
+        np.testing.assert_allclose(euler._theta, np.array(theta))
+
     def test__init__radians(self):
         theta = np.array([np.pi/8, np.pi/4, np.pi/2])
         euler = EulerZYX(theta, degrees=False)
