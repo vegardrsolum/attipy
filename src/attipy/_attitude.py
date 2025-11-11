@@ -13,13 +13,13 @@ from ._vectorops import _normalize
 
 class AttitudeBase(ABC):
     @abstractmethod
-    def _toarray(self):
+    def _toarray(self) -> np.ndarray:
         """
         Return the attitude representation as a ``numpy.ndarray``.
         """
         raise NotImplementedError("Not implemented.")
 
-    def toarray(self):
+    def toarray(self) -> np.ndarray:
         """
         Return the attitude representation as a ``numpy.ndarray``.
         """
