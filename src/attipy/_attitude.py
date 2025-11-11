@@ -30,7 +30,7 @@ class AttitudeMatrix(AttitudeBase):
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        self._A = np.asarray_chkfinite(A)
+        self._A = np.asarray_chkfinite(A).reshape(3, 3)
         if self._A.shape != (3, 3):
             raise ValueError("Attitude matrix must be a 3x3 matrix.")
 
@@ -58,8 +58,30 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _normalize(np.asarray_chkfinite(q))
+        self._q = _normalize(np.asarray_chkfinite(q).reshape(4))
 
     @property
     def value(self) -> np.ndarray:
         return self._q.copy()
+
+
+class EulerZYX(AttitudeBase):
+    """
+    Euler (ZYX) angles representation of a rotation in 3D space.
+
+    Parameters
+    ----------
+    theta : ArrayLike
+        The 3-element Euler (ZYX) angles, (theta_z, theta_y, theta_x), representing
+        rotations about the Z, Y, and X axes, respectively.
+    """
+
+    def __init__(self, theta: ArrayLike, degrees: bool = False) -> None:
+        self._theta = np.asarray_chkfinite(theta).reshape(3)
+        self._degrees = degrees
+        if self._degrees:
+            self._theta *= np.pi / 180
+
+    @property
+    def value(self) -> np.ndarray:
+        return self._theta.copy()
