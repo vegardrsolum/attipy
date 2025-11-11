@@ -2,8 +2,6 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._vectorops import _normalize
-
 
 @njit  # type: ignore[misc]
 def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
