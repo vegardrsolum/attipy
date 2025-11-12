@@ -41,6 +41,10 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
 
 
 class AttitudeBase(ABC):
+    """
+    Base class for attitude representation (i.e., the rotation relative to a reference
+    frame in 3D space).
+    """
     @abstractmethod
     def _asarray(self) -> np.ndarray:
         """
