@@ -86,11 +86,27 @@ class AttitudeMatrix(AttitudeBase):
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees=False) -> "AttitudeMatrix":
         """
-        Create an AttitudeMatrix from (ZYX) Euler angles.
+        Create an AttitudeMatrix from (ZYX) Euler angles (see Notes).
 
-        The ZYX Euler angles describe how to transition from the 'navigation' frame to
-        the 'body' frame through three consecutive intrinsic and passive rotations in
-        the ZYX order.
+        Parameters
+        ----------
+        theta : ArrayLike
+            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+            rotations about the X, Y, and Z axes, respectively.
+        degrees : bool, default False
+            If True, the input angles are interpreted as degrees. Otherwise, they are
+            interpreted as radians. Internally, angles are stored as radians.
+
+        Returns
+        -------
+        AttitudeMatrix
+            The corresponding attitude matrix, A.
+
+        Notes
+        -----
+        The ZYX Euler angles describe how to transition from the 'navigation' frame
+        to the 'body' frame through three consecutive intrinsic and passive rotations
+        in the ZYX order.
 
         Defined as:
 
@@ -105,25 +121,6 @@ class AttitudeMatrix(AttitudeBase):
 
         and A is the attitude matrix (transforming vectors from the body frame to
         the navigation frame).
-
-        Parameters
-        ----------
-        theta : ArrayLike
-            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
-            rotations about the X, Y, and Z axes, respectively.
-        degrees : bool, default False
-            If True, the input angles are interpreted as degrees. Otherwise, they are
-            interpreted as radians. Internally, angles are stored as radians.
-
-        Returns
-        -------
-        UnitQuaternion
-            The corresponding unit quaternion, q.
-
-        Returns
-        -------
-        AttitudeMatrix
-            The corresponding attitude matrix, A.
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
