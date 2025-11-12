@@ -15,7 +15,7 @@ def asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
     """
     Convert the input to a numpy array and check if it is a unit quaternion.
     """
-    q = np.asarray_chkfinite(q, dtype=float).reshape(4)
+    q = np.asarray_chkfinite(q, dtype=float)
     if q.shape != (4,):
         raise ValueError("Quaternion must be a 4-element array.")
     norm = np.linalg.norm(q)
@@ -29,7 +29,7 @@ def asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
     """
-    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
+    A = np.asarray_chkfinite(A, dtype=float)
     if A.shape != (3, 3):
         raise ValueError("SO(3) matrix must be a 3x3 array.")
     I3x3 = np.eye(3)
