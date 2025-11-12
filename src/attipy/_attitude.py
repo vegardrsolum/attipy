@@ -11,7 +11,10 @@ from ._transforms import (
 )
 
 
-def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
+def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
+    """
+    Convert the input to a numpy array and check if it is a unit quaternion.
+    """
     q = np.asarray_chkfinite(q, dtype=float).reshape(4)
     if q.shape != (4,):
         raise ValueError("Quaternion must be a 4-element array.")
@@ -21,29 +24,19 @@ def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
     return q
 
 
-def _check_so3(A):
+def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
     """
-    Check if matrix A is a valid rotation matrix (element of SO(3)).
+    Convert the input to a numpy array and check if it is a valid rotation matrix
+    (element of SO(3)).
     """
+    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
     if A.shape != (3, 3):
-        raise ValueError("The SO(3) matrix must have shape 3x3.")
+        raise ValueError("SO(3) matrix must be a 3x3 array.")
     I3x3 = np.eye(3)
     if not np.allclose(A.T @ A, I3x3):
-        raise ValueError("The SO(3) matrix must be orthogonal.")
+        raise ValueError("SO(3) matrix must be orthogonal.")
     if not np.isclose(np.linalg.det(A), 1.0):
-        raise ValueError("The SO(3) matrix must have a determinant of 1.")
-
-
-def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
-    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
-    _check_so3(A)
-    return A
-
-
-def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
-    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
-    if A.shape != (3, 3):
-        raise ValueError("Matrix must be a 3x3 array.")
+        raise ValueError("SO(3) matrix must have a determinant of 1.")
     return A
 
 
@@ -119,7 +112,7 @@ class AttitudeMatrix(AttitudeBase):
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        self._A = _asarray_check_matrix(A)
+        self._A = _asarray_check_matrix_so3(A)
 
     def _asarray(self) -> np.ndarray:
         return self._A
@@ -157,7 +150,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.asarray()
-        q = _asarray_check_quaternion(q).copy()
+        q = _asarray_check_unit_quaternion(q).copy()
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -234,7 +227,7 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_quaternion(q).copy()
+        self._q = _asarray_check_unit_quaternion(q).copy()
 
     def _asarray(self) -> np.ndarray:
         return self._q
