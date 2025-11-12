@@ -9,7 +9,7 @@ from ._transforms import (
     _rot_matrix_from_euler_zyx,
     _rot_matrix_from_quaternion,
 )
-from ._vectorops import _normalize, _quaternion_product
+from ._vectorops import _normalize
 
 
 def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
@@ -42,6 +42,19 @@ class AttitudeBase(ABC):
         Return the attitude representation as a ``numpy.ndarray``.
         """
         return self._asarray().copy()
+
+    @staticmethod
+    @abstractmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        """
+        Convert the attitude representation to an attitude matrix.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3, 3)
+            The attitude matrix.
+        """
+        raise NotImplementedError("Not implemented.")
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -79,13 +92,24 @@ class AttitudeMatrix(AttitudeBase):
     - A is the 3x3 attitude matrix.
     - v_b is a vector expressed in the body frame.
     - v_n is the same vector expressed in the navigation frame.
+
+    Parameters
+    ----------
+    A : ArrayLike or AttitudeBase
+        The 3x3 attitude matrix, A.
     """
 
     def __init__(self, A: ArrayLike) -> None:
+        if isinstance(A, AttitudeBase):
+            A = A._to_matrix(A._asarray())
         self._A = _asarray_check_matrix(A)
 
     def _asarray(self) -> np.ndarray:
         return self._A
+
+    @staticmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        return array
 
     def _rotate_vec(self, v_b):
         return self._A @ v_b
@@ -200,6 +224,10 @@ class UnitQuaternion(AttitudeBase):
 
     def _asarray(self) -> np.ndarray:
         return self._q
+
+    @staticmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        return _rot_matrix_from_quaternion(array)
 
     def _rotate_vec(self, v_b):
         q_w, q_xyz = self._q[0], self._q[1:]
