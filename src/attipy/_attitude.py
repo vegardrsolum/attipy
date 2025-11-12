@@ -201,13 +201,20 @@ class UnitQuaternion(AttitudeBase):
     def _asarray(self) -> np.ndarray:
         return self._q
 
+    # def _rotate_vec(self, v_b):
+    #     v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
+    #     q = self._q
+    #     q_conj = q * np.array([1, -1, -1, -1])
+    #     v_b_quat = np.concatenate(([0.0], v_b))
+    #     v_n_quat = _quaternion_product(_quaternion_product(q, v_b_quat), q_conj)
+    #     return v_n_quat[1:]
+
     def _rotate_vec(self, v_b):
         v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
-        q = self._q
-        q_conj = q * np.array([1, -1, -1, -1])
-        v_b_quat = np.concatenate(([0.0], v_b))
-        v_n_quat = _quaternion_product(_quaternion_product(q, v_b_quat), q_conj)
-        return v_n_quat[1:]
+        q_w, q_xyz = self._q[0], self._q[1:]
+        t = 2.0 * np.cross(q_xyz, v_b)
+        v_n = v_b + q_w * t + np.cross(q_xyz, t)
+        return v_n
 
 
     @classmethod
