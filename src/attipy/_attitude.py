@@ -96,13 +96,11 @@ class AttitudeMatrix(AttitudeBase):
 
     Parameters
     ----------
-    A : ArrayLike or AttitudeBase
+    A : ArrayLike
         The 3x3 attitude matrix, A.
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        if isinstance(A, AttitudeBase):
-            A = A._to_matrix(A._asarray())
         self._A = _asarray_check_matrix(A)
 
     def _asarray(self) -> np.ndarray:
