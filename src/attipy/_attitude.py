@@ -24,21 +24,21 @@ def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
 
 class AttitudeBase(ABC):
     @abstractmethod
-    def _toarray(self) -> np.ndarray:
+    def _asarray(self) -> np.ndarray:
         """
         Return the attitude representation as a ``numpy.ndarray``.
         """
         raise NotImplementedError("Not implemented.")
 
-    def toarray(self) -> np.ndarray:
+    def asarray(self) -> np.ndarray:
         """
         Return the attitude representation as a ``numpy.ndarray``.
         """
-        return self._toarray().copy()
+        return self._asarray().copy()
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        array_str = np.array2string(self._toarray())
+        array_str = np.array2string(self._asarray())
         return f"{class_name}({array_str})"
 
 
@@ -64,12 +64,12 @@ class AttitudeMatrix(AttitudeBase):
             raise ValueError("Attitude matrix must be a 3x3 matrix.")
         # TODO: Validate that the matrix is a valid rotation matrix.
 
-    def _toarray(self) -> np.ndarray:
+    def _asarray(self) -> np.ndarray:
         return self._A
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        array_str = np.array2string(self._toarray())
+        array_str = np.array2string(self._asarray())
         array_str = ("\n " + len(class_name) * " ").join(array_str.split("\n"))
         return f"{class_name}({array_str})"
 
@@ -168,7 +168,7 @@ class UnitQuaternion(AttitudeBase):
         q = _asarray_check_quaternion(q).copy()
         self._q = _normalize(q)
 
-    def _toarray(self) -> np.ndarray:
+    def _asarray(self) -> np.ndarray:
         return self._q
 
     @classmethod
