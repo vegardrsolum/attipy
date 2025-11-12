@@ -28,8 +28,15 @@ class Test_UnitQuaternion:
         q = UnitQuaternion.from_euler(euler)
         np.testing.assert_allclose(q.toarray(), [1.0, 0.0, 0.0, 0.0])
 
-    def test_to_euler(self):
+    def test_to_euler_deg(self):
         euler = np.array([10.0, 20.0, -30.0])
         q = UnitQuaternion.from_euler(euler, degrees=True)
         euler_out = q.to_euler(degrees=True)
         np.testing.assert_allclose(euler_out, euler)
+
+    def test_to_euler_rad(self):
+        euler = np.radians(np.array([-10.0, -20.0, 30.0]))
+        q = UnitQuaternion.from_euler(euler, degrees=False)
+        euler_out = q.to_euler(degrees=False)
+        np.testing.assert_allclose(euler_out, euler)
+
