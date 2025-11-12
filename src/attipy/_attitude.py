@@ -61,6 +61,7 @@ class AttitudeBase(ABC):
         """
         Rotate a vector from the body frame to the navigation frame.
         """
+        v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
         return self._rotate_vec(v_b)
 
 
@@ -87,7 +88,6 @@ class AttitudeMatrix(AttitudeBase):
         return self._A
 
     def _rotate_vec(self, v_b):
-        v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
         return self._A @ v_b
 
     @classmethod
@@ -210,7 +210,6 @@ class UnitQuaternion(AttitudeBase):
     #     return v_n_quat[1:]
 
     def _rotate_vec(self, v_b):
-        v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
         q_w, q_xyz = self._q[0], self._q[1:]
         t = 2.0 * np.cross(q_xyz, v_b)
         v_n = v_b + q_w * t + np.cross(q_xyz, t)
