@@ -26,7 +26,7 @@ def _quaternion_product(
     qa: NDArray[np.float64], qb: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Unit quaternion (Schur) product: ``qa * qb``.
+    Unit quaternion (Hamilton) product: q_a ⊗ q_b.
 
     Parameters
     ----------
