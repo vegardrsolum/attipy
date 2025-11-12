@@ -4,9 +4,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ._transforms import (
-    _euler_from_quaternion,
-    _quaternion_from_euler,
-    _rot_matrix_from_euler,
+    _euler_zyx_from_quaternion,
+    _quaternion_from_euler_zyx,
+    _rot_matrix_from_euler_zyx,
     _rot_matrix_from_quaternion,
 )
 from ._vectorops import _normalize
@@ -30,20 +30,6 @@ class AttitudeBase(ABC):
         class_name = self.__class__.__name__
         array_str = np.array2string(self._toarray())
         return f"{class_name}({array_str})"
-
-    @abstractmethod
-    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        """
-        Return the rotation matrix representation of the attitude.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    @property
-    def A(self) -> np.ndarray:
-        """
-        Return the rotation matrix representation of the attitude.
-        """
-        return AttitudeMatrix(self._as_matrix(self._toarray()))
 
 
 class AttitudeMatrix(AttitudeBase):
@@ -69,9 +55,6 @@ class AttitudeMatrix(AttitudeBase):
 
     def _toarray(self) -> np.ndarray:
         return self._A
-
-    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        return array
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -101,24 +84,51 @@ class AttitudeMatrix(AttitudeBase):
         return cls(A)
 
     @classmethod
-    def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "AttitudeMatrix":
+    def from_euler(cls, theta: ArrayLike, degrees=False) -> "AttitudeMatrix":
         """
         Create an AttitudeMatrix from (ZYX) Euler angles.
 
+        The ZYX Euler angles describe how to transition from the 'navigation' frame to
+        the 'body' frame through three consecutive intrinsic and passive rotations in
+        the ZYX order.
+
+        Defined as:
+
+            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+
+        where,
+
+        - gamma is a first rotation about the navigation frame's Z-axis.
+        - beta is a second rotation about the intermediate Y-axis.
+        - alpha is a final rotation about the second intermediate X-axis to arrive
+          at the body frame.
+
+        and A is the attitude matrix (transforming vectors from the body frame to
+        the navigation frame).
+
         Parameters
         ----------
-        euler : ArrayLike or EulerZYX
-            The (ZYX) Euler angles, [alpha, beta, gamma], representing the 3D rotation.
+        theta : ArrayLike
+            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+            rotations about the X, Y, and Z axes, respectively.
+        degrees : bool, default False
+            If True, the input angles are interpreted as degrees. Otherwise, they are
+            interpreted as radians. Internally, angles are stored as radians.
+
+        Returns
+        -------
+        UnitQuaternion
+            The corresponding unit quaternion, q.
 
         Returns
         -------
         AttitudeMatrix
             The corresponding attitude matrix, A.
         """
-        if isinstance(euler, EulerZYX):
-            euler = euler.toarray()
-        euler = np.asarray_chkfinite(euler, dtype=float).reshape(3)
-        A = _rot_matrix_from_euler(euler)
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        if degrees:
+            theta *= (np.pi / 180.0)
+        A = _rot_matrix_from_euler_zyx(theta)
         return cls(A)
 
 
@@ -151,78 +161,97 @@ class UnitQuaternion(AttitudeBase):
     def _toarray(self) -> np.ndarray:
         return self._q
 
-    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        return _rot_matrix_from_quaternion(array)
-
     @classmethod
-    def from_euler_zyx(cls, euler: ArrayLike | "EulerZYX") -> "UnitQuaternion":
+    def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> "UnitQuaternion":
         """
-        Create a UnitQuaternion from (ZYX) Euler angles.
+        Create a unit quaternion from (ZYX) Euler angles.
+
+        The ZYX Euler angles describe how to transition from the 'navigation' frame to
+        the 'body' frame through three consecutive intrinsic and passive rotations in
+        the ZYX order.
+
+        Defined as:
+
+            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+
+        where,
+
+        - gamma is a first rotation about the navigation frame's Z-axis.
+        - beta is a second rotation about the intermediate Y-axis.
+        - alpha is a final rotation about the second intermediate X-axis to arrive
+          at the body frame.
+
+        and A is the attitude matrix (transforming vectors from the body frame to
+        the navigation frame).
 
         Parameters
         ----------
-        euler : ArrayLike or EulerZYX
-            The (ZYX) Euler angles, [alpha, beta, gamma], representing the 3D rotation.
+        theta : ArrayLike
+            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+            rotations about the X, Y, and Z axes, respectively.
+        degrees : bool, default False
+            If True, the input angles are interpreted as degrees. Otherwise, they are
+            interpreted as radians. Internally, angles are stored as radians.
 
         Returns
         -------
         UnitQuaternion
             The corresponding unit quaternion, q.
         """
-        if isinstance(euler, EulerZYX):
-            euler = euler.toarray()
-        euler = np.asarray_chkfinite(euler, dtype=float).reshape(3)
-        q = _quaternion_from_euler(euler)
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        if degrees:
+            theta *= (np.pi / 180.0)
+        q = _quaternion_from_euler_zyx(theta)
         return cls(q)
 
 
-class EulerZYX(AttitudeBase):
-    """
-    (ZYX) Euler angle representation of a rotation in 3D space.
+# class EulerZYX(AttitudeBase):
+#     """
+#     (ZYX) Euler angle representation of a rotation in 3D space.
 
-    The ZYX Euler angles describe how to transition from the 'navigation' frame to
-    the 'body' frame through three consecutive intrinsic and passive rotations in
-    the ZYX order.
+#     The ZYX Euler angles describe how to transition from the 'navigation' frame to
+#     the 'body' frame through three consecutive intrinsic and passive rotations in
+#     the ZYX order.
 
-    Defined as:
+#     Defined as:
 
-        A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+#         A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
 
-    where,
+#     where,
 
-    - gamma is a first rotation about the navigation frame's Z-axis.
-    - beta is a second rotation about the intermediate Y-axis.
-    - alpha is a final rotation about the second intermediate X-axis to arrive
-      at the body frame.
+#     - gamma is a first rotation about the navigation frame's Z-axis.
+#     - beta is a second rotation about the intermediate Y-axis.
+#     - alpha is a final rotation about the second intermediate X-axis to arrive
+#       at the body frame.
 
-    and A is the attitude matrix (transforming vectors from the body frame to
-    the navigation frame).
+#     and A is the attitude matrix (transforming vectors from the body frame to
+#     the navigation frame).
 
-    Parameters
-    ----------
-    theta : ArrayLike
-        The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
-        rotations about the X, Y, and Z axes, respectively.
-    degrees : bool, default False
-        If True, the input angles are interpreted as degrees. Otherwise, they are
-        interpreted as radians. Internally, angles are stored as radians.
-    """
+#     Parameters
+#     ----------
+#     theta : ArrayLike
+#         The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+#         rotations about the X, Y, and Z axes, respectively.
+#     degrees : bool, default False
+#         If True, the input angles are interpreted as degrees. Otherwise, they are
+#         interpreted as radians. Internally, angles are stored as radians.
+#     """
 
-    def __init__(self, theta: ArrayLike, degrees: bool = False) -> None:
-        self._theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
-        self._degrees = degrees
-        if self._degrees:
-            self._theta *= np.pi / 180
+#     def __init__(self, theta: ArrayLike, degrees: bool = False) -> None:
+#         self._theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+#         self._degrees = degrees
+#         if self._degrees:
+#             self._theta *= np.pi / 180
 
-    def _toarray(self) -> np.ndarray:
-        return self._theta
+#     def _toarray(self) -> np.ndarray:
+#         return self._theta
 
-    def _as_matrix(self, array: np.ndarray) -> np.ndarray:
-        return _rot_matrix_from_euler(array)
+#     def _as_matrix(self, array: np.ndarray) -> np.ndarray:
+#         return _rot_matrix_from_euler(array)
 
-    @classmethod
-    def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "EulerZYX":
-        if isinstance(q, UnitQuaternion):
-            q = q.toarray()
-        theta = _euler_from_quaternion(q)
-        return cls(theta)
+#     @classmethod
+#     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "EulerZYX":
+#         if isinstance(q, UnitQuaternion):
+#             q = q.toarray()
+#         theta = _euler_from_quaternion(q)
+#         return cls(theta)

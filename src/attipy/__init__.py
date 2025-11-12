@@ -1,3 +1,3 @@
-from ._attitude import AttitudeMatrix, EulerZYX, UnitQuaternion
+from ._attitude import AttitudeMatrix, UnitQuaternion
 
-__all__ = ["AttitudeMatrix", "UnitQuaternion", "EulerZYX"]
+__all__ = ["AttitudeMatrix", "UnitQuaternion"]

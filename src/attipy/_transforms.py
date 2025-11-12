@@ -57,7 +57,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the Euler angles (ZYX convention) from a unit quaternion.
 
@@ -85,10 +85,9 @@ def _euler_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix (from-body-to-origin) from Euler angles.
-
 
     Parameters
     ----------
@@ -138,10 +137,12 @@ def _rot_matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles.
     """
+
+    #TODO: Verify thath the equation are correct
 
     alpha_half, beta_half, gamma_half = euler / 2.0
     cos_alpha = np.cos(alpha_half)
