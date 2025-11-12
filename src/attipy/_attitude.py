@@ -9,7 +9,6 @@ from ._transforms import (
     _rot_matrix_from_euler_zyx,
     _rot_matrix_from_quaternion,
 )
-from ._vectorops import _normalize
 
 
 def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
@@ -235,8 +234,7 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        q = _asarray_check_quaternion(q).copy()
-        self._q = _normalize(q)
+        self._q = _asarray_check_quaternion(q).copy()
 
     def _asarray(self) -> np.ndarray:
         return self._q
