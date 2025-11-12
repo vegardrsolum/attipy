@@ -164,25 +164,7 @@ class UnitQuaternion(AttitudeBase):
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> "UnitQuaternion":
         """
-        Create a unit quaternion from (ZYX) Euler angles.
-
-        The ZYX Euler angles describe how to transition from the 'navigation' frame to
-        the 'body' frame through three consecutive intrinsic and passive rotations in
-        the ZYX order.
-
-        Defined as:
-
-            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
-
-        where,
-
-        - gamma is a first rotation about the navigation frame's Z-axis.
-        - beta is a second rotation about the intermediate Y-axis.
-        - alpha is a final rotation about the second intermediate X-axis to arrive
-          at the body frame.
-
-        and A is the attitude matrix (transforming vectors from the body frame to
-        the navigation frame).
+        Create a unit quaternion from (ZYX) Euler angles (see Notes).
 
         Parameters
         ----------
@@ -197,9 +179,50 @@ class UnitQuaternion(AttitudeBase):
         -------
         UnitQuaternion
             The corresponding unit quaternion, q.
+
+        Notes
+        -----
+        The ZYX Euler angles describe how to transition from the 'navigation' frame
+        to the 'body' frame through three consecutive intrinsic and passive rotations
+        in the ZYX order.
+
+        Defined as:
+
+            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+
+        where,
+
+        - gamma is a first rotation about the navigation frame's Z-axis.
+        - beta is a second rotation about the intermediate Y-axis.
+        - alpha is a final rotation about the second intermediate X-axis to arrive
+          at the body frame.
+
+        and A is the attitude matrix (transforming vectors from the body frame to
+        the navigation frame).
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
             theta *= (np.pi / 180.0)
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
+    
+    def to_euler(self, degrees: bool = False) -> np.ndarray:
+        """
+        Convert the unit quaternion to (ZYX) Euler angles.
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            If True, the output angles are in degrees. Otherwise, they are in radians.
+
+        Returns
+        -------
+        np.ndarray
+            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+            rotations about the X, Y, and Z axes, respectively.
+        """
+        q = self._q
+        theta = _euler_zyx_from_quaternion(q)
+        if degrees:
+            theta *= (180.0 / np.pi)
+        return theta
