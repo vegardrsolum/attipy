@@ -22,6 +22,25 @@ def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
     return q
 
 
+def _check_so3(A):
+    """
+    Check if matrix A is a valid rotation matrix (element of SO(3)).
+    """
+    if A.shape != (3, 3):
+        raise ValueError("The SO(3) matrix must have shape 3x3.")
+    I3x3 = np.eye(3)
+    if not np.allclose(A.T @ A, I3x3):
+        raise ValueError("The SO(3) matrix must be orthogonal.")
+    if not np.isclose(np.linalg.det(A), 1.0):
+        raise ValueError("The SO(3) matrix must have a determinant of 1.")
+
+
+def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
+    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
+    _check_so3(A)
+    return A
+
+
 def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
     A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
     if A.shape != (3, 3):
