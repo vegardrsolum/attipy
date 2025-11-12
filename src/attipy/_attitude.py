@@ -63,12 +63,13 @@ class AttitudeBase(ABC):
         if array.ndim == 2:
             array_str = ("\n " + len(class_name) * " ").join(array_str.split("\n"))
         return f"{class_name}({array_str})"
-    
+
     def _rotate_vec(self, v_b):
         """
         Rotate a vector from the body frame to the navigation frame.
         """
-        raise NotImplementedError("Not implmented.")
+        A = self._to_matrix(self._asarray())
+        return A @ v_b
 
     def rotate_vec(self, v_b):
         """
@@ -110,9 +111,6 @@ class AttitudeMatrix(AttitudeBase):
     @staticmethod
     def _to_matrix(array: np.ndarray) -> np.ndarray:
         return array
-
-    def _rotate_vec(self, v_b):
-        return self._A @ v_b
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
