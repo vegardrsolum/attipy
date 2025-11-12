@@ -79,7 +79,8 @@ class AttitudeMatrix(AttitudeBase):
         """
         Create an AttitudeMatrix from a unit quaternion.
 
-        The attitude matrix can be derived from the unit quaternion, q, according to:
+        The attitude matrix, A, can be derived from the unit quaternion, q, according
+        to:
 
             A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
