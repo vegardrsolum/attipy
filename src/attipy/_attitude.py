@@ -12,12 +12,14 @@ from ._transforms import (
 from ._vectorops import _normalize
 
 
-def _check_quaternion(q: np.ndarray) -> None:
+def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
+    q = np.asarray_chkfinite(q, dtype=float).reshape(4)
     if q.shape != (4,):
         raise ValueError("Quaternion must be a 4-element array.")
     norm = np.linalg.norm(q)
     if not np.isclose(norm, 1.0):
         raise ValueError("Quaternion must be a unit quaternion (norm = 1).")
+    return q
 
 
 class AttitudeBase(ABC):
@@ -89,8 +91,7 @@ class AttitudeMatrix(AttitudeBase):
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
 
-        q = np.asarray_chkfinite(q, dtype=float).reshape(4).copy()
-        _check_quaternion(q)
+        q = _asarray_check_quaternion(q).copy()
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -164,8 +165,7 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        q = np.asarray_chkfinite(q, dtype=float).reshape(4).copy()
-        _check_quaternion(q)
+        q = _asarray_check_quaternion(q).copy()
         self._q = _normalize(q)
 
     def _toarray(self) -> np.ndarray:
@@ -231,7 +231,7 @@ class UnitQuaternion(AttitudeBase):
             The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
             rotations about the X, Y, and Z axes, respectively.
         """
-        q = self._q
+        q = self._q.copy()
         theta = _euler_zyx_from_quaternion(q)
         if degrees:
             theta *= (180.0 / np.pi)
