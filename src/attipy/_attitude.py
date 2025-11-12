@@ -132,7 +132,9 @@ class AttitudeMatrix(AttitudeBase):
           at the body frame.
 
         and A is the attitude matrix (transforming vectors from the body frame to
-        the navigation frame).
+        the navigation frame):
+
+            v_n = A @ v_b
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
@@ -208,7 +210,9 @@ class UnitQuaternion(AttitudeBase):
           at the body frame.
 
         and A is the attitude matrix (transforming vectors from the body frame to
-        the navigation frame).
+        the navigation frame):
+
+            v_n = A @ v_b
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
@@ -218,7 +222,7 @@ class UnitQuaternion(AttitudeBase):
     
     def to_euler(self, degrees: bool = False) -> np.ndarray:
         """
-        Convert the unit quaternion to (ZYX) Euler angles.
+        Convert the unit quaternion to (ZYX) Euler angles (see Notes).
 
         Parameters
         ----------
@@ -230,6 +234,28 @@ class UnitQuaternion(AttitudeBase):
         np.ndarray
             The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
             rotations about the X, Y, and Z axes, respectively.
+
+        Notes
+        -----
+        The ZYX Euler angles describe how to transition from the 'navigation' frame
+        to the 'body' frame through three consecutive intrinsic and passive rotations
+        in the ZYX order.
+
+        Defined as:
+
+            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+
+        where,
+
+        - gamma is a first rotation about the navigation frame's Z-axis.
+        - beta is a second rotation about the intermediate Y-axis.
+        - alpha is a final rotation about the second intermediate X-axis to arrive
+          at the body frame.
+
+        and A is the attitude matrix (transforming vectors from the body frame to
+        the navigation frame):
+
+            v_n = A @ v_b
         """
         q = self._q.copy()
         theta = _euler_zyx_from_quaternion(q)
