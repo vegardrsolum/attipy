@@ -22,6 +22,13 @@ def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
     return q
 
 
+def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
+    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
+    if A.shape != (3, 3):
+        raise ValueError("Matrix must be a 3x3 array.")
+    return A
+
+
 class AttitudeBase(ABC):
     @abstractmethod
     def _asarray(self) -> np.ndarray:
@@ -62,10 +69,7 @@ class AttitudeMatrix(AttitudeBase):
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        self._A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
-        if self._A.shape != (3, 3):
-            raise ValueError("Attitude matrix must be a 3x3 matrix.")
-        # TODO: Validate that the matrix is a valid rotation matrix.
+        self._A = _asarray_check_matrix(A)
 
     def _asarray(self) -> np.ndarray:
         return self._A
@@ -87,7 +91,6 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.asarray()
-
         q = _asarray_check_quaternion(q).copy()
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
