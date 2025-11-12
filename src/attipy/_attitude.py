@@ -150,7 +150,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
-            theta *= (np.pi / 180.0)
+            theta *= np.pi / 180.0
         A = _rot_matrix_from_euler_zyx(theta)
         return cls(A)
 
@@ -228,10 +228,10 @@ class UnitQuaternion(AttitudeBase):
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
-            theta *= (np.pi / 180.0)
+            theta *= np.pi / 180.0
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
-    
+
     def to_euler(self, degrees: bool = False) -> np.ndarray:
         """
         Convert the unit quaternion to (ZYX) Euler angles (see Notes).
@@ -272,5 +272,5 @@ class UnitQuaternion(AttitudeBase):
         q = self._q.copy()
         theta = _euler_zyx_from_quaternion(q)
         if degrees:
-            theta *= (180.0 / np.pi)
+            theta *= 180.0 / np.pi
         return theta

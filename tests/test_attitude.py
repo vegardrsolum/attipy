@@ -39,4 +39,3 @@ class Test_UnitQuaternion:
         q = UnitQuaternion.from_euler(euler, degrees=False)
         euler_out = q.to_euler(degrees=False)
         np.testing.assert_allclose(euler_out, euler)
-
