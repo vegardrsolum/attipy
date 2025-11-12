@@ -77,7 +77,7 @@ class AttitudeMatrix(AttitudeBase):
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
         """
-        Create an AttitudeMatrix from a unit quaternion.
+        Create an attitude matrix from a unit quaternion.
 
         The attitude matrix, A, can be derived from the unit quaternion, q, according
         to:
