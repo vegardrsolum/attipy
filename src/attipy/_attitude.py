@@ -79,7 +79,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
-        q = np.asarray_chkfinite(q, dtype=float).reshape(4)
+        q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4).copy())
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -122,7 +122,7 @@ class AttitudeMatrix(AttitudeBase):
         and A is the attitude matrix (transforming vectors from the body frame to
         the navigation frame).
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
             theta *= (np.pi / 180.0)
         A = _rot_matrix_from_euler_zyx(theta)
@@ -153,7 +153,7 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4))
+        self._q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4).copy())
 
     def _toarray(self) -> np.ndarray:
         return self._q
@@ -197,7 +197,7 @@ class UnitQuaternion(AttitudeBase):
         and A is the attitude matrix (transforming vectors from the body frame to
         the navigation frame).
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
         if degrees:
             theta *= (np.pi / 180.0)
         q = _quaternion_from_euler_zyx(theta)

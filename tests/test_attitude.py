@@ -27,3 +27,9 @@ class Test_UnitQuaternion:
         euler = np.array([0.0, 0.0, 0.0])
         q = UnitQuaternion.from_euler(euler)
         np.testing.assert_allclose(q.toarray(), [1.0, 0.0, 0.0, 0.0])
+
+    def test_to_euler(self):
+        euler = np.array([10.0, 20.0, -30.0])
+        q = UnitQuaternion.from_euler(euler, degrees=True)
+        euler_out = q.to_euler(degrees=True)
+        np.testing.assert_allclose(euler_out, euler)
