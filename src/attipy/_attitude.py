@@ -12,6 +12,14 @@ from ._transforms import (
 from ._vectorops import _normalize
 
 
+def _check_quaternion(q: np.ndarray) -> None:
+    if q.shape != (4,):
+        raise ValueError("Quaternion must be a 4-element array.")
+    norm = np.linalg.norm(q)
+    if not np.isclose(norm, 1.0):
+        raise ValueError("Quaternion must be a unit quaternion (norm = 1).")
+
+
 class AttitudeBase(ABC):
     @abstractmethod
     def _toarray(self) -> np.ndarray:
@@ -52,6 +60,7 @@ class AttitudeMatrix(AttitudeBase):
         self._A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
         if self._A.shape != (3, 3):
             raise ValueError("Attitude matrix must be a 3x3 matrix.")
+        # TODO: Validate that the matrix is a valid rotation matrix.
 
     def _toarray(self) -> np.ndarray:
         return self._A
@@ -79,7 +88,9 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.toarray()
-        q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4).copy())
+
+        q = np.asarray_chkfinite(q, dtype=float).reshape(4).copy()
+        _check_quaternion(q)
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -153,7 +164,9 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _normalize(np.asarray_chkfinite(q, dtype=float).reshape(4).copy())
+        q = np.asarray_chkfinite(q, dtype=float).reshape(4).copy()
+        _check_quaternion(q)
+        self._q = _normalize(q)
 
     def _toarray(self) -> np.ndarray:
         return self._q
