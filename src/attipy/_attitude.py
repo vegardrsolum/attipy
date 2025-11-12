@@ -86,7 +86,7 @@ class AttitudeMatrix(AttitudeBase):
             The corresponding attitude matrix, A.
         """
         if isinstance(q, UnitQuaternion):
-            q = q.toarray()
+            q = q.asarray()
 
         q = _asarray_check_quaternion(q).copy()
         A = _rot_matrix_from_quaternion(q)
