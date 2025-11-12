@@ -81,8 +81,8 @@ class AttitudeBase(ABC):
 
 class AttitudeMatrix(AttitudeBase):
     """
-    Rotation matrix (or direction cosine matrix) representation of a rotation in
-    3D space.
+    Rotation matrix (or direction cosine matrix) representation of an attitude
+    (or rotation) in 3D space.
 
     Defined as:
 
@@ -193,7 +193,8 @@ class AttitudeMatrix(AttitudeBase):
 
 class UnitQuaternion(AttitudeBase):
     """
-    Unit quaternion representation, [q_w, q_x, q_y, q_z], of a rotation in 3D space.
+    Unit quaternion representation, [q_w, q_x, q_y, q_z], of an attitude (or rotation)
+    in 3D space.
 
     Defined as:
 
