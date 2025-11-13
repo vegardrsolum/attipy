@@ -147,10 +147,7 @@ class AttitudeMatrix(AttitudeBase):
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
         """
-        Create an attitude matrix from a unit quaternion.
-
-        The attitude matrix, A, can be derived from the unit quaternion, q, according
-        to:
+        Create an attitude matrix from a unit quaternion, using the relation:
 
             A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
@@ -158,7 +155,7 @@ class AttitudeMatrix(AttitudeBase):
 
         - I is the 3x3 identity matrix.
         - q_w is the scalar part of the unit quaternion.
-        - q_xyz is the vector part of the unit quaternion.
+        - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
         - S(q_xyz) is the skew-symmetric matrix of q_xyz.
 
         Parameters
