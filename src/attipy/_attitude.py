@@ -63,6 +63,7 @@ class AttitudeBase(ABC):
     - ``_to_matrix()`` which transforms the attitude representation to the attitude
       matrix representation and returns it as a ``numpy.ndarray``.
     """
+
     @abstractmethod
     def _asarray(self) -> np.ndarray:
         """
@@ -283,7 +284,6 @@ class UnitQuaternion(AttitudeBase):
         t = 2.0 * np.cross(q_xyz, v_b)
         v_n = v_b + q_w * t + np.cross(q_xyz, t)
         return v_n
-
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> "UnitQuaternion":
