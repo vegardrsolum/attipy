@@ -42,8 +42,26 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
 
 class AttitudeBase(ABC):
     """
-    Base class for attitude representation (i.e., the rotation relative to a reference
-    frame in 3D space).
+    Base class for attitude representation, i.e., the encapsulation of a 3D rotation
+    of a 'body' relative to a reference frame (the 'navigation frame').
+
+    The attitude matrix (or direction cosine matrix) is considered as the primary
+    representation of attitude. Other representations should be convertable to this
+    representation. The attitude matrix, A, is a rotation matrix, defined such that
+    it transforms a vector, v, from the 'body frame' to the 'navigation frame' using:
+
+        v_n = A @ v_b
+
+    where,
+
+    - A is the 3x3 attitude matrix.
+    - v_b is a vector expressed in the body frame.
+    - v_n is the same vector expressed in the navigation frame.
+
+    Inheriting classes should define the following methods:
+    - ``_asarray()`` which returns the attitude representation as a ``numpy.ndarray``.
+    - ``_to_matrix()`` which transforms the attitude representation to the attitude
+      matrix representation and returns it as a ``numpy.ndarray``.
     """
     @abstractmethod
     def _asarray(self) -> np.ndarray:
