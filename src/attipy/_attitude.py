@@ -89,6 +89,12 @@ class AttitudeBase(ABC):
         """
         raise NotImplementedError("Not implemented.")
 
+    def to_matrix(self) -> np.ndarray:
+        """
+        Convert the attitude representation to an attitude matrix.
+        """
+        return self._to_matrix(self._asarray())
+
     def __repr__(self):
         class_name = self.__class__.__name__
         array = self._asarray()
