@@ -17,10 +17,10 @@ def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
     """
     q = np.asarray_chkfinite(q, dtype=float)
     if q.shape != (4,):
-        raise ValueError("Quaternion must be a 4-element array.")
+        raise ValueError("Unit quaternion must be a 4-element array.")
     norm = np.linalg.norm(q)
     if not np.isclose(norm, 1.0):
-        raise ValueError("Quaternion must be a unit quaternion (norm = 1).")
+        raise ValueError("Unit quaternion must have a norm of 1.")
     return q
 
 
