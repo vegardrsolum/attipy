@@ -115,23 +115,26 @@ class AttitudeBase(ABC):
 class AttitudeMatrix(AttitudeBase):
     """
     Rotation matrix (or direction cosine matrix) representation of an attitude
-    (or rotation) in 3D space.
+    (or rotation) in 3D space, encapsulating the orientation of a body frame `{b}`
+    relative to a navigation frame, `{n}`.
 
-    Defined such that it rotates a vector from the 'body frame' to the 'navigation
-    frame' using:
+    The matrix is defined such that it transforms vectors from the body frame to
+    the navigation frame:
 
         v_n = A @ v_b
 
     where,
 
-    - A is the 3x3 attitude matrix.
-    - v_b is a vector expressed in the body frame.
-    - v_n is the same vector expressed in the navigation frame.
+    - ``A`` is the 3x3 attitude matrix.
+    - ``v_b`` is a vector expressed in the body frame.
+    - ``v_n`` is the same vector expressed in the navigation frame.
+
+    The matrix must be orthonormal with determinant +1 (i.e., valid member of SO(3)).
 
     Parameters
     ----------
     A : ArrayLike
-        The 3x3 attitude matrix, A.
+        3x3 rotation matrix mapping body-frame vectors to navigation-frame vectors.
     """
 
     def __init__(self, A: ArrayLike) -> None:
