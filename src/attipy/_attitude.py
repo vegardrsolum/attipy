@@ -9,27 +9,61 @@ from ._transforms import (
     _rot_matrix_from_euler_zyx,
     _rot_matrix_from_quaternion,
 )
-from ._vectorops import _normalize
 
 
-def _asarray_check_quaternion(q: ArrayLike) -> np.ndarray:
-    q = np.asarray_chkfinite(q, dtype=float).reshape(4)
+def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
+    """
+    Convert the input to a numpy array and check if it is a unit quaternion.
+    """
+    q = np.asarray_chkfinite(q, dtype=float)
     if q.shape != (4,):
-        raise ValueError("Quaternion must be a 4-element array.")
+        raise ValueError("Unit quaternion must be a 4-element array.")
     norm = np.linalg.norm(q)
     if not np.isclose(norm, 1.0):
-        raise ValueError("Quaternion must be a unit quaternion (norm = 1).")
+        raise ValueError("Unit quaternion must have a norm of 1.")
     return q
 
 
-def _asarray_check_matrix(A: ArrayLike) -> np.ndarray:
-    A = np.asarray_chkfinite(A, dtype=float).reshape(3, 3)
+def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
+    """
+    Convert the input to a numpy array and check if it is a valid rotation matrix
+    (element of SO(3)).
+    """
+    A = np.asarray_chkfinite(A, dtype=float)
     if A.shape != (3, 3):
-        raise ValueError("Matrix must be a 3x3 array.")
+        raise ValueError("SO(3) matrix must be a 3x3 array.")
+    I3x3 = np.eye(3)
+    if not np.allclose(A.T @ A, I3x3):
+        raise ValueError("SO(3) matrix must be orthogonal.")
+    if not np.isclose(np.linalg.det(A), 1.0):
+        raise ValueError("SO(3) matrix must have a determinant of 1.")
     return A
 
 
 class AttitudeBase(ABC):
+    """
+    Base class for attitude representation, i.e., the encapsulation of a 3D rotation
+    of a 'body' relative to a reference frame (the 'navigation frame').
+
+    The attitude matrix (or direction cosine matrix) is considered as the primary
+    representation of attitude. Other representations should be convertable to this
+    representation. The attitude matrix, A, is a rotation matrix, defined such that
+    it transforms a vector, v, from the 'body frame' to the 'navigation frame' using:
+
+        v_n = A @ v_b
+
+    where,
+
+    - A is the 3x3 attitude matrix.
+    - v_b is a vector expressed in the body frame.
+    - v_n is the same vector expressed in the navigation frame.
+
+    Inheriting classes should define the following methods:
+    - ``_asarray()`` which returns the attitude representation as a ``numpy.ndarray``.
+    - ``_to_matrix()`` which transforms the attitude representation to the attitude
+      matrix representation and returns it as a ``numpy.ndarray``.
+    """
+
     @abstractmethod
     def _asarray(self) -> np.ndarray:
         """
@@ -43,6 +77,25 @@ class AttitudeBase(ABC):
         """
         return self._asarray().copy()
 
+    @staticmethod
+    @abstractmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        """
+        Convert the attitude representation to an attitude matrix.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3, 3)
+            The attitude matrix.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    def to_matrix(self) -> np.ndarray:
+        """
+        Convert the attitude representation to an attitude matrix.
+        """
+        return self._to_matrix(self._asarray())
+
     def __repr__(self):
         class_name = self.__class__.__name__
         array = self._asarray()
@@ -51,36 +104,60 @@ class AttitudeBase(ABC):
             array_str = ("\n " + len(class_name) * " ").join(array_str.split("\n"))
         return f"{class_name}({array_str})"
 
+    def _rotate_vec(self, v_b):
+        """
+        Rotate a vector from the body frame to the navigation frame.
+        """
+        A = self._to_matrix(self._asarray())
+        return A @ v_b
+
+    def rotate_vec(self, v_b):
+        """
+        Rotate a vector from the body frame to the navigation frame.
+        """
+        v_b = np.asarray_chkfinite(v_b, dtype=float).reshape(3)
+        return self._rotate_vec(v_b)
+
 
 class AttitudeMatrix(AttitudeBase):
     """
-    Rotation matrix (or direction cosine matrix) representation of a rotation in
-    3D space.
+    Rotation matrix (or direction cosine matrix) representation of an attitude
+    (or rotation) in 3D space, encapsulating the orientation of a 'body frame',
+    `{b}`, relative to a 'navigation frame', `{n}`.
 
-    Defined as:
+    The matrix is defined such that it transforms vectors from the body frame to
+    the navigation frame:
 
         v_n = A @ v_b
 
     where,
 
-    - A is the 3x3 attitude matrix.
-    - v_b is a vector expressed in the body frame.
-    - v_n is the same vector expressed in the navigation frame.
+    - ``A`` is the 3x3 attitude matrix.
+    - ``v_b`` is a vector expressed in the body frame.
+    - ``v_n`` is the same vector expressed in the navigation frame.
+
+    The matrix must be orthonormal with determinant +1 (i.e., valid member of SO(3)).
+
+    Parameters
+    ----------
+    A : ArrayLike
+        3x3 rotation matrix mapping body-frame vectors to navigation-frame vectors.
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        self._A = _asarray_check_matrix(A)
+        self._A = _asarray_check_matrix_so3(A)
 
     def _asarray(self) -> np.ndarray:
         return self._A
 
+    @staticmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        return array
+
     @classmethod
     def from_quaternion(cls, q: ArrayLike | "UnitQuaternion") -> "AttitudeMatrix":
         """
-        Create an attitude matrix from a unit quaternion.
-
-        The attitude matrix, A, can be derived from the unit quaternion, q, according
-        to:
+        Create an attitude matrix from a unit quaternion, using the relation:
 
             A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
@@ -88,7 +165,7 @@ class AttitudeMatrix(AttitudeBase):
 
         - I is the 3x3 identity matrix.
         - q_w is the scalar part of the unit quaternion.
-        - q_xyz is the vector part of the unit quaternion.
+        - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
         - S(q_xyz) is the skew-symmetric matrix of q_xyz.
 
         Parameters
@@ -103,7 +180,7 @@ class AttitudeMatrix(AttitudeBase):
         """
         if isinstance(q, UnitQuaternion):
             q = q.asarray()
-        q = _asarray_check_quaternion(q).copy()
+        q = _asarray_check_unit_quaternion(q).copy()
         A = _rot_matrix_from_quaternion(q)
         return cls(A)
 
@@ -157,11 +234,14 @@ class AttitudeMatrix(AttitudeBase):
 
 class UnitQuaternion(AttitudeBase):
     """
-    Unit quaternion representation, [q_w, q_x, q_y, q_z], of a rotation in 3D space.
+    Unit quaternion representation, [q_w, q_x, q_y, q_z], of an attitude (or rotation)
+    in 3D space, encapsulating the orientation of a 'body frame', `{b}`, relative
+    to a 'navigation frame', `{n}`.
 
-    Defined as:
+    The unit quaternion is defined such that it transforms vectors from the body
+    frame to the navigation frame:
 
-        [0, v_n] = q* ⊗ [0, v_b] ⊗ q
+        [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
     where,
 
@@ -171,6 +251,17 @@ class UnitQuaternion(AttitudeBase):
 
     and ⊗ denotes quaternion multiplication (Hamilton product).
 
+    The unit quaternion is related to the attitude matrix according to:
+
+        A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
+
+    where,
+
+    - I is the 3x3 identity matrix.
+    - q_w is the scalar part of the unit quaternion.
+    - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
+    - S(q_xyz) is the skew-symmetric matrix of q_xyz.
+
     Parameters
     ----------
     q : ArrayLike
@@ -179,11 +270,20 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        q = _asarray_check_quaternion(q).copy()
-        self._q = _normalize(q)
+        self._q = _asarray_check_unit_quaternion(q).copy()
 
     def _asarray(self) -> np.ndarray:
         return self._q
+
+    @staticmethod
+    def _to_matrix(array: np.ndarray) -> np.ndarray:
+        return _rot_matrix_from_quaternion(array)
+
+    def _rotate_vec(self, v_b):
+        q_w, q_xyz = self._q[0], self._q[1:]
+        t = 2.0 * np.cross(q_xyz, v_b)
+        v_n = v_b + q_w * t + np.cross(q_xyz, t)
+        return v_n
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> "UnitQuaternion":
