@@ -231,8 +231,8 @@ class UnitQuaternion(AttitudeBase):
     in 3D space, encapsulating the orientation of a 'body frame', `{b}`, relative
     to a 'navigation frame', `{n}`.
 
-    Defined such that it rotates a vector from the 'body frame' to the 'navigation
-    frame' using:
+    The unit quaternion is defined such that it transforms vectors from the body
+    frame to the navigation frame:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
