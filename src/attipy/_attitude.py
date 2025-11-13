@@ -117,8 +117,8 @@ class AttitudeMatrix(AttitudeBase):
     Rotation matrix (or direction cosine matrix) representation of an attitude
     (or rotation) in 3D space.
 
-    Defined such that it rotates a vector from the body frame to the navigation
-    frame according to:
+    Defined such that it rotates a vector from the 'body frame' to the 'navigation
+    frame' using:
 
         v_n = A @ v_b
 
@@ -227,8 +227,8 @@ class UnitQuaternion(AttitudeBase):
     Unit quaternion representation, [q_w, q_x, q_y, q_z], of an attitude (or rotation)
     in 3D space.
 
-    Defined such that it rotates a vector from the body frame to the navigation
-    frame according to:
+    Defined such that it rotates a vector from the 'body frame' to the 'navigation
+    frame' using:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
