@@ -46,6 +46,7 @@ class UnitQuaternion:
 
     where,
 
+    - q is the unit quaternion.
     - q* is the conjugate of the unit quaternion q.
     - v_b is a vector expressed in the body frame.
     - v_n is the same vector expressed in the navigation frame.
@@ -75,6 +76,7 @@ class UnitQuaternion:
             v_n = A @ v_b
 
         where,
+        - ``A`` is the 3x3 attitude matrix.
         - v_b is a vector expressed in the body frame.
         - v_n is the same vector expressed in the navigation frame.
 
@@ -102,6 +104,7 @@ class UnitQuaternion:
             v_n = A @ v_b
 
         where,
+        - ``A`` is the 3x3 attitude matrix.
         - v_b is a vector expressed in the body frame.
         - v_n is the same vector expressed in the navigation frame.
 
