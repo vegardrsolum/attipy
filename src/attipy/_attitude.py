@@ -69,7 +69,19 @@ class UnitQuaternion:
     @classmethod
     def from_matrix(cls, A) -> np.ndarray:
         """
-        Create a UnitQuaternion instance from a rotation matrix.
+        Create a UnitQuaternion instance from a rotation matrix, A, defined such
+        that it transforms vectors from the body frame to the navigation frame using:
+
+            v_n = A @ v_b
+
+        where,
+        - v_b is a vector expressed in the body frame.
+        - v_n is the same vector expressed in the navigation frame.
+
+        Parameters
+        ----------
+        A : ArrayLike
+            Rotation matrix (element of SO(3)).
         """
         A = _asarray_check_matrix_so3(A)
         q = _quaternion_from_matrix(A)
@@ -103,7 +115,5 @@ class UnitQuaternion:
         - q_w is the scalar part of the unit quaternion.
         - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
         - S(q_xyz) is the skew-symmetric matrix of q_xyz.
-
-
         """
         return _matrix_from_quaternion(self._q)
