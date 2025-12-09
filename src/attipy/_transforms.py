@@ -1,6 +1,21 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation as _R
+
+
+def _matrix_from_quaternion(q: np.ndarray) -> np.ndarray:
+    """
+    Convert a unit quaternion to a rotation matrix.
+    """
+    return _R.from_quat(q).as_matrix()
+
+
+def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
+    """
+    Convert a rotation matrix to a unit quaternion.
+    """
+    return _R.from_matrix(A).as_quat(scalar_first=True)
 
 
 @njit  # type: ignore[misc]

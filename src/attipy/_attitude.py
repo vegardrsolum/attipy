@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.spatial.transform import Rotation as _R
+
+from ._transforms import _matrix_from_quaternion, _quaternion_from_matrix
 
 
 def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
@@ -79,8 +80,7 @@ class UnitQuaternion:
         Create object from a rotation matrix.
         """
         A = _asarray_check_matrix_so3(A)
-        q = _R.from_matrix(A).as_quat(scalar_first=True)
-        q = _asarray_check_unit_quaternion(q)
+        q = _quaternion_from_matrix(A)
         return cls(q)
     
     def as_quaternion(self) -> np.ndarray:
@@ -93,5 +93,4 @@ class UnitQuaternion:
         """
         Return the attitude representation as a rotation matrix.
         """
-        A = _R.from_quat(self._q).as_matrix()
-        return A
+        return _matrix_from_quaternion(self._q)
