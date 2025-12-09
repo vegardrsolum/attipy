@@ -185,7 +185,7 @@ class Attitude:
 
     def to_euler(self, degrees: bool = False) -> np.ndarray:
         """
-        Convert the unit quaternion to (ZYX) Euler angles (see Notes).
+        Convert the attitude to (ZYX) Euler angles (see Notes).
 
         Parameters
         ----------
