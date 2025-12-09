@@ -32,7 +32,7 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
     return A
 
 
-class Attitude:
+class UnitQuaternion:
     """
     Encapsulates the attitude (or rotation) in 3D space of a 'body frame', `{b}`,
     relative to a 'navigation frame', `{n}`.
@@ -63,7 +63,7 @@ class Attitude:
 
     def __repr__(self):
         array_str = np.array2string(self._q)
-        return f"Attitude({array_str})"
+        return f"UnitQuaternion({array_str})"
 
     @classmethod
     def from_quaternion(cls, q) -> np.ndarray:
