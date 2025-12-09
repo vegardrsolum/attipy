@@ -2,10 +2,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ._transforms import (
-    _matrix_from_quaternion,
-    _quaternion_from_matrix,
-    _quaternion_from_euler_zyx,
     _euler_zyx_from_quaternion,
+    _matrix_from_quaternion,
+    _quaternion_from_euler_zyx,
+    _quaternion_from_matrix,
 )
 
 
@@ -71,7 +71,7 @@ class Attitude:
     def __repr__(self):
         array_str = np.array2string(self._q)
         return f"Attitude(q={array_str})"
-    
+
     @classmethod
     def from_quaternion(cls, q: ArrayLike):
         """
