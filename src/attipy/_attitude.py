@@ -67,17 +67,9 @@ class UnitQuaternion:
         return f"UnitQuaternion({array_str})"
 
     @classmethod
-    def from_quaternion(cls, q) -> np.ndarray:
-        """
-        Create object from a unit quaternion.
-        """
-        q = _asarray_check_unit_quaternion(q)
-        return cls(q)
-
-    @classmethod
     def from_matrix(cls, A) -> np.ndarray:
         """
-        Create object from a rotation matrix.
+        Create a UnitQuaternion instance from a rotation matrix.
         """
         A = _asarray_check_matrix_so3(A)
         q = _quaternion_from_matrix(A)
@@ -85,12 +77,14 @@ class UnitQuaternion:
     
     def as_quaternion(self) -> np.ndarray:
         """
-        Return the attitude representation as a unit quaternion.
+        Return the attitude as a unit quaternion.
         """
         return self._q.copy()
 
     def as_matrix(self) -> np.ndarray:
         """
-        Return the attitude representation as a rotation matrix.
+        Return the attitude as a rotation matrix.
+
+        
         """
         return _matrix_from_quaternion(self._q)
