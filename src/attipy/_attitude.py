@@ -73,7 +73,7 @@ class Attitude:
         return f"Attitude(q={array_str})"
     
     @classmethod
-    def from_quaternion(cls, A: ArrayLike):
+    def from_quaternion(cls, q: ArrayLike):
         """
         Create an Attitude instance from a unit quaternion, q, defined such that
         it transforms a vector from the body frame to the navigation frame using:
@@ -89,8 +89,6 @@ class Attitude:
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
         """
-        A = _asarray_check_matrix_so3(A)
-        q = _quaternion_from_matrix(A)
         return cls(q)
 
     def as_quaternion(self) -> np.ndarray:
@@ -241,8 +239,7 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        q = self._q.copy()
-        theta = _euler_zyx_from_quaternion(q)
+        theta = _euler_zyx_from_quaternion(self._q)
         if degrees:
             theta *= 180.0 / np.pi
         return theta
