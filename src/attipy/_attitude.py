@@ -34,50 +34,26 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
     return A
 
 
-class _AttitudeBackend(ABC):
-    @abstractmethod
-    def _from_quaternion(self) -> np.ndarray:
-        """
-        Transform the attitude representation from a unit quaternion.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    @abstractmethod
-    def _to_quaternion(self) -> np.ndarray:
-        """
-        Transform the attitude representation to a unit quaternion.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    @abstractmethod
-    def _from_matrix(self) -> np.ndarray:
-        """
-        Transform the attitude representation from a rotation matrix.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    def _to_matrix(self) -> np.ndarray:
-        """
-        Transform the attitude representation to a rotation matrix.
-        """
-        raise NotImplementedError("Not implemented.")
-    
-
-class _QuaternionBackend(_AttitudeBackend):
+class _AttitudeBackend:
+    """
+    Unit quaternion backend for attitude representation.
+    """
 
     def _from_quaternion(self, q) -> np.ndarray:
-        return _asarray_check_unit_quaternion(q)
+        q = _asarray_check_unit_quaternion(q)
+        return q
 
     def _from_matrix(self, A) -> np.ndarray:
         A = _asarray_check_matrix_so3(A)
         q = _R.from_matrix(A).as_quat()
-        return _asarray_check_unit_quaternion(q)
+        q = _asarray_check_unit_quaternion(q)
+        return q
     
-    def _to_quaternion(self, att) -> np.ndarray:
-        return att
+    def _to_quaternion(self, q) -> np.ndarray:
+        return q
     
-    def _to_matrix(self, att) -> np.ndarray:
-        A = _R.from_quat(att).as_matrix()
+    def _to_matrix(self, q) -> np.ndarray:
+        A = _R.from_quat(q).as_matrix()
         return A
 
 
@@ -108,17 +84,18 @@ class AttitudeBase(ABC):
         quaternion representation.
     """
 
-    _backend: _AttitudeBackend = _QuaternionBackend()
+    _backend = _AttitudeBackend()
 
-    def __init__(self, q):
-        self._att = self._backend._from_quaternion(q)
+    def __init__(self, att):
+        self._att = att
 
     @classmethod
     def from_quaternion(cls, q) -> np.ndarray:
         """
         Create object from a unit quaternion.
         """
-        return cls(q)
+        att = cls._backend._from_quaternion(q)
+        return cls(att)
     
     def to_quaternion(self) -> np.ndarray:
         """
@@ -188,10 +165,11 @@ class AttitudeMatrix(AttitudeBase):
     """
 
     def __init__(self, A: ArrayLike) -> None:
-        super().__init__(self._backend._from_matrix(A))
+        att = self._backend._from_matrix(A)
+        super().__init__(att)
 
     def _asarray(self) -> np.ndarray:
-        return self.to_matrix()
+        return self._backend._to_matrix(self._att)
 
     # def _from_quaternion(self):
     #     return _R.from_quat(self._q).as_matrix()
@@ -312,7 +290,8 @@ class UnitQuaternion(AttitudeBase):
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        super().__init__(q)
+        att = self._backend._from_quaternion(q)
+        super().__init__(att)
 
     def _asarray(self):
-        return self.to_quaternion()
+        return self._backend._to_quaternion(self._att)
