@@ -183,7 +183,7 @@ class Attitude:
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
 
-    def to_euler(self, degrees: bool = False) -> np.ndarray:
+    def as_euler(self, degrees: bool = False) -> np.ndarray:
         """
         Convert the attitude to (ZYX) Euler angles (see Notes).
 
