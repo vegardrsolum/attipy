@@ -71,6 +71,27 @@ class Attitude:
     def __repr__(self):
         array_str = np.array2string(self._q)
         return f"Attitude(q={array_str})"
+    
+    @classmethod
+    def from_quaternion(cls, A: ArrayLike):
+        """
+        Create an Attitude instance from a unit quaternion, q, defined such that
+        it transforms a vector from the body frame to the navigation frame using:
+
+            [0, v_n] = q ⊗ [0, v_b] ⊗ q*
+
+        where,
+
+        - q is the unit quaternion.
+        - q* is the conjugate of the unit quaternion q.
+        - v_b is a vector expressed in the body frame.
+        - v_n is the same vector expressed in the navigation frame.
+
+        and ⊗ denotes quaternion multiplication (Hamilton product).
+        """
+        A = _asarray_check_matrix_so3(A)
+        q = _quaternion_from_matrix(A)
+        return cls(q)
 
     def as_quaternion(self) -> np.ndarray:
         """
