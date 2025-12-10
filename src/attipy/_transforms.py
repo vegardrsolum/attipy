@@ -148,10 +148,14 @@ def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
 @njit  # type: ignore[misc]
 def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the unit quaternion from Euler angles.
-    """
+    Compute the unit quaternion from Euler angles (see ref [1]_).
 
-    # TODO: Verify thath the equation are correct
+    References
+    ----------
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    """
 
     alpha_half, beta_half, gamma_half = euler / 2.0
     cos_alpha = np.cos(alpha_half)
