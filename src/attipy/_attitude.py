@@ -1,5 +1,6 @@
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
+from typing import Self
 
 from ._transforms import (
     _euler_zyx_from_quaternion,
@@ -9,7 +10,7 @@ from ._transforms import (
 )
 
 
-def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
+def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a unit quaternion.
     """
@@ -22,7 +23,7 @@ def _asarray_check_unit_quaternion(q: ArrayLike) -> np.ndarray:
     return q
 
 
-def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
+def _asarray_check_matrix_so3(A: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
@@ -68,15 +69,15 @@ class Attitude:
         part, and q_x, q_y and q_z are the vector parts, respectively.
     """
 
-    def __init__(self, q: ArrayLike):
+    def __init__(self, q: ArrayLike) -> None:
         self._q = _asarray_check_unit_quaternion(q)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         array_str = np.array2string(self._q)
         return f"Attitude(q={array_str})"
 
     @classmethod
-    def from_quaternion(cls, q: ArrayLike):
+    def from_quaternion(cls, q: ArrayLike) -> Self:
         """
         Create an Attitude instance from a unit quaternion, q, defined such that
         it transforms a vector from the body frame, {b}, to the navigation frame,
@@ -95,7 +96,7 @@ class Attitude:
         """
         return cls(q)
 
-    def as_quaternion(self) -> np.ndarray:
+    def as_quaternion(self) -> NDArray[np.float64]:
         """
         Return the attitude as a unit quaternion, q, defined such that it transforms
         a vector from the body frame, {b}, to the navigation frame, {n}, using:
@@ -114,7 +115,7 @@ class Attitude:
         return self._q.copy()
 
     @classmethod
-    def from_matrix(cls, A: ArrayLike):
+    def from_matrix(cls, A: ArrayLike) -> Self:
         """
         Create an Attitude instance from a rotation matrix (or direction cosine
         matrix), defined such that it transforms vectors from the body frame, {b},
@@ -136,7 +137,7 @@ class Attitude:
         q = _quaternion_from_matrix(A)
         return cls(q)
 
-    def as_matrix(self) -> np.ndarray:
+    def as_matrix(self) -> NDArray[np.float64]:
         """
         Return the attitude as a rotation matrix (or direction cosine matrix), A,
         defined such that it transforms vectors from the body frame, {b}, to the
@@ -164,7 +165,7 @@ class Attitude:
         return _rot_matrix_from_quaternion(self._q)
 
     @classmethod
-    def from_euler(cls, theta: ArrayLike, degrees=False):
+    def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
         Create an Attitude instance from a set of Euler angles (ZYX convention)
         (see Notes).
@@ -206,7 +207,7 @@ class Attitude:
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
 
-    def as_euler(self, degrees: bool = False) -> np.ndarray:
+    def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Convert the attitude to (ZYX) Euler angles (see Notes).
 
