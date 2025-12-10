@@ -18,6 +18,8 @@ class Test_Attitude:
             (0.0, 10.0, 0.0),
             (0.0, 0.0, 10.0),
             (1.0, 2.0, 3.0),
+            (-1.0, -2.0, -3.0),
+            (90.0, 25.0, -130.0),
         ],
     )
     def test_from_euler_deg(self, euler_deg):
@@ -28,14 +30,58 @@ class Test_Attitude:
         )
         np.testing.assert_allclose(q_out, q_expect)
 
-    def test_as_euler_deg(self):
-        euler = np.array([10.0, 20.0, -30.0])
-        att = Attitude.from_euler(euler, degrees=True)
-        euler_out = att.as_euler(degrees=True)
-        np.testing.assert_allclose(euler_out, euler)
+    @pytest.mark.parametrize(
+        "euler_deg",
+        [
+            (0.0, 0.0, 0.0),
+            (10.0, 0.0, 0.0),
+            (0.0, 10.0, 0.0),
+            (0.0, 0.0, 10.0),
+            (1.0, 2.0, 3.0),
+            (-1.0, -2.0, -3.0),
+            (90.0, 25.0, -130.0),
+        ],
+    )
+    def test_from_euler_rad(self, euler_deg):
+        euler_rad = np.radians(euler_deg)
+        att = Attitude.from_euler(euler_rad, degrees=False)
+        q_out = att._q
+        q_expect = Rotation.from_euler("ZYX", euler_rad[::-1], degrees=False).as_quat(
+            scalar_first=True
+        )
+        np.testing.assert_allclose(q_out, q_expect)
 
-    def test_as_euler_rad(self):
-        euler = np.radians(np.array([-10.0, -20.0, 30.0]))
-        att = Attitude.from_euler(euler, degrees=False)
+    @pytest.mark.parametrize(
+        "euler_deg",
+        [
+            (0.0, 0.0, 0.0),
+            (10.0, 0.0, 0.0),
+            (0.0, 10.0, 0.0),
+            (0.0, 0.0, 10.0),
+            (1.0, 2.0, 3.0),
+            (-1.0, -2.0, -3.0),
+            (90.0, 25.0, -130.0),
+        ],
+    )
+    def test_as_euler_deg(self, euler_deg):
+        att = Attitude.from_euler(euler_deg, degrees=True)
+        euler_out = att.as_euler(degrees=True)
+        np.testing.assert_allclose(euler_out, euler_deg)
+
+    @pytest.mark.parametrize(
+        "euler_deg",
+        [
+            (0.0, 0.0, 0.0),
+            (10.0, 0.0, 0.0),
+            (0.0, 10.0, 0.0),
+            (0.0, 0.0, 10.0),
+            (1.0, 2.0, 3.0),
+            (-1.0, -2.0, -3.0),
+            (90.0, 25.0, -130.0),
+        ],
+    )
+    def test_as_euler_rad(self, euler_deg):
+        euler_rad = np.radians(euler_deg)
+        att = Attitude.from_euler(euler_deg, degrees=True)
         euler_out = att.as_euler(degrees=False)
-        np.testing.assert_allclose(euler_out, euler)
+        np.testing.assert_allclose(euler_out, euler_rad)
