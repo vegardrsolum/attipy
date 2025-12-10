@@ -150,7 +150,7 @@ class Attitude:
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
-        The rotation matrix is computed from the unit quaternion using the formula:
+        The rotation matrix is computed from the unit quaternion, q, using the formula:
 
             A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
