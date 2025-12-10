@@ -236,7 +236,7 @@ class Attitude:
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
-            theta *= np.pi / 180.0
+            theta = np.radians(theta)
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
 
@@ -279,5 +279,5 @@ class Attitude:
         """
         theta = _euler_zyx_from_quaternion(self._q)
         if degrees:
-            theta *= 180.0 / np.pi
+            theta = np.degrees(theta)
         return theta
