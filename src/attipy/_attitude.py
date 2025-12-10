@@ -93,6 +93,17 @@ class Attitude:
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
+
+        Parameters
+        ----------
+        q : ArrayLike
+            The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
+            part, and q_x, q_y and q_z are the vector parts, respectively.
+
+        Returns
+        -------
+        Attitude
+            Attitude instance.
         """
         return cls(q)
 
@@ -111,6 +122,12 @@ class Attitude:
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
+
+        Returns
+        -------
+        numpy.ndarray, shape (4,)
+            The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
+            part, and q_x, q_y and q_z are the vector parts, respectively.
         """
         return self._q.copy()
 
@@ -132,6 +149,11 @@ class Attitude:
         ----------
         A : ArrayLike
             Rotation matrix (element of SO(3)).
+
+        Returns
+        -------
+        Attitude
+            Attitude instance.
         """
         A = _asarray_check_matrix_so3(A)
         q = _quaternion_from_matrix(A)
@@ -161,6 +183,11 @@ class Attitude:
         - q_w is the scalar part of the unit quaternion.
         - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
         - S(q_xyz) is the skew-symmetric matrix of q_xyz.
+
+        Returns
+        -------
+        numpy.ndarray, shape (3, 3)
+            Rotation matrix (or direction cosine matrix).
         """
         return _rot_matrix_from_quaternion(self._q)
 
@@ -178,6 +205,11 @@ class Attitude:
         degrees : bool, default False
             If True, the input angles are interpreted as degrees. Otherwise, they are
             interpreted as radians. Internally, angles are stored as radians.
+
+        Returns
+        -------
+        Attitude
+            Attitude instance.
 
         Notes
         -----
@@ -218,7 +250,7 @@ class Attitude:
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray, shape (3,)
             The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
             rotations about the X, Y, and Z axes, respectively.
 
