@@ -164,7 +164,7 @@ class Attitude:
         return _rot_matrix_from_quaternion(self._q)
 
     @classmethod
-    def from_euler(cls, theta: ArrayLike, degrees=False) -> "AttitudeMatrix":
+    def from_euler(cls, theta: ArrayLike, degrees=False):
         """
         Create an Attitude instance from a set of Euler angles (ZYX convention)
         (see Notes).
