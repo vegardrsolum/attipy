@@ -41,7 +41,10 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
 class Attitude:
     """
     This class encapsulates the attitude (or rotation) of a 'body frame', `{b}`,
-    relative to a 'navigation frame', `{n}`.
+    relative to a 'navigation frame', `{n}`. Although the {n} and {b} frames can
+    be defined arbitrarily, the main use case is for representing the attitude of
+    a vehicle or sensor (body frame) relative to a local-level inertial or global
+    reference frame (navigation frame) (e.g., North-East-Down, NED).
 
     Internally, the attitude is represented using a unit quaternion, q, defined
     such that it transforms a vector from the body frame to the navigation frame
