@@ -68,7 +68,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the Euler angles (ZYX convention) from a unit quaternion.
+    Compute the Euler angles (ZYX convention) from a unit quaternion (see ref [1]_).
 
     Parameters
     ----------
@@ -83,6 +83,10 @@ def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
     q_w, q_x, q_y, q_z = q
 
@@ -150,8 +154,6 @@ def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
 
-    References
-    ----------
     References
     ----------
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
