@@ -1,12 +1,13 @@
+from typing import Self
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import Self
 
 from ._transforms import (
     _euler_zyx_from_quaternion,
-    _rot_matrix_from_quaternion,
     _quaternion_from_euler_zyx,
     _quaternion_from_matrix,
+    _rot_matrix_from_quaternion,
 )
 
 
