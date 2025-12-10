@@ -5,6 +5,16 @@ from scipy.spatial.transform import Rotation
 from attipy import Attitude
 
 
+def _assert_quat_allclose(q_actual: np.ndarray, q_desired: np.ndarray, *args, **kwargs):
+    """
+    Assert that two unit quaternions are equal, considering the double-cover property.
+    """
+    try:
+        np.testing.assert_allclose(q_actual, q_desired, *args, **kwargs)
+    except AssertionError:
+        np.testing.assert_allclose(q_actual, -q_desired, *args, **kwargs)
+
+
 class Test_Attitude:
     euler_deg_data = [
         (0.0, 0.0, 0.0),
@@ -35,6 +45,17 @@ class Test_Attitude:
         q_out = att._q
         q_expect = np.asarray(q, dtype=float)
         np.testing.assert_allclose(q_out, q_expect)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_from_matrix(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        matrix = R.as_matrix()
+
+        att = Attitude.from_matrix(matrix)
+
+        _assert_quat_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_euler_deg(self, euler_deg):
