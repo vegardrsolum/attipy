@@ -1,6 +1,15 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation
+
+
+def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
+    """
+    Convert a rotation matrix to a unit quaternion.
+    """
+    # TODO: remove scipy dependency
+    return Rotation.from_matrix(A).as_quat(scalar_first=True)
 
 
 @njit  # type: ignore[misc]
