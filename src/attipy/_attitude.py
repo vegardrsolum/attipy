@@ -40,11 +40,11 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> np.ndarray:
 
 class Attitude:
     """
-    This class encapsulates the attitude (or rotation) of a 'body frame', `{b}`,
-    relative to a 'navigation frame', `{n}`. Although the {n} and {b} frames can
-    be defined arbitrarily, the main use case is for representing the attitude of
-    a vehicle or sensor (body frame) relative to a local-level inertial or global
-    reference frame (navigation frame) (e.g., North-East-Down, NED).
+    This class encapsulates the attitude (or rotation) of a 'body frame', {b}, relative
+    to a 'navigation frame', {n}. Although the {n} and {b} frames can be defined
+    arbitrarily, the main use case is for representing the attitude of a vehicle
+    or sensor (body frame) relative to a local-level inertial or global reference
+    frame (navigation frame) (e.g., North-East-Down, NED).
 
     Internally, the attitude is represented using a unit quaternion, q, defined
     such that it transforms a vector from the body frame to the navigation frame
@@ -79,7 +79,8 @@ class Attitude:
     def from_quaternion(cls, q: ArrayLike):
         """
         Create an Attitude instance from a unit quaternion, q, defined such that
-        it transforms a vector from the body frame to the navigation frame using:
+        it transforms a vector from the body frame, {b}, to the navigation frame,
+        {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
@@ -87,8 +88,8 @@ class Attitude:
 
         - q is the unit quaternion.
         - q* is the conjugate of the unit quaternion q.
-        - v_b is a vector expressed in the body frame.
-        - v_n is the same vector expressed in the navigation frame.
+        - v_b is a vector expressed in the body frame, {b}.
+        - v_n is the same vector expressed in the navigation frame, {n}.
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
         """
@@ -97,7 +98,7 @@ class Attitude:
     def as_quaternion(self) -> np.ndarray:
         """
         Return the attitude as a unit quaternion, q, defined such that it transforms
-        a vector from the body frame to the navigation frame using:
+        a vector from the body frame, {b}, to the navigation frame, {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
@@ -105,8 +106,8 @@ class Attitude:
 
         - q is the unit quaternion.
         - q* is the conjugate of the unit quaternion q.
-        - v_b is a vector expressed in the body frame.
-        - v_n is the same vector expressed in the navigation frame.
+        - v_b is a vector expressed in the body frame, {b}.
+        - v_n is the same vector expressed in the navigation frame, {n}.
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
         """
@@ -115,16 +116,16 @@ class Attitude:
     @classmethod
     def from_matrix(cls, A: ArrayLike):
         """
-        Create an Attitude instance from a rotation matrix (or direction cosine matrix),
-        defined such that it transforms vectors from the body frame to the navigation
-        frame using:
+        Create an Attitude instance from a rotation matrix (or direction cosine
+        matrix), defined such that it transforms vectors from the body frame, {b},
+        to the navigation frame, {n}, using:
 
             v_n = A @ v_b
 
         where,
         - ``A`` is the 3x3 rotation matrix (or direction cosine matrix).
-        - v_b is a vector expressed in the body frame.
-        - v_n is the same vector expressed in the navigation frame.
+        - v_b is a vector expressed in the body frame, {b}.
+        - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
@@ -138,16 +139,16 @@ class Attitude:
     def as_matrix(self) -> np.ndarray:
         """
         Return the attitude as a rotation matrix (or direction cosine matrix), A,
-        defined such that it transforms vectors from the body frame to the navigation
-        frame using:
+        defined such that it transforms vectors from the body frame, {b}, to the
+        navigation frame, {n}, using:
 
             v_n = A @ v_b
 
         where,
 
         - ``A`` is the 3x3 attitude matrix.
-        - v_b is a vector expressed in the body frame.
-        - v_n is the same vector expressed in the navigation frame.
+        - v_b is a vector expressed in the body frame, {b}.
+        - v_n is the same vector expressed in the navigation frame, {n}.
 
         The rotation matrix is computed from the unit quaternion using the formula:
 
