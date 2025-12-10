@@ -160,16 +160,16 @@ def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
     """
 
     alpha_half, beta_half, gamma_half = euler / 2.0
-    cos_alpha = np.cos(alpha_half)
-    sin_alpha = np.sin(alpha_half)
-    cos_beta = np.cos(beta_half)
-    sin_beta = np.sin(beta_half)
-    cos_gamma = np.cos(gamma_half)
-    sin_gamma = np.sin(gamma_half)
+    ca_half = np.cos(alpha_half)
+    sa_half = np.sin(alpha_half)
+    cb_half = np.cos(beta_half)
+    sb_half = np.sin(beta_half)
+    cg_half = np.cos(gamma_half)
+    sg_half = np.sin(gamma_half)
 
-    q_w = cos_alpha * cos_beta * cos_gamma + sin_alpha * sin_beta * sin_gamma
-    q_x = sin_alpha * cos_beta * cos_gamma - cos_alpha * sin_beta * sin_gamma
-    q_y = cos_alpha * sin_beta * cos_gamma + sin_alpha * cos_beta * sin_gamma
-    q_z = cos_alpha * cos_beta * sin_gamma - sin_alpha * sin_beta * cos_gamma
+    q_w = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
+    q_x = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
+    q_y = ca_half * sb_half * cg_half + sa_half * cb_half * sg_half
+    q_z = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
 
     return np.array([q_w, q_x, q_y, q_z])
