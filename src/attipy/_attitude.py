@@ -234,7 +234,7 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
             theta *= np.pi / 180.0
         q = _quaternion_from_euler_zyx(theta)
