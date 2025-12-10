@@ -33,7 +33,8 @@ class Test_Attitude:
         q = R.as_quat(scalar_first=True)
 
         att = Attitude(q)
-        np.testing.assert_allclose(att._q, q)
+
+        _assert_quat_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_quaternion(self, euler_deg):
@@ -42,9 +43,8 @@ class Test_Attitude:
         q = R.as_quat(scalar_first=True)
 
         att = Attitude.from_quaternion(q)
-        q_out = att._q
-        q_expect = np.asarray(q, dtype=float)
-        np.testing.assert_allclose(q_out, q_expect)
+
+        _assert_quat_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_matrix(self, euler_deg):
@@ -65,7 +65,7 @@ class Test_Attitude:
 
         att = Attitude.from_euler(euler_deg, degrees=True)
 
-        np.testing.assert_allclose(att._q, q)
+        _assert_quat_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_euler_rad(self, euler_deg):
@@ -76,7 +76,7 @@ class Test_Attitude:
         euler_rad = np.radians(euler_deg)
         att = Attitude.from_euler(euler_rad, degrees=False)
 
-        np.testing.assert_allclose(att._q, q)
+        _assert_quat_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_as_euler_deg(self, euler_deg):
@@ -86,6 +86,7 @@ class Test_Attitude:
 
         att = Attitude(q)
         euler_out = att.as_euler(degrees=True)
+
         np.testing.assert_allclose(euler_out, euler_deg)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
@@ -96,4 +97,5 @@ class Test_Attitude:
 
         att = Attitude(q)
         euler_out = att.as_euler(degrees=False)
+
         np.testing.assert_allclose(euler_out, np.radians(euler_deg))
