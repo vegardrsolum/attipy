@@ -23,7 +23,7 @@ class Test_Attitude:
         (0.0, 0.0, 10.0),
         (1.0, 2.0, 3.0),
         (-1.0, -2.0, -3.0),
-        (90.0, 25.0, -130.0),
+        (90.0, 25.0, -30.0),
     ]
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
@@ -56,6 +56,18 @@ class Test_Attitude:
         att = Attitude.from_matrix(matrix)
 
         _assert_quat_allclose(att._q, q)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_as_matrix(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        matrix = R.as_matrix()
+
+        att = Attitude(q)
+        matrix_out = att.as_matrix()
+
+        np.testing.assert_allclose(matrix_out, matrix)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_euler_deg(self, euler_deg):

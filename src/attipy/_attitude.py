@@ -3,7 +3,7 @@ from numpy.typing import ArrayLike
 
 from ._transforms import (
     _euler_zyx_from_quaternion,
-    _matrix_from_quaternion,
+    _rot_matrix_from_quaternion,
     _quaternion_from_euler_zyx,
     _quaternion_from_matrix,
 )
@@ -157,7 +157,7 @@ class Attitude:
         - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
         - S(q_xyz) is the skew-symmetric matrix of q_xyz.
         """
-        return _matrix_from_quaternion(self._q)
+        return _rot_matrix_from_quaternion(self._q)
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees=False) -> "AttitudeMatrix":

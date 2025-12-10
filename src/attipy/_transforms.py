@@ -4,14 +4,6 @@ from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation
 
 
-def _matrix_from_quaternion(q: np.ndarray) -> np.ndarray:
-    """
-    Convert a unit quaternion to a rotation matrix.
-    """
-    # TODO: remove scipy dependency
-    return Rotation.from_quat(q).as_matrix()
-
-
 def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion.
