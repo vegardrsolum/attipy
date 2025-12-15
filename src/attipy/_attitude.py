@@ -49,7 +49,7 @@ class Attitude:
     (e.g., North-East-Down, NED).
 
     Internally, the attitude is represented using a unit quaternion, q, defined
-    such that it transforms a vector from the body frame to the navigation frame
+    such that it transforms a vector from the body frame, {b}, to the navigation frame, {n},
     using:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
