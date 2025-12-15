@@ -74,8 +74,8 @@ class Attitude:
         self._q = _asarray_check_unit_quaternion(q)
 
     def __repr__(self) -> str:
-        array_str = np.array2string(self._q)
-        return f"Attitude(q={array_str})"
+        q_w, q_x, q_y, q_z = self._q
+        return f"Attitude(q=[{q_w:.8g} + {q_x:.8g}i + {q_y:.8g}j + {q_z:.8g}k])"
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
