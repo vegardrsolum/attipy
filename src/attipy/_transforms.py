@@ -1,15 +1,53 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
-from scipy.spatial.transform import Rotation
+
+from ._vectorops import _normalize
 
 
+@njit  # type: ignore[misc]
 def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
     """
-    Convert a rotation matrix to a unit quaternion.
+    Convert a rotation matrix to a unit quaternion (see ref [1]_).
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
-    # TODO: remove scipy dependency
-    return Rotation.from_matrix(A).as_quat(scalar_first=True)
+
+    m00, m01, m02 = A[0]
+    m10, m11, m12 = A[1]
+    m20, m21, m22 = A[2]
+
+    trace = m00 + m11 + m22
+
+    if trace > 0.0:
+        s = 2.0 * np.sqrt(trace + 1.0)
+        w = 0.25 * s
+        x = (m21 - m12) / s
+        y = (m02 - m20) / s
+        z = (m10 - m01) / s
+    elif (m00 > m11) and (m00 > m22):
+        s = 2.0 * np.sqrt(1.0 + m00 - m11 - m22)
+        w = (m21 - m12) / s
+        x = 0.25 * s
+        y = (m01 + m10) / s
+        z = (m02 + m20) / s
+    elif m11 > m22:
+        s = 2.0 * np.sqrt(1.0 + m11 - m00 - m22)
+        w = (m02 - m20) / s
+        x = (m01 + m10) / s
+        y = 0.25 * s
+        z = (m12 + m21) / s
+    else:
+        s = 2.0 * np.sqrt(1.0 + m22 - m00 - m11)
+        w = (m10 - m01) / s
+        x = (m02 + m20) / s
+        y = (m12 + m21) / s
+        z = 0.25 * s
+
+    q = np.array([w, x, y, z])
+    return _normalize(q)
 
 
 @njit  # type: ignore[misc]
@@ -68,7 +106,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the Euler angles (ZYX convention) from a unit quaternion.
+    Compute the Euler angles (ZYX convention) from a unit quaternion (see ref [1]_).
 
     Parameters
     ----------
@@ -83,6 +121,10 @@ def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
             - Roll (alpha): Rotation about the x-axis.
             - Pitch (beta): Rotation about the y-axis.
             - Yaw (gamma): Rotation about the z-axis.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
     q_w, q_x, q_y, q_z = q
 
@@ -148,22 +190,24 @@ def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
 @njit  # type: ignore[misc]
 def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the unit quaternion from Euler angles.
+    Compute the unit quaternion from Euler angles (see ref [1]_).
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
 
-    # TODO: Verify thath the equation are correct
-
     alpha_half, beta_half, gamma_half = euler / 2.0
-    cos_alpha = np.cos(alpha_half)
-    sin_alpha = np.sin(alpha_half)
-    cos_beta = np.cos(beta_half)
-    sin_beta = np.sin(beta_half)
-    cos_gamma = np.cos(gamma_half)
-    sin_gamma = np.sin(gamma_half)
+    ca_half = np.cos(alpha_half)
+    sa_half = np.sin(alpha_half)
+    cb_half = np.cos(beta_half)
+    sb_half = np.sin(beta_half)
+    cg_half = np.cos(gamma_half)
+    sg_half = np.sin(gamma_half)
 
-    q_w = cos_alpha * cos_beta * cos_gamma + sin_alpha * sin_beta * sin_gamma
-    q_x = sin_alpha * cos_beta * cos_gamma - cos_alpha * sin_beta * sin_gamma
-    q_y = cos_alpha * sin_beta * cos_gamma + sin_alpha * cos_beta * sin_gamma
-    q_z = cos_alpha * cos_beta * sin_gamma - sin_alpha * sin_beta * cos_gamma
+    q_w = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
+    q_x = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
+    q_y = ca_half * sb_half * cg_half + sa_half * cb_half * sg_half
+    q_z = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
 
     return np.array([q_w, q_x, q_y, q_z])

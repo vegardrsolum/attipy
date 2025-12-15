@@ -19,11 +19,15 @@ class Test_Attitude:
     euler_deg_data = [
         (0.0, 0.0, 0.0),
         (10.0, 0.0, 0.0),
+        (-10.0, 0.0, 0.0),
         (0.0, 10.0, 0.0),
+        (0.0, -10.0, 0.0),
         (0.0, 0.0, 10.0),
+        (0.0, 0.0, -10.0),
         (1.0, 2.0, 3.0),
         (-1.0, -2.0, -3.0),
         (90.0, 25.0, -30.0),
+        (-90.0, -25.0, 30.0),
     ]
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
@@ -35,6 +39,13 @@ class Test_Attitude:
         att = Attitude(q)
 
         _assert_quat_allclose(att._q, q)
+
+    def test__repr__(self):
+        q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
+        att = Attitude(q)
+        repr_str = repr(att)
+        expected_str = "Attitude(q=[0.52 + -0.511i + 0.64j + 0.242k])"
+        assert repr_str == expected_str
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_quaternion(self, euler_deg):

@@ -45,11 +45,11 @@ class Attitude:
     This class encapsulates the attitude (or rotation) of a 'body frame', {b}, relative
     to a 'navigation frame', {n}. Although the {n} and {b} frames can be defined
     arbitrarily, the main use case is for representing the attitude of a vehicle
-    or sensor (body frame) relative to a local-level inertial or global reference
-    frame (navigation frame) (e.g., North-East-Down, NED).
+    or sensor (body frame) relative to a local-level global reference frame (navigation frame)
+    (e.g., North-East-Down, NED).
 
     Internally, the attitude is represented using a unit quaternion, q, defined
-    such that it transforms a vector from the body frame to the navigation frame
+    such that it transforms a vector from the body frame, {b}, to the navigation frame, {n},
     using:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
@@ -74,8 +74,8 @@ class Attitude:
         self._q = _asarray_check_unit_quaternion(q)
 
     def __repr__(self) -> str:
-        array_str = np.array2string(self._q)
-        return f"Attitude(q={array_str})"
+        q_w, q_x, q_y, q_z = self._q
+        return f"Attitude(q=[{q_w:.3g} + {q_x:.3g}i + {q_y:.3g}j + {q_z:.3g}k])"
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
@@ -234,9 +234,9 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3).copy()
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
-            theta *= np.pi / 180.0
+            theta = np.radians(theta)
         q = _quaternion_from_euler_zyx(theta)
         return cls(q)
 
@@ -279,5 +279,5 @@ class Attitude:
         """
         theta = _euler_zyx_from_quaternion(self._q)
         if degrees:
-            theta *= 180.0 / np.pi
+            theta = np.degrees(theta)
         return theta
