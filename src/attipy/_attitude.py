@@ -8,7 +8,9 @@ from ._transforms import (
     _quaternion_from_euler_zyx,
     _quaternion_from_matrix,
     _rot_matrix_from_quaternion,
+    _quaternion_from_rotvec,
 )
+from ._vectorops import _normalize, _quaternion_product
 
 
 def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
@@ -281,3 +283,8 @@ class Attitude:
         if degrees:
             theta = np.degrees(theta)
         return theta
+
+    def update(self, dtheta, degrees=False):
+        dtheta = np.asarray_chkfinite(dtheta)
+        dq = _quaternion_from_rotvec(dtheta)
+        self._q = _normalize(_quaternion_product(self._q, dq))
