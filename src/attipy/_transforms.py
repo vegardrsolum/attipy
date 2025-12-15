@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
+
 from ._vectorops import _normalize
 
 
