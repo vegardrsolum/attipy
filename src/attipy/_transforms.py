@@ -211,3 +211,17 @@ def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
     q_z = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
 
     return np.array([q_w, q_x, q_y, q_z])
+
+
+def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+    theta_x, theta_y, theta_z = theta
+    angle = np.sqrt(theta_x**2 + theta_y**2 + theta_z**2)
+    half_angle = 0.5 * angle
+
+    axis = theta / angle
+    q_w = np.cos(half_angle)
+    q_x, q_y, q_z = np.sin(half_angle) * axis
+
+    return np.array([q_w, q_x, q_y, q_z])
+
+
