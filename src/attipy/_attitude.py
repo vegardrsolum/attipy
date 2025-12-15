@@ -75,7 +75,7 @@ class Attitude:
 
     def __repr__(self) -> str:
         q_w, q_x, q_y, q_z = self._q
-        return f"Attitude(q=[{q_w:.8g} + {q_x:.8g}i + {q_y:.8g}j + {q_z:.8g}k])"
+        return f"Attitude(q=[{q_w:.3g} + {q_x:.3g}i + {q_y:.3g}j + {q_z:.3g}k])"
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
