@@ -2,14 +2,51 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation
+from ._vectorops import _normalize
 
 
 def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
     """
-    Convert a rotation matrix to a unit quaternion.
+    Convert a rotation matrix to a unit quaternion (see ref [1]_).
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
-    # TODO: remove scipy dependency
-    return Rotation.from_matrix(A).as_quat(scalar_first=True)
+
+    m00, m01, m02 = A[0]
+    m10, m11, m12 = A[1]
+    m20, m21, m22 = A[2]
+
+    trace = m00 + m11 + m22
+
+    if trace > 0.0:
+        s = 2.0 * np.sqrt(trace + 1.0)
+        w = 0.25 * s
+        x = (m21 - m12) / s
+        y = (m02 - m20) / s
+        z = (m10 - m01) / s
+    elif (m00 > m11) and (m00 > m22):
+        s = 2.0 * np.sqrt(1.0 + m00 - m11 - m22)
+        w = (m21 - m12) / s
+        x = 0.25 * s
+        y = (m01 + m10) / s
+        z = (m02 + m20) / s
+    elif m11 > m22:
+        s = 2.0 * np.sqrt(1.0 + m11 - m00 - m22)
+        w = (m02 - m20) / s
+        x = (m01 + m10) / s
+        y = 0.25 * s
+        z = (m12 + m21) / s
+    else:
+        s = 2.0 * np.sqrt(1.0 + m22 - m00 - m11)
+        w = (m10 - m01) / s
+        x = (m02 + m20) / s
+        y = (m12 + m21) / s
+        z = 0.25 * s
+
+    q = np.array([w, x, y, z])
+    return _normalize(q)
 
 
 @njit  # type: ignore[misc]
