@@ -6,10 +6,10 @@ from numpy.typing import ArrayLike, NDArray
 from ._quatops import _canonical, _normalize, _quatprod
 from ._transforms import (
     _euler_zyx_from_quat,
+    _matrix_from_quat,
     _quat_from_euler_zyx,
     _quat_from_matrix,
     _quat_from_rotvec,
-    _matrix_from_quat,
     _rotvec_from_quat,
 )
 

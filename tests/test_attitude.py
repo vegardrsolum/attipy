@@ -1,27 +1,8 @@
-import pytest
-from pathlib import Path
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
 from attipy import Attitude
-
-
-TEST_PATH = Path(__file__).parent
-
-
-@pytest.fixture
-def ahrs_data():
-    import pandas as pd
-
-    df = pd.read_csv(TEST_PATH / r"testdata/benchmark_pure_attitude_beat_202311A.csv")
-
-    t = df["Time_s"].values.astype(float)
-    euler = df[["Roll_rad", "Pitch_rad", "Yaw_rad"]].values.astype(float)
-    w = df[["GyroX_rads", "GyroY_rads", "GyroZ_rads"]].values.astype(float)
-    f = df[["AccX_ms2", "AccY_ms2", "AccZ_ms2"]].values.astype(float)
-
-    return t, euler, f, w
 
 
 class Test_Attitude:
@@ -186,7 +167,7 @@ class Test_Attitude:
         for w_i in w:
             att.update(w_i * dt, degrees=False)
             euler_out.append(att.as_euler(degrees=False))
-        
+
         euler_out = np.asarray(euler_out)
 
         np.testing.assert_allclose(euler_out, euler, atol=0.01)
