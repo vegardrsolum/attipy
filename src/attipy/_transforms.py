@@ -169,22 +169,20 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    rot_00 = cos_gamma * cos_beta
-    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
-    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+    R00 = cos_gamma * cos_beta
+    R01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    R02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
 
-    rot_10 = sin_gamma * cos_beta
-    rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+    R10 = sin_gamma * cos_beta
+    R11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
+    R12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
 
-    rot_20 = -sin_beta
-    rot_21 = cos_beta * sin_alpha
-    rot_22 = cos_beta * cos_alpha
+    R20 = -sin_beta
+    R21 = cos_beta * sin_alpha
+    R22 = cos_beta * cos_alpha
 
-    rot = np.array(
-        [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
-    )
-    return rot
+    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    return R
 
 
 @njit  # type: ignore[misc]
