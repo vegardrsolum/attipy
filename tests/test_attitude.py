@@ -1,8 +1,43 @@
+import pytest
+from pathlib import Path
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
 from attipy import Attitude
+
+
+TEST_PATH = Path(__file__).parent
+
+
+@pytest.fixture
+def ahrs_data():
+    import csv
+
+    path = TEST_PATH / r"testdata/benchmark_pure_attitude_beat_202311A.csv"
+    with open(path, mode="r") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        data = np.asarray_chkfinite(list(reader))
+
+    col_map = {name: i for i, name in enumerate(header)}
+
+    t = data[col_map["Time_s"]].astype(float)
+    roll = data[col_map["Roll_rad"]].astype(float)
+    pitch = data[col_map["Pitch_rad"]].astype(float)
+    yaw = data[col_map["Yaw_rad"]].astype(float)
+    gx = data[col_map["GyroX_rads"]].astype(float)
+    gy = data[col_map["GyroY_rads"]].astype(float)
+    gz = data[col_map["GyroZ_rads"]].astype(float)
+    ax = data[col_map["AccX_ms2"]].astype(float)
+    ay = data[col_map["AccY_ms2"]].astype(float)
+    az = data[col_map["AccZ_ms2"]].astype(float)
+
+    euler = np.column_stack([roll, pitch, yaw])
+    w = np.column_stack([gx, gy, gz])
+    f = np.column_stack([ax, ay, az])
+
+    return t, euler, f, w
 
 
 class Test_Attitude:
@@ -156,3 +191,20 @@ class Test_Attitude:
         rotvec_out = att.as_rotvec(degrees=False)
 
         np.testing.assert_allclose(rotvec_out, rotvec)
+
+    def test_update(self, ahrs_data):
+        _, euler, _, w = ahrs_data
+
+        dt = 1.0 / 10.24
+        att = Attitude.from_euler(euler[0])
+
+        euler_out = []
+        for w_i in w:
+            att.update(w_i * dt, degrees=False)
+            euler_out.append(att.as_euler(degrees=False))
+        
+        euler_out = np.asarray(euler_out)
+
+        print(w[0])
+
+        np.testing.assert_allclose(euler_out, euler, atol=0.01)
