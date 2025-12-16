@@ -47,31 +47,3 @@ def _quaternion_product(
         ),
         axis=0,
     )
-
-
-@njit  # type: ignore[misc]
-def _quaternion_product(
-    qa: NDArray[np.float64], qb: NDArray[np.float64]
-) -> NDArray[np.float64]:
-    """
-    Unit quaternion (Schur) product: ``qa * qb``.
-
-    Parameters
-    ----------
-    qa, qb : numpy.ndarray, shape (4,)
-        Unit quaternions.
-
-    Returns
-    -------
-    numpy.ndarray, shape (4,)
-        Unit quaternions result of the product.
-    """
-    qa_w, qa_xyz = np.split(qa, [1])
-    qb_w, qb_xyz = np.split(qb, [1])
-    return np.concatenate(
-        (
-            qa_w * qb_w - qa_xyz.T @ qb_xyz,
-            qa_w * qb_xyz + qb_w * qa_xyz + np.cross(qa_xyz, qb_xyz),
-        ),
-        axis=0,
-    )
