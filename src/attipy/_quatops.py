@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
-def _canonical_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Return the quaternion in canonical (standardized) form.
 
@@ -26,7 +26,7 @@ def _canonical_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _normalize_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2-normalize a vector.
 

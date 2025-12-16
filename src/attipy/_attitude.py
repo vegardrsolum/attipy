@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical_quat, _normalize_quat, _quatprod
+from ._quatops import _canonical, _normalize, _quatprod
 from ._transforms import (
     _euler_zyx_from_quaternion,
     _quaternion_from_euler_zyx,
@@ -95,7 +95,7 @@ class Attitude:
 
     def __init__(self, q: ArrayLike) -> None:
         self._q = _asarray_check_quaternion(q)
-        self._q = _canonical_quat(self._q)
+        self._q = _canonical(self._q)
 
     def __repr__(self) -> str:
         q_w, q_x, q_y, q_z = self._q
@@ -390,4 +390,4 @@ class Attitude:
             dtheta = np.radians(dtheta)
 
         dq = _quaternion_from_rotvec(dtheta)
-        self._q = _normalize_quat(_quatprod(self._q, dq))
+        self._q = _normalize(_quatprod(self._q, dq))

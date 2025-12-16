@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._quatops import _normalize_quat, _canonical_quat
+from ._quatops import _canonical, _normalize, _quatprod
 
 
 @njit  # type: ignore[misc]
@@ -47,7 +47,7 @@ def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
         z = 0.25 * s
 
     q = np.array([w, x, y, z])
-    return _normalize_quat(q)
+    return _normalize(q)
 
 
 @njit  # type: ignore[misc]
@@ -231,7 +231,7 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
 
-    return _normalize_quat(q)
+    return _normalize(q)
 
 
 @njit  # type: ignore[misc]
@@ -249,7 +249,7 @@ def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Rotation vector.
     """
-    q = _canonical_quat(q)
+    q = _canonical(q)
     q_w, q_x, q_y, q_z = q
 
     q_xyz_norm = np.sqrt(q_x**2 + q_y**2 + q_z**2)
