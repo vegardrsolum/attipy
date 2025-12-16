@@ -81,26 +81,20 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q2 = q0 * _2q2
     _2q0q3 = q0 * _2q3
 
-    rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 - _2q0q3
-    rot_02 = _2q1q3 + _2q0q2
+    R00 = 1.0 - (_2q2q2 + _2q3q3)
+    R01 = _2q1q2 - _2q0q3
+    R02 = _2q1q3 + _2q0q2
 
-    rot_10 = _2q1q2 + _2q0q3
-    rot_11 = 1.0 - (_2q1q1 + _2q3q3)
-    rot_12 = _2q2q3 - _2q0q1
+    R10 = _2q1q2 + _2q0q3
+    R11 = 1.0 - (_2q1q1 + _2q3q3)
+    R12 = _2q2q3 - _2q0q1
 
-    rot_20 = _2q1q3 - _2q0q2
-    rot_21 = _2q2q3 + _2q0q1
-    rot_22 = 1.0 - (_2q1q1 + _2q2q2)
+    R20 = _2q1q3 - _2q0q2
+    R21 = _2q2q3 + _2q0q1
+    R22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    rot = np.array(
-        [
-            [rot_00, rot_01, rot_02],
-            [rot_10, rot_11, rot_12],
-            [rot_20, rot_21, rot_22],
-        ]
-    )
-    return rot
+    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    return R
 
 
 @njit  # type: ignore[misc]
