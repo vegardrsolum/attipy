@@ -44,6 +44,26 @@ def _asarray_check_matrix(A: ArrayLike) -> NDArray[np.float64]:
     return A
 
 
+def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
+    """
+    Convert the input to a numpy array and check if it is a valid set of Euler angles.
+    """
+    theta = np.asarray_chkfinite(theta, dtype=float)
+    if theta.shape != (3,):
+        raise ValueError("Euler angles must be a 3-element array.")
+    return theta
+
+
+def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
+    """
+    Convert the input to a numpy array and check if it is a valid rotation vector.
+    """
+    theta = np.asarray_chkfinite(theta, dtype=float)
+    if theta.shape != (3,):
+        raise ValueError("Rotation vector must be a 3-element array.")
+    return theta
+
+
 class Attitude:
     """
     This class encapsulates the attitude (or rotation) of a 'body frame', {b}, relative
@@ -237,7 +257,7 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        theta = _asarray_check_euler(theta)
         if degrees:
             theta = np.radians(theta)
         q = _quaternion_from_euler_zyx(theta)
@@ -304,7 +324,7 @@ class Attitude:
         ----------
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        theta = _asarray_check_rotvec(theta)
         if degrees:
             theta = np.radians(theta)
         q = _quaternion_from_rotvec(theta)
@@ -365,7 +385,7 @@ class Attitude:
             Specifies whether the input rotation vector is given in degrees or radians
             (default).
         """
-        dtheta = np.asarray_chkfinite(dtheta)
+        dtheta = _asarray_check_rotvec(dtheta)
 
         if degrees:
             dtheta = np.radians(dtheta)
