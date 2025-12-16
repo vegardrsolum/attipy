@@ -360,7 +360,7 @@ class Attitude:
 
     def update(self, dtheta, degrees=False):
         """
-        Update the attitude with an incremental rotation defined by a rotation vector,
+        Update the attitude with an incremental rotation given by a rotation vector,
         dtheta.
 
         The attitude is updated according to:
