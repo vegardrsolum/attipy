@@ -160,7 +160,8 @@ class Test_Attitude:
     def test_update(self, ahrs_data):
         _, euler, _, w = ahrs_data
 
-        dt = 1.0 / 10.24
+        fs = 10.24
+        dt = 1.0 / fs
         att = Attitude.from_euler(euler[0])
 
         euler_out = []
