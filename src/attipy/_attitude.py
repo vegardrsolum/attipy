@@ -10,6 +10,7 @@ from ._transforms import (
     _rot_matrix_from_quaternion,
     _quaternion_from_rotvec,
     _rotvec_from_quaternion,
+    _quaternion_canonical,
 )
 from ._vectorops import _normalize, _quaternion_product
 
@@ -75,6 +76,7 @@ class Attitude:
 
     def __init__(self, q: ArrayLike) -> None:
         self._q = _asarray_check_unit_quaternion(q)
+        self._q = _quaternion_canonical(self._q)
 
     def __repr__(self) -> str:
         q_w, q_x, q_y, q_z = self._q
