@@ -288,6 +288,7 @@ class Attitude:
         """
         Initialize from a rotation vector, theta, defined such that it is co-directional
         to the axis of rotation and has a norm equal to the angle of rotation [1]_.
+        The rotation is assumed to be passive and from {n} to {b}.
 
         Parameters
         ----------
@@ -311,7 +312,8 @@ class Attitude:
         """
         Represent the attitude as a 3-element rotation vector, defined such that
         it is co-directional to the axis of rotation and has a norm equal to the
-        angle of rotation [1]_.
+        angle of rotation [1]_. The rotation is assumed to be passive and from {n}
+        to {b}.
 
         Parameters
         ----------
