@@ -7,6 +7,7 @@ TEST_PATH = Path(__file__).parent
 
 @pytest.fixture
 def ahrs_data():
+    # TODO: remove pandas dependency
     import pandas as pd
 
     df = pd.read_csv(TEST_PATH / r"testdata/benchmark_pure_attitude_beat_202311A.csv")
