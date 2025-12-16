@@ -288,15 +288,21 @@ class Attitude:
     @classmethod
     def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Create an Attitude instance from a rotation vector.
+        Create an Attitude instance from a 3-element rotation vector representation,
+        defined such that it is co-directional to the axis of rotation and has a
+        norm equal to the angle of rotation [1]_.
 
         Parameters
         ----------
         theta : ArrayLike
-            Rotation vector representing the rotation.
+            Rotation vector, [theta_x, theta_y, theta_z].
         degrees : bool, default False
             Specifies whether the input rotation vector is given in degrees or radians
             (default).
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
         theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
         if degrees:
@@ -306,7 +312,9 @@ class Attitude:
     
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Return the attitude as a rotation vector.
+        Return the attitude as a 3-element rotation vector representation, defined
+        such that it is co-directional to the axis of rotation and has a norm equal
+        to the angle of rotation [1]_.
 
         Parameters
         ----------
@@ -317,7 +325,11 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            Rotation vector.
+            Rotation vector, [theta_x, theta_y, theta_z].
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
 
         theta = _rotvec_from_quaternion(self._q)
