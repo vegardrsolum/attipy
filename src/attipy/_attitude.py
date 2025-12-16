@@ -286,8 +286,8 @@ class Attitude:
 
     def update(self, dtheta, degrees=False):
         """
-        Update the attitude by applying an incremental rotation defined by a rotation
-        vector, dtheta.
+        Update the attitude with an incremental rotation defined by a rotation vector,
+        dtheta.
 
         Parameters
         ----------
@@ -296,7 +296,7 @@ class Attitude:
             The direction of the vector indicates the axis of rotation, and the
             magnitude (norm) of the vector indicates the angle of rotation.
         degrees : bool, default False
-            Specifies whether the input rotation vector is in degrees or radians
+            Specifies whether the input rotation vector is given in degrees or radians
             (default).
         """
         dtheta = np.asarray_chkfinite(dtheta)
