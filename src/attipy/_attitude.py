@@ -83,9 +83,8 @@ class Attitude:
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
         """
-        Create an Attitude instance from a unit quaternion, q, defined such that
-        it transforms a vector from the body frame, {b}, to the navigation frame,
-        {n}, using:
+        Initialize from a unit quaternion, q, defined such that it transforms a
+        vector from the body frame, {b}, to the navigation frame, {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
@@ -113,7 +112,7 @@ class Attitude:
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
-        Return the attitude as a unit quaternion, q, defined such that it transforms
+        Represent the attitude as a unit quaternion, q, defined such that it transforms
         a vector from the body frame, {b}, to the navigation frame, {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
@@ -138,9 +137,9 @@ class Attitude:
     @classmethod
     def from_matrix(cls, A: ArrayLike) -> Self:
         """
-        Create an Attitude instance from a rotation matrix (or direction cosine
-        matrix), defined such that it transforms vectors from the body frame, {b},
-        to the navigation frame, {n}, using:
+        Initialize from a rotation matrix (or direction cosine matrix), A, defined
+        such that it transforms vectors from the body frame, {b}, to the navigation
+        frame, {n}, using:
 
             v_n = A @ v_b
 
@@ -165,7 +164,7 @@ class Attitude:
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Return the attitude as a rotation matrix (or direction cosine matrix), A,
+        Represent the attitude as a rotation matrix (or direction cosine matrix), A,
         defined such that it transforms vectors from the body frame, {b}, to the
         navigation frame, {n}, using:
 
@@ -198,8 +197,7 @@ class Attitude:
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Create an Attitude instance from a set of Euler angles (ZYX convention)
-        (see Notes).
+        Initialize from a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
@@ -245,7 +243,7 @@ class Attitude:
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Convert the attitude to (ZYX) Euler angles (see Notes).
+        Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
@@ -288,9 +286,8 @@ class Attitude:
     @classmethod
     def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Create an Attitude instance from a 3-element rotation vector representation,
-        defined such that it is co-directional to the axis of rotation and has a
-        norm equal to the angle of rotation [1]_.
+        Initialize from a rotation vector, theta, defined such that it is co-directional
+        to the axis of rotation and has a norm equal to the angle of rotation [1]_.
 
         Parameters
         ----------
@@ -312,9 +309,9 @@ class Attitude:
     
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Return the attitude as a 3-element rotation vector representation, defined
-        such that it is co-directional to the axis of rotation and has a norm equal
-        to the angle of rotation [1]_.
+        Represent the attitude as a 3-element rotation vector, defined such that
+        it is co-directional to the axis of rotation and has a norm equal to the
+        angle of rotation [1]_.
 
         Parameters
         ----------
