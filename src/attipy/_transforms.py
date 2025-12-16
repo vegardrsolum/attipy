@@ -2,29 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._vectorops import _normalize
-
-
-@njit  # type: ignore[misc]
-def _quaternion_canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Return the quaternion in canonical (standardized) form.
-
-    Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
-    """
-    w, x, y, z = q
-
-    flip = (
-        w < 0
-        or (w == 0 and x < 0)
-        or (w == 0 and x == 0 and y < 0)
-        or (w == 0 and x == 0 and y == 0 and z < 0)
-    )
-
-    if flip:
-        return -q
-
-    return q
+from ._quatops import _normalize_quat, _canonical_quat
 
 
 @njit  # type: ignore[misc]
@@ -69,7 +47,7 @@ def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
         z = 0.25 * s
 
     q = np.array([w, x, y, z])
-    return _normalize(q)
+    return _normalize_quat(q)
 
 
 @njit  # type: ignore[misc]
@@ -253,7 +231,7 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
 
-    return _normalize(q)
+    return _normalize_quat(q)
 
 
 @njit  # type: ignore[misc]
@@ -271,7 +249,7 @@ def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Rotation vector.
     """
-    q = _quaternion_canonical(q)
+    q = _canonical_quat(q)
     q_w, q_x, q_y, q_z = q
 
     q_xyz_norm = np.sqrt(q_x**2 + q_y**2 + q_z**2)

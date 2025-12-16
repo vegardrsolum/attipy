@@ -4,7 +4,29 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
-def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _canonical_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Return the quaternion in canonical (standardized) form.
+
+    Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
+    """
+    w, x, y, z = q
+
+    flip = (
+        w < 0
+        or (w == 0 and x < 0)
+        or (w == 0 and x == 0 and y < 0)
+        or (w == 0 and x == 0 and y == 0 and z < 0)
+    )
+
+    if flip:
+        return -q
+
+    return q
+
+
+@njit  # type: ignore[misc]
+def _normalize_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2-normalize a vector.
 
@@ -22,9 +44,7 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _quaternion_product(
-    qa: NDArray[np.float64], qb: NDArray[np.float64]
-) -> NDArray[np.float64]:
+def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Unit quaternion (Hamilton) product: q_a ⊗ q_b.
 
