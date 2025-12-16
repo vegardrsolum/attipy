@@ -4,8 +4,8 @@ from scipy.spatial.transform import Rotation
 
 from attipy._transforms import (
     _euler_zyx_from_quat,
-    _rot_matrix_from_euler_zyx,
-    _rot_matrix_from_quat,
+    _matrix_from_euler_zyx,
+    _matrix_from_quat,
 )
 
 
@@ -17,8 +17,8 @@ from attipy._transforms import (
         np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # about z-axis
     ],
 )
-def test_rot_matrix_from_quat(q):
-    rot_matrix = _rot_matrix_from_quat(q)
+def test_matrix_from_quat(q):
+    rot_matrix = _matrix_from_quat(q)
     rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_matrix()
     np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
 
@@ -71,11 +71,11 @@ def test__euler_zyx_from_quat(angle, axis, euler):
         np.array([10.0, -10.0, 10.0]),  # mixed
     ],
 )
-def test__rot_matrix_from_euler_zyx(euler):
+def test__matrix_from_euler_zyx(euler):
     """
     The Numba optimized implementaiton uses from-origin-to-body (zyx) convention,
     where also the resulting rotation matrix is from-origin-to-body.
     """
-    out = _rot_matrix_from_euler_zyx(euler)
+    out = _matrix_from_euler_zyx(euler)
     expected = Rotation.from_euler("ZYX", euler[::-1]).as_matrix()
     np.testing.assert_array_almost_equal(out, expected)

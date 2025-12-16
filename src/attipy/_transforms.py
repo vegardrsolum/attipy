@@ -51,7 +51,7 @@ def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix from a unit quaternion.
 
@@ -136,7 +136,7 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix (from-body-to-origin) from Euler angles.
 

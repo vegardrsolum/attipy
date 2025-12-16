@@ -9,7 +9,7 @@ from ._transforms import (
     _quat_from_euler_zyx,
     _quat_from_matrix,
     _quat_from_rotvec,
-    _rot_matrix_from_quat,
+    _matrix_from_quat,
     _rotvec_from_quat,
 )
 
@@ -213,7 +213,7 @@ class Attitude:
         numpy.ndarray, shape (3, 3)
             Rotation matrix (or direction cosine matrix).
         """
-        return _rot_matrix_from_quat(self._q)
+        return _matrix_from_quat(self._q)
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
