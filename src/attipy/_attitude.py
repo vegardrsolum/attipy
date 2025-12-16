@@ -285,6 +285,24 @@ class Attitude:
         return theta
 
     def update(self, dtheta, degrees=False):
+        """
+        Update the attitude by applying an incremental rotation defined by a rotation
+        vector, dtheta.
+
+        Parameters
+        ----------
+        dtheta : ArrayLike
+            Rotation vector representing the incremental rotation to be applied.
+            The direction of the vector indicates the axis of rotation, and the
+            magnitude (norm) of the vector indicates the angle of rotation.
+        degrees : bool, default False
+            Specifies whether the input rotation vector is in degrees or radians
+            (default).
+        """
         dtheta = np.asarray_chkfinite(dtheta)
+
+        if degrees:
+            dtheta = np.radians(dtheta)
+
         dq = _quaternion_from_rotvec(dtheta)
         self._q = _normalize(_quaternion_product(self._q, dq))
