@@ -8,7 +8,7 @@ from ._vectorops import _normalize
 @njit  # type: ignore[misc]
 def _quaternion_canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Return a canonicalized (standardized) quaternion q of shape (4,).
+    Return the quaternion in canonical (standardized) form.
 
     Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
     """
