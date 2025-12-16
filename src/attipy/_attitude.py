@@ -15,9 +15,9 @@ from ._transforms import (
 from ._vectorops import _normalize, _quaternion_product
 
 
-def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     """
-    Convert the input to a numpy array and check if it is a unit quaternion.
+    Convert the input to a numpy array and check if it is a valid unit quaternion.
     """
     q = np.asarray_chkfinite(q, dtype=float)
     if q.shape != (4,):
@@ -28,7 +28,7 @@ def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     return q
 
 
-def _asarray_check_matrix_so3(A: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_matrix(A: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
@@ -75,7 +75,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_unit_quaternion(q)
+        self._q = _asarray_check_quaternion(q)
         self._q = _quaternion_canonical(self._q)
 
     def __repr__(self) -> str:
@@ -160,7 +160,7 @@ class Attitude:
         Attitude
             Attitude instance.
         """
-        A = _asarray_check_matrix_so3(A)
+        A = _asarray_check_matrix(A)
         q = _quaternion_from_matrix(A)
         return cls(q)
 
