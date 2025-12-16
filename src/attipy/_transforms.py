@@ -284,35 +284,3 @@ def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
         scale = angle / np.sin(angle / 2.0)
 
     return np.array([scale * q_x, scale * q_y, scale * q_z])
-
-
-# @njit  # type: ignore[misc]
-# def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
-#     """
-#     Compute the rotation vector from a unit quaternion.
-
-#     Parameters
-#     ----------
-#     q : numpy.ndarray, shape (4,)
-#         Unit quaternion.
-
-#     Returns
-#     -------
-#     numpy.ndarray, shape (3,)
-#         Rotation vector.
-#     """
-#     q_w, q_x, q_y, q_z = q
-
-#     s = np.sqrt(1.0 - q_w * q_w)
-
-#     if s < 1e-6:  # 2nd order approximation (avoid division by zero)
-#         coeff = 2.0 / q_w - (2.0 / 3.0) * (1.0 / (q_w**3)) * (1.0 - q_w * q_w)
-#     else:
-#         angle = 2.0 * np.arccos(q_w)
-#         coeff = angle / s
-
-#     theta_x = coeff * q_x
-#     theta_y = coeff * q_y
-#     theta_z = coeff * q_z
-
-#     return np.array([theta_x, theta_y, theta_z])
