@@ -9,6 +9,7 @@ from ._transforms import (
     _quaternion_from_matrix,
     _rot_matrix_from_quaternion,
     _quaternion_from_rotvec,
+    _rotvec_from_quaternion,
 )
 from ._vectorops import _normalize, _quaternion_product
 
@@ -280,6 +281,46 @@ class Attitude:
             v_n = A @ v_b
         """
         theta = _euler_zyx_from_quaternion(self._q)
+        if degrees:
+            theta = np.degrees(theta)
+        return theta
+
+    @classmethod
+    def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
+        """
+        Create an Attitude instance from a rotation vector.
+
+        Parameters
+        ----------
+        theta : ArrayLike
+            Rotation vector representing the rotation.
+        degrees : bool, default False
+            Specifies whether the input rotation vector is given in degrees or radians
+            (default).
+        """
+        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        if degrees:
+            theta = np.radians(theta)
+        q = _quaternion_from_rotvec(theta)
+        return cls(q)
+    
+    def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
+        """
+        Return the attitude as a rotation vector.
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            Specifies whether the output rotation vector should be given in degrees
+            or radians (default).
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Rotation vector.
+        """
+
+        theta = _rotvec_from_quaternion(self._q)
         if degrees:
             theta = np.degrees(theta)
         return theta

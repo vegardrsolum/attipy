@@ -122,3 +122,47 @@ class Test_Attitude:
         euler_out = att.as_euler(degrees=False)
 
         np.testing.assert_allclose(euler_out, np.radians(euler_deg))
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_from_rotvec_degrees(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=True)
+
+        att = Attitude.from_rotvec(rotvec, degrees=True)
+
+        _assert_quat_allclose(att._q, q)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_from_rotvec_radians(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=False)
+        att = Attitude.from_rotvec(rotvec, degrees=False)
+
+        _assert_quat_allclose(att._q, q)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_as_rotvec_degrees(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=True)
+
+        att = Attitude(q)
+        rotvec_out = att.as_rotvec(degrees=True)
+
+        np.testing.assert_allclose(rotvec_out, rotvec)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_as_rotvec_radians(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=False)
+        att = Attitude(q)
+        rotvec_out = att.as_rotvec(degrees=False)
+
+        np.testing.assert_allclose(rotvec_out, rotvec)
