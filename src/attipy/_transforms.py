@@ -6,6 +6,28 @@ from ._vectorops import _normalize
 
 
 @njit  # type: ignore[misc]
+def _quaternion_canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Return a canonicalized (standardized) quaternion q of shape (4,).
+
+    Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
+    """
+    w, x, y, z = q
+
+    flip = (
+        w < 0
+        or (w == 0 and x < 0)
+        or (w == 0 and x == 0 and y < 0)
+        or (w == 0 and x == 0 and y == 0 and z < 0)
+    )
+
+    if flip:
+        return -q
+
+    return q
+
+
+@njit  # type: ignore[misc]
 def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
@@ -219,7 +241,7 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     theta_x, theta_y, theta_z = theta
     angle2 = theta_x**2 + theta_y**2 + theta_z**2
 
-    if angle2 < 1e-6:  # 2nd order approximation (avoid division by zero)
+    if angle2 < 1e-6:  # 2nd order approximation (avoids division by zero)
         a = 0.25 * angle2
         c = 1.0 - a / 2.0
         s = 0.5 * (1.0 - a / 6.0)
@@ -232,6 +254,36 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
 
     return _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the rotation vector from a unit quaternion.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Rotation vector.
+    """
+    q = _quaternion_canonical(q)
+    q_w, q_x, q_y, q_z = q
+
+    q_xyz_norm = np.sqrt(q_x**2 + q_y**2 + q_z**2)
+    angle = 2.0 * np.arctan2(q_xyz_norm, q_w)
+
+    if angle <= 1e-3:  # 4th order approximation (avoids division by zero)
+        angle2 = angle**2
+        scale = 2.0 + (angle2) / 12.0 + 7.0 * angle2**2 / 2880.0
+    else:
+        scale = angle / np.sin(angle / 2.0)
+
+    return np.array([scale * q_x, scale * q_y, scale * q_z])
 
 
 # @njit  # type: ignore[misc]
