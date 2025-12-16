@@ -219,16 +219,16 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     theta_x, theta_y, theta_z = theta
     angle2 = theta_x**2 + theta_y**2 + theta_z**2
 
-    if angle2 < 1e-6:
+    if angle2 < 1e-6:  # 2nd order approximation (avoid division by zero)
         a = 0.25 * angle2
-        f4 = 1.0 - a / 2.0
-        f3 = 0.5 * (1.0 - a / 6.0)
+        c = 1.0 - a / 2.0
+        s = 0.5 * (1.0 - a / 6.0)
     else:
         angle = np.sqrt(angle2)
         half_angle = 0.5 * angle
-        f4 = np.cos(half_angle)
-        f3 = np.sin(half_angle) / angle
+        c = np.cos(half_angle)
+        s = np.sin(half_angle) / angle
 
-    q = np.array([f4, f3 * theta_x, f3 * theta_y, f3 * theta_z])
+    q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
 
     return _normalize(q)
