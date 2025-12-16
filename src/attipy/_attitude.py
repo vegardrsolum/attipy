@@ -289,6 +289,18 @@ class Attitude:
         Update the attitude with an incremental rotation defined by a rotation vector,
         dtheta.
 
+        The attitude is updated according to:
+
+            q[k+1] = q[k] ⊗ h(dtheta[k])
+
+        where,
+
+        - q[k] is the current unit quaternion representation of the attitude.
+        - dtheta[k] is the rotation vector representing the attitude increment.
+        - h(dtheta[k]) is the unit quaternion corresponding to the rotation vector.
+
+        and ⊗ denotes quaternion multiplication (Hamilton product).
+
         Parameters
         ----------
         dtheta : ArrayLike
