@@ -5,12 +5,12 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._quatops import _canonical, _normalize, _quatprod
 from ._transforms import (
-    _euler_zyx_from_quaternion,
-    _quaternion_from_euler_zyx,
-    _quaternion_from_matrix,
-    _quaternion_from_rotvec,
-    _rot_matrix_from_quaternion,
-    _rotvec_from_quaternion,
+    _euler_zyx_from_quat,
+    _quat_from_euler_zyx,
+    _quat_from_matrix,
+    _quat_from_rotvec,
+    _rot_matrix_from_quat,
+    _rotvec_from_quat,
 )
 
 
@@ -180,7 +180,7 @@ class Attitude:
             Attitude instance.
         """
         A = _asarray_check_matrix(A)
-        q = _quaternion_from_matrix(A)
+        q = _quat_from_matrix(A)
         return cls(q)
 
     def as_matrix(self) -> NDArray[np.float64]:
@@ -213,7 +213,7 @@ class Attitude:
         numpy.ndarray, shape (3, 3)
             Rotation matrix (or direction cosine matrix).
         """
-        return _rot_matrix_from_quaternion(self._q)
+        return _rot_matrix_from_quat(self._q)
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
@@ -259,7 +259,7 @@ class Attitude:
         theta = _asarray_check_euler(theta)
         if degrees:
             theta = np.radians(theta)
-        q = _quaternion_from_euler_zyx(theta)
+        q = _quat_from_euler_zyx(theta)
         return cls(q)
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
@@ -299,7 +299,7 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = _euler_zyx_from_quaternion(self._q)
+        theta = _euler_zyx_from_quat(self._q)
         if degrees:
             theta = np.degrees(theta)
         return theta
@@ -326,7 +326,7 @@ class Attitude:
         theta = _asarray_check_rotvec(theta)
         if degrees:
             theta = np.radians(theta)
-        q = _quaternion_from_rotvec(theta)
+        q = _quat_from_rotvec(theta)
         return cls(q)
 
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
@@ -352,7 +352,7 @@ class Attitude:
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
 
-        theta = _rotvec_from_quaternion(self._q)
+        theta = _rotvec_from_quat(self._q)
         if degrees:
             theta = np.degrees(theta)
         return theta
@@ -389,5 +389,5 @@ class Attitude:
         if degrees:
             dtheta = np.radians(dtheta)
 
-        dq = _quaternion_from_rotvec(dtheta)
+        dq = _quat_from_rotvec(dtheta)
         self._q = _normalize(_quatprod(self._q, dq))

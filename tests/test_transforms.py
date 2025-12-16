@@ -3,9 +3,9 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from attipy._transforms import (
-    _euler_zyx_from_quaternion,
+    _euler_zyx_from_quat,
     _rot_matrix_from_euler_zyx,
-    _rot_matrix_from_quaternion,
+    _rot_matrix_from_quat,
 )
 
 
@@ -17,8 +17,8 @@ from attipy._transforms import (
         np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # about z-axis
     ],
 )
-def test_rot_matrix_from_quaternion(q):
-    rot_matrix = _rot_matrix_from_quaternion(q)
+def test_rot_matrix_from_quat(q):
+    rot_matrix = _rot_matrix_from_quat(q)
     rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_matrix()
     np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
 
@@ -48,7 +48,7 @@ def test_rot_matrix_from_quaternion(q):
         ),  # mixed
     ],
 )
-def test__euler_zyx_from_quaternion(angle, axis, euler):
+def test__euler_zyx_from_quat(angle, axis, euler):
     q = np.array(
         [
             np.cos(angle / 2),
@@ -58,7 +58,7 @@ def test__euler_zyx_from_quaternion(angle, axis, euler):
         ]
     )
 
-    alpha_beta_gamma = _euler_zyx_from_quaternion(q)
+    alpha_beta_gamma = _euler_zyx_from_quat(q)
     np.testing.assert_array_almost_equal(alpha_beta_gamma, euler, decimal=16)
 
 

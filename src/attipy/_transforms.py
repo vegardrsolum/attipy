@@ -6,7 +6,7 @@ from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
 
@@ -51,7 +51,7 @@ def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _rot_matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix from a unit quaternion.
 
@@ -104,7 +104,7 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the Euler angles (ZYX convention) from a unit quaternion (see ref [1]_).
 
@@ -188,7 +188,7 @@ def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
 
@@ -214,7 +214,7 @@ def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     theta_x, theta_y, theta_z = theta
     angle2 = theta_x**2 + theta_y**2 + theta_z**2
@@ -235,7 +235,7 @@ def _quaternion_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _rotvec_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation vector from a unit quaternion.
 
