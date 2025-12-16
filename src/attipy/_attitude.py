@@ -5,12 +5,12 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._transforms import (
     _euler_zyx_from_quaternion,
+    _quaternion_canonical,
     _quaternion_from_euler_zyx,
     _quaternion_from_matrix,
-    _rot_matrix_from_quaternion,
     _quaternion_from_rotvec,
+    _rot_matrix_from_quaternion,
     _rotvec_from_quaternion,
-    _quaternion_canonical,
 )
 from ._vectorops import _normalize, _quaternion_product
 
@@ -309,7 +309,7 @@ class Attitude:
             theta = np.radians(theta)
         q = _quaternion_from_rotvec(theta)
         return cls(q)
-    
+
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Represent the attitude as a 3-element rotation vector, defined such that
