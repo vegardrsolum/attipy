@@ -2,11 +2,11 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._vectorops import _normalize
+from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
 
@@ -51,7 +51,7 @@ def _quaternion_from_matrix(A: np.ndarray) -> np.ndarray:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix from a unit quaternion.
 
@@ -81,30 +81,24 @@ def _rot_matrix_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q2 = q0 * _2q2
     _2q0q3 = q0 * _2q3
 
-    rot_00 = 1.0 - (_2q2q2 + _2q3q3)
-    rot_01 = _2q1q2 - _2q0q3
-    rot_02 = _2q1q3 + _2q0q2
+    R00 = 1.0 - (_2q2q2 + _2q3q3)
+    R01 = _2q1q2 - _2q0q3
+    R02 = _2q1q3 + _2q0q2
 
-    rot_10 = _2q1q2 + _2q0q3
-    rot_11 = 1.0 - (_2q1q1 + _2q3q3)
-    rot_12 = _2q2q3 - _2q0q1
+    R10 = _2q1q2 + _2q0q3
+    R11 = 1.0 - (_2q1q1 + _2q3q3)
+    R12 = _2q2q3 - _2q0q1
 
-    rot_20 = _2q1q3 - _2q0q2
-    rot_21 = _2q2q3 + _2q0q1
-    rot_22 = 1.0 - (_2q1q1 + _2q2q2)
+    R20 = _2q1q3 - _2q0q2
+    R21 = _2q2q3 + _2q0q1
+    R22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    rot = np.array(
-        [
-            [rot_00, rot_01, rot_02],
-            [rot_10, rot_11, rot_12],
-            [rot_20, rot_21, rot_22],
-        ]
-    )
-    return rot
+    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    return R
 
 
 @njit  # type: ignore[misc]
-def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the Euler angles (ZYX convention) from a unit quaternion (see ref [1]_).
 
@@ -136,7 +130,7 @@ def _euler_zyx_from_quaternion(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation matrix (from-body-to-origin) from Euler angles.
 
@@ -169,26 +163,24 @@ def _rot_matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    rot_00 = cos_gamma * cos_beta
-    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
-    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+    R00 = cos_gamma * cos_beta
+    R01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    R02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
 
-    rot_10 = sin_gamma * cos_beta
-    rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+    R10 = sin_gamma * cos_beta
+    R11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
+    R12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
 
-    rot_20 = -sin_beta
-    rot_21 = cos_beta * sin_alpha
-    rot_22 = cos_beta * cos_alpha
+    R20 = -sin_beta
+    R21 = cos_beta * sin_alpha
+    R22 = cos_beta * cos_alpha
 
-    rot = np.array(
-        [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
-    )
-    return rot
+    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    return R
 
 
 @njit  # type: ignore[misc]
-def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
 
@@ -211,3 +203,54 @@ def _quaternion_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64
     q_z = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
 
     return np.array([q_w, q_x, q_y, q_z])
+
+
+@njit  # type: ignore[misc]
+def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+
+    theta_x, theta_y, theta_z = theta
+    angle2 = theta_x**2 + theta_y**2 + theta_z**2
+
+    if angle2 < 1e-6:  # 2nd order approximation (avoids division by zero)
+        a = 0.25 * angle2
+        c = 1.0 - a / 2.0
+        s = 0.5 * (1.0 - a / 6.0)
+    else:
+        angle = np.sqrt(angle2)
+        half_angle = 0.5 * angle
+        c = np.cos(half_angle)
+        s = np.sin(half_angle) / angle
+
+    q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
+
+    return _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the rotation vector from a unit quaternion.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Rotation vector.
+    """
+    q = _canonical(q)
+    q_w, q_x, q_y, q_z = q
+
+    q_xyz_norm = np.sqrt(q_x**2 + q_y**2 + q_z**2)
+    angle = 2.0 * np.arctan2(q_xyz_norm, q_w)
+
+    if angle <= 1e-3:  # 4th order approximation (avoids division by zero)
+        angle2 = angle**2
+        scale = 2.0 + (angle2) / 12.0 + 7.0 * angle2**2 / 2880.0
+    else:
+        scale = angle / np.sin(angle / 2.0)
+
+    return np.array([scale * q_x, scale * q_y, scale * q_z])

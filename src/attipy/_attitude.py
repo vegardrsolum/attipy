@@ -3,17 +3,20 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from ._quatops import _canonical, _normalize, _quatprod
 from ._transforms import (
-    _euler_zyx_from_quaternion,
-    _quaternion_from_euler_zyx,
-    _quaternion_from_matrix,
-    _rot_matrix_from_quaternion,
+    _euler_zyx_from_quat,
+    _matrix_from_quat,
+    _quat_from_euler_zyx,
+    _quat_from_matrix,
+    _quat_from_rotvec,
+    _rotvec_from_quat,
 )
 
 
-def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     """
-    Convert the input to a numpy array and check if it is a unit quaternion.
+    Convert the input to a numpy array and check if it is a valid unit quaternion.
     """
     q = np.asarray_chkfinite(q, dtype=float)
     if q.shape != (4,):
@@ -24,7 +27,7 @@ def _asarray_check_unit_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     return q
 
 
-def _asarray_check_matrix_so3(A: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_matrix(A: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
@@ -38,6 +41,26 @@ def _asarray_check_matrix_so3(A: ArrayLike) -> NDArray[np.float64]:
     if not np.isclose(np.linalg.det(A), 1.0):
         raise ValueError("SO(3) matrix must have a determinant of 1.")
     return A
+
+
+def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
+    """
+    Convert the input to a numpy array and check if it is a valid set of Euler angles.
+    """
+    theta = np.asarray_chkfinite(theta, dtype=float)
+    if theta.shape != (3,):
+        raise ValueError("Euler angles must be a 3-element array.")
+    return theta
+
+
+def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
+    """
+    Convert the input to a numpy array and check if it is a valid rotation vector.
+    """
+    theta = np.asarray_chkfinite(theta, dtype=float)
+    if theta.shape != (3,):
+        raise ValueError("Rotation vector must be a 3-element array.")
+    return theta
 
 
 class Attitude:
@@ -71,7 +94,8 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_unit_quaternion(q)
+        self._q = _asarray_check_quaternion(q)
+        self._q = _canonical(self._q)
 
     def __repr__(self) -> str:
         q_w, q_x, q_y, q_z = self._q
@@ -80,9 +104,8 @@ class Attitude:
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
         """
-        Create an Attitude instance from a unit quaternion, q, defined such that
-        it transforms a vector from the body frame, {b}, to the navigation frame,
-        {n}, using:
+        Initialize from a unit quaternion, q, defined such that it transforms a
+        vector from the body frame, {b}, to the navigation frame, {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
@@ -110,7 +133,7 @@ class Attitude:
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
-        Return the attitude as a unit quaternion, q, defined such that it transforms
+        Represent the attitude as a unit quaternion, q, defined such that it transforms
         a vector from the body frame, {b}, to the navigation frame, {n}, using:
 
             [0, v_n] = q ⊗ [0, v_b] ⊗ q*
@@ -135,9 +158,9 @@ class Attitude:
     @classmethod
     def from_matrix(cls, A: ArrayLike) -> Self:
         """
-        Create an Attitude instance from a rotation matrix (or direction cosine
-        matrix), defined such that it transforms vectors from the body frame, {b},
-        to the navigation frame, {n}, using:
+        Initialize from a rotation matrix (or direction cosine matrix), A, defined
+        such that it transforms vectors from the body frame, {b}, to the navigation
+        frame, {n}, using:
 
             v_n = A @ v_b
 
@@ -156,13 +179,13 @@ class Attitude:
         Attitude
             Attitude instance.
         """
-        A = _asarray_check_matrix_so3(A)
-        q = _quaternion_from_matrix(A)
+        A = _asarray_check_matrix(A)
+        q = _quat_from_matrix(A)
         return cls(q)
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Return the attitude as a rotation matrix (or direction cosine matrix), A,
+        Represent the attitude as a rotation matrix (or direction cosine matrix), A,
         defined such that it transforms vectors from the body frame, {b}, to the
         navigation frame, {n}, using:
 
@@ -190,13 +213,12 @@ class Attitude:
         numpy.ndarray, shape (3, 3)
             Rotation matrix (or direction cosine matrix).
         """
-        return _rot_matrix_from_quaternion(self._q)
+        return _matrix_from_quat(self._q)
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Create an Attitude instance from a set of Euler angles (ZYX convention)
-        (see Notes).
+        Initialize from a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
@@ -234,15 +256,15 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = np.asarray_chkfinite(theta, dtype=float).reshape(3)
+        theta = _asarray_check_euler(theta)
         if degrees:
             theta = np.radians(theta)
-        q = _quaternion_from_euler_zyx(theta)
+        q = _quat_from_euler_zyx(theta)
         return cls(q)
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Convert the attitude to (ZYX) Euler angles (see Notes).
+        Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
@@ -277,7 +299,96 @@ class Attitude:
 
             v_n = A @ v_b
         """
-        theta = _euler_zyx_from_quaternion(self._q)
+        theta = _euler_zyx_from_quat(self._q)
         if degrees:
             theta = np.degrees(theta)
         return theta
+
+    @classmethod
+    def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
+        """
+        Initialize from a rotation vector, theta, defined such that it is co-directional
+        to the axis of rotation and has a norm equal to the angle of rotation [1]_.
+        The rotation is assumed to be passive and from {n} to {b}.
+
+        Parameters
+        ----------
+        theta : ArrayLike
+            Rotation vector, [theta_x, theta_y, theta_z].
+        degrees : bool, default False
+            Specifies whether the input rotation vector is given in degrees or radians
+            (default).
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
+        """
+        theta = _asarray_check_rotvec(theta)
+        if degrees:
+            theta = np.radians(theta)
+        q = _quat_from_rotvec(theta)
+        return cls(q)
+
+    def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
+        """
+        Represent the attitude as a 3-element rotation vector, defined such that
+        it is co-directional to the axis of rotation and has a norm equal to the
+        angle of rotation [1]_. The rotation is assumed to be passive and from {n}
+        to {b}.
+
+        Parameters
+        ----------
+        degrees : bool, default False
+            Specifies whether the output rotation vector should be given in degrees
+            or radians (default).
+
+        Returns
+        -------
+        numpy.ndarray, shape (3,)
+            Rotation vector, [theta_x, theta_y, theta_z].
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
+        """
+
+        theta = _rotvec_from_quat(self._q)
+        if degrees:
+            theta = np.degrees(theta)
+        return theta
+
+    def update(self, dtheta, degrees=False):
+        """
+        Update the attitude with an incremental rotation given by a rotation vector.
+
+        The attitude is updated according to:
+
+            q[k+1] = q[k] ⊗ h(dtheta[k])
+
+        where,
+
+        - q[k] is the current (time step k) attitude (as unit quaternion).
+        - q[k+1] is the updated (time step k+1) attitude (as unit quaternion).
+        - dtheta[k] is the attitude increment from time step k to k+1, expressed
+          as a rotation vector.
+        - h(dtheta[k]) is the unit quaternion corresponding to the attitude increment.
+
+        and ⊗ denotes quaternion multiplication (Hamilton product).
+
+        Parameters
+        ----------
+        dtheta : ArrayLike
+            Rotation vector representing the incremental rotation to be applied.
+            The direction of the vector indicates the axis of rotation, and the
+            magnitude (norm) of the vector indicates the angle of rotation.
+        degrees : bool, default False
+            Specifies whether the input rotation vector is given in degrees or radians
+            (default).
+        """
+        dtheta = _asarray_check_rotvec(dtheta)
+
+        if degrees:
+            dtheta = np.radians(dtheta)
+
+        dq = _quat_from_rotvec(dtheta)
+        self._q = _normalize(_quatprod(self._q, dq))

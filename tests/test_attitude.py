@@ -5,16 +5,6 @@ from scipy.spatial.transform import Rotation
 from attipy import Attitude
 
 
-def _assert_quat_allclose(q_actual: np.ndarray, q_desired: np.ndarray, *args, **kwargs):
-    """
-    Assert that two unit quaternions are equal, considering the double-cover property.
-    """
-    try:
-        np.testing.assert_allclose(q_actual, q_desired, *args, **kwargs)
-    except AssertionError:
-        np.testing.assert_allclose(q_actual, -q_desired, *args, **kwargs)
-
-
 class Test_Attitude:
     euler_deg_data = [
         (0.0, 0.0, 0.0),
@@ -38,7 +28,7 @@ class Test_Attitude:
 
         att = Attitude(q)
 
-        _assert_quat_allclose(att._q, q)
+        np.testing.assert_allclose(att._q, q)
 
     def test__repr__(self):
         q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
@@ -55,7 +45,7 @@ class Test_Attitude:
 
         att = Attitude.from_quaternion(q)
 
-        _assert_quat_allclose(att._q, q)
+        np.testing.assert_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_matrix(self, euler_deg):
@@ -66,7 +56,7 @@ class Test_Attitude:
 
         att = Attitude.from_matrix(matrix)
 
-        _assert_quat_allclose(att._q, q)
+        np.testing.assert_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_as_matrix(self, euler_deg):
@@ -88,7 +78,7 @@ class Test_Attitude:
 
         att = Attitude.from_euler(euler_deg, degrees=True)
 
-        _assert_quat_allclose(att._q, q)
+        np.testing.assert_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_from_euler_rad(self, euler_deg):
@@ -99,7 +89,7 @@ class Test_Attitude:
         euler_rad = np.radians(euler_deg)
         att = Attitude.from_euler(euler_rad, degrees=False)
 
-        _assert_quat_allclose(att._q, q)
+        np.testing.assert_allclose(att._q, q)
 
     @pytest.mark.parametrize("euler_deg", euler_deg_data)
     def test_as_euler_deg(self, euler_deg):
@@ -122,3 +112,63 @@ class Test_Attitude:
         euler_out = att.as_euler(degrees=False)
 
         np.testing.assert_allclose(euler_out, np.radians(euler_deg))
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_from_rotvec_deg(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=True)
+
+        att = Attitude.from_rotvec(rotvec, degrees=True)
+
+        np.testing.assert_allclose(att._q, q)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_from_rotvec_rad(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=False)
+        att = Attitude.from_rotvec(rotvec, degrees=False)
+
+        np.testing.assert_allclose(att._q, q)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_as_rotvec_deg(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=True)
+
+        att = Attitude(q)
+        rotvec_out = att.as_rotvec(degrees=True)
+
+        np.testing.assert_allclose(rotvec_out, rotvec)
+
+    @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    def test_as_rotvec_rad(self, euler_deg):
+        # Use scipy as reference
+        R = Rotation.from_euler("ZYX", euler_deg[::-1], degrees=True)
+        q = R.as_quat(scalar_first=True)
+        rotvec = R.as_rotvec(degrees=False)
+        att = Attitude(q)
+        rotvec_out = att.as_rotvec(degrees=False)
+
+        np.testing.assert_allclose(rotvec_out, rotvec)
+
+    def test_update(self, pva_data):
+        _, _, _, euler, _, w = pva_data
+
+        fs = 10.24
+        dt = 1.0 / fs
+        att = Attitude.from_euler(euler[0])
+
+        euler_out = []
+        for w_i in w:
+            att.update(w_i * dt, degrees=False)
+            euler_out.append(att.as_euler(degrees=False))
+
+        euler_out = np.asarray(euler_out)
+
+        np.testing.assert_allclose(euler_out, euler, atol=0.01)
