@@ -6,7 +6,7 @@ from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(C: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
 
@@ -15,9 +15,9 @@ def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
 
-    m00, m01, m02 = dcm[0]
-    m10, m11, m12 = dcm[1]
-    m20, m21, m22 = dcm[2]
+    m00, m01, m02 = C[0]
+    m10, m11, m12 = C[1]
+    m20, m21, m22 = C[2]
 
     trace = m00 + m11 + m22
 
@@ -81,20 +81,20 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q2 = q0 * _2q2
     _2q0q3 = q0 * _2q3
 
-    R00 = 1.0 - (_2q2q2 + _2q3q3)
-    R01 = _2q1q2 - _2q0q3
-    R02 = _2q1q3 + _2q0q2
+    m00 = 1.0 - (_2q2q2 + _2q3q3)
+    m01 = _2q1q2 - _2q0q3
+    m02 = _2q1q3 + _2q0q2
 
-    R10 = _2q1q2 + _2q0q3
-    R11 = 1.0 - (_2q1q1 + _2q3q3)
-    R12 = _2q2q3 - _2q0q1
+    m10 = _2q1q2 + _2q0q3
+    m11 = 1.0 - (_2q1q1 + _2q3q3)
+    m12 = _2q2q3 - _2q0q1
 
-    R20 = _2q1q3 - _2q0q2
-    R21 = _2q2q3 + _2q0q1
-    R22 = 1.0 - (_2q1q1 + _2q2q2)
+    m20 = _2q1q3 - _2q0q2
+    m21 = _2q2q3 + _2q0q1
+    m22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
-    return R
+    C = np.array([[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]])
+    return C
 
 
 @njit  # type: ignore[misc]
