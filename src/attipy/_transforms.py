@@ -15,35 +15,35 @@ def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
 
-    m00, m01, m02 = dcm[0]
-    m10, m11, m12 = dcm[1]
-    m20, m21, m22 = dcm[2]
+    c00, c01, c02 = dcm[0]
+    c10, c11, c12 = dcm[1]
+    c20, c21, c22 = dcm[2]
 
-    trace = m00 + m11 + m22
+    trace = c00 + c11 + c22
 
     if trace > 0.0:
         s = 2.0 * np.sqrt(trace + 1.0)
         w = 0.25 * s
-        x = (m21 - m12) / s
-        y = (m02 - m20) / s
-        z = (m10 - m01) / s
-    elif (m00 > m11) and (m00 > m22):
-        s = 2.0 * np.sqrt(1.0 + m00 - m11 - m22)
-        w = (m21 - m12) / s
+        x = (c21 - c12) / s
+        y = (c02 - c20) / s
+        z = (c10 - c01) / s
+    elif (c00 > c11) and (c00 > c22):
+        s = 2.0 * np.sqrt(1.0 + c00 - c11 - c22)
+        w = (c21 - c12) / s
         x = 0.25 * s
-        y = (m01 + m10) / s
-        z = (m02 + m20) / s
-    elif m11 > m22:
-        s = 2.0 * np.sqrt(1.0 + m11 - m00 - m22)
-        w = (m02 - m20) / s
-        x = (m01 + m10) / s
+        y = (c01 + c10) / s
+        z = (c02 + c20) / s
+    elif c11 > c22:
+        s = 2.0 * np.sqrt(1.0 + c11 - c00 - c22)
+        w = (c02 - c20) / s
+        x = (c01 + c10) / s
         y = 0.25 * s
-        z = (m12 + m21) / s
+        z = (c12 + c21) / s
     else:
-        s = 2.0 * np.sqrt(1.0 + m22 - m00 - m11)
-        w = (m10 - m01) / s
-        x = (m02 + m20) / s
-        y = (m12 + m21) / s
+        s = 2.0 * np.sqrt(1.0 + c22 - c00 - c11)
+        w = (c10 - c01) / s
+        x = (c02 + c20) / s
+        y = (c12 + c21) / s
         z = 0.25 * s
 
     q = np.array([w, x, y, z])
@@ -81,19 +81,19 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q2 = q0 * _2q2
     _2q0q3 = q0 * _2q3
 
-    m00 = 1.0 - (_2q2q2 + _2q3q3)
-    m01 = _2q1q2 - _2q0q3
-    m02 = _2q1q3 + _2q0q2
+    c00 = 1.0 - (_2q2q2 + _2q3q3)
+    c01 = _2q1q2 - _2q0q3
+    c02 = _2q1q3 + _2q0q2
 
-    m10 = _2q1q2 + _2q0q3
-    m11 = 1.0 - (_2q1q1 + _2q3q3)
-    m12 = _2q2q3 - _2q0q1
+    c10 = _2q1q2 + _2q0q3
+    c11 = 1.0 - (_2q1q1 + _2q3q3)
+    c12 = _2q2q3 - _2q0q1
 
-    m20 = _2q1q3 - _2q0q2
-    m21 = _2q2q3 + _2q0q1
-    m22 = 1.0 - (_2q1q1 + _2q2q2)
+    c20 = _2q1q3 - _2q0q2
+    c21 = _2q2q3 + _2q0q1
+    c22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    dcm = np.array([[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]])
+    dcm = np.array([[c00, c01, c02], [c10, c11, c12], [c20, c21, c22]])
     return dcm
 
 
