@@ -156,31 +156,31 @@ class Attitude:
         return self._q.copy()
 
     @classmethod
-    def from_matrix(cls, A: ArrayLike) -> Self:
+    def from_matrix(cls, dcm: ArrayLike) -> Self:
         """
-        Initialize from a rotation matrix (or direction cosine matrix), A, defined
-        such that it transforms vectors from the body frame, {b}, to the navigation
-        frame, {n}, using:
+        Initialize from a direction cosine matrix (DCM), C, defined such that it
+        transforms vectors from the body frame, {b}, to the navigation frame, {n},
+        using:
 
-            v_n = A @ v_b
+            v_n = C @ v_b
 
         where,
-        - ``A`` is the 3x3 rotation matrix (or direction cosine matrix).
+        - ``C`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
-        A : ArrayLike
-            Rotation matrix (element of SO(3)).
+        dcm : ArrayLike
+            Direction cosine matrix (element of SO(3)).
 
         Returns
         -------
         Attitude
             Attitude instance.
         """
-        A = _asarray_check_matrix(A)
-        q = _quat_from_matrix(A)
+        C = _asarray_check_matrix(dcm)
+        q = _quat_from_matrix(C)
         return cls(q)
 
     def as_matrix(self) -> NDArray[np.float64]:
