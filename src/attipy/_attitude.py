@@ -243,7 +243,7 @@ class Attitude:
 
         Defined as:
 
-            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            C = C_z(gamma) @ C_y(beta) @ C_x(alpha)
 
         where,
 
@@ -252,10 +252,10 @@ class Attitude:
         - alpha is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
-        and A is the attitude matrix (transforming vectors from the body frame to
+        and C is the direction cosine matrix (transforming vectors from the body frame to
         the navigation frame):
 
-            v_n = A @ v_b
+            v_n = C @ v_b
         """
         theta = _asarray_check_euler(theta)
         if degrees:
@@ -286,7 +286,7 @@ class Attitude:
 
         Defined as:
 
-            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            C = C_z(gamma) @ C_y(beta) @ C_x(alpha)
 
         where,
 
@@ -295,10 +295,10 @@ class Attitude:
         - alpha is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
-        and A is the attitude matrix (transforming vectors from the body frame to
+        and C is the direction cosine matrix (transforming vectors from the body frame to
         the navigation frame):
 
-            v_n = A @ v_b
+            v_n = C @ v_b
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
