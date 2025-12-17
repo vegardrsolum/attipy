@@ -6,7 +6,7 @@ from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
 
@@ -15,9 +15,9 @@ def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
     .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
 
-    m00, m01, m02 = A[0]
-    m10, m11, m12 = A[1]
-    m20, m21, m22 = A[2]
+    m00, m01, m02 = dcm[0]
+    m10, m11, m12 = dcm[1]
+    m20, m21, m22 = dcm[2]
 
     trace = m00 + m11 + m22
 
