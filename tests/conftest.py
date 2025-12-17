@@ -7,7 +7,7 @@ TEST_PATH = Path(__file__).parent
 
 
 @pytest.fixture
-def ahrs_data():
+def pva_data():
     data = np.genfromtxt(
         TEST_PATH / "testdata/benchmark_full_pva_beat_202311A.csv",
         delimiter=",",
