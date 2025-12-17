@@ -9,13 +9,23 @@ TEST_PATH = Path(__file__).parent
 @pytest.fixture
 def ahrs_data():
     data = np.genfromtxt(
-        TEST_PATH / "testdata/benchmark_pure_attitude_beat_202311A.csv",
+        TEST_PATH / "testdata/benchmark_full_pva_beat_202311A.csv",
         delimiter=",",
         names=True,
         dtype=float,
     )
 
     t = data["Time_s"]
+    pos = np.column_stack((
+        data["PosX_m"],
+        data["PosY_m"],
+        data["PosZ_m"],
+    ))
+    vel = np.column_stack((
+        data["VelX_ms"],
+        data["VelY_ms"],
+        data["VelZ_ms"],
+    ))
     euler = np.column_stack((
         data["Roll_rad"],
         data["Pitch_rad"],
@@ -32,4 +42,4 @@ def ahrs_data():
         data["AccZ_ms2"],
     ))
 
-    return t, euler, f, w
+    return t, pos, vel, euler, f, w

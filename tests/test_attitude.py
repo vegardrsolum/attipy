@@ -158,7 +158,7 @@ class Test_Attitude:
         np.testing.assert_allclose(rotvec_out, rotvec)
 
     def test_update(self, ahrs_data):
-        _, euler, _, w = ahrs_data
+        _, _, _, euler, _, w = ahrs_data
 
         fs = 10.24
         dt = 1.0 / fs
