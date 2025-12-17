@@ -16,30 +16,26 @@ def ahrs_data():
     )
 
     t = data["Time_s"]
-    pos = np.column_stack((
-        data["PosX_m"],
-        data["PosY_m"],
-        data["PosZ_m"],
-    ))
-    vel = np.column_stack((
-        data["VelX_ms"],
-        data["VelY_ms"],
-        data["VelZ_ms"],
-    ))
-    euler = np.column_stack((
-        data["Roll_rad"],
-        data["Pitch_rad"],
-        data["Yaw_rad"],
-    ))
-    w = np.column_stack((
-        data["GyroX_rads"],
-        data["GyroY_rads"],
-        data["GyroZ_rads"],
-    ))
-    f = np.column_stack((
-        data["AccX_ms2"],
-        data["AccY_ms2"],
-        data["AccZ_ms2"],
-    ))
+    pos_x = data["PosX_m"]
+    pos_y = data["PosY_m"]
+    pos_z = data["PosZ_m"]
+    vel_x = data["VelX_ms"]
+    vel_y = data["VelY_ms"]
+    vel_z = data["VelZ_ms"]
+    roll = data["Roll_rad"]
+    pitch = data["Pitch_rad"]
+    yaw = data["Yaw_rad"]
+    gx = data["GyroX_rads"]
+    gy = data["GyroY_rads"]
+    gz = data["GyroZ_rads"]
+    ax = data["AccX_ms2"]
+    ay = data["AccY_ms2"]
+    az = data["AccZ_ms2"]
+
+    pos = np.column_stack((pos_x, pos_y, pos_z))
+    vel = np.column_stack((vel_x, vel_y, vel_z))
+    euler = np.column_stack((roll, pitch, yaw))
+    w = np.column_stack((gx, gy, gz))
+    f = np.column_stack((ax, ay, az))
 
     return t, pos, vel, euler, f, w
