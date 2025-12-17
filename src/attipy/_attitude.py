@@ -27,21 +27,20 @@ def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     return q
 
 
-def _asarray_check_matrix(A: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_matrix(C: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
     """
-    A = np.asarray_chkfinite(A, dtype=float)
-    if A.shape != (3, 3):
+    C = np.asarray_chkfinite(C, dtype=float)
+    if C.shape != (3, 3):
         raise ValueError("SO(3) matrix must be a 3x3 array.")
     I3x3 = np.eye(3)
-    if not np.allclose(A.T @ A, I3x3):
+    if not np.allclose(C.T @ C, I3x3):
         raise ValueError("SO(3) matrix must be orthogonal.")
-    if not np.isclose(np.linalg.det(A), 1.0):
+    if not np.isclose(np.linalg.det(C), 1.0):
         raise ValueError("SO(3) matrix must have a determinant of 1.")
-    return A
-
+    return C
 
 def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
     """
