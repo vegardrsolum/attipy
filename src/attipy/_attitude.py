@@ -185,21 +185,22 @@ class Attitude:
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a rotation matrix (or direction cosine matrix), A,
-        defined such that it transforms vectors from the body frame, {b}, to the
-        navigation frame, {n}, using:
+        Represent the attitude as a direction cosine matrix (DCM), C, defined such
+        that it transforms vectors from the body frame, {b}, to the navigation frame,
+        {n}, using:
 
-            v_n = A @ v_b
+            v_n = C @ v_b
 
         where,
 
-        - ``A`` is the 3x3 attitude matrix.
+        - ``C`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
-        The rotation matrix is computed from the unit quaternion, q, using the formula:
+        The direction cosine matrix is computed from the unit quaternion, q, using
+        the formula:
 
-            A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
+            C = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
         where,
 
@@ -211,7 +212,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3, 3)
-            Rotation matrix (or direction cosine matrix).
+            Direction cosine matrix, C.
         """
         return _matrix_from_quat(self._q)
 
