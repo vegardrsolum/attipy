@@ -367,9 +367,10 @@ class Attitude:
 
         where,
 
-        - q[k] is the current (time step k) unit quaternion representation of the attitude.
-        - dtheta[k] is the rotation vector, representing the attitude increment
-          from time step k to k+1.
+        - q[k] is the current (time step k) attitude (as unit quaternion).
+        - q[k+1] is the updated (time step k+1) attitude (as unit quaternion).
+        - dtheta[k] is the attitude increment from time step k to k+1, expressed
+          as a rotation vector.
         - h(dtheta[k]) is the unit quaternion corresponding to the attitude increment.
 
         and ⊗ denotes quaternion multiplication (Hamilton product).
