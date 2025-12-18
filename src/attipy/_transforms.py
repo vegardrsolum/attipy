@@ -6,7 +6,7 @@ from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
 
@@ -15,35 +15,35 @@ def _quat_from_matrix(A: np.ndarray) -> np.ndarray:
     .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
     """
 
-    m00, m01, m02 = A[0]
-    m10, m11, m12 = A[1]
-    m20, m21, m22 = A[2]
+    r00, r01, r02 = dcm[0]
+    r10, r11, r12 = dcm[1]
+    r20, r21, r22 = dcm[2]
 
-    trace = m00 + m11 + m22
+    trace = r00 + r11 + r22
 
     if trace > 0.0:
         s = 2.0 * np.sqrt(trace + 1.0)
         w = 0.25 * s
-        x = (m21 - m12) / s
-        y = (m02 - m20) / s
-        z = (m10 - m01) / s
-    elif (m00 > m11) and (m00 > m22):
-        s = 2.0 * np.sqrt(1.0 + m00 - m11 - m22)
-        w = (m21 - m12) / s
+        x = (r21 - r12) / s
+        y = (r02 - r20) / s
+        z = (r10 - r01) / s
+    elif (r00 > r11) and (r00 > r22):
+        s = 2.0 * np.sqrt(1.0 + r00 - r11 - r22)
+        w = (r21 - r12) / s
         x = 0.25 * s
-        y = (m01 + m10) / s
-        z = (m02 + m20) / s
-    elif m11 > m22:
-        s = 2.0 * np.sqrt(1.0 + m11 - m00 - m22)
-        w = (m02 - m20) / s
-        x = (m01 + m10) / s
+        y = (r01 + r10) / s
+        z = (r02 + r20) / s
+    elif r11 > r22:
+        s = 2.0 * np.sqrt(1.0 + r11 - r00 - r22)
+        w = (r02 - r20) / s
+        x = (r01 + r10) / s
         y = 0.25 * s
-        z = (m12 + m21) / s
+        z = (r12 + r21) / s
     else:
-        s = 2.0 * np.sqrt(1.0 + m22 - m00 - m11)
-        w = (m10 - m01) / s
-        x = (m02 + m20) / s
-        y = (m12 + m21) / s
+        s = 2.0 * np.sqrt(1.0 + r22 - r00 - r11)
+        w = (r10 - r01) / s
+        x = (r02 + r20) / s
+        y = (r12 + r21) / s
         z = 0.25 * s
 
     q = np.array([w, x, y, z])
@@ -81,19 +81,19 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     _2q0q2 = q0 * _2q2
     _2q0q3 = q0 * _2q3
 
-    R00 = 1.0 - (_2q2q2 + _2q3q3)
-    R01 = _2q1q2 - _2q0q3
-    R02 = _2q1q3 + _2q0q2
+    r00 = 1.0 - (_2q2q2 + _2q3q3)
+    r01 = _2q1q2 - _2q0q3
+    r02 = _2q1q3 + _2q0q2
 
-    R10 = _2q1q2 + _2q0q3
-    R11 = 1.0 - (_2q1q1 + _2q3q3)
-    R12 = _2q2q3 - _2q0q1
+    r10 = _2q1q2 + _2q0q3
+    r11 = 1.0 - (_2q1q1 + _2q3q3)
+    r12 = _2q2q3 - _2q0q1
 
-    R20 = _2q1q3 - _2q0q2
-    R21 = _2q2q3 + _2q0q1
-    R22 = 1.0 - (_2q1q1 + _2q2q2)
+    r20 = _2q1q3 - _2q0q2
+    r21 = _2q2q3 + _2q0q1
+    r22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
     return R
 
 
@@ -163,19 +163,19 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     cos_alpha = np.cos(alpha)
     sin_alpha = np.sin(alpha)
 
-    R00 = cos_gamma * cos_beta
-    R01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
-    R02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+    r00 = cos_gamma * cos_beta
+    r01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
+    r02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
 
-    R10 = sin_gamma * cos_beta
-    R11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    R12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+    r10 = sin_gamma * cos_beta
+    r11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
+    r12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
 
-    R20 = -sin_beta
-    R21 = cos_beta * sin_alpha
-    R22 = cos_beta * cos_alpha
+    r20 = -sin_beta
+    r21 = cos_beta * sin_alpha
+    r22 = cos_beta * cos_alpha
 
-    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
     return R
 
 

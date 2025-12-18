@@ -27,20 +27,20 @@ def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     return q
 
 
-def _asarray_check_matrix(A: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
     """
-    A = np.asarray_chkfinite(A, dtype=float)
-    if A.shape != (3, 3):
+    R = np.asarray_chkfinite(dcm, dtype=float)
+    if R.shape != (3, 3):
         raise ValueError("SO(3) matrix must be a 3x3 array.")
     I3x3 = np.eye(3)
-    if not np.allclose(A.T @ A, I3x3):
+    if not np.allclose(R.T @ R, I3x3):
         raise ValueError("SO(3) matrix must be orthogonal.")
-    if not np.isclose(np.linalg.det(A), 1.0):
+    if not np.isclose(np.linalg.det(R), 1.0):
         raise ValueError("SO(3) matrix must have a determinant of 1.")
-    return A
+    return R
 
 
 def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
@@ -65,15 +65,18 @@ def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
 
 class Attitude:
     """
-    This class encapsulates the attitude (or rotation) of a 'body frame', {b}, relative
-    to a 'navigation frame', {n}. Although the {n} and {b} frames can be defined
-    arbitrarily, the main use case is for representing the attitude of a vehicle
-    or sensor (body frame) relative to a local-level global reference frame (navigation frame)
-    (e.g., North-East-Down, NED).
+    This class encapsulates the attitude (or rotation) of one orthonormal reference
+    frame {b} relative to another {n}.
+
+    Although the {n} and {b} frames can be defined arbitrarily, the main use case
+    is for representing the attitude of a vehicle or sensor (body frame) relative
+    to a local-level global inertial reference frame (navigation frame). The most
+    common navigation frames are the North-East-Down (NED) frame and the East-North-Up
+    (ENU) frame.
 
     Internally, the attitude is represented using a unit quaternion, q, defined
-    such that it transforms a vector from the body frame, {b}, to the navigation frame, {n},
-    using:
+    such that it transforms a vector from the body frame, {b}, to the navigation
+    frame, {n}, using:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
@@ -85,6 +88,14 @@ class Attitude:
     - v_n is the same vector expressed in the navigation frame.
 
     and ⊗ denotes quaternion multiplication (Hamilton product).
+
+    The class provides methods for transforming to/from a variety of attitude representations,
+    including:
+
+    - Direction cosine matrix (DCM) (9 parameters).
+    - Unit quaternion (4 parameters).
+    - Euler angles (ZYX convention) (3 parameters).
+    - Rotation vector (3 parameters).
 
     Parameters
     ----------
@@ -156,50 +167,51 @@ class Attitude:
         return self._q.copy()
 
     @classmethod
-    def from_matrix(cls, A: ArrayLike) -> Self:
+    def from_matrix(cls, dcm: ArrayLike) -> Self:
         """
-        Initialize from a rotation matrix (or direction cosine matrix), A, defined
-        such that it transforms vectors from the body frame, {b}, to the navigation
-        frame, {n}, using:
+        Initialize from a direction cosine matrix (DCM), R, defined such that it
+        transforms vectors from the body frame, {b}, to the navigation frame, {n},
+        using:
 
-            v_n = A @ v_b
+            v_n = R @ v_b
 
         where,
-        - ``A`` is the 3x3 rotation matrix (or direction cosine matrix).
+        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
-        A : ArrayLike
-            Rotation matrix (element of SO(3)).
+        dcm : ArrayLike
+            Direction cosine matrix, R. Should be element of SO(3).
 
         Returns
         -------
         Attitude
             Attitude instance.
         """
-        A = _asarray_check_matrix(A)
-        q = _quat_from_matrix(A)
+        R = _asarray_check_matrix(dcm)
+        q = _quat_from_matrix(R)
         return cls(q)
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a rotation matrix (or direction cosine matrix), A,
-        defined such that it transforms vectors from the body frame, {b}, to the
-        navigation frame, {n}, using:
+        Represent the attitude as a direction cosine matrix (DCM), R, defined such
+        that it transforms vectors from the body frame, {b}, to the navigation frame,
+        {n}, using:
 
-            v_n = A @ v_b
+            v_n = R @ v_b
 
         where,
 
-        - ``A`` is the 3x3 attitude matrix.
+        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
-        The rotation matrix is computed from the unit quaternion, q, using the formula:
+        The direction cosine matrix is computed from the unit quaternion, q, using
+        the formula:
 
-            A = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
+            R = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
         where,
 
@@ -211,7 +223,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3, 3)
-            Rotation matrix (or direction cosine matrix).
+            Direction cosine matrix, R.
         """
         return _matrix_from_quat(self._q)
 
@@ -242,7 +254,7 @@ class Attitude:
 
         Defined as:
 
-            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            R = R_z(gamma) @ R_y(beta) @ R_x(alpha)
 
         where,
 
@@ -251,10 +263,10 @@ class Attitude:
         - alpha is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
-        and A is the attitude matrix (transforming vectors from the body frame to
+        and R is the direction cosine matrix (transforming vectors from the body frame to
         the navigation frame):
 
-            v_n = A @ v_b
+            v_n = R @ v_b
         """
         theta = _asarray_check_euler(theta)
         if degrees:
@@ -285,7 +297,7 @@ class Attitude:
 
         Defined as:
 
-            A = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            R = R_z(gamma) @ R_y(beta) @ R_x(alpha)
 
         where,
 
@@ -294,10 +306,10 @@ class Attitude:
         - alpha is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
-        and A is the attitude matrix (transforming vectors from the body frame to
+        and R is the direction cosine matrix (transforming vectors from the body frame to
         the navigation frame):
 
-            v_n = A @ v_b
+            v_n = R @ v_b
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
