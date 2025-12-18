@@ -157,49 +157,49 @@ class Attitude:
     @classmethod
     def from_matrix(cls, dcm: ArrayLike) -> Self:
         """
-        Initialize from a direction cosine matrix (DCM), C, defined such that it
+        Initialize from a direction cosine matrix (DCM), R, defined such that it
         transforms vectors from the body frame, {b}, to the navigation frame, {n},
         using:
 
-            v_n = C @ v_b
+            v_n = R @ v_b
 
         where,
-        - ``C`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix, C. Should be element of SO(3).
+            Direction cosine matrix, R. Should be element of SO(3).
 
         Returns
         -------
         Attitude
             Attitude instance.
         """
-        C = _asarray_check_matrix(dcm)
-        q = _quat_from_matrix(C)
+        R = _asarray_check_matrix(dcm)
+        q = _quat_from_matrix(R)
         return cls(q)
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a direction cosine matrix (DCM), C, defined such
+        Represent the attitude as a direction cosine matrix (DCM), R, defined such
         that it transforms vectors from the body frame, {b}, to the navigation frame,
         {n}, using:
 
-            v_n = C @ v_b
+            v_n = R @ v_b
 
         where,
 
-        - ``C`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         The direction cosine matrix is computed from the unit quaternion, q, using
         the formula:
 
-            C = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
+            R = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
 
         where,
 
@@ -211,7 +211,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3, 3)
-            Direction cosine matrix, C.
+            Direction cosine matrix, R.
         """
         return _matrix_from_quat(self._q)
 
