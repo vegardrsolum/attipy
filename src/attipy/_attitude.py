@@ -89,8 +89,8 @@ class Attitude:
 
     and ⊗ denotes quaternion multiplication (Hamilton product).
 
-    The class provides functionality for converting to/from a variaty of other attitude
-    representations, such as:
+    The class provides methods for transforming to/from a variety of attitude representations,
+    including:
 
     - Direction cosine matrix (DCM) (9 parameters).
     - Unit quaternion (4 parameters).
