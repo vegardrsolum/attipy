@@ -64,15 +64,18 @@ def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
 
 class Attitude:
     """
-    This class encapsulates the attitude (or rotation) of a 'body frame', {b}, relative
-    to a 'navigation frame', {n}. Although the {n} and {b} frames can be defined
-    arbitrarily, the main use case is for representing the attitude of a vehicle
-    or sensor (body frame) relative to a local-level global reference frame (navigation frame)
-    (e.g., North-East-Down, NED).
+    This class encapsulates the attitude (or rotation) of one orthonormal reference
+    frame {b} relative to another {n}.
+
+    Although the {n} and {b} frames can be defined arbitrarily, the main use case
+    is for representing the attitude of a vehicle or sensor (body frame) relative
+    to a local-level global inertial reference frame (navigation frame). The most
+    common navigation frames are the North-East-Down (NED) frame and the East-North-Up
+    (ENU) frame.
 
     Internally, the attitude is represented using a unit quaternion, q, defined
-    such that it transforms a vector from the body frame, {b}, to the navigation frame, {n},
-    using:
+    such that it transforms a vector from the body frame, {b}, to the navigation
+    frame, {n}, using:
 
         [0, v_n] = q ⊗ [0, v_b] ⊗ q*
 
