@@ -27,12 +27,12 @@ def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
     return q
 
 
-def _asarray_check_matrix(matrix: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation matrix
     (element of SO(3)).
     """
-    R = np.asarray_chkfinite(matrix, dtype=float)
+    R = np.asarray_chkfinite(dcm, dtype=float)
     if R.shape != (3, 3):
         raise ValueError("SO(3) matrix must be a 3x3 array.")
     I3x3 = np.eye(3)
