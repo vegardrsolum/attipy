@@ -88,6 +88,14 @@ class Attitude:
 
     and ⊗ denotes quaternion multiplication (Hamilton product).
 
+    The class provides functionality for converting to/from a variaty of other attitude
+    representations, such as:
+
+    - Direction cosine matrix (DCM) (9 parameters).
+    - Unit quaternion (4 parameters).
+    - Euler angles (ZYX convention) (3 parameters).
+    - Rotation vector (3 parameters).
+
     Parameters
     ----------
     q : ArrayLike
