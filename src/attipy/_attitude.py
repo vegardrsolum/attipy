@@ -42,6 +42,7 @@ def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
         raise ValueError("SO(3) matrix must have a determinant of 1.")
     return R
 
+
 def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid set of Euler angles.
