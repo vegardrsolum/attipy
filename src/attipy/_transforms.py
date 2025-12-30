@@ -7,31 +7,6 @@ from ._vectorops import _normalize
 
 
 @njit  # type: ignore[misc]
-def _angular_matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute angular transformation matrix, **T**, from a unit quaternion.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
-
-    Returns
-    -------
-    numpy.ndarray, shape (4, 3)
-        Angular transformation matrix.
-    """
-    return 0.5 * np.array(
-        [
-            [-q[1], -q[2], -q[3]],
-            [q[0], -q[3], q[2]],
-            [q[3], q[0], -q[1]],
-            [-q[2], q[1], q[0]],
-        ]
-    )
-
-
-@njit  # type: ignore[misc]
 def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     """
     Convert a rotation matrix to a unit quaternion (see ref [1]_).
