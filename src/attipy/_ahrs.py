@@ -107,16 +107,13 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    q0 : array-like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial (a priori) attitude state estimate, given as a unit quaternion,
-        q = [q_w, q_x, q_y, q_z]^T, where q_w is the scalar part and q_x, q_y, q_z are
-        the vector parts. Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
-        (i.e., no rotation).
-    bg0 : array-like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial (a priori) gyroscope bias estimate, given as [b_gx, b_gy, b_gz]^T where
-        b_gx, b_gy and b_gz are the gyroscope biases about the x-, y-, and z-axis,
-        respectively. Defaults to no bias (0.0, 0.0, 0.0).
-    P0_prior : array-like, shape (6, 6), default np.eye(6) * 1e-6
+    q0 : array_like or Attitude, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+        Initial (a priori) attitude state estimate, given as a unit quaternion
+        or :class:`~attipy.Attitude` instance. Defaults to the no rotation, i.e.,
+        the identity quaternion (1.0, 0.0, 0.0, 0.0).
+    bg0 : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial (a priori) gyroscope bias estimate. Defaults to zero bias.
+    P0_prior : array_like, shape (6, 6), default np.eye(6) * 1e-6
         Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
         to a small diagonal matrix (np.eye(6) * 1e-6).
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
@@ -143,7 +140,7 @@ class AHRS:
     def __init__(
         self,
         fs: float,
-        q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0_prior: ArrayLike = 1e-6 * np.eye(6),
         err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
@@ -155,7 +152,7 @@ class AHRS:
         self._nav_frame = nav_frame.lower()
 
         # State estimates
-        self._att = Attitude(q0)
+        self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
 
         # Error covariance matrices
@@ -175,6 +172,22 @@ class AHRS:
             self._vg_ref_n = np.array([0.0, 0.0, -1.0])
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
+
+    @property
+    def attitude(self) -> Attitude:
+        """
+        Attitude estimate.
+        """
+        return self._att
+
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
+        """
+        Gyroscope bias estimate, **b_g**.
+        """
+        bg = self._bg.copy()
+        if degrees:
+            bg = np.degrees(bg)
+        return bg
 
     @property
     def P(self) -> NDArray[np.float64]:
