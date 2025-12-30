@@ -10,6 +10,7 @@ from ._transforms import (
     _quat_from_euler_zyx,
     _matrix_from_quat,
 )
+from ._attitude import Attitude
 from ._quatops import _normalize, _quatprod
 from ._vectorops import _skew_symmetric
 
@@ -356,7 +357,7 @@ class StrapdownAHRS(AHRSMixin):
         return self
 
 
-class AHRS(AHRSMixin):
+class AHRS:
     """
     Attitude and heading reference system (AHRS).
 
@@ -408,7 +409,8 @@ class AHRS(AHRSMixin):
     def __init__(
         self,
         fs: float,
-        x0_prior: ArrayLike = (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0_prior: ArrayLike = 1e-6 * np.eye(6),
         err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
         nav_frame: str = "NED",
@@ -422,7 +424,8 @@ class AHRS(AHRSMixin):
         self._nav_frame = nav_frame.lower()
 
         # Strapdown algorithm / INS state
-        self._ins = StrapdownAHRS(self._fs, x0_prior)
+        self._att = Attitude(q0)
+        self._bg = np.asarray_chkfinite(bg0).reshape(3)
 
         # Gravity reference vector
         if self._nav_frame == "ned":
@@ -433,7 +436,7 @@ class AHRS(AHRSMixin):
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
 
         # Total state estimate
-        self._x = self._ins.x
+        self._x = np.concatenate((self._att._q, self._bg))
 
         # Error state estimate (after reset)
         self._dx_prealloc = np.zeros(6)  # always zero, but used in sequential update
@@ -468,7 +471,7 @@ class AHRS(AHRSMixin):
             * Attitude as unit quaternion (4 elements).
             * Gyroscope bias in x, y, z directions (3 elements).
         """
-        return self._ins.x
+        return np.concatenate((self._att._q_nm, self._bg)).copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -562,9 +565,9 @@ class AHRS(AHRSMixin):
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        self._ins._x[0:4] = _quatprod(self._ins._x[0:4], dq)
-        self._ins._x[0:4] = _normalize(self._ins._x[0:4])
-        self._ins._x[4:7] = self._ins._x[4:7] + dx[3:6]
+        self._att._q = _quatprod(self._att._q, dq)
+        self._att._q = _normalize(self._att._q)
+        self._bg = self._bg + dx[3:6]
         self._dx_prealloc[:] = np.zeros(dx.size)
 
     @staticmethod
@@ -604,14 +607,14 @@ class AHRS(AHRSMixin):
             Specifies whether the heading is given in degrees or radians.
         """
         if head is None:
-            head = _h_head(self.quaternion())
+            head = _h_head(self._att._q)
         else:
             if head_degrees:
                 head = (np.pi / 180.0) * head
 
         roll, pitch = _roll_pitch_from_acc(f_ins, self._nav_frame)
-        self._ins._x[0:4] = _quat_from_euler_zyx(np.array([roll, pitch, head]))
-        self._x[:] = self._ins._x
+        self._att._q = _quat_from_euler_zyx(np.array([roll, pitch, head]))
+        self._x[:] = np.concatenate((self._att._q, self._bg))
 
     def update(
         self,
@@ -672,7 +675,7 @@ class AHRS(AHRSMixin):
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        w_ins = w_imu - self._ins._bias_gyro
+        w_ins = w_imu - self._bg
 
         # Initial vertical alignment (i.e., roll and pitch calibration)
         if self._cold:
@@ -680,7 +683,7 @@ class AHRS(AHRSMixin):
             self._cold = False
 
         # Current INS state estimates
-        q_ins_nm = self._ins._q_nm
+        q_ins_nm = self._att._q
         R_ins_nm = _matrix_from_quat(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
@@ -733,11 +736,11 @@ class AHRS(AHRSMixin):
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
         # Update current state
-        self._x[:] = self._ins._x
+        self._x[:] = np.concatenate((self._att._q, self._bg))
         self._P[:] = P
 
         # Project ahead
-        self._ins.update(w_imu, degrees=False)
+        self._att.update(w_imu * dt, degrees=False)
         self._P_prior[:] = self._phi @ P @ self._phi.T + Q
 
         return self
