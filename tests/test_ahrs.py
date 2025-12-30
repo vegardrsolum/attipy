@@ -12,8 +12,17 @@ class Test_AHRS:
         ahrs = AHRS(fs, att)
 
         euler_out = []
-        for f_i, w_i in zip(f, w):
-            ahrs.update(f_i, w_i, degrees=False)
+        for f_i, w_i, h_i in zip(f, w, euler[:, 2]):
+            ahrs.update(
+                f_i,
+                w_i,
+                degrees=False,
+                head=h_i,
+                head_var=1.0,
+                head_degrees=False,
+                g_ref=True,
+                g_var=0.1 * np.ones(3),
+            )
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
         euler_out = np.asarray(euler_out)
