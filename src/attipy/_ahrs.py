@@ -10,9 +10,9 @@ from ._transforms import _matrix_from_quat
 from ._vectorops import _skew_symmetric
 
 
-def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
+def _ssa(angle: float, degrees: bool = True) -> float:
     """
-    Convert the given angle to the smallest angle between [-180., 180) degrees.
+    Convert the given angle to the smallest signed angle between [-180., 180) degrees.
 
     Parameters
     ----------
@@ -395,7 +395,7 @@ class AHRS:
 
             head_var_ = np.asarray([head_var], dtype=float, order="C")
             dz_head = np.asarray(
-                [_signed_smallest_angle(head - _h_head(q_nm), degrees=False)],
+                [_ssa(head - _h_head(q_nm), degrees=False)],
                 dtype=float,
                 order="C",
             )
