@@ -107,14 +107,15 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    x0_prior : array-like, shape (7,), default (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        Initial (a priori) 7-element AHRS state estimate:
-
-        * Attitude (unit quaternion) - 4 elements
-        * Gyroscope bias (x, y, z) - 3 elements
-
-        Defaults to attitude as the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e.,
-        no rotation), and no bias.
+    q0 : array-like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+        Initial (a priori) attitude state estimate, given as a unit quaternion,
+        q = [q_w, q_x, q_y, q_z]^T, where q_w is the scalar part and q_x, q_y, q_z are
+        the vector parts. Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
+        (i.e., no rotation).
+    bg0 : array-like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial (a priori) gyroscope bias estimate, given as [b_gx, b_gy, b_gz]^T where
+        b_gx, b_gy and b_gz are the gyroscope biases about the x-, y-, and z-axis,
+        respectively. Defaults to no bias (0.0, 0.0, 0.0).
     P0_prior : array-like, shape (6, 6), default np.eye(6) * 1e-6
         Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
         to a small diagonal matrix (np.eye(6) * 1e-6).
