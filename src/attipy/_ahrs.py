@@ -263,8 +263,8 @@ class AHRS:
         W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
         return W
 
-    def _reset_ins(self, dx: NDArray[np.float64]) -> None:
-        """Combine states and reset INS"""
+    def _reset(self, dx: NDArray[np.float64]) -> None:
+        """Reset AHRS state"""
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
@@ -396,11 +396,11 @@ class AHRS:
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
-        # Reset INS state
+        # Reset AHRS states
         if dx.any():
-            self._reset_ins(dx.ravel())
+            self._reset(dx.ravel())
 
-        # Update current state
+        # Update current error covariance matrix
         self._P[:] = P
 
         # Discretize system
