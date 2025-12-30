@@ -179,9 +179,6 @@ class AHRS:
         # Error-state estimate (before reset)
         self._dx = np.empty_like(self._dx_prealloc)  # needed for smoothing only
 
-        # State transition matrix
-        self._phi = np.empty_like(self._F)  # needed for smoothing only
-
     @property
     def P(self) -> NDArray[np.float64]:
         """
@@ -408,15 +405,15 @@ class AHRS:
         if dx.any():
             self._reset_ins(dx.ravel())
 
-        # Discretize system
-        self._phi[:] = I_ + dt * F  # state transition matrix
-        Q = dt * G @ W @ G.T  # process noise covariance matrix
-
         # Update current state
         self._P[:] = P
 
+        # Discretize system
+        phi = I_ + dt * F  # state transition matrix
+        Q = dt * G @ W @ G.T  # process noise covariance matrix
+
         # Project ahead
         self._att.update(w_imu * dt, degrees=False)
-        self._P_prior[:] = self._phi @ P @ self._phi.T + Q
+        self._P_prior[:] = phi @ P @ phi.T + Q
 
         return self
