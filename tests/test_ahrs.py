@@ -1,6 +1,7 @@
 import numpy as np
 
 from attipy import AHRS, Attitude
+from attipy._transforms import _quat_from_euler_zyx
 
 
 class Test_AHRS:
@@ -14,8 +15,8 @@ class Test_AHRS:
         head_aid = head + rng.normal(0.0, np.radians(1.0), head.shape)
 
         fs = 10.24
-        att = Attitude.from_euler(euler[0], degrees=False)
-        ahrs = AHRS(fs, att)
+        q0 = _quat_from_euler_zyx(euler[0])
+        ahrs = AHRS(fs, q0)
 
         euler_out = []
         for f_i, w_i, h_i in zip(f_imu, w_imu, head_aid):
