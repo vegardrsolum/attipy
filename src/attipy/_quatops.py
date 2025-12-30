@@ -26,24 +26,6 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    L2-normalize a vector.
-
-    Parameters
-    ----------
-    q : numpy.ndarray
-        Vector to be normalized
-
-    Returns
-    -------
-    numpy.ndarray
-        Normalized copy of `q`.
-    """
-    return q / np.sqrt((q * q).sum())  # type: ignore[no-any-return]  # numpy funcs declare Any as return when given scalar-like
-
-
-@njit  # type: ignore[misc]
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Unit quaternion (Hamilton) product: q_a ⊗ q_b.

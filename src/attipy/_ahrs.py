@@ -5,9 +5,9 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._quatops import _normalize, _quatprod
+from ._quatops import _quatprod
 from ._transforms import _matrix_from_quat
-from ._vectorops import _skew_symmetric
+from ._vectorops import _normalize, _skew_symmetric
 
 
 def _ssa(angle: float, degrees: bool = True) -> float:
