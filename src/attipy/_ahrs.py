@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 from ._transforms import (
     _angular_matrix_from_quat,
     _euler_zyx_from_quat,
-    _quat_from_euler_zyx,
+    # _quat_from_euler_zyx,
     _matrix_from_quat,
 )
 from ._attitude import Attitude
@@ -15,37 +15,37 @@ from ._quatops import _normalize, _quatprod
 from ._vectorops import _skew_symmetric
 
 
-def _roll_pitch_from_acc(f, nav_frame):
-    """
-    Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
+# def _roll_pitch_from_acc(f, nav_frame):
+#     """
+#     Estimate roll and pitch angles from specific force (i.e., accelerometer) measurement.
 
-    Parameters
-    ----------
-    f: array-like
-        Specific force (i.e., acceleration) measurement vector (fx, fy, fz).
-    nav_frame: {'NED', 'ENU'}
-        Navigation frame. Should be either 'NED' or 'ENU'.
+#     Parameters
+#     ----------
+#     f: array-like
+#         Specific force (i.e., acceleration) measurement vector (fx, fy, fz).
+#     nav_frame: {'NED', 'ENU'}
+#         Navigation frame. Should be either 'NED' or 'ENU'.
 
-    Returns
-    -------
-    roll: float
-        Estimated roll angle in radians.
-    pitch: float
-        Estimated pitch angle in radians.
-    """
+#     Returns
+#     -------
+#     roll: float
+#         Estimated roll angle in radians.
+#     pitch: float
+#         Estimated pitch angle in radians.
+#     """
 
-    fx, fy, fz = f
+#     fx, fy, fz = f
 
-    if nav_frame.lower() == "ned":
-        roll = np.arctan2(-fy, -fz)
-        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
-    elif nav_frame.lower() == "enu":
-        roll = np.arctan2(fy, fz)
-        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
-    else:
-        raise ValueError("Invalid navigation frame. Should be 'NED' or 'ENU'.")
+#     if nav_frame.lower() == "ned":
+#         roll = np.arctan2(-fy, -fz)
+#         pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+#     elif nav_frame.lower() == "enu":
+#         roll = np.arctan2(fy, fz)
+#         pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+#     else:
+#         raise ValueError("Invalid navigation frame. Should be 'NED' or 'ENU'.")
 
-    return roll, pitch
+#     return roll, pitch
 
 
 def _signed_smallest_angle(angle: float, degrees: bool = True) -> float:
@@ -135,226 +135,226 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-class AHRSMixin:
-    """
-    Mixin class for attitude and heading reference systems (AHRS).
+# class AHRSMixin:
+#     """
+#     Mixin class for attitude and heading reference systems (AHRS).
 
-    Requires that the inheriting class has an `_x` attribute which is a 1D numpy
-    array of length 7 containing the following elements in order:
+#     Requires that the inheriting class has an `_x` attribute which is a 1D numpy
+#     array of length 7 containing the following elements in order:
 
-        * Attitude as unit quaternion (4 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
-    """
+#         * Attitude as unit quaternion (4 elements).
+#         * Gyroscope bias in x, y, z directions (3 elements).
+#     """
 
-    _x: NDArray[np.float64]  # state array of length 7
+#     _x: NDArray[np.float64]  # state array of length 7
 
-    @property
-    def _q_nm(self) -> NDArray[np.float64]:
-        return self._x[:4]
+#     @property
+#     def _q_nm(self) -> NDArray[np.float64]:
+#         return self._x[:4]
 
-    @_q_nm.setter
-    def _q_nm(self, q_nm: ArrayLike) -> None:
-        self._x[:4] = q_nm
+#     @_q_nm.setter
+#     def _q_nm(self, q_nm: ArrayLike) -> None:
+#         self._x[:4] = q_nm
 
-    @property
-    def _bias_gyro(self) -> NDArray[np.float64]:
-        return self._x[4:7]
+#     @property
+#     def _bias_gyro(self) -> NDArray[np.float64]:
+#         return self._x[4:7]
 
-    @_bias_gyro.setter
-    def _bias_gyro(self, b_gyro: ArrayLike) -> None:
-        self._x[4:7] = b_gyro
+#     @_bias_gyro.setter
+#     def _bias_gyro(self, b_gyro: ArrayLike) -> None:
+#         self._x[4:7] = b_gyro
 
-    @property
-    def x(self) -> NDArray[np.float64]:
-        """
-        Get current state vector estimate.
+#     @property
+#     def x(self) -> NDArray[np.float64]:
+#         """
+#         Get current state vector estimate.
 
-        Returns
-        -------
-        numpy.ndarray, shape (7,)
-            State vector, containing the following elements in order:
+#         Returns
+#         -------
+#         numpy.ndarray, shape (7,)
+#             State vector, containing the following elements in order:
 
-            * Attitude as unit quaternion (4 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
-        """
-        return self._x.copy()
+#             * Attitude as unit quaternion (4 elements).
+#             * Gyroscope bias in x, y, z directions (3 elements).
+#         """
+#         return self._x.copy()
 
-    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as Euler angles (see Notes).
+#     def euler(self, degrees: bool = False) -> NDArray[np.float64]:
+#         """
+#         Get current attitude estimate as Euler angles (see Notes).
 
-        Parameters
-        ----------
-        degrees : bool, default False
-            Whether to return the Euler angles in degrees or radians.
+#         Parameters
+#         ----------
+#         degrees : bool, default False
+#             Whether to return the Euler angles in degrees or radians.
 
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
-            in that order.
+#         Returns
+#         -------
+#         numpy.ndarray, shape (3,)
+#             Euler angles, specifically: alpha (roll), beta (pitch) and gamma (yaw)
+#             in that order.
 
-        Notes
-        -----
-        The Euler angles describe how to transition from the 'navigation' frame
-        ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
-        and passive rotations in the ZYX order:
+#         Notes
+#         -----
+#         The Euler angles describe how to transition from the 'navigation' frame
+#         ('NED' or 'ENU) to the 'body' frame through three consecutive intrinsic
+#         and passive rotations in the ZYX order:
 
-        #. A rotation by an angle gamma (often called yaw) about the z-axis.
-        #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
-        #. A final rotation by an angle alpha (often called roll) about the x-axis.
+#         #. A rotation by an angle gamma (often called yaw) about the z-axis.
+#         #. A subsequent rotation by an angle beta (often called pitch) about the y-axis.
+#         #. A final rotation by an angle alpha (often called roll) about the x-axis.
 
-        This sequence of rotations is used to describe the orientation of the 'body' frame
-        relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
+#         This sequence of rotations is used to describe the orientation of the 'body' frame
+#         relative to the 'navigation' frame ('NED' or 'ENU) in 3D space.
 
-        Intrinsic rotations mean that the rotations are with respect to the changing
-        coordinate system; as one rotation is applied, the next is about the axis of
-        the newly rotated system.
+#         Intrinsic rotations mean that the rotations are with respect to the changing
+#         coordinate system; as one rotation is applied, the next is about the axis of
+#         the newly rotated system.
 
-        Passive rotations mean that the frame itself is rotating, not the object
-        within the frame.
-        """
-        q = self.quaternion()
-        theta = _euler_zyx_from_quat(q)
+#         Passive rotations mean that the frame itself is rotating, not the object
+#         within the frame.
+#         """
+#         q = self.quaternion()
+#         theta = _euler_zyx_from_quat(q)
 
-        if degrees:
-            theta = (180.0 / np.pi) * theta
+#         if degrees:
+#             theta = (180.0 / np.pi) * theta
 
-        return theta  # type: ignore[no-any-return]
+#         return theta  # type: ignore[no-any-return]
 
-    def quaternion(self) -> NDArray[np.float64]:
-        """
-        Get current attitude estimate as unit quaternion (from-body-to-navigation-frame).
+#     def quaternion(self) -> NDArray[np.float64]:
+#         """
+#         Get current attitude estimate as unit quaternion (from-body-to-navigation-frame).
 
-        Returns
-        -------
-        numpy.ndarray, shape (4,)
-            Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
-            ``q1`` is the real part and ``q2``, ``q3`` and ``q4`` are the three
-            imaginary parts.
-        """
-        return self._q_nm.copy()
+#         Returns
+#         -------
+#         numpy.ndarray, shape (4,)
+#             Attitude as unit quaternion. Given as ``[q1, q2, q3, q4]``, where
+#             ``q1`` is the real part and ``q2``, ``q3`` and ``q4`` are the three
+#             imaginary parts.
+#         """
+#         return self._q_nm.copy()
 
-    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
-        """
-        Get current gyroscope bias estimate.
+#     def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
+#         """
+#         Get current gyroscope bias estimate.
 
-        Parameters
-        ----------
-        degrees : bool, default False
-            Whether to return the bias in deg/s or rad/s.
+#         Parameters
+#         ----------
+#         degrees : bool, default False
+#             Whether to return the bias in deg/s or rad/s.
 
-        Returns
-        -------
-        numpy.ndarray, shape (3,)
-            Gyroscope bias vector, containing biases in x-, y-, and z-direction
-            (in that order).
-        """
-        b_gyro = self._bias_gyro.copy()
-        if degrees:
-            b_gyro = (180.0 / np.pi) * b_gyro
-        return b_gyro
+#         Returns
+#         -------
+#         numpy.ndarray, shape (3,)
+#             Gyroscope bias vector, containing biases in x-, y-, and z-direction
+#             (in that order).
+#         """
+#         b_gyro = self._bias_gyro.copy()
+#         if degrees:
+#             b_gyro = (180.0 / np.pi) * b_gyro
+#         return b_gyro
 
 
-class StrapdownAHRS(AHRSMixin):
-    """
-    Strapdown attitude and heading reference system (AHRS).
+# class StrapdownAHRS(AHRSMixin):
+#     """
+#     Strapdown attitude and heading reference system (AHRS).
 
-    This class provides an interface for estimating the attitude of a moving body
-    by integrating the *strapdown navigation equation*.
+#     This class provides an interface for estimating the attitude of a moving body
+#     by integrating the *strapdown navigation equation*.
 
-    Parameters
-    ----------
-    fs : float
-        Sampling rate in Hz.
-    x0 : array-like, shape (7,)
-        Initial state vector containing the following elements in order:
+#     Parameters
+#     ----------
+#     fs : float
+#         Sampling rate in Hz.
+#     x0 : array-like, shape (7,)
+#         Initial state vector containing the following elements in order:
 
-        * Attitude as unit quaternion (4 elements).
-        * Gyroscope bias in x, y, z directions (3 elements).
+#         * Attitude as unit quaternion (4 elements).
+#         * Gyroscope bias in x, y, z directions (3 elements).
 
-    Notes
-    -----
-    The quaternion provided as part of the initial state will be normalized to ensure
-    unity.
-    """
+#     Notes
+#     -----
+#     The quaternion provided as part of the initial state will be normalized to ensure
+#     unity.
+#     """
 
-    def __init__(self, fs: float, x0: ArrayLike) -> None:
-        self._fs = fs
-        self._dt = 1.0 / fs
+#     def __init__(self, fs: float, x0: ArrayLike) -> None:
+#         self._fs = fs
+#         self._dt = 1.0 / fs
 
-        self._x0 = np.asarray_chkfinite(x0).reshape(7).copy()
-        self._x0[:4] = _normalize(self._x0[:4])
-        self._x = self._x0.copy()
+#         self._x0 = np.asarray_chkfinite(x0).reshape(7).copy()
+#         self._x0[:4] = _normalize(self._x0[:4])
+#         self._x = self._x0.copy()
 
-    def reset(self, x_new: ArrayLike) -> None:
-        """
-        Reset current state with a new one.
+#     def reset(self, x_new: ArrayLike) -> None:
+#         """
+#         Reset current state with a new one.
 
-        Parameters
-        ----------
-        x_new : numpy.ndarray, shape (7,)
-            New state vector, containing the following elements in order:
+#         Parameters
+#         ----------
+#         x_new : numpy.ndarray, shape (7,)
+#             New state vector, containing the following elements in order:
 
-            * Attitude as unit quaternion (4 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
+#             * Attitude as unit quaternion (4 elements).
+#             * Gyroscope bias in x, y, z directions (3 elements).
 
-        Notes
-        -----
-        The quaternion provided as part of the new state will be normalized to
-        ensure unity.
-        """
-        self._x = np.asarray_chkfinite(x_new).reshape(7).copy()
-        self._x[0:4] = _normalize(self._x[0:4])
+#         Notes
+#         -----
+#         The quaternion provided as part of the new state will be normalized to
+#         ensure unity.
+#         """
+#         self._x = np.asarray_chkfinite(x_new).reshape(7).copy()
+#         self._x[0:4] = _normalize(self._x[0:4])
 
-    def update(
-        self,
-        w_imu: ArrayLike,
-        degrees: bool = False,
-    ) -> Self:
-        """
-        Update the AHRS' states by dead reckoning, i.e., by integrating the *strapdown
-        navigation equation* while assuming constant inputs (i.e., angular velocities)
-        over the sampling period.
+#     def update(
+#         self,
+#         w_imu: ArrayLike,
+#         degrees: bool = False,
+#     ) -> Self:
+#         """
+#         Update the AHRS' states by dead reckoning, i.e., by integrating the *strapdown
+#         navigation equation* while assuming constant inputs (i.e., angular velocities)
+#         over the sampling period.
 
-        The states are updated according to::
+#         The states are updated according to::
 
-            q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
+#             q[k+1] = q[k] + dt * T(q[k]) * w_ins[k]
 
-        with bias compensated IMU measurements::
+#         with bias compensated IMU measurements::
 
-            w_ins[k] = w_imu[k] - b_gyro[k]
+#             w_ins[k] = w_imu[k] - b_gyro[k]
 
-        Parameters
-        ----------
-        w_imu : array-like, shape (3,)
-            Angular rate measurements, given as [w_x, w_y, w_z]^T where
-            w_x, w_y and w_z are angular rates about the x-, y-,
-            and z-axis, respectively.
-        degrees : bool, default False
-            Specify whether the angular rates are given in degrees or radians.
+#         Parameters
+#         ----------
+#         w_imu : array-like, shape (3,)
+#             Angular rate measurements, given as [w_x, w_y, w_z]^T where
+#             w_x, w_y and w_z are angular rates about the x-, y-,
+#             and z-axis, respectively.
+#         degrees : bool, default False
+#             Specify whether the angular rates are given in degrees or radians.
 
-        Returns
-        -------
-        StrapdownAHRS :
-            A reference to the instance itself after the update.
-        """
-        w_imu = np.asarray(w_imu, dtype=float)
+#         Returns
+#         -------
+#         StrapdownAHRS :
+#             A reference to the instance itself after the update.
+#         """
+#         w_imu = np.asarray(w_imu, dtype=float)
 
-        if degrees:
-            w_imu = (np.pi / 180.0) * w_imu
+#         if degrees:
+#             w_imu = (np.pi / 180.0) * w_imu
 
-        # Bias compensated IMU measurements
-        w_ins = w_imu - self._bias_gyro
+#         # Bias compensated IMU measurements
+#         w_ins = w_imu - self._bias_gyro
 
-        q_nm = self._q_nm
-        T = _angular_matrix_from_quat(q_nm)
+#         q_nm = self._q_nm
+#         T = _angular_matrix_from_quat(q_nm)
 
-        # State propagation (assuming constant angular velocity)
-        q_nm = q_nm + self._dt * T @ w_ins
-        self._q_nm = _normalize(q_nm)
+#         # State propagation (assuming constant angular velocity)
+#         q_nm = q_nm + self._dt * T @ w_ins
+#         self._q_nm = _normalize(q_nm)
 
-        return self
+#         return self
 
 
 class AHRS:
@@ -393,17 +393,6 @@ class AHRS:
         sensor's) degrees of freedom will be expressed relative to this frame.
         Furthermore, the aiding heading angle is also interpreted relative to this
         frame according to the right-hand rule.
-    cold_start : bool, default True
-        Whether to start the AHRS in a 'cold' (default) or 'warm' state.
-        A cold state indicates that the provided initial conditions are uncertain,
-        and possibly far from the true state. Thus, to reduce the risk of divergence,
-        an initial vertical alignment (i.e., roll and pitch calibration) is performed
-        using accelerometer measurements and the known direction of gravity during
-        the first measurement update. The IMU should remain stationary with negligible
-        linear acceleration during a cold start; otherwise, divergence may occur.
-        A warm start, on the other hand, assumes accurate initial conditions, and
-        initializes the Kalman filter immediately without any initial roll and pitch
-        calibration.
     """
 
     def __init__(
@@ -414,12 +403,10 @@ class AHRS:
         P0_prior: ArrayLike = 1e-6 * np.eye(6),
         err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
         nav_frame: str = "NED",
-        cold_start: bool = True,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_gyro = err_gyro
-        self._cold = cold_start
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._nav_frame = nav_frame.lower()
 
@@ -589,33 +576,6 @@ class AHRS:
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
-    def _align_vertical(self, f_ins, head, head_degrees):
-        """
-        Vertical alignment.
-
-        Estimate the attitude (roll and pitch) of the IMU sensor relative to the
-        navigation frame using accelerometer measurements and the known direction
-        of gravity. Assumes a static sensor; i.e., negligible linear acceleration.
-
-        Parameters
-        ----------
-        f_ins : array-like, shape (3,)
-            Bias-compensated specific force measurements (fx, fy, fz).
-        head : float, optional
-            Heading of measurement frame relative to navigation frame.
-        head_degrees : bool, default False
-            Specifies whether the heading is given in degrees or radians.
-        """
-        if head is None:
-            head = _h_head(self._att._q)
-        else:
-            if head_degrees:
-                head = (np.pi / 180.0) * head
-
-        roll, pitch = _roll_pitch_from_acc(f_ins, self._nav_frame)
-        self._att._q = _quat_from_euler_zyx(np.array([roll, pitch, head]))
-        self._x[:] = np.concatenate((self._att._q, self._bg))
-
     def update(
         self,
         f_imu: ArrayLike,
@@ -676,11 +636,6 @@ class AHRS:
 
         # Bias compensated IMU measurements
         w_ins = w_imu - self._bg
-
-        # Initial vertical alignment (i.e., roll and pitch calibration)
-        if self._cold:
-            self._align_vertical(f_imu, head, head_degrees)
-            self._cold = False
 
         # Current INS state estimates
         q_ins_nm = self._att._q
