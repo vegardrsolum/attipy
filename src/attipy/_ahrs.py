@@ -10,7 +10,8 @@ from ._transforms import (
     _quat_from_euler_zyx,
     _matrix_from_quat,
 )
-from ._vectorops import _normalize, _quaternion_product, _skew_symmetric
+from ._quatops import _normalize, _quatprod
+from ._vectorops import _skew_symmetric
 
 
 def _roll_pitch_from_acc(f, nav_frame):
@@ -561,7 +562,7 @@ class AHRS(AHRSMixin):
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        self._ins._x[0:4] = _quaternion_product(self._ins._x[0:4], dq)
+        self._ins._x[0:4] = _quatprod(self._ins._x[0:4], dq)
         self._ins._x[0:4] = _normalize(self._ins._x[0:4])
         self._ins._x[4:7] = self._ins._x[4:7] + dx[3:6]
         self._dx_prealloc[:] = np.zeros(dx.size)
