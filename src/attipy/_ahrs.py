@@ -150,9 +150,23 @@ class AHRS:
         self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._nav_frame = nav_frame.lower()
 
-        # Strapdown algorithm / INS state
+        # State estimates
         self._att = Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
+
+        # Error state estimates [dq, dbg]^T (always zero after reset)
+        self._dx = np.zeros(6)
+
+        # Error covariance matrices
+        self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
+        self._P = self._P_prior.copy(order="C")
+
+        # Prepare system matrices
+        self._prep_F(err_gyro)
+        self._prep_G()
+        self._prep_H()
+        self._prep_W(err_gyro)
+        self._I = np.eye(6, order="C")
 
         # Gravity reference vector
         if self._nav_frame == "ned":
@@ -161,20 +175,6 @@ class AHRS:
             self._vg_ref_n = np.array([0.0, 0.0, -1.0])
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
-
-        # Error state estimate (always zero after reset)
-        self._dx = np.zeros(6)
-
-        # Initialize Kalman filter
-        self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
-        self._P = self._P_prior.copy(order="C")
-
-        # Prepare system matrices
-        self._F = self._prep_F(err_gyro)
-        self._G = self._prep_G()
-        self._H = self._prep_H()
-        self._W = self._prep_W(err_gyro)
-        self._I = np.eye(6, order="C")
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -195,8 +195,7 @@ class AHRS:
         P_prior = self._P_prior.copy()
         return P_prior
 
-    @staticmethod
-    def _prep_F(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    def _prep_F(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
         """
         Prepare linearized state matrix, F.
         """
@@ -214,44 +213,51 @@ class AHRS:
         F[0:3, 3:6] = -np.eye(3)
         F[3:6, 3:6] = -beta_gyro * np.eye(3)
 
-        return F
+        self._state_transition_matrix = F
 
-    def _update_F(self, w_ins: NDArray[np.float64]) -> None:
+    def _F(self, w_ins: NDArray[np.float64]) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
 
         # Update matrix
-        self._F[0:3, 0:3] = -S(w_ins)  # NB! update each time step
+        F = self._state_transition_matrix
+        F[0:3, 0:3] = -S(w_ins)  # NB! update each time step
 
-    @staticmethod
-    def _prep_G() -> NDArray[np.float64]:
+        return F
+
+    def _prep_G(self) -> NDArray[np.float64]:
         """Prepare (white noise) input matrix, G."""
 
         # Input (white noise) matrix
         G = np.zeros((6, 6))
         G[0:3, 0:3] = -np.eye(3)
         G[3:6, 3:6] = np.eye(3)
-        return G
 
-    @staticmethod
-    def _prep_H() -> NDArray[np.float64]:
+        self._wn_input_matrix = G
+
+    def _G(self) -> NDArray[np.float64]:
+        """Return (white noise) input matrix, G."""
+        return self._wn_input_matrix
+
+    def _prep_H(self) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix, H. Values are placeholders only"""
         H = np.zeros((4, 6))
-        return H
+        self._measurement_matrix = H
 
-    def _update_H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for g_ref aiding."""
         S = _skew_symmetric
-        self._H[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
-        return self._H[0:3]
+        H = self._measurement_matrix
+        H[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
+        return H[0:3]
 
-    def _update_H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Update and return part of H matrix relevant for heading aiding."""
-        self._H[3:4, 0:3] = _dhda_head(q_nm)
-        return self._H[3:4]
+        H = self._measurement_matrix
+        H[3:4, 0:3] = _dhda_head(q_nm)
+        return H[3:4]
 
-    @staticmethod
-    def _prep_W(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    def _prep_W(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
         """Prepare white noise power spectral density matrix"""
         N_gyro = err_gyro["N"]
         sigma_gyro = err_gyro["B"]
@@ -261,7 +267,12 @@ class AHRS:
         W = np.eye(6)
         W[0:3, 0:3] *= N_gyro**2
         W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
-        return W
+
+        self._wn_psd_matrix = W
+
+    def _W(self) -> NDArray[np.float64]:
+        """Return white noise power spectral density matrix"""
+        return self._wn_psd_matrix
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
         """Reset AHRS state"""
@@ -360,14 +371,11 @@ class AHRS:
         # Aliases
         dx = self._dx  # zeros
         dt = self._dt
-        F = self._F
-        G = self._G
-        W = self._W
         P = self._P_prior
         I_ = self._I
-
-        # Update system matrices
-        self._update_F(w_ins)
+        F = self._F(w_ins)
+        G = self._G()
+        W = self._W()
 
         if g_ref:
             if g_var is None:
@@ -375,7 +383,7 @@ class AHRS:
             vg_meas_m = -_normalize(f_imu)
             g_var = np.asarray(g_var, dtype=float, order="C")
             dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
-            H_g = self._update_H_g_ref(R_ins_nm)
+            H_g = self._H_g_ref(R_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
         if head is not None:
@@ -393,7 +401,7 @@ class AHRS:
                 order="C",
             )
 
-            H_head = self._update_H_head(q_ins_nm)
+            H_head = self._H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
         # Reset AHRS states
