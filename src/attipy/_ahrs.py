@@ -212,14 +212,14 @@ class AHRS:
         F[0:3, 3:6] = -np.eye(3)
         F[3:6, 3:6] = -beta_gyro * np.eye(3)
 
-        self._state_transition_matrix = F
+        self._state_matrix = F
 
     def _F(self, w_ins: NDArray[np.float64]) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
 
         # Update matrix
-        F = self._state_transition_matrix
+        F = self._state_matrix
         F[0:3, 0:3] = -S(w_ins)  # NB! update each time step
 
         return F
@@ -364,8 +364,8 @@ class AHRS:
         w_ins = w_imu - self._bg
 
         # Current INS state estimates
-        q_ins_nm = self._att._q
-        R_ins_nm = _matrix_from_quat(q_ins_nm)  # body-to-inertial rot matrix
+        q_nm = self._att._q
+        R_nm = _matrix_from_quat(q_nm)  # body-to-inertial rot matrix
 
         # Aliases
         dx = self._dx  # zeros
@@ -381,8 +381,8 @@ class AHRS:
                 raise ValueError("'g_var' not provided.")
             vg_meas_m = -_normalize(f_imu)
             g_var = np.asarray(g_var, dtype=float, order="C")
-            dz_g = vg_meas_m - R_ins_nm.T @ self._vg_ref_n
-            H_g = self._H_g_ref(R_ins_nm)
+            dz_g = vg_meas_m - R_nm.T @ self._vg_ref_n
+            H_g = self._H_g_ref(R_nm)
             dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
 
         if head is not None:
@@ -395,19 +395,19 @@ class AHRS:
 
             head_var_ = np.asarray([head_var], dtype=float, order="C")
             dz_head = np.asarray(
-                [_signed_smallest_angle(head - _h_head(q_ins_nm), degrees=False)],
+                [_signed_smallest_angle(head - _h_head(q_nm), degrees=False)],
                 dtype=float,
                 order="C",
             )
 
-            H_head = self._H_head(q_ins_nm)
+            H_head = self._H_head(q_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
 
-        # Reset AHRS states
+        # Reset AHRS state estimates
         if dx.any():
             self._reset(dx.ravel())
 
-        # Update current error covariance matrix
+        # Update current error covariance matrix estimate
         self._P[:] = P
 
         # Discretize system
