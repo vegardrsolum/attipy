@@ -135,6 +135,10 @@ class AHRS:
         frame according to the right-hand rule.
     """
 
+    _I = np.eye(6, order="C")
+    _dx = np.zeros(6)  # Error state estimate (always zero after reset)
+    _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
+
     def __init__(
         self,
         fs: float,
@@ -147,15 +151,11 @@ class AHRS:
         self._fs = fs
         self._dt = 1.0 / fs
         self._err_gyro = err_gyro
-        self._dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
         self._nav_frame = nav_frame.lower()
 
         # State estimates
         self._att = Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
-
-        # Error state estimates [dq, dbg]^T (always zero after reset)
-        self._dx = np.zeros(6)
 
         # Error covariance matrices
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
@@ -166,7 +166,6 @@ class AHRS:
         self._prep_G()
         self._prep_H()
         self._prep_W(err_gyro)
-        self._I = np.eye(6, order="C")
 
         # Gravity reference vector
         if self._nav_frame == "ned":
