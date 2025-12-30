@@ -99,7 +99,7 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 class AHRS:
     """
-    Attitude and heading reference system (AHRS).
+    Attitude and Heading Reference System (AHRS).
 
     The internal filter is a multiplicative extended Kalman filter (MEKF).
 
