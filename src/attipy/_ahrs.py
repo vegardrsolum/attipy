@@ -413,7 +413,7 @@ class AHRS:
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
         # Project ahead
-        self._att.update(w_imu * dt, degrees=False)
+        self._att.update(w_ins * dt, degrees=False)
         self._P_prior[:] = phi @ P @ phi.T + Q
 
         return self
