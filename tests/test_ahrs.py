@@ -11,13 +11,14 @@ class Test_AHRS:
         rng = np.random.default_rng()
         f_imu = f + rng.normal(0.0, 0.001, f.shape)
         w_imu = w + rng.normal(0.0, 0.0001, w.shape)
+        head_aid = head + rng.normal(0.0, np.radians(1.0), head.shape)
 
         fs = 10.24
         att = Attitude.from_euler(euler[0], degrees=False)
         ahrs = AHRS(fs, att)
 
         euler_out = []
-        for f_i, w_i, h_i in zip(f_imu, w_imu, head):
+        for f_i, w_i, h_i in zip(f_imu, w_imu, head_aid):
             ahrs.update(
                 f_i,
                 w_i,
