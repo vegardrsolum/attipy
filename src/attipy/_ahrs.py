@@ -422,9 +422,6 @@ class AHRS:
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
 
-        # Total state estimate
-        self._x = np.concatenate((self._att._q, self._bg))
-
         # Error state estimate (after reset)
         self._dx_prealloc = np.zeros(6)  # always zero, but used in sequential update
 
@@ -444,21 +441,6 @@ class AHRS:
 
         # State transition matrix
         self._phi = np.empty_like(self._F)  # needed for smoothing only
-
-    @property
-    def x_prior(self) -> NDArray[np.float64]:
-        """
-        Next a priori state vector estimate.
-
-        Returns
-        -------
-        numpy.ndarray, shape (7,)
-            A priori state vector estimate, containing the following elements in order:
-
-            * Attitude as unit quaternion (4 elements).
-            * Gyroscope bias in x, y, z directions (3 elements).
-        """
-        return np.concatenate((self._att._q_nm, self._bg)).copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -691,7 +673,6 @@ class AHRS:
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
         # Update current state
-        self._x[:] = np.concatenate((self._att._q, self._bg))
         self._P[:] = P
 
         # Project ahead
