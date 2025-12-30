@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._transforms import (
     _angular_matrix_from_quat,
-    euler_zyx_from_quat,
+    _euler_zyx_from_quat,
     _quat_from_euler_zyx,
     _matrix_from_quat,
 )
@@ -214,7 +214,7 @@ class AHRSMixin:
         within the frame.
         """
         q = self.quaternion()
-        theta = euler_zyx_from_quat(q)
+        theta = _euler_zyx_from_quat(q)
 
         if degrees:
             theta = (180.0 / np.pi) * theta
