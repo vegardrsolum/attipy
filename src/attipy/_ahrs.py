@@ -162,8 +162,8 @@ class AHRS:
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
 
-        # Error state estimate (after reset)
-        self._dx_prealloc = np.zeros(6)  # always zero, but used in sequential update
+        # Error state estimate (always zero after reset)
+        self._dx = np.zeros(6)
 
         # Initialize Kalman filter
         self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
@@ -175,9 +175,6 @@ class AHRS:
         self._H = self._prep_H()
         self._W = self._prep_W(err_gyro)
         self._I = np.eye(6, order="C")
-
-        # Error-state estimate (before reset)
-        self._dx = np.empty_like(self._dx_prealloc)  # needed for smoothing only
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -271,10 +268,10 @@ class AHRS:
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        self._att._q = _quatprod(self._att._q, dq)
-        self._att._q = _normalize(self._att._q)
-        self._bg = self._bg + dx[3:6]
-        self._dx_prealloc[:] = np.zeros(dx.size)
+        self._att._q[:] = _quatprod(self._att._q, dq)
+        self._att._q[:] = _normalize(self._att._q)
+        self._bg[:] = self._bg + dx[3:6]
+        self._dx[:] = np.zeros(dx.size)
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -361,7 +358,7 @@ class AHRS:
         R_ins_nm = _matrix_from_quat(q_ins_nm)  # body-to-inertial rot matrix
 
         # Aliases
-        dx = self._dx_prealloc  # zeros
+        dx = self._dx  # zeros
         dt = self._dt
         F = self._F
         G = self._G
@@ -398,8 +395,6 @@ class AHRS:
 
             H_head = self._update_H_head(q_ins_nm)
             dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
-
-        self._dx[:] = dx.ravel().copy()
 
         # Reset INS state
         if dx.any():
