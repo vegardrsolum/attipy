@@ -32,4 +32,4 @@ class Test_AHRS:
 
         euler_out = np.asarray(euler_out)
 
-        np.testing.assert_allclose(euler_out, euler, atol=0.02)
+        np.testing.assert_allclose(euler_out, euler, atol=0.005)
