@@ -293,6 +293,8 @@ class AHRS:
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
         """Reset AHRS state"""
+        if not dx.any():
+            return
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
@@ -423,7 +425,7 @@ class AHRS:
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        f_corr = f_imu
+        f_corr = f_imu  # no accelerometer bias estimated
         w_corr = w_imu - self._bg
 
         # Current INS state estimates
@@ -443,9 +445,8 @@ class AHRS:
         dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
         dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
-        # Reset AHRS state estimates
-        if dx.any():
-            self._reset(dx.ravel())
+        # Reset state estimates (regulating error state to zero)
+        self._reset(dx)
 
         # Update current error covariance matrix estimate
         self._P[:] = P
