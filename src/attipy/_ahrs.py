@@ -321,6 +321,50 @@ class AHRS:
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
+    def _update_head(self, dx, P, head, head_var, head_degrees, q_nm):
+        """
+        Update with heading measurement.
+        """
+        if head is None:
+            return dx, P
+
+        if head_var is None:
+            raise ValueError("'head_var' not provided.")
+
+        if head_degrees:
+            head = (np.pi / 180.0) * head
+            head_var = (np.pi / 180.0) ** 2 * head_var
+
+        head_var_ = np.asarray([head_var], dtype=float, order="C")
+        dz_head = np.asarray(
+            [_ssa(head - _h_head(q_nm), degrees=False)],
+            dtype=float,
+            order="C",
+        )
+
+        H_head = self._H_head(q_nm)
+        dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, self._I)
+
+        return dx, P
+
+    def _update_g_ref(self, dx, P, g_ref, g_var, f_imu, R_nm):
+        """
+        Update with gravity reference vector measurement.
+        """
+        if g_ref is False:
+            return dx, P
+
+        if g_var is None:
+            raise ValueError("'g_var' not provided.")
+
+        vg_meas_m = -_normalize(f_imu)
+        g_var = np.asarray(g_var, dtype=float, order="C")
+        dz_g = vg_meas_m - R_nm.T @ self._vg_ref_n
+        H_g = self._H_g_ref(R_nm)
+        dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, self._I)
+
+        return dx, P
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -395,32 +439,9 @@ class AHRS:
         G = self._G()
         W = self._W()
 
-        if g_ref:
-            if g_var is None:
-                raise ValueError("'g_var' not provided.")
-            vg_meas_m = -_normalize(f_imu)
-            g_var = np.asarray(g_var, dtype=float, order="C")
-            dz_g = vg_meas_m - R_nm.T @ self._vg_ref_n
-            H_g = self._H_g_ref(R_nm)
-            dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, I_)
-
-        if head is not None:
-            if head_var is None:
-                raise ValueError("'head_var' not provided.")
-
-            if head_degrees:
-                head = (np.pi / 180.0) * head
-                head_var = (np.pi / 180.0) ** 2 * head_var
-
-            head_var_ = np.asarray([head_var], dtype=float, order="C")
-            dz_head = np.asarray(
-                [_ssa(head - _h_head(q_nm), degrees=False)],
-                dtype=float,
-                order="C",
-            )
-
-            H_head = self._H_head(q_nm)
-            dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, I_)
+        # Update error state estimates with aiding measurements
+        dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
+        dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_imu, R_nm)
 
         # Reset AHRS state estimates
         if dx.any():
