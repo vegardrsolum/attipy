@@ -353,7 +353,7 @@ class AHRS:
 
         return dx, P
 
-    def _project_ahead(self, dt):
+    def _project_cov_ahead(self, dt):
         """
         Project state and covariance estimates ahead.
         """
@@ -366,7 +366,6 @@ class AHRS:
         phi = I_ + dt * F  # state transition matrix
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
-        self._att.update(self._w_corr_prev * dt, degrees=False)
         self._P[:] = phi @ P @ phi.T + Q
 
     def update(
@@ -427,17 +426,18 @@ class AHRS:
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
+        # Bias corrected IMU measurements
+        f_corr = f_imu  # no accelerometer bias estimated
+        w_corr = w_imu - self._bg
+
         # Project state and covariance estimates ahead
-        self._project_ahead(self._dt)
+        dtheta = 0.5 * (w_corr + self._w_corr_prev) * self._dt
+        self._att.update(dtheta, degrees=False)
+        self._project_cov_ahead(self._dt)
 
         # Current (a priori) state estimates
         q_nm = self._att._q
         R_nm = self._att.as_matrix()  # body-to-nav
-        bg = self._bg
-
-        # Bias compensated IMU measurements
-        f_corr = f_imu  # no accelerometer bias estimated
-        w_corr = w_imu - bg
 
         # Update (a posteriori) error state and covariance estimates with aiding
         dx, P = self._dx, self._P
