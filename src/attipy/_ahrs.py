@@ -150,7 +150,7 @@ class AHRS:
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
         self._vg_ref_n = self._gravity_nav(self._nav_frame)
-        self._w_corr_prev = np.zeros(3)
+        self._w_corr = np.zeros(3)
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
@@ -219,13 +219,13 @@ class AHRS:
 
         self._state_matrix = F
 
-    def _F(self, w_ins: NDArray[np.float64]) -> None:
+    def _F(self, w_corr: NDArray[np.float64]) -> None:
         """Update linearized state transition matrix, F."""
         S = _skew_symmetric  # alias skew symmetric matrix
 
         # Update matrix
         F = self._state_matrix
-        F[0:3, 0:3] = -S(w_ins)  # NB! update each time step
+        F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
 
         return F
 
@@ -358,7 +358,7 @@ class AHRS:
         Project state and covariance estimates ahead.
         """
         P = self._P
-        F = self._F(self._w_corr_prev)
+        F = self._F(self._w_corr)
         G = self._G()
         W = self._W()
         I_ = self._I
@@ -431,7 +431,7 @@ class AHRS:
         w_corr = w_imu - self._bg
 
         # Project state and covariance estimates ahead
-        dtheta = 0.5 * (w_corr + self._w_corr_prev) * self._dt
+        dtheta = 0.5 * (w_corr + self._w_corr) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
         self._project_cov_ahead(self._dt)
 
@@ -439,15 +439,15 @@ class AHRS:
         q_nm = self._att._q
         R_nm = self._att.as_matrix()  # body-to-nav
 
-        # Update (a posteriori) error state and covariance estimates with aiding
+        # Update error state and covariance estimates with aiding measurements
         dx, P = self._dx, self._P
         dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
         dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
-        # Reset state estimates (regulating error state to zero)
+        # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
 
         self._P[:] = P
-        self._w_corr_prev[:] = w_corr
+        self._w_corr[:] = w_corr
 
         return self
