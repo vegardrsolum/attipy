@@ -195,21 +195,10 @@ class AHRS:
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Error covariance matrix, **P**. I.e., the error covariance matrix associated with
-        the Kalman filter's updated (a posteriori) error-state estimate.
+        Error covariance matrix estimate.
         """
         P = self._P.copy()
         return P
-
-    # @property
-    # def P_prior(self) -> NDArray[np.float64]:
-    #     """
-    #     Next (a priori) estimate of the error covariance matrix, **P**. I.e., the error
-    #     covariance matrix associated with the Kalman filter's projected (a priori)
-    #     error-state estimate.
-    #     """
-    #     P_prior = self._P_prior.copy()
-    #     return P_prior
 
     def _prep_F(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
         """
