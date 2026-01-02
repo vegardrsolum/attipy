@@ -150,19 +150,18 @@ class AHRS:
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
         self._vg_ref_n = self._gravity_nav(self._nav_frame)
+        self._w_corr_prev = np.zeros(3)
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
-        self._P = np.asarray_chkfinite(P0).copy(order="C")
+        self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
         self._prep_F(err_gyro)
         self._prep_G()
         self._prep_H()
         self._prep_W(err_gyro)
-
-        self._w_corr_prev = np.zeros(3)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -208,13 +207,13 @@ class AHRS:
         beta_gyro = 1.0 / err_gyro["tau_cb"]
 
         # Temporary placeholder vectors (to be replaced each timestep)
-        w_ins = np.array([0.0, 0.0, 0.0])
+        w_corr = np.array([0.0, 0.0, 0.0])
 
         S = _skew_symmetric  # alias skew symmetric matrix
 
         # State transition matrix
         F = np.zeros((6, 6))
-        F[0:3, 0:3] = -S(w_ins)  # NB! update each time step
+        F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
         F[0:3, 3:6] = -np.eye(3)
         F[3:6, 3:6] = -beta_gyro * np.eye(3)
 
