@@ -141,7 +141,7 @@ class AHRS:
         fs: float,
         q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
-        P0_prior: ArrayLike = 1e-6 * np.eye(6),
+        P0: ArrayLike = 1e-6 * np.eye(6),
         err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
         nav_frame: str = "NED",
     ) -> None:
@@ -154,7 +154,7 @@ class AHRS:
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
-        self._P = np.asarray_chkfinite(P0_prior).copy(order="C")
+        self._P = np.asarray_chkfinite(P0).copy(order="C")
 
         # Prepare system matrices
         self._prep_F(err_gyro)
