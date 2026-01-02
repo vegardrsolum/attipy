@@ -6,7 +6,6 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
-from ._transforms import _matrix_from_quat
 from ._vectorops import _normalize, _skew_symmetric
 
 
