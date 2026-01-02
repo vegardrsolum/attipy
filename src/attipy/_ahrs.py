@@ -151,19 +151,18 @@ class AHRS:
         self._nav_frame = nav_frame.lower()
         self._vg_ref_n = self._gravity_nav(self._nav_frame)
 
-        # State estimates
+        # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
-
-        # Error covariance matrices
-        self._P_prior = np.asarray_chkfinite(P0_prior).copy(order="C")
-        self._P = self._P_prior.copy(order="C")
+        self._P = np.asarray_chkfinite(P0_prior).copy(order="C")
 
         # Prepare system matrices
         self._prep_F(err_gyro)
         self._prep_G()
         self._prep_H()
         self._prep_W(err_gyro)
+
+        self._w_corr_prev = np.zeros(3)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -202,15 +201,15 @@ class AHRS:
         P = self._P.copy()
         return P
 
-    @property
-    def P_prior(self) -> NDArray[np.float64]:
-        """
-        Next (a priori) estimate of the error covariance matrix, **P**. I.e., the error
-        covariance matrix associated with the Kalman filter's projected (a priori)
-        error-state estimate.
-        """
-        P_prior = self._P_prior.copy()
-        return P_prior
+    # @property
+    # def P_prior(self) -> NDArray[np.float64]:
+    #     """
+    #     Next (a priori) estimate of the error covariance matrix, **P**. I.e., the error
+    #     covariance matrix associated with the Kalman filter's projected (a priori)
+    #     error-state estimate.
+    #     """
+    #     P_prior = self._P_prior.copy()
+    #     return P_prior
 
     def _prep_F(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
         """
@@ -366,6 +365,19 @@ class AHRS:
 
         return dx, P
 
+    def _project_ahead(self, dt):
+        P = self._P
+        F = self._F(self._w_corr_prev)
+        G = self._G()
+        W = self._W()
+        I_ = self._I
+
+        phi = I_ + dt * F  # state transition matrix
+        Q = dt * G @ W @ G.T  # process noise covariance matrix
+
+        self._att.update(self._w_corr_prev * dt, degrees=False)
+        self._P[:] = phi @ P @ phi.T + Q
+
     def update(
         self,
         f_imu: ArrayLike,
@@ -424,40 +436,27 @@ class AHRS:
         if degrees:
             w_imu = (np.pi / 180.0) * w_imu
 
-        # Bias compensated IMU measurements
-        f_corr = f_imu  # no accelerometer bias estimated
-        w_corr = w_imu - self._bg
+        # Project state and covariance estimates ahead
+        self._project_ahead(self._dt)
 
-        # Current INS state estimates
+        # Current (a priori) state estimates
         q_nm = self._att._q
         R_nm = self._att.as_matrix()  # body-to-nav
+        bg = self._bg
 
-        # Aliases
-        dx = self._dx  # zeros
-        dt = self._dt
-        P = self._P_prior
-        I_ = self._I
-        F = self._F(w_corr)
-        G = self._G()
-        W = self._W()
+        # Bias compensated IMU measurements
+        f_corr = f_imu  # no accelerometer bias estimated
+        w_corr = w_imu - bg
 
-        # Update error state estimates with aiding measurements
+        # Update (a posteriori) error state and covariance estimates with aiding
+        dx, P = self._dx, self._P
         dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
         dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
         # Reset state estimates (regulating error state to zero)
         self._reset(dx)
 
-        # Update current error covariance matrix estimate
         self._P[:] = P
-
-        # Discretize system
-        phi = I_ + dt * F  # state transition matrix
-        Q = dt * G @ W @ G.T  # process noise covariance matrix
-
-        # Project ahead
-        # TODO: postphone to next update?
-        self._att.update(w_corr * dt, degrees=False)
-        self._P_prior[:] = phi @ P @ phi.T + Q
+        self._w_corr_prev[:] = w_corr
 
         return self
