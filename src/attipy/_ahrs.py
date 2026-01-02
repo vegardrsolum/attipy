@@ -150,6 +150,7 @@ class AHRS:
         self._dt = 1.0 / fs
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
+        self._vg_ref_n = self._gravity_nav(self._nav_frame)
 
         # State estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
@@ -165,13 +166,17 @@ class AHRS:
         self._prep_H()
         self._prep_W(err_gyro)
 
-        # Gravity reference vector
-        if self._nav_frame == "ned":
-            self._vg_ref_n = np.array([0.0, 0.0, 1.0])
-        elif self._nav_frame == "enu":
-            self._vg_ref_n = np.array([0.0, 0.0, -1.0])
+    def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
+        """
+        Gravity vector in the navigation frame (NED or ENU).
+        """
+        if nav_frame == "ned":
+            g_n = np.array([0.0, 0.0, 1.0])
+        elif nav_frame == "enu":
+            g_n = np.array([0.0, 0.0, -1.0])
         else:
-            raise ValueError(f"Unknown navigation frame: {self._nav_frame}")
+            raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
+        return g_n
 
     @property
     def attitude(self) -> Attitude:
@@ -379,7 +384,7 @@ class AHRS:
 
         # Current INS state estimates
         q_nm = self._att._q
-        R_nm = self._att.as_matrix()  # body-to-inertial rot matrix
+        R_nm = self._att.as_matrix()  # body-to-nav
 
         # Aliases
         dx = self._dx  # zeros
