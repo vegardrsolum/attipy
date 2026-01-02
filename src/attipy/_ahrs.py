@@ -429,9 +429,10 @@ class AHRS:
         # Bias corrected IMU measurements
         f_corr = f_imu  # no accelerometer bias estimated
         w_corr = w_imu - self._bg
+        w_corr_prev = self._w_corr
 
         # Project state and covariance estimates ahead
-        dtheta = 0.5 * (w_corr + self._w_corr) * self._dt  # trapezoidal rule
+        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
         self._project_cov_ahead(self._dt)
 
