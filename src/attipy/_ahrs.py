@@ -346,7 +346,7 @@ class AHRS:
 
         return dx, P
 
-    def _update_g_ref(self, dx, P, g_ref, g_var, f_imu, R_nm):
+    def _update_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
         """
         Update with gravity reference vector measurement.
         """
@@ -356,7 +356,7 @@ class AHRS:
         if g_var is None:
             raise ValueError("'g_var' not provided.")
 
-        vg_meas_m = -_normalize(f_imu)
+        vg_meas_m = -_normalize(f)
         g_var = np.asarray(g_var, dtype=float, order="C")
         dz_g = vg_meas_m - R_nm.T @ self._vg_ref_n
         H_g = self._H_g_ref(R_nm)
@@ -423,7 +423,8 @@ class AHRS:
             w_imu = (np.pi / 180.0) * w_imu
 
         # Bias compensated IMU measurements
-        w_ins = w_imu - self._bg
+        f_corr = f_imu
+        w_corr = w_imu - self._bg
 
         # Current INS state estimates
         q_nm = self._att._q
@@ -434,13 +435,13 @@ class AHRS:
         dt = self._dt
         P = self._P_prior
         I_ = self._I
-        F = self._F(w_ins)
+        F = self._F(w_corr)
         G = self._G()
         W = self._W()
 
         # Update error state estimates with aiding measurements
         dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
-        dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_imu, R_nm)
+        dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
         # Reset AHRS state estimates
         if dx.any():
@@ -455,7 +456,7 @@ class AHRS:
 
         # Project ahead
         # TODO: postphone to next update?
-        self._att.update(w_ins * dt, degrees=False)
+        self._att.update(w_corr * dt, degrees=False)
         self._P_prior[:] = phi @ P @ phi.T + Q
 
         return self
