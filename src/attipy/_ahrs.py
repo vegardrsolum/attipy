@@ -112,7 +112,7 @@ class AHRS:
         (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
     bg0 : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial (a priori) gyroscope bias estimate. Defaults to zero bias.
-    P0_prior : array_like, shape (6, 6), default np.eye(6) * 1e-6
+    P0 : array_like, shape (6, 6), default np.eye(6) * 1e-6
         Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
         to a small diagonal matrix (np.eye(6) * 1e-6).
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
