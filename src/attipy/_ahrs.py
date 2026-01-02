@@ -106,7 +106,7 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    q0 : array_like or Attitude, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+    q0 : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial (a priori) attitude state estimate, given as a unit quaternion
         or :class:`~attipy.Attitude` instance. Defaults to the identity quaternion
         (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
