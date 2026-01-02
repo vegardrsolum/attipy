@@ -366,6 +366,9 @@ class AHRS:
         return dx, P
 
     def _project_ahead(self, dt):
+        """
+        Project state and covariance estimates ahead.
+        """
         P = self._P
         F = self._F(self._w_corr_prev)
         G = self._G()
