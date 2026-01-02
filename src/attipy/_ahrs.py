@@ -109,8 +109,8 @@ class AHRS:
         Sampling rate in Hz.
     q0 : array_like or Attitude, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial (a priori) attitude state estimate, given as a unit quaternion
-        or :class:`~attipy.Attitude` instance. Defaults to the no rotation, i.e.,
-        the identity quaternion (1.0, 0.0, 0.0, 0.0).
+        or :class:`~attipy.Attitude` instance. Defaults to the identity quaternion
+        (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
     bg0 : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial (a priori) gyroscope bias estimate. Defaults to zero bias.
     P0_prior : array_like, shape (6, 6), default np.eye(6) * 1e-6
