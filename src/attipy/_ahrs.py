@@ -379,7 +379,7 @@ class AHRS:
 
         # Current INS state estimates
         q_nm = self._att._q
-        R_nm = _matrix_from_quat(q_nm)  # body-to-inertial rot matrix
+        R_nm = self._att.as_matrix()  # body-to-inertial rot matrix
 
         # Aliases
         dx = self._dx  # zeros
@@ -429,6 +429,7 @@ class AHRS:
         Q = dt * G @ W @ G.T  # process noise covariance matrix
 
         # Project ahead
+        # TODO: postphone to next update?
         self._att.update(w_ins * dt, degrees=False)
         self._P_prior[:] = phi @ P @ phi.T + Q
 
