@@ -96,7 +96,7 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-def _setup_state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, F.
     """
@@ -114,17 +114,7 @@ def _setup_state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float6
     return dfdx
 
 
-def _update_state_matrix(dfdx, w_corr):
-    """Update linearized state transition matrix, F."""
-    S = _skew_symmetric  # alias skew symmetric matrix
-
-    # Update matrix
-    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
-
-    return dfdx
-
-
-def _setup_wn_input_matrix():
+def _wn_input_matrix():
     """Setup (white noise) input matrix, G."""
 
     # Input (white noise) matrix
@@ -135,7 +125,7 @@ def _setup_wn_input_matrix():
     return dfdw
 
 
-def _setup_wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """Prepare white noise power spectral density matrix"""
     N_gyro = err_gyro["N"]
     sigma_gyro = err_gyro["B"]
@@ -211,9 +201,9 @@ class AHRS:
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        self._dfdx = _setup_state_matrix(self._w_corr, self._err_gyro)
-        self._dfdw = _setup_wn_input_matrix()
-        self._W = _setup_wn_psd_matrix(self._err_gyro)
+        self._dfdx = _state_matrix(self._w_corr, self._err_gyro)
+        self._dfdw = _wn_input_matrix()
+        self._W = _wn_psd_matrix(self._err_gyro)
         self._prep_H()
 
     def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
@@ -345,6 +335,14 @@ class AHRS:
 
         return dx, P
 
+    def _update_state_space(self, w_corr):
+        """
+        Update state space matrices.
+        """
+        S = _skew_symmetric
+
+        self._dfdx[0:3, 0:3] = -S(w_corr)
+
     def _phi(self, dt):
         """
         State transition matrix.
@@ -358,10 +356,13 @@ class AHRS:
         return phi
 
     def _Q(self, dt):
+        """
+        Process noise covariance matrix.
+        """
         dfdw = self._dfdw
         W = self._W
 
-        Q = dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
+        Q = dt * dfdw @ W @ dfdw.T
 
         return Q
 
@@ -445,8 +446,8 @@ class AHRS:
         # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
 
-        self._P[:] = P
-        self._w_corr[:] = w_corr
-        self._dfdx[:] = _update_state_matrix(self._dfdx, w_corr)
+        self._P = P
+        self._w_corr = w_corr
+        self._update_state_space(w_corr)
 
         return self
