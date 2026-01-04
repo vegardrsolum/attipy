@@ -1,3 +1,5 @@
+from pytest import fixture
+
 import numpy as np
 
 from attipy import AHRS, Attitude
@@ -5,6 +7,10 @@ from attipy._transforms import _quat_from_euler_zyx
 
 
 class Test_AHRS:
+
+    @fixture
+    def ahrs(self):
+        return AHRS(10.0)
 
     def test__init__(self):
         fs = 10.0
@@ -29,6 +35,11 @@ class Test_AHRS:
 
         ahrs_enu = AHRS(10.0, nav_frame="ENU")
         np.testing.assert_allclose(ahrs_enu._vg_ref_n, np.array([0.0, 0.0, -1.0]))
+
+    def test_attitude(self, ahrs):
+        q_expected = np.array([1.0, 0.0, 0.0, 0.0])
+        assert isinstance(ahrs.attitude, Attitude)
+        np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q_expected)
 
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
