@@ -334,22 +334,22 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aiding_head(self, dx, P, head, head_var, head_degrees, q_nm):
+    def _aiding_head(self, dx, P, head_meas, head_var, head_degrees, q_nm):
         """
         Update with heading measurement.
         """
-        if head is None:
+        if head_meas is None:
             return dx, P
 
         if head_var is None:
             raise ValueError("'head_var' not provided.")
 
         if head_degrees:
-            head = (np.pi / 180.0) * head
+            head_meas = (np.pi / 180.0) * head_meas
             head_var = (np.pi / 180.0) ** 2 * head_var
 
         var = np.asarray([head_var], dtype=float)
-        dz = np.asarray([_ssa(head - _h_head(q_nm), degrees=False)], dtype=float)
+        dz = np.asarray([_ssa(head_meas - _h_head(q_nm), degrees=False)], dtype=float)
         dhdx = self._dhdx_head(q_nm)
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
@@ -368,6 +368,7 @@ class AHRS:
         var = np.asarray(vel_var, dtype=float)
         dz = vel_meas - vel
         dhdx = self._dhdx_vel()
+
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _aiding_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
