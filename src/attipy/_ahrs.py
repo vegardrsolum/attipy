@@ -392,15 +392,21 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _update_state_space(self, f_corr, w_corr, R_nm):
+    def _update_state_space(self):
         """
         Update state space matrices.
         """
         S = _skew_symmetric
 
+        f_corr = self._f_corr
+        w_corr = self._w_corr
+        R_nm = self._R_nm
+
+        # Update state matrix
         self._dfdx[0:3, 0:3] = -S(w_corr)
         self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
 
+        # Update (white noise) input matrix
         self._dfdw[6:9, 6:9] = -R_nm
 
     def _phi(self, dt):
@@ -512,6 +518,6 @@ class AHRS:
         self._f_corr = f_corr
         self._w_corr = w_corr
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-        self._update_state_space(f_corr, w_corr, self._R_nm)
+        self._update_state_space()
 
         return self
