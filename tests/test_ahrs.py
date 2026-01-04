@@ -51,6 +51,10 @@ class Test_AHRS:
         bg_expected = np.array([1.0, -2.0, 3.0])
         np.testing.assert_allclose(ahrs.bias_gyro(degrees=True), bg_expected)
 
+    def test_P(self, ahrs):
+        P_expected = 1e-6 * np.eye(6)
+        np.testing.assert_allclose(ahrs.P, P_expected)
+
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
         head = euler[:, 2]
