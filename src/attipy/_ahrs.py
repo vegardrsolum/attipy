@@ -151,9 +151,10 @@ def _measurement_matrix(vg_ref_n, q_nm) -> None:
 
     R_nm = _matrix_from_quat(q_nm)
 
-    dhdx = np.zeros((4, 6))
+    dhdx = np.zeros((7, 9))
     dhdx[0:3, 0:3] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
     dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
+    dhdx[4:7, 6:9] = np.eye(3)  # velocity
 
     return dhdx
 
@@ -317,6 +318,9 @@ class AHRS:
         S = _skew_symmetric
         self._dhdx[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
         return self._dhdx[0:3]
+
+    def _dhdx_vel(self):
+        return self._dhdx[4:7]
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
         """Reset AHRS state"""
