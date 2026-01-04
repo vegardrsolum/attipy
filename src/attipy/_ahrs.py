@@ -217,7 +217,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
-    _dx = np.zeros(9)  # (da, dbg, dv), always zeroed after reset
+    _dx = np.zeros(9)  # (da, dbg, dv), always zero after reset
     _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
     def __init__(
@@ -497,7 +497,7 @@ class AHRS:
         # Error state and covariance estimates
         dx, P = self._dx, self._P
 
-        # Discretized state space
+        # Discretized (error) state space
         phi, Q = self._phi(self._dt), self._Q(self._dt)
 
         # Project state and covariance ahead
