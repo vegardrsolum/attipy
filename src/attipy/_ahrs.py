@@ -315,12 +315,8 @@ class AHRS:
             head = (np.pi / 180.0) * head
             head_var = (np.pi / 180.0) ** 2 * head_var
 
-        var = np.asarray([head_var], dtype=float, order="C")
-        dz = np.asarray(
-            [_ssa(head - _h_head(q_nm), degrees=False)],
-            dtype=float,
-            order="C",
-        )
+        var = np.asarray([head_var], dtype=float)
+        dz = np.asarray([_ssa(head - _h_head(q_nm), degrees=False)], dtype=float)
         dhdx = self._dhdx_head(q_nm)
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
@@ -335,7 +331,7 @@ class AHRS:
         if g_var is None:
             raise ValueError("'g_var' not provided.")
 
-        var = np.asarray(g_var, dtype=float, order="C")
+        var = np.asarray(g_var, dtype=float)
         vg_meas_m = -_normalize(f)
         dz = vg_meas_m - R_nm.T @ self._vg_ref_n
         dhdx = self._dhdx_g_ref(R_nm)
