@@ -223,7 +223,7 @@ class AHRS:
         q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         v0: ArrayLike = (0.0, 0.0, 0.0),
-        P0: ArrayLike = 1e-6 * np.eye(6),
+        P0: ArrayLike = 1e-6 * np.eye(9),
         err_acc: dict[str, float] = {
             "noise_density": 0.001,
             "bias_stability": 0.0005,
