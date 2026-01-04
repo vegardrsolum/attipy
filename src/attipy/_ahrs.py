@@ -30,7 +30,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+def _state_matrix(f_corr, w_corr, R_nm, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -40,35 +40,39 @@ def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # State transition matrix
-    dfdx = np.zeros((6, 6))
+    dfdx = np.zeros((9, 9))
     dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
     dfdx[0:3, 3:6] = -np.eye(3)
     dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
+    dfdx[6:9, 0:3] = -R_nm @ S(f_corr)  # NB! update each time step
 
     return dfdx
 
 
-def _wn_input_matrix():
+def _wn_input_matrix(R_nm):
     """Setup linearized (white noise) input matrix, dfdw."""
 
     # Input (white noise) matrix
-    dfdw = np.zeros((6, 6))
+    dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
+    dfdw[6:9, 6:9] = -R_nm  # NB! update each time step
 
     return dfdw
 
 
-def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+def _wn_psd_matrix(err_acc, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
+    N_acc = err_acc["noise_density"]
     N_gyro = err_gyro["noise_density"]
     sigma_gyro = err_gyro["bias_stability"]
     beta_gyro = 1.0 / err_gyro["bias_correlation_time"]
 
     # White noise power spectral density matrix
-    W = np.eye(6)
+    W = np.eye(9)
     W[0:3, 0:3] *= N_gyro**2
     W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
+    W[6:9, 6:9] *= N_acc**2
 
     return W
 
@@ -218,31 +222,55 @@ class AHRS:
         fs: float,
         q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
+        v0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = 1e-6 * np.eye(6),
+        err_acc: dict[str, float] = {
+            "noise_density": 0.001,
+            "bias_stability": 0.0005,
+            "bias_correlation_time": 50.0,
+        },
         err_gyro: dict[str, float] = {
             "noise_density": 0.0001,
             "bias_stability": 0.00005,
             "bias_correlation_time": 50.0,
         },
         nav_frame: str = "NED",
+        g: float = 9.80665,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
+        self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
+        self._g_n = self._gravity_nav(self._nav_frame)
         self._vg_ref_n = self._gravity_ref_nav(self._nav_frame)
+        self._f_corr = np.zeros(3)
         self._w_corr = np.zeros(3)
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
+        self._v = np.asarray_chkfinite(v0).reshape(3)
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        self._dfdx = _state_matrix(self._w_corr, self._err_gyro)
-        self._dfdw = _wn_input_matrix()
-        self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
+        q_nm, R_nm = self._att.as_quaternion(), self._att.as_matrix()
+        self._dfdx = _state_matrix(self._f_corr, self._w_corr, R_nm, self._err_gyro)
+        self._dfdw = _wn_input_matrix(R_nm)
+        self._dhdx = _measurement_matrix(self._vg_ref_n, q_nm)
         self._W = _wn_psd_matrix(self._err_gyro)
+
+    def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
+        """
+        Gravity vector direction in the navigation frame (NED or ENU).
+        """
+        if nav_frame == "ned":
+            g_n = np.array([0.0, 0.0, self._g])
+        elif nav_frame == "enu":
+            g_n = np.array([0.0, 0.0, -self._g])
+        else:
+            raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
+        return g_n
 
     def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -338,13 +366,16 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _update_state_space(self, w_corr):
+    def _update_state_space(self, f_corr, w_corr, R_nm):
         """
         Update state space matrices.
         """
         S = _skew_symmetric
 
         self._dfdx[0:3, 0:3] = -S(w_corr)
+        self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
+
+        self._dfdw[6:9, 6:9] = -R_nm
 
     def _phi(self, dt):
         """
@@ -451,6 +482,6 @@ class AHRS:
 
         self._P = P
         self._w_corr = w_corr
-        self._update_state_space(w_corr)
+        self._update_state_space(f_corr, w_corr, R_nm)
 
         return self
