@@ -253,15 +253,15 @@ class AHRS:
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
+        self._R_nm = self._att.as_matrix()
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
         self._v = np.asarray_chkfinite(v0).reshape(3)
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        q_nm, R_nm = self._att.as_quaternion(), self._att.as_matrix()
-        self._dfdx = _state_matrix(self._f_corr, self._w_corr, R_nm, self._err_gyro)
-        self._dfdw = _wn_input_matrix(R_nm)
-        self._dhdx = _measurement_matrix(self._vg_ref_n, q_nm)
+        self._dfdx = _state_matrix(self._f_corr, self._w_corr, self._R_nm, self._err_gyro)
+        self._dfdw = _wn_input_matrix(self._R_nm)
+        self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
         self._W = _wn_psd_matrix(self._err_acc, self._err_gyro)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
@@ -486,14 +486,16 @@ class AHRS:
         # Error state and covariance estimates
         dx, P = self._dx, self._P
 
-        # Discrete state space
-        phi, Q = self._phi(self._dt), self._Q(self._dt)
-
-        # Project state and covariance estimates ahead
-        dv = (self._att.as_matrix() @ f_corr + self._g_n) * self._dt
+        # Project velocity ahead
+        dv = (self._R_nm @ f_corr + self._g_n) * self._dt
         self._v += dv
+
+        # Project attitude ahead
         dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
+
+        # Project covariance ahead
+        phi, Q = self._phi(self._dt), self._Q(self._dt)
         P = phi @ P @ phi.T + Q
 
         # Projected (a priori) state estimates
@@ -508,7 +510,9 @@ class AHRS:
         self._reset(dx)
 
         self._P = P
+        self._f_corr = f_corr
         self._w_corr = w_corr
-        self._update_state_space(f_corr, w_corr, R_nm)
+        self._R_nm = self._att.as_matrix()
+        self._update_state_space(f_corr, w_corr, self._R_nm)
 
         return self
