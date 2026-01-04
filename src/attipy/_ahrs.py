@@ -30,6 +30,49 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
+def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    """
+    Setup linearized state matrix, dfdx.
+    """
+
+    beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+    S = _skew_symmetric  # alias skew symmetric matrix
+
+    # State transition matrix
+    dfdx = np.zeros((6, 6))
+    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
+
+    return dfdx
+
+
+def _wn_input_matrix():
+    """Setup linearized (white noise) input matrix, dfdw."""
+
+    # Input (white noise) matrix
+    dfdw = np.zeros((6, 6))
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
+
+    return dfdw
+
+
+def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    """Setup white noise (process noise) power spectral density matrix, W."""
+    N_gyro = err_gyro["N"]
+    sigma_gyro = err_gyro["B"]
+    beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+    # White noise power spectral density matrix
+    W = np.eye(6)
+    W[0:3, 0:3] *= N_gyro**2
+    W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
+
+    return W
+
+
 def _h_head(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
@@ -97,49 +140,6 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
-    """
-    Setup linearized state matrix, dfdx.
-    """
-
-    beta_gyro = 1.0 / err_gyro["tau_cb"]
-
-    S = _skew_symmetric  # alias skew symmetric matrix
-
-    # State transition matrix
-    dfdx = np.zeros((6, 6))
-    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-
-    return dfdx
-
-
-def _wn_input_matrix():
-    """Setup linearized (white noise) input matrix, dfdw."""
-
-    # Input (white noise) matrix
-    dfdw = np.zeros((6, 6))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-
-    return dfdw
-
-
-def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
-    """Setup white noise (process noise) power spectral density matrix, W."""
-    N_gyro = err_gyro["N"]
-    sigma_gyro = err_gyro["B"]
-    beta_gyro = 1.0 / err_gyro["tau_cb"]
-
-    # White noise power spectral density matrix
-    W = np.eye(6)
-    W[0:3, 0:3] *= N_gyro**2
-    W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
-
-    return W
-
-
 def _measurement_matrix(vg_ref_n, q_nm) -> None:
     """Setup linearized measurement matrix, dhdx."""
     S = _skew_symmetric
@@ -151,6 +151,25 @@ def _measurement_matrix(vg_ref_n, q_nm) -> None:
     dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
 
     return dhdx
+
+
+@njit  # type: ignore[misc]
+def _update_dx_P(
+    dx: NDArray[np.float64],
+    P: NDArray[np.float64],
+    dz: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    for i, (dz_i, var_i) in enumerate(zip(dz, var)):
+        H_i = np.ascontiguousarray(H[i, :])
+        K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+        dx += K_i * (dz_i - H_i @ dx)
+        K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as 2D array
+        H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as 2D array
+        P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+    return dx, P
 
 
 class AHRS:
@@ -277,25 +296,6 @@ class AHRS:
         self._bg[:] = self._bg + dx[3:6]
         self._dx[:] = np.zeros(dx.size)
 
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _update_dx_P(
-        dx: NDArray[np.float64],
-        P: NDArray[np.float64],
-        dz: NDArray[np.float64],
-        var: NDArray[np.float64],
-        H: NDArray[np.float64],
-        I_: NDArray[np.float64],
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-            H_i = np.ascontiguousarray(H[i, :])
-            K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-            dx += K_i * (dz_i - H_i @ dx)
-            K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as 2D array
-            H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as 2D array
-            P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
-        return dx, P
-
     def _aid_update_head(self, dx, P, head, head_var, head_degrees, q_nm):
         """
         Update with heading measurement.
@@ -318,7 +318,7 @@ class AHRS:
         )
         dhdx = self._dhdx_head(q_nm)
 
-        return self._update_dx_P(dx, P, dz, var, dhdx, self._I)
+        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _aid_update_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
         """
@@ -335,7 +335,7 @@ class AHRS:
         dz = vg_meas_m - R_nm.T @ self._vg_ref_n
         dhdx = self._dhdx_g_ref(R_nm)
 
-        return self._update_dx_P(dx, P, dz, var, dhdx, self._I)
+        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _update_state_space(self, w_corr):
         """
