@@ -242,6 +242,7 @@ class AHRS:
         self._err_acc = err_acc
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
+        self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
         self._vg_ref_n = self._gravity_ref_nav(self._nav_frame)
         self._f_corr = np.zeros(3)
@@ -484,7 +485,9 @@ class AHRS:
         phi, Q = self._phi(self._dt), self._Q(self._dt)
 
         # Project state and covariance estimates ahead
+        dv = (self._att.as_matrix() @ f_corr + self._g_n) * self._dt
         dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
+        self._v += dv
         self._att.update(dtheta, degrees=False)
         P = phi @ P @ phi.T + Q
 
@@ -493,7 +496,7 @@ class AHRS:
 
         # Update error state and covariance estimates with aiding measurements
         dx, P = self._aiding_head(dx, P, head, head_var, head_degrees, q_nm)
-        dx, P = self._aiding_vel(dx, P, vel, vel_var, q_nm)
+        dx, P = self._aiding_vel(dx, P, vel, vel_var, self._v)
         dx, P = self._aiding_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
