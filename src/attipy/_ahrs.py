@@ -259,7 +259,7 @@ class AHRS:
         self._dfdx = _state_matrix(self._f_corr, self._w_corr, R_nm, self._err_gyro)
         self._dfdw = _wn_input_matrix(R_nm)
         self._dhdx = _measurement_matrix(self._vg_ref_n, q_nm)
-        self._W = _wn_psd_matrix(self._err_gyro)
+        self._W = _wn_psd_matrix(self._err_acc, self._err_gyro)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
