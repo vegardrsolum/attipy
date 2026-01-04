@@ -149,7 +149,7 @@ class AHRS:
         self._dt = 1.0 / fs
         self._err_gyro = err_gyro
         self._nav_frame = nav_frame.lower()
-        self._vg_ref_n = self._gravity_nav(self._nav_frame)
+        self._vg_ref_n = self._gravity_ref_nav(self._nav_frame)
         self._w_corr = np.zeros(3)
 
         # State and covariance estimates
@@ -163,17 +163,17 @@ class AHRS:
         self._prep_H()
         self._prep_W(err_gyro)
 
-    def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
+    def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
         """
-        Gravity vector in the navigation frame (NED or ENU).
+        Gravity vector direction in the navigation frame (NED or ENU).
         """
         if nav_frame == "ned":
-            g_n = np.array([0.0, 0.0, 1.0])
+            vg_n = np.array([0.0, 0.0, 1.0])
         elif nav_frame == "enu":
-            g_n = np.array([0.0, 0.0, -1.0])
+            vg_n = np.array([0.0, 0.0, -1.0])
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
-        return g_n
+        return vg_n
 
     @property
     def attitude(self) -> Attitude:

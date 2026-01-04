@@ -5,6 +5,31 @@ from attipy._transforms import _quat_from_euler_zyx
 
 
 class Test_AHRS:
+
+    def test__init__(self):
+        fs = 10.0
+        q0 = _quat_from_euler_zyx(np.radians([10.0, 20.0, 30.0]))
+        bg0 = np.array([0.01, -0.02, 0.03])
+        err_gyro= {"N": 0.0002, "B": 0.00003, "tau_cb": 45.0}
+        ahrs = AHRS(fs, q0=q0, bg0=bg0, err_gyro=err_gyro, nav_frame="NED")
+
+        assert ahrs._fs == fs
+        assert ahrs._dt == 1.0 / fs
+        assert ahrs._nav_frame == "ned"
+        assert ahrs._err_gyro == err_gyro
+        np.testing.assert_allclose(ahrs._vg_ref_n, np.array([0.0, 0.0, 1.0]))
+        np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q0)
+        np.testing.assert_allclose(ahrs._bg, bg0)
+        np.testing.assert_allclose(ahrs._P, 1e-6 * np.eye(6))
+        np.testing.assert_allclose(ahrs._w_corr, np.zeros(3))
+
+    def test__init__nav_frame(self):
+        ahrs_ned = AHRS(10.0, nav_frame="NED")
+        np.testing.assert_allclose(ahrs_ned._vg_ref_n, np.array([0.0, 0.0, 1.0]))
+
+        ahrs_enu = AHRS(10.0, nav_frame="ENU")
+        np.testing.assert_allclose(ahrs_enu._vg_ref_n, np.array([0.0, 0.0, -1.0]))
+
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
         head = euler[:, 2]
