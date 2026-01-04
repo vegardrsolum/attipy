@@ -500,8 +500,7 @@ class AHRS:
         phi, Q = self._phi(self._dt), self._Q(self._dt)
 
         # Project state and covariance ahead
-        dv = (self._R_nm @ f_corr + self._g_n) * self._dt
-        self._v += dv
+        self._v += (self._R_nm @ f_corr + self._g_n) * self._dt
         dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
         P = phi @ P @ phi.T + Q
