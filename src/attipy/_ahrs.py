@@ -96,6 +96,59 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
+def _setup_state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    """
+    Setup linearized state matrix, F.
+    """
+
+    beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+    S = _skew_symmetric  # alias skew symmetric matrix
+
+    # State transition matrix
+    dfdx = np.zeros((6, 6))
+    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
+
+    return dfdx
+
+
+def _update_state_matrix(dfdx, w_corr):
+    """Update linearized state transition matrix, F."""
+    S = _skew_symmetric  # alias skew symmetric matrix
+
+    # Update matrix
+    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+
+    return dfdx
+
+
+def _setup_wn_input_matrix():
+    """Setup (white noise) input matrix, G."""
+
+    # Input (white noise) matrix
+    dfdw = np.zeros((6, 6))
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
+
+    return dfdw
+
+
+def _setup_wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    """Prepare white noise power spectral density matrix"""
+    N_gyro = err_gyro["N"]
+    sigma_gyro = err_gyro["B"]
+    beta_gyro = 1.0 / err_gyro["tau_cb"]
+
+    # White noise power spectral density matrix
+    W = np.eye(6)
+    W[0:3, 0:3] *= N_gyro**2
+    W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
+
+    return W
+
+
 class AHRS:
     """
     Attitude and Heading Reference System (AHRS).
