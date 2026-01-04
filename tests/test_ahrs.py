@@ -41,6 +41,16 @@ class Test_AHRS:
         assert isinstance(ahrs.attitude, Attitude)
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q_expected)
 
+    def test_bias_gyro_rad(self):
+        ahrs = AHRS(10.0, bg0=np.array([0.01, -0.02, 0.03]))
+        bg_expected = np.array([0.01, -0.02, 0.03])
+        np.testing.assert_allclose(ahrs.bias_gyro(degrees=False), bg_expected)
+
+    def test_bias_gyro_deg(self):
+        ahrs = AHRS(10.0, bg0=np.radians([1.0, -2.0, 3.0]))
+        bg_expected = np.array([1.0, -2.0, 3.0])
+        np.testing.assert_allclose(ahrs.bias_gyro(degrees=True), bg_expected)
+
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
         head = euler[:, 2]
