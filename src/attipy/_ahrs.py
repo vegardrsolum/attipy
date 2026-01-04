@@ -491,8 +491,8 @@ class AHRS:
 
         # Project state and covariance estimates ahead
         dv = (self._att.as_matrix() @ f_corr + self._g_n) * self._dt
-        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._v += dv
+        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
         P = phi @ P @ phi.T + Q
 
