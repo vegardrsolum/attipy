@@ -301,15 +301,24 @@ class AHRS:
         return P
 
     def _dhdx_head(self, q_nm):
+        """
+        Heading measurement matrix.
+        """
         self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
         return self._dhdx[3:4]
 
     def _dhdx_g_ref(self, R_nm):
+        """
+        Gravity reference vector measurement matrix.
+        """
         S = _skew_symmetric
         self._dhdx[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
         return self._dhdx[0:3]
 
     def _dhdx_vel(self):
+        """
+        Velocity measurement matrix.
+        """
         return self._dhdx[4:7]
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
