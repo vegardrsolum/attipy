@@ -211,10 +211,10 @@ class AHRS:
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        self._prep_F(err_gyro)
-        self._prep_G()
+        self._dfdx = _setup_state_matrix(self._w_corr, self._err_gyro)
+        self._dfdw = _setup_wn_input_matrix()
+        self._W = _setup_wn_psd_matrix(self._err_gyro)
         self._prep_H()
-        self._prep_W(err_gyro)
 
     def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -252,49 +252,49 @@ class AHRS:
         P = self._P.copy()
         return P
 
-    def _prep_F(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
-        """
-        Prepare linearized state matrix, F.
-        """
+    # def _prep_F(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    #     """
+    #     Prepare linearized state matrix, F.
+    #     """
 
-        beta_gyro = 1.0 / err_gyro["tau_cb"]
+    #     beta_gyro = 1.0 / err_gyro["tau_cb"]
 
-        # Temporary placeholder vectors (to be replaced each timestep)
-        w_corr = np.array([0.0, 0.0, 0.0])
+    #     # Temporary placeholder vectors (to be replaced each timestep)
+    #     w_corr = np.array([0.0, 0.0, 0.0])
 
-        S = _skew_symmetric  # alias skew symmetric matrix
+    #     S = _skew_symmetric  # alias skew symmetric matrix
 
-        # State transition matrix
-        F = np.zeros((6, 6))
-        F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
-        F[0:3, 3:6] = -np.eye(3)
-        F[3:6, 3:6] = -beta_gyro * np.eye(3)
+    #     # State transition matrix
+    #     F = np.zeros((6, 6))
+    #     F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    #     F[0:3, 3:6] = -np.eye(3)
+    #     F[3:6, 3:6] = -beta_gyro * np.eye(3)
 
-        self._state_matrix = F
+    #     self._state_matrix = F
 
-    def _F(self, w_corr: NDArray[np.float64]) -> None:
-        """Update linearized state transition matrix, F."""
-        S = _skew_symmetric  # alias skew symmetric matrix
+    # def _F(self, w_corr: NDArray[np.float64]) -> None:
+    #     """Update linearized state transition matrix, F."""
+    #     S = _skew_symmetric  # alias skew symmetric matrix
 
-        # Update matrix
-        F = self._state_matrix
-        F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    #     # Update matrix
+    #     F = self._state_matrix
+    #     F[0:3, 0:3] = -S(w_corr)  # NB! update each time step
 
-        return F
+    #     return F
 
-    def _prep_G(self) -> NDArray[np.float64]:
-        """Prepare (white noise) input matrix, G."""
+    # def _prep_G(self) -> NDArray[np.float64]:
+    #     """Prepare (white noise) input matrix, G."""
 
-        # Input (white noise) matrix
-        G = np.zeros((6, 6))
-        G[0:3, 0:3] = -np.eye(3)
-        G[3:6, 3:6] = np.eye(3)
+    #     # Input (white noise) matrix
+    #     G = np.zeros((6, 6))
+    #     G[0:3, 0:3] = -np.eye(3)
+    #     G[3:6, 3:6] = np.eye(3)
 
-        self._wn_input_matrix = G
+    #     self._wn_input_matrix = G
 
-    def _G(self) -> NDArray[np.float64]:
-        """Return (white noise) input matrix, G."""
-        return self._wn_input_matrix
+    # def _G(self) -> NDArray[np.float64]:
+    #     """Return (white noise) input matrix, G."""
+    #     return self._wn_input_matrix
 
     def _prep_H(self) -> NDArray[np.float64]:
         """Prepare linearized measurement matrix, H. Values are placeholders only"""
@@ -314,22 +314,22 @@ class AHRS:
         H[3:4, 0:3] = _dhda_head(q_nm)
         return H[3:4]
 
-    def _prep_W(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
-        """Prepare white noise power spectral density matrix"""
-        N_gyro = err_gyro["N"]
-        sigma_gyro = err_gyro["B"]
-        beta_gyro = 1.0 / err_gyro["tau_cb"]
+    # def _prep_W(self, err_gyro: dict[str, float]) -> NDArray[np.float64]:
+    #     """Prepare white noise power spectral density matrix"""
+    #     N_gyro = err_gyro["N"]
+    #     sigma_gyro = err_gyro["B"]
+    #     beta_gyro = 1.0 / err_gyro["tau_cb"]
 
-        # White noise power spectral density matrix
-        W = np.eye(6)
-        W[0:3, 0:3] *= N_gyro**2
-        W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
+    #     # White noise power spectral density matrix
+    #     W = np.eye(6)
+    #     W[0:3, 0:3] *= N_gyro**2
+    #     W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
 
-        self._wn_psd_matrix = W
+    #     self._wn_psd_matrix = W
 
-    def _W(self) -> NDArray[np.float64]:
-        """Return white noise power spectral density matrix"""
-        return self._wn_psd_matrix
+    # def _W(self) -> NDArray[np.float64]:
+    #     """Return white noise power spectral density matrix"""
+    #     return self._wn_psd_matrix
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
         """Reset AHRS state"""
@@ -406,20 +406,40 @@ class AHRS:
 
         return dx, P
 
-    def _project_cov_ahead(self, dt):
+    def _phi(self, dt):
         """
-        Project state and covariance estimates ahead.
+        State transition matrix.
         """
-        P = self._P
-        F = self._F(self._w_corr)
-        G = self._G()
-        W = self._W()
+
+        dfdx = self._dfdx
         I_ = self._I
 
-        phi = I_ + dt * F  # state transition matrix
-        Q = dt * G @ W @ G.T  # process noise covariance matrix
+        phi = I_ + dt * dfdx  # first-order approximation
 
-        self._P[:] = phi @ P @ phi.T + Q
+        return phi
+
+    def _Q(self, dt):
+        dfdw = self._dfdw
+        W = self._W
+
+        Q = dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
+
+        return Q
+
+    # def _project_cov_ahead(self, dt):
+    #     """
+    #     Project state and covariance estimates ahead.
+    #     """
+    #     P = self._P
+    #     dfdx = _update_state_matrix(self._dfdx, self._w_corr)
+    #     dfdw = self._dfdw
+    #     W = self._W
+    #     I_ = self._I
+
+    #     phi = I_ + dt * dfdx  # state transition matrix
+    #     Q = dt * dfdw @ W @ dfdw.T  # process noise covariance matrix
+
+    #     self._P[:] = phi @ P @ phi.T + Q
 
     def update(
         self,
@@ -480,17 +500,21 @@ class AHRS:
         w_corr = w - self._bg
         w_corr_prev = self._w_corr
 
+        # Error state and covariance estimates
+        dx, P = self._dx, self._P
+
+        # Discrete state space
+        phi, Q = self._phi(self._dt), self._Q(self._dt)
+
         # Project state and covariance estimates ahead
         dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
-        self._project_cov_ahead(self._dt)
+        P = phi @ P @ phi.T + Q
 
-        # Current (a priori) state estimates
-        q_nm = self._att._q
-        R_nm = self._att.as_matrix()  # body-to-nav
+        # Projected (a priori) state estimates
+        q_nm, R_nm = self._att._q, self._att.as_matrix()
 
         # Update error state and covariance estimates with aiding measurements
-        dx, P = self._dx, self._P
         dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
         dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
@@ -499,5 +523,6 @@ class AHRS:
 
         self._P[:] = P
         self._w_corr[:] = w_corr
+        self._dfdx[:] = _update_state_matrix(self._dfdx, w_corr)
 
         return self
