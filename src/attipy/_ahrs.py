@@ -35,7 +35,7 @@ def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     Setup linearized state matrix, dfdx.
     """
 
-    beta_gyro = 1.0 / err_gyro["tau_cb"]
+    beta_gyro = 1.0 / err_gyro["bias_correlation_time"]
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
@@ -61,9 +61,9 @@ def _wn_input_matrix():
 
 def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
-    N_gyro = err_gyro["N"]
-    sigma_gyro = err_gyro["B"]
-    beta_gyro = 1.0 / err_gyro["tau_cb"]
+    N_gyro = err_gyro["noise_density"]
+    sigma_gyro = err_gyro["bias_stability"]
+    beta_gyro = 1.0 / err_gyro["bias_correlation_time"]
 
     # White noise power spectral density matrix
     W = np.eye(6)
@@ -219,7 +219,11 @@ class AHRS:
         q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = 1e-6 * np.eye(6),
-        err_gyro: dict[str, float] = {"N": 0.0001, "B": 0.00005, "tau_cb": 50.0},
+        err_gyro: dict[str, float] = {
+            "noise_density": 0.0001,
+            "bias_stability": 0.00005,
+            "bias_correlation_time": 50.0,
+        },
         nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
