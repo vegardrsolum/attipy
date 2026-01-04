@@ -332,7 +332,7 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aiding_head(self, dx, P, head_meas, head_var, head_degrees):
+    def _aid_update_head(self, dx, P, head_meas, head_var, head_degrees):
         """
         Update with heading measurement.
         """
@@ -354,7 +354,7 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_vel(self, dx, P, vel_meas, vel_var, vel):
+    def _aid_update_vel(self, dx, P, vel_meas, vel_var, vel):
         """
         Update with velocity vector measurement.
         """
@@ -371,7 +371,7 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_g_ref(self, dx, P, g_ref, g_var, f):
+    def _aid_update_g_ref(self, dx, P, g_ref, g_var, f):
         """
         Update with gravity reference vector measurement.
         """
@@ -507,9 +507,9 @@ class AHRS:
         P = phi @ P @ phi.T + Q
 
         # Update error state and covariance estimates with aiding measurements
-        dx, P = self._aiding_head(dx, P, head, head_var, head_degrees)
-        dx, P = self._aiding_vel(dx, P, vel, vel_var, self._v)
-        dx, P = self._aiding_g_ref(dx, P, g_ref, g_var, f_corr)
+        dx, P = self._aid_update_head(dx, P, head, head_var, head_degrees)
+        dx, P = self._aid_update_vel(dx, P, vel, vel_var, self._v)
+        dx, P = self._aid_update_g_ref(dx, P, g_ref, g_var, f_corr)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
