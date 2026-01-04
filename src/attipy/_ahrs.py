@@ -349,6 +349,22 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
+    def _aiding_vel(self, dx, P, vel_meas, vel_var, vel):
+        """
+        Update with velocity vector measurement.
+        """
+        if vel_meas is None:
+            return dx, P
+
+        if vel_var is None:
+            raise ValueError("'vel_var' not provided.")
+
+        vel_meas = np.asarray(vel_meas, dtype=float)
+        var = np.asarray(vel_var, dtype=float)
+        dz = vel_meas - vel
+        dhdx = self._dhdx_vel()
+        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
+
     def _aiding_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
         """
         Update with gravity reference vector measurement.
@@ -408,6 +424,8 @@ class AHRS:
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = True,
+        vel: ArrayLike | None = None,
+        vel_var: ArrayLike | None = None,
         g_ref: bool = False,
         g_var: ArrayLike | None = None,
     ) -> Self:
@@ -475,6 +493,7 @@ class AHRS:
 
         # Update error state and covariance estimates with aiding measurements
         dx, P = self._aiding_head(dx, P, head, head_var, head_degrees, q_nm)
+        dx, P = self._aiding_vel(dx, P, vel, vel_var, q_nm)
         dx, P = self._aiding_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
