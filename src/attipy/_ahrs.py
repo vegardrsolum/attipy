@@ -227,18 +227,14 @@ class AHRS:
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         v0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = 1e-6 * np.eye(9),
-        err_acc: dict[str, float] = {
-            "noise_density": 0.001,
-            "bias_stability": 0.0005,
-            "bias_correlation_time": 50.0,
-        },
+        nav_frame: str = "NED",
+        g: float = 9.80665,
+        err_acc: dict[str, float] = {"noise_density": 0.001},
         err_gyro: dict[str, float] = {
             "noise_density": 0.0001,
             "bias_stability": 0.00005,
             "bias_correlation_time": 50.0,
         },
-        nav_frame: str = "NED",
-        g: float = 9.80665,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -259,7 +255,9 @@ class AHRS:
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        self._dfdx = _state_matrix(self._f_corr, self._w_corr, self._R_nm, self._err_gyro)
+        self._dfdx = _state_matrix(
+            self._f_corr, self._w_corr, self._R_nm, self._err_gyro
+        )
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
         self._W = _wn_psd_matrix(self._err_acc, self._err_gyro)
