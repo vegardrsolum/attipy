@@ -213,8 +213,8 @@ class AHRS:
         frame according to the right-hand rule.
     """
 
-    _I = np.eye(6)
-    _dx = np.zeros(6)  # Error state estimate (always zero after reset)
+    _I = np.eye(9)
+    _dx = np.zeros(9)  # Error state estimate (always zero after reset)
     _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
     def __init__(
