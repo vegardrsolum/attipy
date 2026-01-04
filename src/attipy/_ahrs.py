@@ -247,7 +247,7 @@ class AHRS:
         self._nav_frame = nav_frame.lower()
         self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
-        self._vg_ref_n = self._gravity_ref_nav(self._nav_frame)
+        self._vg_ref_n = _normalize(self._g_n)
         self._f_corr = np.zeros(3)
         self._w_corr = np.zeros(3)
 
@@ -275,18 +275,6 @@ class AHRS:
         else:
             raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
         return g_n
-
-    def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
-        """
-        Gravity vector direction in the navigation frame (NED or ENU).
-        """
-        if nav_frame == "ned":
-            vg_n = np.array([0.0, 0.0, 1.0])
-        elif nav_frame == "enu":
-            vg_n = np.array([0.0, 0.0, -1.0])
-        else:
-            raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
-        return vg_n
 
     @property
     def attitude(self) -> Attitude:
