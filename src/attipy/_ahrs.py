@@ -73,6 +73,7 @@ def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
     return W
 
 
+@njit  # type: ignore[misc]
 def _h_head(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
@@ -208,7 +209,7 @@ class AHRS:
         frame according to the right-hand rule.
     """
 
-    _I = np.eye(6, order="C")
+    _I = np.eye(6)
     _dx = np.zeros(6)  # Error state estimate (always zero after reset)
     _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
