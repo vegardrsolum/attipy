@@ -1,6 +1,5 @@
-from pytest import fixture
-
 import numpy as np
+from pytest import fixture
 
 from attipy import AHRS, Attitude
 from attipy._transforms import _quat_from_euler_zyx
@@ -16,7 +15,7 @@ class Test_AHRS:
         fs = 10.0
         q0 = _quat_from_euler_zyx(np.radians([10.0, 20.0, 30.0]))
         bg0 = np.array([0.01, -0.02, 0.03])
-        err_gyro= {"N": 0.0002, "B": 0.00003, "tau_cb": 45.0}
+        err_gyro = {"N": 0.0002, "B": 0.00003, "tau_cb": 45.0}
         ahrs = AHRS(fs, q0=q0, bg0=bg0, err_gyro=err_gyro, nav_frame="NED")
 
         assert ahrs._fs == fs
