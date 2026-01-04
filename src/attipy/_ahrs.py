@@ -389,13 +389,9 @@ class AHRS:
         Parameters
         ----------
         f : array-like, shape (3,)
-            Specific force measurements (i.e., accelerations + gravity), given
-            as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
-            acceleration measurements in x-, y-, and z-direction, respectively.
+            Specific force (i.e., accelerations + gravity) measurement (fx, fy, fz).
         w : array-like, shape (3,)
-            Angular rate measurements, given as [w_x, w_y, w_z]^T where
-            w_x, w_y and w_z are angular rates about the x-, y-,
-            and z-axis, respectively.
+            Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
         head : float, optional
