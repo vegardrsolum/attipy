@@ -332,6 +332,7 @@ class AHRS:
         self._att._q[:] = _quatprod(self._att._q, dq)
         self._att._q[:] = _normalize(self._att._q)
         self._bg[:] = self._bg + dx[3:6]
+        self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_head(self, dx, P, head, head_var, head_degrees, q_nm):
