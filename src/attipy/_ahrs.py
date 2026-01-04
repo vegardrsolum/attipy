@@ -370,8 +370,8 @@ class AHRS:
 
     def update(
         self,
-        f_imu: ArrayLike,
-        w_imu: ArrayLike,
+        f: ArrayLike,
+        w: ArrayLike,
         degrees: bool = False,
         head: float | None = None,
         head_var: float | None = None,
@@ -388,16 +388,16 @@ class AHRS:
 
         Parameters
         ----------
-        f_imu : array-like, shape (3,)
+        f : array-like, shape (3,)
             Specific force measurements (i.e., accelerations + gravity), given
             as [f_x, f_y, f_z]^T where f_x, f_y and f_z are
             acceleration measurements in x-, y-, and z-direction, respectively.
-        w_imu : array-like, shape (3,)
+        w : array-like, shape (3,)
             Angular rate measurements, given as [w_x, w_y, w_z]^T where
             w_x, w_y and w_z are angular rates about the x-, y-,
             and z-axis, respectively.
         degrees : bool, default False
-            Specifies whether the unit of ``w_imu`` are in degrees or radians.
+            Specifies whether the unit of ``w`` are in degrees or radians.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
@@ -420,15 +420,15 @@ class AHRS:
             A reference to the instance itself after the update.
         """
 
-        f_imu = np.asarray(f_imu, dtype=float)
-        w_imu = np.asarray(w_imu, dtype=float)
+        f = np.asarray(f, dtype=float)
+        w = np.asarray(w, dtype=float)
 
         if degrees:
-            w_imu = (np.pi / 180.0) * w_imu
+            w = (np.pi / 180.0) * w
 
         # Bias corrected IMU measurements
-        f_corr = f_imu  # no accelerometer bias estimated
-        w_corr = w_imu - self._bg
+        f_corr = f  # no accelerometer bias estimated
+        w_corr = w - self._bg
         w_corr_prev = self._w_corr
 
         # Project state and covariance estimates ahead
