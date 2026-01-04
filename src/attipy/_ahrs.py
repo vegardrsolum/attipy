@@ -6,6 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
+from ._transforms import _matrix_from_quat
 from ._vectorops import _normalize, _skew_symmetric
 
 
@@ -98,7 +99,7 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
     """
-    Setup linearized state matrix, F.
+    Setup linearized state matrix, dfdx.
     """
 
     beta_gyro = 1.0 / err_gyro["tau_cb"]
@@ -115,7 +116,7 @@ def _state_matrix(w_corr, err_gyro: dict[str, float]) -> NDArray[np.float64]:
 
 
 def _wn_input_matrix():
-    """Setup (white noise) input matrix, G."""
+    """Setup linearized (white noise) input matrix, dfdw."""
 
     # Input (white noise) matrix
     dfdw = np.zeros((6, 6))
@@ -126,7 +127,7 @@ def _wn_input_matrix():
 
 
 def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
-    """Prepare white noise power spectral density matrix"""
+    """Setup white noise (process noise) power spectral density matrix, W."""
     N_gyro = err_gyro["N"]
     sigma_gyro = err_gyro["B"]
     beta_gyro = 1.0 / err_gyro["tau_cb"]
@@ -137,6 +138,19 @@ def _wn_psd_matrix(err_gyro: dict[str, float]) -> NDArray[np.float64]:
     W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
 
     return W
+
+
+def _measurement_matrix(vg_ref_n, q_nm) -> None:
+    """Setup linearized measurement matrix, dhdx."""
+    S = _skew_symmetric
+
+    R_nm = _matrix_from_quat(q_nm)
+
+    dhdx = np.zeros((4, 6))
+    dhdx[0:3, 0:3] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
+    dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
+
+    return dhdx
 
 
 class AHRS:
@@ -203,8 +217,8 @@ class AHRS:
         # Prepare system matrices
         self._dfdx = _state_matrix(self._w_corr, self._err_gyro)
         self._dfdw = _wn_input_matrix()
+        self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
         self._W = _wn_psd_matrix(self._err_gyro)
-        self._prep_H()
 
     def _gravity_ref_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -242,23 +256,14 @@ class AHRS:
         P = self._P.copy()
         return P
 
-    def _prep_H(self) -> NDArray[np.float64]:
-        """Prepare linearized measurement matrix, H. Values are placeholders only"""
-        H = np.zeros((4, 6))
-        self._measurement_matrix = H
+    def _dhdx_head(self, q_nm):
+        self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
+        return self._dhdx[3:4]
 
-    def _H_g_ref(self, R_nm: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Update and return part of H matrix relevant for g_ref aiding."""
+    def _dhdx_g_ref(self, R_nm):
         S = _skew_symmetric
-        H = self._measurement_matrix
-        H[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
-        return H[0:3]
-
-    def _H_head(self, q_nm: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Update and return part of H matrix relevant for heading aiding."""
-        H = self._measurement_matrix
-        H[3:4, 0:3] = _dhda_head(q_nm)
-        return H[3:4]
+        self._dhdx[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
+        return self._dhdx[0:3]
 
     def _reset(self, dx: NDArray[np.float64]) -> None:
         """Reset AHRS state"""
@@ -305,17 +310,15 @@ class AHRS:
             head = (np.pi / 180.0) * head
             head_var = (np.pi / 180.0) ** 2 * head_var
 
-        head_var_ = np.asarray([head_var], dtype=float, order="C")
-        dz_head = np.asarray(
+        var = np.asarray([head_var], dtype=float, order="C")
+        dz = np.asarray(
             [_ssa(head - _h_head(q_nm), degrees=False)],
             dtype=float,
             order="C",
         )
+        dhdx = self._dhdx_head(q_nm)
 
-        H_head = self._H_head(q_nm)
-        dx, P = self._update_dx_P(dx, P, dz_head, head_var_, H_head, self._I)
-
-        return dx, P
+        return self._update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _update_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
         """
@@ -327,13 +330,12 @@ class AHRS:
         if g_var is None:
             raise ValueError("'g_var' not provided.")
 
+        var = np.asarray(g_var, dtype=float, order="C")
         vg_meas_m = -_normalize(f)
-        g_var = np.asarray(g_var, dtype=float, order="C")
-        dz_g = vg_meas_m - R_nm.T @ self._vg_ref_n
-        H_g = self._H_g_ref(R_nm)
-        dx, P = self._update_dx_P(dx, P, dz_g, g_var, H_g, self._I)
+        dz = vg_meas_m - R_nm.T @ self._vg_ref_n
+        dhdx = self._dhdx_g_ref(R_nm)
 
-        return dx, P
+        return self._update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _update_state_space(self, w_corr):
         """
