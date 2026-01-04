@@ -2,7 +2,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._quatops import _canonical, _normalize
+from ._quatops import _canonical
+from ._vectorops import _normalize
 
 
 @njit  # type: ignore[misc]

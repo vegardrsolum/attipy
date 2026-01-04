@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical, _normalize, _quatprod
+from ._quatops import _canonical, _quatprod
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -12,6 +12,7 @@ from ._transforms import (
     _quat_from_rotvec,
     _rotvec_from_quat,
 )
+from ._vectorops import _normalize
 
 
 def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
