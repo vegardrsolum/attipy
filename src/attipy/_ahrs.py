@@ -296,7 +296,7 @@ class AHRS:
             P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
         return dx, P
 
-    def _update_head(self, dx, P, head, head_var, head_degrees, q_nm):
+    def _aid_update_head(self, dx, P, head, head_var, head_degrees, q_nm):
         """
         Update with heading measurement.
         """
@@ -320,7 +320,7 @@ class AHRS:
 
         return self._update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _update_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
+    def _aid_update_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
         """
         Update with gravity reference vector measurement.
         """
@@ -442,8 +442,8 @@ class AHRS:
         q_nm, R_nm = self._att._q, self._att.as_matrix()
 
         # Update error state and covariance estimates with aiding measurements
-        dx, P = self._update_head(dx, P, head, head_var, head_degrees, q_nm)
-        dx, P = self._update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
+        dx, P = self._aid_update_head(dx, P, head, head_var, head_degrees, q_nm)
+        dx, P = self._aid_update_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
