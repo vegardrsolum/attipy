@@ -334,7 +334,7 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aiding_head(self, dx, P, head_meas, head_var, head_degrees, q_nm):
+    def _aiding_head(self, dx, P, head_meas, head_var, head_degrees):
         """
         Update with heading measurement.
         """
@@ -347,6 +347,8 @@ class AHRS:
         if head_degrees:
             head_meas = (np.pi / 180.0) * head_meas
             head_var = (np.pi / 180.0) ** 2 * head_var
+
+        q_nm = self._att._q
 
         var = np.asarray([head_var], dtype=float)
         dz = np.asarray([_ssa(head_meas - _h_head(q_nm), degrees=False)], dtype=float)
@@ -371,7 +373,7 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_g_ref(self, dx, P, g_ref, g_var, f, R_nm):
+    def _aiding_g_ref(self, dx, P, g_ref, g_var, f):
         """
         Update with gravity reference vector measurement.
         """
@@ -380,6 +382,8 @@ class AHRS:
 
         if g_var is None:
             raise ValueError("'g_var' not provided.")
+
+        R_nm = self._att.as_matrix()
 
         var = np.asarray(g_var, dtype=float)
         vg_meas_m = -_normalize(f)
@@ -486,25 +490,20 @@ class AHRS:
         # Error state and covariance estimates
         dx, P = self._dx, self._P
 
-        # Project velocity ahead
+        # Discretized state space
+        phi, Q = self._phi(self._dt), self._Q(self._dt)
+
+        # Project state and covariance ahead
         dv = (self._R_nm @ f_corr + self._g_n) * self._dt
         self._v += dv
-
-        # Project attitude ahead
         dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
-
-        # Project covariance ahead
-        phi, Q = self._phi(self._dt), self._Q(self._dt)
         P = phi @ P @ phi.T + Q
 
-        # Projected (a priori) state estimates
-        q_nm, R_nm = self._att._q, self._att.as_matrix()
-
         # Update error state and covariance estimates with aiding measurements
-        dx, P = self._aiding_head(dx, P, head, head_var, head_degrees, q_nm)
+        dx, P = self._aiding_head(dx, P, head, head_var, head_degrees)
         dx, P = self._aiding_vel(dx, P, vel, vel_var, self._v)
-        dx, P = self._aiding_g_ref(dx, P, g_ref, g_var, f_corr, R_nm)
+        dx, P = self._aiding_g_ref(dx, P, g_ref, g_var, f_corr)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
@@ -512,7 +511,7 @@ class AHRS:
         self._P = P
         self._f_corr = f_corr
         self._w_corr = w_corr
-        self._R_nm = self._att.as_matrix()
+        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
         self._update_state_space(f_corr, w_corr, self._R_nm)
 
         return self
