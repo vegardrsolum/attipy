@@ -64,8 +64,9 @@ class Test_AHRS:
         gyro_noise_std = gyro_noise_density * np.sqrt(fs)
 
         rng = np.random.default_rng(seed=42)
+        bg = np.radians([0.1, -0.2, 0.3])
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
-        w_imu = w + gyro_noise_std * rng.standard_normal(w.shape)
+        w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
         head_aid = head + np.radians(1.0) * rng.standard_normal(head.shape)
 
         fs = 10.24
@@ -79,12 +80,13 @@ class Test_AHRS:
 
         euler_out = []
         for f_i, w_i, h_i in zip(f_imu, w_imu, head_aid):
-            ahrs.update(f_i, w_i, degrees=False)
+            ahrs.update(f_i, w_i, degrees=False, vel=None)
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
         euler_out = np.asarray(euler_out)
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
         np.testing.assert_allclose(
-            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.002
+            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.005
         )
+
