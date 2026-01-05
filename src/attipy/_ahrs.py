@@ -63,16 +63,12 @@ def _wn_input_matrix(R_nm):
 
 def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
-    N_acc = vrw
-    N_gyro = arw
-    sigma_gyro = gbs
-    beta_gyro = 1.0 / gbc
 
     # White noise power spectral density matrix
     W = np.eye(9)
-    W[0:3, 0:3] *= N_gyro**2
-    W[3:6, 3:6] *= 2.0 * sigma_gyro**2 * beta_gyro
-    W[6:9, 6:9] *= N_acc**2
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
 
     return W
 
