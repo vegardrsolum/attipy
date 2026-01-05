@@ -244,15 +244,17 @@ class AHRS:
         self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
         self._vg_ref_n = _normalize(self._g_n)
-        self._f = -self._g_n.copy()
-        self._w = np.zeros(3)
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
-        self._R_nm = self._att.as_matrix()
         self._bg = np.asarray_chkfinite(bg0).reshape(3)
         self._v = np.asarray_chkfinite(v0).reshape(3)
         self._P = np.asarray_chkfinite(P0).copy()
+
+        # Additional state variables
+        self._f = -self._g_n.copy()
+        self._w = np.zeros(3)
+        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
 
         # Prepare system matrices
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._err_gyro)
@@ -520,6 +522,6 @@ class AHRS:
         self._P = P
         self._f = f
         self._w = w
-        self._R_nm = self._att.as_matrix()  # avoid repeated calls
+        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
 
         return self
