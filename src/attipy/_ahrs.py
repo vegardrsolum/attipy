@@ -253,7 +253,7 @@ class AHRS:
         self._v = np.asarray_chkfinite(v).reshape(3)
         self._P = np.asarray_chkfinite(P).copy()
 
-        # Additional state variables
+        # Additional variables needed for error-state model
         self._f = np.asarray(f) if f is not None else np.array([0.0, 0.0, -g])
         self._w = np.asarray(w) if w is not None else np.zeros(3)
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
