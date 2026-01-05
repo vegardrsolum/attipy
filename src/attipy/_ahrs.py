@@ -390,23 +390,6 @@ class AHRS:
 
         return _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _update_state_space(self):
-        """
-        Update state space matrices.
-        """
-        S = _skew_symmetric
-
-        f_corr = self._f_corr
-        w_corr = self._w_corr
-        R_nm = self._R_nm
-
-        # Update state matrix
-        self._dfdx[0:3, 0:3] = -S(w_corr)
-        self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
-
-        # Update (white noise) input matrix
-        self._dfdw[6:9, 6:9] = -R_nm
-
     def _phi(self, dt):
         """
         State transition matrix.
@@ -415,6 +398,12 @@ class AHRS:
         dfdx = self._dfdx
         I_ = self._I
 
+        # Update
+        S = _skew_symmetric
+        dfdx[0:3, 0:3] = -S(self._w_corr)
+        dfdx[6:9, 0:3] = -self._R_nm @ S(self._f_corr)
+
+        # Discretize
         phi = I_ + dt * dfdx  # first-order approximation
 
         return phi
@@ -426,6 +415,10 @@ class AHRS:
         dfdw = self._dfdw
         W = self._W
 
+        # Update
+        dfdw[6:9, 6:9] = -self._R_nm
+
+        # Discretize
         Q = dt * dfdw @ W @ dfdw.T
 
         return Q
@@ -517,7 +510,6 @@ class AHRS:
         self._P = P
         self._f_corr = f_corr
         self._w_corr = w_corr
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-        self._update_state_space()
+        self._R_nm = self._att.as_matrix()  # avoid repeated calls
 
         return self
