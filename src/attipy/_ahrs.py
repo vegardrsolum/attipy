@@ -205,15 +205,6 @@ class AHRS:
         sensor's) degrees of freedom will be expressed relative to this frame.
         Furthermore, the aiding heading angle is also interpreted relative to this
         frame according to the right-hand rule.
-    err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
-        Dictionary containing gyroscope noise parameters with keys:
-
-        * ``N``: White noise power spectral density in (rad/s)/sqrt(Hz).
-        * ``B``: Bias stability in rad/s.
-        * ``tau_cb``: Bias correlation time in seconds.
-
-        Defaults to {'N': 0.0001, 'B': 0.00005, 'tau_cb': 50.0} which are typical
-        values for low-cost MEMS gyroscopes.
     """
 
     _I = np.eye(9)
