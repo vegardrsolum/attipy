@@ -57,10 +57,16 @@ class Test_AHRS:
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
         head = euler[:, 2]
+        fs = 10.24
+
+        acc_noise_density = 0.001
+        gyro_noise_density = 0.0001
+        acc_noise_std = acc_noise_density * np.sqrt(fs)
+        gyro_noise_std = gyro_noise_density * np.sqrt(fs)
 
         rng = np.random.default_rng(seed=42)
-        f_imu = f + 0.001 * rng.standard_normal(f.shape)
-        w_imu = w + 0.0001 * rng.standard_normal(w.shape)
+        f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
+        w_imu = w + gyro_noise_std * rng.standard_normal(w.shape)
         head_aid = head + np.radians(1.0) * rng.standard_normal(head.shape)
 
         fs = 10.24
