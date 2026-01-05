@@ -141,17 +141,11 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(vg_ref_n, q_nm) -> None:
+def _measurement_matrix(q_nm) -> None:
     """Setup linearized measurement matrix, dhdx."""
-    S = _skew_symmetric
-
-    R_nm = _matrix_from_quat(q_nm)
-
     dhdx = np.zeros((7, 9))
-    dhdx[0:3, 0:3] = S(R_nm.T @ vg_ref_n)  # gravity reference vector
+    dhdx[0:3, 6:9] = np.eye(3)  # velocity
     dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
-    dhdx[4:7, 6:9] = np.eye(3)  # velocity
-
     return dhdx
 
 
@@ -184,15 +178,16 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    q0 : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial (a priori) attitude state estimate, given as a unit quaternion
-        or :class:`~attipy.Attitude` instance. Defaults to the identity quaternion
-        (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
-    bg0 : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial (a priori) gyroscope bias estimate. Defaults to zero bias.
-    P0 : array_like, shape (6, 6), default np.eye(6) * 1e-6
-        Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
-        to a small diagonal matrix (np.eye(6) * 1e-6).
+    q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+        Initial attitude state estimate. Defaults to no rotation (identity quaternion).
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate. Defaults to zero bias.
+    v : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial velocity state estimate in the navigation frame. Defaults to zero
+        velocity.
+    P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
+        Initial error covariance matrix estimate . Defaults to a small diagonal
+        matrix (1e-6 * np.eye(9)).
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -221,10 +216,10 @@ class AHRS:
     def __init__(
         self,
         fs: float,
-        q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
-        bg0: ArrayLike = (0.0, 0.0, 0.0),
-        v0: ArrayLike = (0.0, 0.0, 0.0),
-        P0: ArrayLike = 1e-6 * np.eye(9),
+        q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        v: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
@@ -237,7 +232,6 @@ class AHRS:
         self._nav_frame = nav_frame.lower()
         self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
-        self._vg_ref_n = _normalize(self._g_n)
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -246,10 +240,10 @@ class AHRS:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
-        self._bg = np.asarray_chkfinite(bg0).reshape(3)
-        self._v = np.asarray_chkfinite(v0).reshape(3)
-        self._P = np.asarray_chkfinite(P0).copy()
+        self._att = q if isinstance(q, Attitude) else Attitude(q)
+        self._bg = np.asarray_chkfinite(bg).reshape(3)
+        self._v = np.asarray_chkfinite(v).reshape(3)
+        self._P = np.asarray_chkfinite(P).copy()
 
         # Additional state variables
         self._f = -self._g_n.copy()
@@ -259,7 +253,7 @@ class AHRS:
         # Prepare system matrices
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
-        self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
+        self._dhdx = _measurement_matrix(self._att._q)
         self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
@@ -298,26 +292,18 @@ class AHRS:
         P = self._P.copy()
         return P
 
+    def _dhdx_vel(self):
+        """
+        Velocity measurement matrix.
+        """
+        return self._dhdx[0:3]
+
     def _dhdx_head(self, q_nm):
         """
         Heading measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
         return self._dhdx[3:4]
-
-    def _dhdx_g_ref(self, R_nm):
-        """
-        Gravity reference vector measurement matrix.
-        """
-        S = _skew_symmetric
-        self._dhdx[0:3, 0:3] = S(R_nm.T @ self._vg_ref_n)
-        return self._dhdx[0:3]
-
-    def _dhdx_vel(self):
-        """
-        Velocity measurement matrix.
-        """
-        return self._dhdx[4:7]
 
     def _reset(self) -> None:
         """Reset state (regulating error state to zero)."""
@@ -334,6 +320,25 @@ class AHRS:
         self._bg[:] = self._bg + dx[3:6]
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
+
+    def _apply_aiding_vel(self, vel_meas, vel_var):
+        """
+        Update with velocity vector measurement.
+        """
+        dx, P = self._dx, self._P
+
+        if vel_meas is None:
+            return dx, P
+
+        if vel_var is None:
+            raise ValueError("'vel_var' not provided.")
+
+        vel_meas = np.asarray(vel_meas, dtype=float)
+        var = np.asarray(vel_var, dtype=float)
+        dz = vel_meas - self._v
+        dhdx = self._dhdx_vel()
+
+        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _apply_aiding_hdg(self, hdg_meas, hdg_var, hdg_degrees):
         """
@@ -356,46 +361,6 @@ class AHRS:
         var = np.asarray([hdg_var], dtype=float)
         dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
         dhdx = self._dhdx_head(self._att._q)
-
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-
-    def _apply_aiding_vel(self, vel_meas, vel_var):
-        """
-        Update with velocity vector measurement.
-        """
-        dx, P = self._dx, self._P
-
-        if vel_meas is None:
-            return dx, P
-
-        if vel_var is None:
-            raise ValueError("'vel_var' not provided.")
-
-        vel_meas = np.asarray(vel_meas, dtype=float)
-        var = np.asarray(vel_var, dtype=float)
-        dz = vel_meas - self._v
-        dhdx = self._dhdx_vel()
-
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-
-    def _apply_aiding_g_ref(self, f, g_var, g_ref):
-        """
-        Update with gravity reference vector measurement.
-        """
-        dx, P = self._dx, self._P
-
-        if g_ref is False:
-            return dx, P
-
-        if g_var is None:
-            raise ValueError("'g_var' not provided.")
-
-        R_nm = self._att.as_matrix()
-
-        var = np.asarray(g_var, dtype=float)
-        vg_meas_m = -_normalize(f)
-        dz = vg_meas_m - R_nm.T @ self._vg_ref_n
-        dhdx = self._dhdx_g_ref(R_nm)
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
@@ -471,8 +436,6 @@ class AHRS:
         hdg: float | None = None,
         hdg_var: float | None = None,
         hdg_degrees: bool = True,
-        g_ref: bool = False,
-        g_var: ArrayLike | None = None,
     ) -> Self:
         """
         Update/correct the AHRS' state estimate with aiding measurements, and project
@@ -483,15 +446,15 @@ class AHRS:
 
         Parameters
         ----------
-        f : array-like, shape (3,)
+        f : array_like, shape (3,)
             Specific force (i.e., accelerations + gravity) measurement (fx, fy, fz).
-        w : array-like, shape (3,)
+        w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
-        vel : array-like, shape (3,), optional
+        vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
-        vel_var : array-like, shape (3,), optional
+        vel_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``vel``.
         hdg : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
@@ -503,11 +466,6 @@ class AHRS:
         hdg_degrees : bool, default False
             Specifies whether the unit of ``hdg`` and ``hdg_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
-        g_ref : bool, optional, default False
-            Specifies whether the gravity reference vector is used as an aiding measurement.
-        g_var : array-like, shape (3,), optional
-            Variance of gravitational reference vector measurement noise. Required for
-            ``g_ref``.
 
         Returns
         -------
@@ -527,7 +485,6 @@ class AHRS:
         # Update state and covariance estimates with aiding measurements (a posteriori)
         self._apply_aiding_vel(vel, vel_var)
         self._apply_aiding_hdg(hdg, hdg_var, hdg_degrees)
-        self._apply_aiding_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
