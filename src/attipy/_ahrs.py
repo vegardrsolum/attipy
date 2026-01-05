@@ -339,7 +339,7 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aiding_update_head(self, head_meas, head_var, head_degrees):
+    def _apply_aiding_head(self, head_meas, head_var, head_degrees):
         """
         Update with heading measurement.
         """
@@ -363,7 +363,7 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_update_vel(self, vel_meas, vel_var):
+    def _apply_aiding_vel(self, vel_meas, vel_var):
         """
         Update with velocity vector measurement.
         """
@@ -382,7 +382,7 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_update_g_ref(self, f, g_var, g_ref):
+    def _apply_aiding_g_ref(self, f, g_var, g_ref):
         """
         Update with gravity reference vector measurement.
         """
