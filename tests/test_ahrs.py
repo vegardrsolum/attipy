@@ -26,11 +26,13 @@ class Test_AHRS:
         assert ahrs._dt == 1.0 / fs
         assert ahrs._nav_frame == "ned"
         assert ahrs._err_gyro == err_gyro
+        np.testing.assert_allclose(ahrs._g_n, np.array([0.0, 0.0, 9.80665]))
         np.testing.assert_allclose(ahrs._vg_ref_n, np.array([0.0, 0.0, 1.0]))
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q0)
         np.testing.assert_allclose(ahrs._bg, bg0)
         np.testing.assert_allclose(ahrs._P, 1e-6 * np.eye(9))
-        np.testing.assert_allclose(ahrs._w_corr, np.zeros(3))
+        np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, -9.80665]))
+        np.testing.assert_allclose(ahrs._w, np.zeros(3))
 
     def test__init__nav_frame(self):
         ahrs_ned = AHRS(10.0, nav_frame="NED")

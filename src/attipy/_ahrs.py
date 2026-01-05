@@ -244,8 +244,8 @@ class AHRS:
         self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
         self._vg_ref_n = _normalize(self._g_n)
-        self._f_corr = np.zeros(3)
-        self._w_corr = np.zeros(3)
+        self._f = -self._g_n.copy()
+        self._w = np.zeros(3)
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
@@ -255,9 +255,7 @@ class AHRS:
         self._P = np.asarray_chkfinite(P0).copy()
 
         # Prepare system matrices
-        self._dfdx = _state_matrix(
-            self._f_corr, self._w_corr, self._R_nm, self._err_gyro
-        )
+        self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._err_gyro)
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
         self._W = _wn_psd_matrix(self._err_acc, self._err_gyro)
@@ -397,11 +395,13 @@ class AHRS:
 
         dfdx = self._dfdx
         I_ = self._I
+        f_corr = self._f
+        w_corr = self._w - self._bg
 
         # Update
         S = _skew_symmetric
-        dfdx[0:3, 0:3] = -S(self._w_corr)
-        dfdx[6:9, 0:3] = -self._R_nm @ S(self._f_corr)
+        dfdx[0:3, 0:3] = -S(w_corr)
+        dfdx[6:9, 0:3] = -self._R_nm @ S(f_corr)
 
         # Discretize
         phi = I_ + dt * dfdx  # first-order approximation
@@ -422,6 +422,26 @@ class AHRS:
         Q = dt * dfdw @ W @ dfdw.T
 
         return Q
+
+    def _project_state_ahead(self, f, w):
+        """
+        Project state ahead using dead reckoning.
+        """
+
+        f_corr = f
+        w_corr = w - self._bg
+        f_corr_prev = self._f
+        w_corr_prev = self._w - self._bg
+
+        # Velocity
+        dv = 0.5 * (f_corr + f_corr_prev) * self._dt  # trapezoidal rule
+        dv_corr = self._dt * self._g_n
+        self._v += self._R_nm @ dv + dv_corr
+
+        # Attitude
+        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
+        self._att.update(dtheta, degrees=False)
+
 
     def update(
         self,
@@ -479,12 +499,6 @@ class AHRS:
         if degrees:
             w = (np.pi / 180.0) * w
 
-        # Bias corrected IMU measurements
-        f_corr = f  # no accelerometer bias estimated
-        w_corr = w - self._bg
-        f_corr_prev = self._f_corr
-        w_corr_prev = self._w_corr
-
         # Error state and covariance estimates
         dx, P = self._dx, self._P
 
@@ -492,24 +506,20 @@ class AHRS:
         phi, Q = self._phi(self._dt), self._Q(self._dt)
 
         # Project state and covariance ahead
-        dv = 0.5 * (f_corr + f_corr_prev) * self._dt  # trapezoidal rule
-        dv_corr = self._dt * self._g_n
-        self._v += self._R_nm @ dv + dv_corr
-        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
-        self._att.update(dtheta, degrees=False)
+        self._project_state_ahead(f, w)
         P = phi @ P @ phi.T + Q
 
         # Update error state and covariance estimates with aiding measurements
         dx, P = self._aid_update_head(dx, P, head, head_var, head_degrees)
         dx, P = self._aid_update_vel(dx, P, vel, vel_var, self._v)
-        dx, P = self._aid_update_g_ref(dx, P, g_ref, g_var, f_corr)
+        dx, P = self._aid_update_g_ref(dx, P, g_ref, g_var, f)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
         self._reset(dx)
 
         self._P = P
-        self._f_corr = f_corr
-        self._w_corr = w_corr
+        self._f = f
+        self._w = w
         self._R_nm = self._att.as_matrix()  # avoid repeated calls
 
         return self
