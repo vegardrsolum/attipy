@@ -525,12 +525,12 @@ class AHRS:
         # Project state and covariance ahead
         self._project_ahead(self._dt, f, w)
 
-        # Update error state and covariance estimates with aiding measurements
+        # Update state and covariance with aiding measurements
         self._aid_update_head(head, head_var, head_degrees)
         self._aid_update_vel(vel, vel_var, self._v)
         self._aid_update_g_ref(g_ref, g_var, f)
 
-        # Reset (a posteriori) state estimates (regulating error state to zero)
+        # Reset state estimates (regulating error state to zero)
         self._reset()
 
         self._f = f
