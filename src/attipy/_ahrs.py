@@ -339,26 +339,26 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _apply_aiding_head(self, head_meas, head_var, head_degrees):
+    def _apply_aiding_hdg(self, hdg_meas, hdg_var, hdg_degrees):
         """
         Update with heading measurement.
         """
         dx, P = self._dx, self._P
 
-        if head_meas is None:
+        if hdg_meas is None:
             return dx, P
 
-        if head_var is None:
-            raise ValueError("'head_var' not provided.")
+        if hdg_var is None:
+            raise ValueError("'hdg_var' not provided.")
 
-        if head_degrees:
-            head_meas = (np.pi / 180.0) * head_meas
-            head_var = (np.pi / 180.0) ** 2 * head_var
+        if hdg_degrees:
+            hdg_meas = (np.pi / 180.0) * hdg_meas
+            hdg_var = (np.pi / 180.0) ** 2 * hdg_var
 
-        head = _h_head(self._att._q)  # heading estimate
+        hdg = _h_head(self._att._q)  # heading estimate
 
-        var = np.asarray([head_var], dtype=float)
-        dz = np.asarray([_ssa(head_meas - head, degrees=False)], dtype=float)
+        var = np.asarray([hdg_var], dtype=float)
+        dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
         dhdx = self._dhdx_head(self._att._q)
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
@@ -530,7 +530,7 @@ class AHRS:
 
         # Update state and covariance with aiding measurements (a posteriori)
         self._apply_aiding_vel(vel, vel_var)
-        self._apply_aiding_head(hdg, hdg_var, hdg_degrees)
+        self._apply_aiding_hdg(hdg, hdg_var, hdg_degrees)
         self._apply_aiding_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
