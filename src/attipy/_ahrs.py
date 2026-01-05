@@ -197,6 +197,8 @@ class AHRS:
     P0 : array_like, shape (6, 6), default np.eye(6) * 1e-6
         Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
         to a small diagonal matrix (np.eye(6) * 1e-6).
+    g : float, default 9.80665
+        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
