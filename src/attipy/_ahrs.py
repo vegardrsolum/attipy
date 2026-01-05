@@ -458,11 +458,11 @@ class AHRS:
         f: ArrayLike,
         w: ArrayLike,
         degrees: bool = False,
+        v: ArrayLike | None = (0.0, 0.0, 0.0),
+        v_var: ArrayLike | None = (100.0, 100.0, 100.0),
         head: float | None = None,
         head_var: float | None = None,
         head_degrees: bool = True,
-        vel: ArrayLike | None = None,
-        vel_var: ArrayLike | None = None,
         g_ref: bool = False,
         g_var: ArrayLike | None = None,
     ) -> Self:
@@ -514,7 +514,7 @@ class AHRS:
 
         # Update state and covariance with aiding measurements
         self._aiding_update_head(head, head_var, head_degrees)
-        self._aiding_update_vel(vel, vel_var)
+        self._aiding_update_vel(v, v_var)
         self._aiding_update_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
