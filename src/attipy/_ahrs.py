@@ -512,13 +512,13 @@ class AHRS:
         if degrees:
             w = (np.pi / 180.0) * w
 
-        # Project state and covariance ahead
+        # Project state and covariance ahead (a priori)
         self._project_ahead(self._dt, f, w)
 
-        # Update state and covariance with aiding measurements
-        self._aiding_update_vel(vel, vel_var)
-        self._aiding_update_head(hdg, hdg_var, hdg_degrees)
-        self._aiding_update_g_ref(f, g_var, g_ref)
+        # Update state and covariance with aiding measurements (a posteriori)
+        self._apply_aiding_vel(vel, vel_var)
+        self._apply_aiding_head(hdg, hdg_var, hdg_degrees)
+        self._apply_aiding_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
         self._reset()
