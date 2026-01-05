@@ -179,16 +179,15 @@ class AHRS:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude state estimate. Defaults to the identity quaternion
-        (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
+        Initial attitude state estimate. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate. Defaults to zero bias.
     v : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial velocity state estimate in the navigation frame. Defaults to zero
         velocity.
-    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+    P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate . Defaults to a small diagonal
-        matrix (1e-6 * np.eye(6)).
+        matrix (1e-6 * np.eye(9)).
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
