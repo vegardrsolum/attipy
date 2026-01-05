@@ -66,8 +66,8 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs.bg, bg_expected)
 
     def test_P(self, ahrs):
-        P_expected = 1e-6 * np.eye(9)
-        np.testing.assert_allclose(ahrs.P, P_expected)
+        ahrs = AHRS(10.0, P=np.eye(9))
+        np.testing.assert_allclose(ahrs.P, np.eye(9))
 
     def test_update(self, pva_data):
         _, _, _, euler, f, w = pva_data
