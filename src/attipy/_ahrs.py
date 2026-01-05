@@ -293,18 +293,18 @@ class AHRS:
         P = self._P.copy()
         return P
 
+    def _dhdx_vel(self):
+        """
+        Velocity measurement matrix.
+        """
+        return self._dhdx[0:3]
+
     def _dhdx_head(self, q_nm):
         """
         Heading measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
         return self._dhdx[3:4]
-
-    def _dhdx_vel(self):
-        """
-        Velocity measurement matrix.
-        """
-        return self._dhdx[0:3]
 
     def _reset(self) -> None:
         """Reset state (regulating error state to zero)."""
