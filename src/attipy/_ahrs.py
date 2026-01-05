@@ -207,6 +207,12 @@ class AHRS:
         value for low-cost MEMS IMUs).
     bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Default is 50.0 s.
+    f : array_like, shape (3,), optional
+        Initial specific force measurement (i.e., accelerations + gravity) in the
+        body frame. If not provided, it defaults to (0.0, 0.0, -g) (stationary sensor).
+    w : array_like, shape (3,), optional
+        Initial angular velocity measurement in the body frame. If not provided, it
+        defaults to (0.0, 0.0, 0.0) (stationary sensor).
     """
 
     _I = np.eye(9)
@@ -226,6 +232,8 @@ class AHRS:
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         bias_corr_time: float = 50.0,
+        f: ArrayLike | None = None,
+        w: ArrayLike | None = None,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -246,8 +254,8 @@ class AHRS:
         self._P = np.asarray_chkfinite(P).copy()
 
         # Additional state variables
-        self._f = -self._g_n.copy()
-        self._w = np.zeros(3)
+        self._f = np.asarray(f) if f is not None else np.array([0.0, 0.0, -g])
+        self._w = np.asarray(w) if w is not None else np.zeros(3)
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
 
         # Prepare system matrices
