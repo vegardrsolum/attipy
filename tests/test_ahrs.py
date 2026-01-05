@@ -11,19 +11,26 @@ class Test_AHRS:
     def ahrs(self):
         return AHRS(10.0)
 
-    def test__init__(self):
+    def test__init__default(self):
         fs = 10.0
-        q0 = _quat_from_euler_zyx(np.radians([10.0, 20.0, 30.0]))
-        bg0 = np.array([0.01, -0.02, 0.03])
-        ahrs = AHRS(fs, q=q0, bg=bg0, nav_frame="NED")
+        ahrs = AHRS(fs)
 
         assert ahrs._fs == fs
         assert ahrs._dt == 1.0 / fs
         assert ahrs._nav_frame == "ned"
+        assert ahrs._g == 9.80665
         np.testing.assert_allclose(ahrs._g_n, np.array([0.0, 0.0, 9.80665]))
-        np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q0)
-        np.testing.assert_allclose(ahrs._bg, bg0)
+
+        assert ahrs._vrw == 0.001
+        assert ahrs._arw == 0.0001
+        assert ahrs._gbs == 0.00005
+        assert ahrs._gbc == 50.0
+
+        np.testing.assert_allclose(ahrs._att._q, np.array([1.0, 0.0, 0.0, 0.0]))
+        np.testing.assert_allclose(ahrs._bg, np.zeros(3))
+        np.testing.assert_allclose(ahrs._v, np.zeros(3))
         np.testing.assert_allclose(ahrs._P, 1e-6 * np.eye(9))
+
         np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(ahrs._w, np.zeros(3))
 
