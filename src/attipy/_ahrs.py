@@ -31,13 +31,13 @@ def _ssa(angle: float, degrees: bool = True) -> float:
 
 
 def _state_matrix(
-    f_corr, w_corr, R_nm, gyro_bias_corr_time
+    f_corr, w_corr, R_nm, gbc
 ) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
 
-    beta_gyro = 1.0 / gyro_bias_corr_time
+    beta_gyro = 1.0 / gbc
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
@@ -63,12 +63,12 @@ def _wn_input_matrix(R_nm):
     return dfdw
 
 
-def _wn_psd_matrix(acc_noise_density, gyro_noise_density, gyro_bias_stability, gyro_bias_corr_time) -> NDArray[np.float64]:
+def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
-    N_acc = acc_noise_density
-    N_gyro = gyro_noise_density
-    sigma_gyro = gyro_bias_stability
-    beta_gyro = 1.0 / gyro_bias_corr_time
+    N_acc = vrw
+    N_gyro = arw
+    sigma_gyro = gbs
+    beta_gyro = 1.0 / gbc
 
     # White noise power spectral density matrix
     W = np.eye(9)
@@ -232,7 +232,7 @@ class AHRS:
         acc_noise_density: float = 0.001,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
-        gyro_bias_corr_time: float = 50.0,
+        bias_corr_time: float = 50.0,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -240,10 +240,12 @@ class AHRS:
         self._g = g
         self._g_n = self._gravity_nav(self._nav_frame)
         self._vg_ref_n = _normalize(self._g_n)
-        self._acc_noise_density = acc_noise_density
-        self._gyro_noise_density = gyro_noise_density
-        self._gyro_bias_stability = gyro_bias_stability
-        self._gyro_bias_corr_time = gyro_bias_corr_time
+
+        # IMU noise parameters
+        self._vrw = acc_noise_density  # velocity random walk
+        self._arw = gyro_noise_density  # angular random walk
+        self._gbs = gyro_bias_stability  # gyro bias stability
+        self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
         self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
@@ -257,10 +259,10 @@ class AHRS:
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
 
         # Prepare system matrices
-        self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gyro_bias_corr_time)
+        self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._vg_ref_n, self._att._q)
-        self._W = _wn_psd_matrix(self._acc_noise_density, self._gyro_noise_density, self._gyro_bias_stability, self._gyro_bias_corr_time)
+        self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
