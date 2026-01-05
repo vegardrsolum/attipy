@@ -319,10 +319,13 @@ class AHRS:
         """
         return self._dhdx[4:7]
 
-    def _reset(self, dx: NDArray[np.float64]) -> None:
-        """Reset AHRS state"""
+    def _reset(self) -> None:
+        """Reset state (regulating error state to zero)."""
+        dx = self._dx
+
         if not dx.any():
             return
+
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
@@ -332,10 +335,12 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aid_update_head(self, dx, P, head_meas, head_var, head_degrees):
+    def _aid_update_head(self, head_meas, head_var, head_degrees):
         """
         Update with heading measurement.
         """
+        dx, P = self._dx, self._P
+
         if head_meas is None:
             return dx, P
 
@@ -352,12 +357,16 @@ class AHRS:
         dz = np.asarray([_ssa(head_meas - _h_head(q_nm), degrees=False)], dtype=float)
         dhdx = self._dhdx_head(q_nm)
 
-        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        self._dx[:] = dx
+        self._P[:] = P
 
-    def _aid_update_vel(self, dx, P, vel_meas, vel_var, vel):
+    def _aid_update_vel(self, vel_meas, vel_var, vel):
         """
         Update with velocity vector measurement.
         """
+        dx, P = self._dx, self._P
+
         if vel_meas is None:
             return dx, P
 
@@ -369,12 +378,16 @@ class AHRS:
         dz = vel_meas - vel
         dhdx = self._dhdx_vel()
 
-        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        self._dx[:] = dx
+        self._P[:] = P
 
-    def _aid_update_g_ref(self, dx, P, g_ref, g_var, f):
+    def _aid_update_g_ref(self, g_ref, g_var, f):
         """
         Update with gravity reference vector measurement.
         """
+        dx, P = self._dx, self._P
+
         if g_ref is False:
             return dx, P
 
@@ -388,7 +401,9 @@ class AHRS:
         dz = vg_meas_m - R_nm.T @ self._vg_ref_n
         dhdx = self._dhdx_g_ref(R_nm)
 
-        return _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        self._dx[:] = dx
+        self._P[:] = P
 
     def _phi(self, dt):
         """
@@ -425,7 +440,7 @@ class AHRS:
 
         return Q
 
-    def _project_state_ahead(self, f, w):
+    def _project_ahead(self, dt, f, w):
         """
         Project state ahead using dead reckoning.
         """
@@ -435,14 +450,20 @@ class AHRS:
         f_corr_prev = self._f
         w_corr_prev = self._w - self._bg
 
+        # Discretized (error) state space
+        phi, Q = self._phi(dt), self._Q(dt)
+
         # Velocity
-        dv = 0.5 * (f_corr + f_corr_prev) * self._dt  # trapezoidal rule
-        dv_corr = self._dt * self._g_n
+        dv = 0.5 * (f_corr + f_corr_prev) * dt  # trapezoidal rule
+        dv_corr = dt * self._g_n
         self._v += self._R_nm @ dv + dv_corr
 
         # Attitude
-        dtheta = 0.5 * (w_corr + w_corr_prev) * self._dt  # trapezoidal rule
+        dtheta = 0.5 * (w_corr + w_corr_prev) * dt  # trapezoidal rule
         self._att.update(dtheta, degrees=False)
+
+        # Covariance
+        self._P = phi @ self._P @ phi.T + Q
 
 
     def update(
@@ -501,25 +522,17 @@ class AHRS:
         if degrees:
             w = (np.pi / 180.0) * w
 
-        # Error state and covariance estimates
-        dx, P = self._dx, self._P
-
-        # Discretized (error) state space
-        phi, Q = self._phi(self._dt), self._Q(self._dt)
-
         # Project state and covariance ahead
-        self._project_state_ahead(f, w)
-        P = phi @ P @ phi.T + Q
+        self._project_ahead(self._dt, f, w)
 
         # Update error state and covariance estimates with aiding measurements
-        dx, P = self._aid_update_head(dx, P, head, head_var, head_degrees)
-        dx, P = self._aid_update_vel(dx, P, vel, vel_var, self._v)
-        dx, P = self._aid_update_g_ref(dx, P, g_ref, g_var, f)
+        self._aid_update_head(head, head_var, head_degrees)
+        self._aid_update_vel(vel, vel_var, self._v)
+        self._aid_update_g_ref(g_ref, g_var, f)
 
         # Reset (a posteriori) state estimates (regulating error state to zero)
-        self._reset(dx)
+        self._reset()
 
-        self._P = P
         self._f = f
         self._w = w
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
