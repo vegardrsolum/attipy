@@ -15,17 +15,11 @@ class Test_AHRS:
         fs = 10.0
         q0 = _quat_from_euler_zyx(np.radians([10.0, 20.0, 30.0]))
         bg0 = np.array([0.01, -0.02, 0.03])
-        err_gyro = {
-            "noise_density": 0.0002,
-            "bias_stability": 0.00003,
-            "bias_correlation_time": 45.0,
-        }
-        ahrs = AHRS(fs, q0=q0, bg0=bg0, err_gyro=err_gyro, nav_frame="NED")
+        ahrs = AHRS(fs, q0=q0, bg0=bg0, nav_frame="NED")
 
         assert ahrs._fs == fs
         assert ahrs._dt == 1.0 / fs
         assert ahrs._nav_frame == "ned"
-        assert ahrs._err_gyro == err_gyro
         np.testing.assert_allclose(ahrs._g_n, np.array([0.0, 0.0, 9.80665]))
         np.testing.assert_allclose(ahrs._vg_ref_n, np.array([0.0, 0.0, 1.0]))
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q0)
