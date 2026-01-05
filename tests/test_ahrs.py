@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from pytest import fixture
 
 from attipy import AHRS, Attitude
@@ -40,6 +41,9 @@ class Test_AHRS:
 
         ahrs_enu = AHRS(10.0, nav_frame="ENU")
         np.testing.assert_allclose(ahrs_enu._g_n, np.array([0.0, 0.0, -9.80665]))
+
+        with pytest.raises(ValueError):
+            AHRS(10.0, nav_frame="invalid")
 
     def test_attitude(self, ahrs):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
