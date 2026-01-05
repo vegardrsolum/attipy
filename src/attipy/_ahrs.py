@@ -30,9 +30,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-def _state_matrix(
-    f_corr, w_corr, R_nm, gbc
-) -> NDArray[np.float64]:
+def _state_matrix(f_corr, w_corr, R_nm, gbc) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -451,7 +449,6 @@ class AHRS:
 
         # Covariance
         self._P = phi @ self._P @ phi.T + Q
-
 
     def update(
         self,

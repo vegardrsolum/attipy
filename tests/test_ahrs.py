@@ -71,7 +71,12 @@ class Test_AHRS:
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
-        ahrs = AHRS(fs, q0)
+        ahrs = AHRS(
+            fs,
+            q0,
+            acc_noise_density=acc_noise_density,
+            gyro_noise_density=gyro_noise_density,
+        )
 
         euler_out = []
         for f_i, w_i, h_i in zip(f_imu, w_imu, head_aid):
