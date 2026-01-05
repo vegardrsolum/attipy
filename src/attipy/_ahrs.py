@@ -399,11 +399,12 @@ class AHRS:
         I_ = self._I
         f_corr = self._f
         w_corr = self._w - self._bg
+        R_nm = self._R_nm
 
         # Update
         S = _skew_symmetric
         dfdx[0:3, 0:3] = -S(w_corr)
-        dfdx[6:9, 0:3] = -self._R_nm @ S(f_corr)
+        dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
 
         # Discretize
         phi = I_ + dt * dfdx  # first-order approximation
@@ -416,9 +417,10 @@ class AHRS:
         """
         dfdw = self._dfdw
         W = self._W
+        R_nm = self._R_nm
 
         # Update
-        dfdw[6:9, 6:9] = -self._R_nm
+        dfdw[6:9, 6:9] = -R_nm
 
         # Discretize
         Q = dt * dfdw @ W @ dfdw.T
