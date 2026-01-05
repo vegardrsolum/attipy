@@ -481,6 +481,10 @@ class AHRS:
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
+        v : array-like, shape (3,), optional
+            Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
+        v_var : array-like, shape (3,), optional
+            Variance of the velocity measurement noise. Required for ``v``.
         head : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
@@ -513,8 +517,8 @@ class AHRS:
         self._project_ahead(self._dt, f, w)
 
         # Update state and covariance with aiding measurements
-        self._aiding_update_head(head, head_var, head_degrees)
         self._aiding_update_vel(v, v_var)
+        self._aiding_update_head(head, head_var, head_degrees)
         self._aiding_update_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
