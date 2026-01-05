@@ -199,6 +199,12 @@ class AHRS:
     P0 : array_like, shape (6, 6), default np.eye(6) * 1e-6
         Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
         to a small diagonal matrix (np.eye(6) * 1e-6).
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
+        sensor's) degrees of freedom will be expressed relative to this frame.
+        Furthermore, the aiding heading angle is also interpreted relative to this
+        frame according to the right-hand rule.
     err_gyro : dict of {str: float}, default :const:`smsfusion.constants.ERR_GYRO_MOTION2`
         Dictionary containing gyroscope noise parameters with keys:
 
@@ -208,12 +214,6 @@ class AHRS:
 
         Defaults to {'N': 0.0001, 'B': 0.00005, 'tau_cb': 50.0} which are typical
         values for low-cost MEMS gyroscopes.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
-        (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
-        sensor's) degrees of freedom will be expressed relative to this frame.
-        Furthermore, the aiding heading angle is also interpreted relative to this
-        frame according to the right-hand rule.
     """
 
     _I = np.eye(9)
@@ -283,7 +283,7 @@ class AHRS:
 
     def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate, **b_g**.
+        Gyroscope bias estimate.
         """
         bg = self._bg.copy()
         if degrees:
