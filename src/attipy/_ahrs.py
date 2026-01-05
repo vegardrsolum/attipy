@@ -446,15 +446,15 @@ class AHRS:
 
         Parameters
         ----------
-        f : array-like, shape (3,)
+        f : array_like, shape (3,)
             Specific force (i.e., accelerations + gravity) measurement (fx, fy, fz).
-        w : array-like, shape (3,)
+        w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
-        vel : array-like, shape (3,), optional
+        vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
-        vel_var : array-like, shape (3,), optional
+        vel_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``vel``.
         hdg : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
