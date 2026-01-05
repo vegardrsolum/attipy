@@ -12,6 +12,52 @@ class Test_AHRS:
     def ahrs(self):
         return AHRS(10.0)
 
+    def test__init__(self):
+        fs = 1024.0
+        q = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
+        bg = (0.1, -0.2, 0.3)
+        v = (1.0, -2.0, 3.0)
+        P = 42.0 * np.eye(9)
+        g = 9.83
+        nav_frame = "enu"
+        acc_noise_density = 0.00123
+        gyro_noise_density = 0.000456
+        gyro_bias_stability = 0.0000789
+        bias_corr_time = 123.0
+
+        ahrs = AHRS(
+            fs,
+            q=q,
+            bg=bg,
+            v=v,
+            P=P,
+            g=g,
+            nav_frame=nav_frame,
+            acc_noise_density=acc_noise_density,
+            gyro_noise_density=gyro_noise_density,
+            gyro_bias_stability=gyro_bias_stability,
+            bias_corr_time=bias_corr_time,
+        )
+
+        assert ahrs._fs == fs
+        assert ahrs._dt == 1.0 / fs
+        assert ahrs._nav_frame == "enu"
+        assert ahrs._g == g
+        np.testing.assert_allclose(ahrs._g_n, np.array([0.0, 0.0, -g]))
+
+        assert ahrs._vrw == acc_noise_density
+        assert ahrs._arw == gyro_noise_density
+        assert ahrs._gbs == gyro_bias_stability
+        assert ahrs._gbc == bias_corr_time
+
+        np.testing.assert_allclose(ahrs._att._q, q)
+        np.testing.assert_allclose(ahrs._bg, bg)
+        np.testing.assert_allclose(ahrs._v, v)
+        np.testing.assert_allclose(ahrs._P, P)
+
+        np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, -g]))
+        np.testing.assert_allclose(ahrs._w, np.zeros(3))
+
     def test__init__default(self):
         fs = 10.0
         ahrs = AHRS(fs)
