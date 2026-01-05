@@ -293,7 +293,7 @@ class AHRS:
         """
         Velocity estimate.
         """
-        return self._bg.copy()
+        return self._v.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:

@@ -50,6 +50,16 @@ class Test_AHRS:
         assert isinstance(ahrs.attitude, Attitude)
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q_expected)
 
+    def test_q(self):
+        q = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
+        ahrs = AHRS(10.0, q=q)
+        np.testing.assert_allclose(ahrs.q, q)
+
+    def test_v(self):
+        v = np.array([1.0, 2.0, 3.0])
+        ahrs = AHRS(10.0, v=v)
+        np.testing.assert_allclose(ahrs.v, v)
+
     def test_bg(self):
         ahrs = AHRS(10.0, bg=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
