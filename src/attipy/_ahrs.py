@@ -457,9 +457,9 @@ class AHRS:
         degrees: bool = False,
         v: ArrayLike | None = (0.0, 0.0, 0.0),
         v_var: ArrayLike | None = (100.0, 100.0, 100.0),
-        head: float | None = None,
-        head_var: float | None = None,
-        head_degrees: bool = True,
+        hdg: float | None = None,
+        hdg_var: float | None = None,
+        hdg_degrees: bool = True,
         g_ref: bool = False,
         g_var: ArrayLike | None = None,
     ) -> Self:
@@ -482,15 +482,15 @@ class AHRS:
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
         v_var : array-like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``v``.
-        head : float, optional
+        hdg : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
-        head_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``head``.
-            See ``head_degrees`` for units. Required for ``head``.
-        head_degrees : bool, default False
-            Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
+        hdg_var : float, optional
+            Variance of heading measurement noise. Units must be compatible with ``hdg``.
+            See ``hdg_degrees`` for units. Required for ``hdg``.
+        hdg_degrees : bool, default False
+            Specifies whether the unit of ``hdg`` and ``hdg_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
         g_ref : bool, optional, default False
             Specifies whether the gravity reference vector is used as an aiding measurement.
@@ -515,7 +515,7 @@ class AHRS:
 
         # Update state and covariance with aiding measurements
         self._aiding_update_vel(v, v_var)
-        self._aiding_update_head(head, head_var, head_degrees)
+        self._aiding_update_head(hdg, hdg_var, hdg_degrees)
         self._aiding_update_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
