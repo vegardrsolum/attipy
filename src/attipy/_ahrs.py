@@ -335,7 +335,7 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aid_update_head(self, head_meas, head_var, head_degrees):
+    def _aiding_update_head(self, head_meas, head_var, head_degrees):
         """
         Update with heading measurement.
         """
@@ -351,17 +351,15 @@ class AHRS:
             head_meas = (np.pi / 180.0) * head_meas
             head_var = (np.pi / 180.0) ** 2 * head_var
 
-        q_nm = self._att._q
+        head = _h_head(self._att._q)  # heading estimate
 
         var = np.asarray([head_var], dtype=float)
-        dz = np.asarray([_ssa(head_meas - _h_head(q_nm), degrees=False)], dtype=float)
-        dhdx = self._dhdx_head(q_nm)
+        dz = np.asarray([_ssa(head_meas - head, degrees=False)], dtype=float)
+        dhdx = self._dhdx_head(self._att._q)
 
-        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-        self._dx[:] = dx
-        self._P[:] = P
+        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aid_update_vel(self, vel_meas, vel_var, vel):
+    def _aiding_update_vel(self, vel_meas, vel_var):
         """
         Update with velocity vector measurement.
         """
@@ -375,14 +373,12 @@ class AHRS:
 
         vel_meas = np.asarray(vel_meas, dtype=float)
         var = np.asarray(vel_var, dtype=float)
-        dz = vel_meas - vel
+        dz = vel_meas - self._v
         dhdx = self._dhdx_vel()
 
-        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-        self._dx[:] = dx
-        self._P[:] = P
+        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aid_update_g_ref(self, g_ref, g_var, f):
+    def _aiding_update_g_ref(self, f, g_var, g_ref):
         """
         Update with gravity reference vector measurement.
         """
@@ -401,9 +397,7 @@ class AHRS:
         dz = vg_meas_m - R_nm.T @ self._vg_ref_n
         dhdx = self._dhdx_g_ref(R_nm)
 
-        dx, P = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-        self._dx[:] = dx
-        self._P[:] = P
+        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _phi(self, dt):
         """
@@ -526,9 +520,9 @@ class AHRS:
         self._project_ahead(self._dt, f, w)
 
         # Update state and covariance with aiding measurements
-        self._aid_update_head(head, head_var, head_degrees)
-        self._aid_update_vel(vel, vel_var, self._v)
-        self._aid_update_g_ref(g_ref, g_var, f)
+        self._aiding_update_head(head, head_var, head_degrees)
+        self._aiding_update_vel(vel, vel_var)
+        self._aiding_update_g_ref(f, g_var, g_ref)
 
         # Reset state estimates (regulating error state to zero)
         self._reset()
