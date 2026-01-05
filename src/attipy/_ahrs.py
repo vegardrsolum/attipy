@@ -455,8 +455,8 @@ class AHRS:
         f: ArrayLike,
         w: ArrayLike,
         degrees: bool = False,
-        v: ArrayLike | None = (0.0, 0.0, 0.0),
-        v_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        vel: ArrayLike | None = (0.0, 0.0, 0.0),
+        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         hdg: float | None = None,
         hdg_var: float | None = None,
         hdg_degrees: bool = True,
@@ -478,14 +478,14 @@ class AHRS:
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
-        v : array-like, shape (3,), optional
+        vel : array-like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
-        v_var : array-like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``v``.
+        vel_var : array-like, shape (3,), optional
+            Variance of the velocity measurement noise. Required for ``vel``.
         hdg : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
             assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``head_degrees`` for units.
+            If ``None``, compass aiding is not used. See ``hdg_degrees`` for units.
         hdg_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``hdg``.
             See ``hdg_degrees`` for units. Required for ``hdg``.
@@ -514,7 +514,7 @@ class AHRS:
         self._project_ahead(self._dt, f, w)
 
         # Update state and covariance with aiding measurements
-        self._aiding_update_vel(v, v_var)
+        self._aiding_update_vel(vel, vel_var)
         self._aiding_update_head(hdg, hdg_var, hdg_degrees)
         self._aiding_update_g_ref(f, g_var, g_ref)
 

@@ -103,7 +103,7 @@ class Test_AHRS:
 
         euler_out = []
         for f_i, w_i, h_i, v_i in zip(f_imu, w_imu, head_aid, vel_aid):
-            ahrs.update(f_i, w_i, degrees=False, v=v_i, v_var=0.1 * np.ones(3))
+            ahrs.update(f_i, w_i, degrees=False, vel=v_i, vel_var=0.1 * np.ones(3))
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
         euler_out = np.asarray(euler_out)
