@@ -491,7 +491,7 @@ class AHRS:
             If ``None``, compass aiding is not used. See ``head_degrees`` for units.
         head_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``head``.
-             See ``head_degrees`` for units. Required for ``head``.
+            See ``head_degrees`` for units. Required for ``head``.
         head_degrees : bool, default False
             Specifies whether the unit of ``head`` and ``head_var`` are in degrees and degrees^2,
             or radians and radians^2. Default is in radians and radians^2.
