@@ -15,7 +15,7 @@ class Test_AHRS:
         fs = 10.0
         q0 = _quat_from_euler_zyx(np.radians([10.0, 20.0, 30.0]))
         bg0 = np.array([0.01, -0.02, 0.03])
-        ahrs = AHRS(fs, q0=q0, bg0=bg0, nav_frame="NED")
+        ahrs = AHRS(fs, q=q0, bg=bg0, nav_frame="NED")
 
         assert ahrs._fs == fs
         assert ahrs._dt == 1.0 / fs
@@ -40,12 +40,12 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q_expected)
 
     def test_bias_gyro_rad(self):
-        ahrs = AHRS(10.0, bg0=np.array([0.01, -0.02, 0.03]))
+        ahrs = AHRS(10.0, bg=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
         np.testing.assert_allclose(ahrs.bias_gyro(degrees=False), bg_expected)
 
     def test_bias_gyro_deg(self):
-        ahrs = AHRS(10.0, bg0=np.radians([1.0, -2.0, 3.0]))
+        ahrs = AHRS(10.0, bg=np.radians([1.0, -2.0, 3.0]))
         bg_expected = np.array([1.0, -2.0, 3.0])
         np.testing.assert_allclose(ahrs.bias_gyro(degrees=True), bg_expected)
 

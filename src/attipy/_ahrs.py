@@ -178,15 +178,17 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    q0 : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial (a priori) attitude state estimate, given as a unit quaternion
-        or :class:`~attipy.Attitude` instance. Defaults to the identity quaternion
+    q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+        Initial attitude state estimate. Defaults to the identity quaternion
         (1.0, 0.0, 0.0, 0.0), i.e., no rotation.
-    bg0 : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial (a priori) gyroscope bias estimate. Defaults to zero bias.
-    P0 : array_like, shape (6, 6), default np.eye(6) * 1e-6
-        Initial (a priori) estimate of the error covariance matrix, **P**. Defaults
-        to a small diagonal matrix (np.eye(6) * 1e-6).
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate. Defaults to zero bias.
+    v : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial velocity state estimate in the navigation frame. Defaults to zero
+        velocity.
+    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+        Initial error covariance matrix estimate . Defaults to a small diagonal
+        matrix (1e-6 * np.eye(6)).
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -215,10 +217,10 @@ class AHRS:
     def __init__(
         self,
         fs: float,
-        q0: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
-        bg0: ArrayLike = (0.0, 0.0, 0.0),
-        v0: ArrayLike = (0.0, 0.0, 0.0),
-        P0: ArrayLike = 1e-6 * np.eye(9),
+        q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        v: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
@@ -239,10 +241,10 @@ class AHRS:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att = q0 if isinstance(q0, Attitude) else Attitude(q0)
-        self._bg = np.asarray_chkfinite(bg0).reshape(3)
-        self._v = np.asarray_chkfinite(v0).reshape(3)
-        self._P = np.asarray_chkfinite(P0).copy()
+        self._att = q if isinstance(q, Attitude) else Attitude(q)
+        self._bg = np.asarray_chkfinite(bg).reshape(3)
+        self._v = np.asarray_chkfinite(v).reshape(3)
+        self._P = np.asarray_chkfinite(P).copy()
 
         # Additional state variables
         self._f = -self._g_n.copy()
