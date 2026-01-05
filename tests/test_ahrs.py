@@ -96,7 +96,7 @@ class Test_AHRS:
         bg = np.radians([0.1, -0.2, 0.3])
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
-        vel_meas = vel + 0.1 * rng.standard_normal(vel.shape)
+        vel_meas = vel + 1.0 * rng.standard_normal(vel.shape)
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
@@ -104,7 +104,7 @@ class Test_AHRS:
 
         euler_out = []
         for f_i, w_i, v_i in zip(f_imu, w_imu, vel_meas):
-            ahrs.update(f_i, w_i, degrees=False, vel=v_i, vel_var=0.1**2 * np.ones(3))
+            ahrs.update(f_i, w_i, degrees=False, vel=v_i, vel_var=1.0**2 * np.ones(3))
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
         euler_out = np.asarray(euler_out)
@@ -166,7 +166,7 @@ class Test_AHRS:
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
         hdg_meas = hdg + np.radians(1.0) * rng.standard_normal(hdg.shape)
-        vel_meas = vel + 0.1 * rng.standard_normal(vel.shape)
+        vel_meas = vel + 1.0 * rng.standard_normal(vel.shape)
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
@@ -179,7 +179,7 @@ class Test_AHRS:
                 w_i,
                 degrees=False,
                 vel=v_i,
-                vel_var=0.1**2 * np.ones(3),
+                vel_var=1.0**2 * np.ones(3),
                 hdg=h_i,
                 hdg_var=np.radians(1.0) ** 2,
                 hdg_degrees=False,
