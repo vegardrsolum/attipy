@@ -50,15 +50,10 @@ class Test_AHRS:
         assert isinstance(ahrs.attitude, Attitude)
         np.testing.assert_allclose(ahrs.attitude.as_quaternion(), q_expected)
 
-    def test_bias_gyro_rad(self):
+    def test_bg(self):
         ahrs = AHRS(10.0, bg=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
-        np.testing.assert_allclose(ahrs.bias_gyro(degrees=False), bg_expected)
-
-    def test_bias_gyro_deg(self):
-        ahrs = AHRS(10.0, bg=np.radians([1.0, -2.0, 3.0]))
-        bg_expected = np.array([1.0, -2.0, 3.0])
-        np.testing.assert_allclose(ahrs.bias_gyro(degrees=True), bg_expected)
+        np.testing.assert_allclose(ahrs.bg, bg_expected)
 
     def test_P(self, ahrs):
         P_expected = 1e-6 * np.eye(9)
