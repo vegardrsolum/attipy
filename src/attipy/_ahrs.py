@@ -345,13 +345,12 @@ class AHRS:
     def _reset(self) -> None:
         """Reset state (regulating error state to zero)."""
         dx = self._dx
-        dq = self._dq
 
         if not dx.any():
             return
 
         da = dx[0:3]
-        dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
+        self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
         self._att._q[:] = _normalize(_quatprod(self._att._q, self._dq))
         self._bg[:] = self._bg + dx[3:6]
         self._v[:] = self._v + dx[6:9]
