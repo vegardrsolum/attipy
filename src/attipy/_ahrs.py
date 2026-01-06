@@ -442,11 +442,7 @@ class AHRS:
         hdg_degrees: bool = False,
     ) -> Self:
         """
-        Update/correct the AHRS' state estimate with aiding measurements, and project
-        ahead using IMU measurements.
-
-        If no aiding measurements are provided, the AHRS is simply propagated ahead
-        using dead reckoning with the IMU measurements.
+        Update the AHRS' states with IMU and aiding measurements.
 
         Parameters
         ----------
