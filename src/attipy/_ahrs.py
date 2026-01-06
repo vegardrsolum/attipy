@@ -249,12 +249,12 @@ class AHRS:
         # State and covariance estimates
         self._att = q if isinstance(q, Attitude) else Attitude(q)
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-        self._bg = np.asarray_chkfinite(bg).reshape(3)
-        self._v = np.asarray_chkfinite(v).reshape(3)
-        self._w = np.asarray_chkfinite(w).reshape(3)
-        self._a = np.asarray_chkfinite(a).reshape(3)
+        self._bg = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._v = np.asarray_chkfinite(v).reshape(3).copy()
+        self._w = np.asarray_chkfinite(w).reshape(3).copy()
+        self._a = np.asarray_chkfinite(a).reshape(3).copy()
         self._f = self._R_nm.T @ (self._a - self._g_n)
-        self._P = np.asarray_chkfinite(P).copy()
+        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Continuous time state space model (updated each time step)
         # TODO: avoid continuous time state space by computing phi and Q directly
