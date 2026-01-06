@@ -398,19 +398,6 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    # def _update_state_space(self, f_corr, w_corr, R_nm) -> None:
-    #     """
-    #     Update continuous time state space matrices.
-    #     """
-    #     S = _skew_symmetric
-
-    #     # State matrix
-    #     self._dfdx[0:3, 0:3] = -S(w_corr)
-    #     self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
-
-    #     # White noise input matrix
-    #     self._dfdw[6:9, 6:9] = -R_nm
-
     def _project_ahead(self):
         """
         Project state ahead using dead reckoning.
