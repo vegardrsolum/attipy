@@ -12,7 +12,7 @@ pip install attipy
 
 ## Quick start
 
-Convert to/from a variaty of attitude representations:
+Convert to/from a variaty of attitude representations using the Attitude class:
 
 ```python
 import attipy as ap
@@ -39,7 +39,7 @@ euler = ap.Attitude.from_quaternion(q).as_matrix()
 ```
 
 
-Estimate attitude using Attitude and Heading Reference System (AHRS):
+Estimate attitude from IMU measurements (accelerometer and gyroscope) using the AHRS class:
 
 ```python
 import attipy as ap
