@@ -250,11 +250,16 @@ class AHRS:
         self._f = self._R_nm.T @ (self._a - self._g_n)
         self._P = np.asarray_chkfinite(P).copy()
 
-        # Prepare system matrices
+        # Prepare continuous time state space (updated each time step)
+        # TODO: avoid unnecessary continuous time state (compute phi and Q directly)
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._att._q)
         self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
+
+        # Discretized state space (updated each time step)
+        self._phi = self._I + self._dt * self._dfdx  # first-order approximation
+        self._Q = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -375,60 +380,70 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _phi(self, dt):
-        """
-        State transition matrix.
-        """
+    # def _phi(self, dt):
+    #     """
+    #     State transition matrix.
+    #     """
 
-        dfdx = self._dfdx
-        I_ = self._I
-        f_corr = self._f  # bias corrected specific force
-        w_corr = self._w  # bias corrected rotation rate
-        R_nm = self._R_nm
+    #     dfdx = self._dfdx
+    #     I_ = self._I
+    #     f_corr = self._f  # bias corrected specific force
+    #     w_corr = self._w  # bias corrected rotation rate
+    #     R_nm = self._R_nm
 
-        # Update
+    #     # Update
+    #     S = _skew_symmetric
+    #     dfdx[0:3, 0:3] = -S(w_corr)
+    #     dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
+
+    #     # Discretize
+    #     phi = I_ + dt * dfdx  # first-order approximation
+
+    #     return phi
+
+    # def _Q(self, dt):
+    #     """
+    #     Process noise covariance matrix.
+    #     """
+    #     dfdw = self._dfdw
+    #     W = self._W
+    #     R_nm = self._R_nm
+
+    #     # Update
+    #     dfdw[6:9, 6:9] = -R_nm
+
+    #     # Discretize
+    #     Q = dt * dfdw @ W @ dfdw.T
+
+    #     return Q
+
+    def _update_state_space(self, f_corr, w_corr, R_nm) -> None:
+        """
+        Update continuous time state space matrices.
+        """
         S = _skew_symmetric
-        dfdx[0:3, 0:3] = -S(w_corr)
-        dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
 
-        # Discretize
-        phi = I_ + dt * dfdx  # first-order approximation
+        # State matrix
+        self._dfdx[0:3, 0:3] = -S(w_corr)
+        self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
 
-        return phi
-
-    def _Q(self, dt):
-        """
-        Process noise covariance matrix.
-        """
-        dfdw = self._dfdw
-        W = self._W
-        R_nm = self._R_nm
-
-        # Update
-        dfdw[6:9, 6:9] = -R_nm
-
-        # Discretize
-        Q = dt * dfdw @ W @ dfdw.T
-
-        return Q
+        # White noise input matrix
+        self._dfdw[6:9, 6:9] = -R_nm
 
     def _project_ahead(self, dt):
         """
         Project state ahead using dead reckoning.
         """
 
-        # Discretized (error) state space
-        phi, Q = self._phi(dt), self._Q(dt)
-
         # Velocity
-        self._v += self._a * dt
+        self._v[:] += self._a * dt
 
         # Attitude
         dtheta = self._w * dt
         self._att.update(dtheta, degrees=False)
 
         # Covariance
-        self._P = phi @ self._P @ phi.T + Q
+        self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
     def update(
         self,
@@ -493,9 +508,13 @@ class AHRS:
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
 
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-        self._f = f
-        self._a = self._R_nm @ self._f + self._g_n
-        self._w = w - self._bg
+        # Update other state variables
+        self._R_nm[:] = self._att.as_matrix()  # avoiding repeated calls
+        self._f[:] = f
+        self._a[:] = self._R_nm @ self._f + self._g_n
+        self._w[:] = w - self._bg
+        self._update_state_space(self._f, self._w, self._R_nm)
+        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
+        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
         return self
