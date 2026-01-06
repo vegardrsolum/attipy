@@ -168,7 +168,8 @@ class AHRS:
     """
     Attitude and Heading Reference System (AHRS).
 
-    The internal filter is a multiplicative extended Kalman filter (MEKF).
+    The internal fusion filter is an (error-state) multiplicative extended Kalman
+    filter (MEKF).
 
     Parameters
     ----------
