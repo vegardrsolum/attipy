@@ -176,7 +176,7 @@ class AHRS:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude estimate represented as unit quaternion (qw, qx, qy, qz)
+        Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
@@ -193,7 +193,7 @@ class AHRS:
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
         is ordered as: dx = (da, dbg, dv), where da is the attitude error (3-parameter
-        scaled Gibbs vector), dbg is the gyroscope bias error, and dv is the velocity
+        2xGibbs vector), dbg is the gyroscope bias error, and dv is the velocity
         error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
@@ -204,16 +204,16 @@ class AHRS:
         Furthermore, the aiding heading angle is also interpreted relative to this
         frame according to the right-hand rule.
     acc_noise_density : float, default 0.001
-        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Default
-        is 0.001 (typical value for low-cost MEMS IMUs).
+        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
+        to 0.001 (typical value for low-cost MEMS IMUs).
     gyro_noise_density : float, default 0.0001
-        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Default is
+        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
     gyro_bias_stability : float, default 0.00005
-        Gyroscope bias stability (1-sigma) in rad/s. Default is 0.00005 (typical
+        Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
         value for low-cost MEMS IMUs).
     bias_corr_time : float, default 50.0
-        Gyroscope bias correlation time in seconds. Default is 50.0 s.
+        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
     _I = np.eye(9)

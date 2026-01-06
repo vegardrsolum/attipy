@@ -98,10 +98,14 @@ class Attitude:
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
 
+    The attitude can also be updated with incremental rotations, making it useful
+    for attitude propagation (strapdown algorithm) in inertial navigation systems
+    (INS).
+
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+        The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
         part, and qx, qy and qz are the vector parts, respectively.
     """
 
@@ -133,7 +137,7 @@ class Attitude:
         Parameters
         ----------
         q : ArrayLike
-            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
             part, and qx, qy and qz are the vector parts, respectively.
 
         Returns
@@ -162,7 +166,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
             part, and qx, qy and qz are the vector parts, respectively.
         """
         return self._q.copy()
