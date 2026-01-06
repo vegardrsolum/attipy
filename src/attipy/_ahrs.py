@@ -249,7 +249,7 @@ class AHRS:
         # State and covariance estimates
         self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._bg = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(a).reshape(3).copy()
@@ -298,7 +298,7 @@ class AHRS:
         """
         Gyroscope bias estimate.
         """
-        return self._bg.copy()
+        return self._bg_b.copy()
 
     @property
     def v(self) -> NDArray[np.float64]:
@@ -352,7 +352,7 @@ class AHRS:
         da = dx[0:3]
         self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
         self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
-        self._bg[:] = self._bg + dx[3:6]
+        self._bg_b[:] = self._bg_b + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
@@ -421,7 +421,7 @@ class AHRS:
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._f_b[:] = f_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        self._w_b[:] = w_b - self._bg
+        self._w_b[:] = w_b - self._bg_b
 
         # Continuous time state space
         S = _skew_symmetric

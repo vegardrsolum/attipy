@@ -55,7 +55,7 @@ class Test_AHRS:
         assert ahrs._gbc == bias_corr_time
 
         np.testing.assert_allclose(ahrs._att_nb._q, q)
-        np.testing.assert_allclose(ahrs._bg, bg)
+        np.testing.assert_allclose(ahrs._bg_b, bg)
         np.testing.assert_allclose(ahrs._v_n, v)
         np.testing.assert_allclose(ahrs._w_b, w)
         np.testing.assert_allclose(ahrs._a_n, a)
@@ -78,7 +78,7 @@ class Test_AHRS:
         assert ahrs._gbc == 50.0
 
         np.testing.assert_allclose(ahrs._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
-        np.testing.assert_allclose(ahrs._bg, np.zeros(3))
+        np.testing.assert_allclose(ahrs._bg_b, np.zeros(3))
         np.testing.assert_allclose(ahrs._v_n, np.zeros(3))
         np.testing.assert_allclose(ahrs._P, 1e-6 * np.eye(9))
 
