@@ -17,6 +17,8 @@ class Test_AHRS:
         q = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         bg = (0.1, -0.2, 0.3)
         v = (1.0, -2.0, 3.0)
+        a = (1.0, 2.0, 3.0)
+        w = (0.01, -0.02, 0.03)
         P = 42.0 * np.eye(9)
         g = 9.83
         nav_frame = "enu"
@@ -30,6 +32,8 @@ class Test_AHRS:
             q=q,
             bg=bg,
             v=v,
+            w=w,
+            a=a,
             P=P,
             g=g,
             nav_frame=nav_frame,
@@ -53,10 +57,10 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs._att._q, q)
         np.testing.assert_allclose(ahrs._bg, bg)
         np.testing.assert_allclose(ahrs._v, v)
-        np.testing.assert_allclose(ahrs._P, P)
-
+        np.testing.assert_allclose(ahrs._w, w)
+        np.testing.assert_allclose(ahrs._a, a)
         np.testing.assert_allclose(ahrs._f, ahrs._R_nm.T @ (ahrs._a - ahrs._g_n))
-        np.testing.assert_allclose(ahrs._w, np.zeros(3))
+        np.testing.assert_allclose(ahrs._P, P)
 
     def test__init__default(self):
         fs = 10.0

@@ -302,6 +302,21 @@ class AHRS:
         return self._v.copy()
 
     @property
+    def w(self) -> NDArray[np.float64]:
+        """
+        Angular rate estimate (bias corrected) expressed in the body frame..
+        """
+        return self._w.copy()
+
+    @property
+    def a(self) -> NDArray[np.float64]:
+        """
+        Linear acceleration estimate (no bias correction) expressed in the navigation
+        frame.
+        """
+        return self._a.copy()
+
+    @property
     def P(self) -> NDArray[np.float64]:
         """
         Error covariance matrix estimate.
