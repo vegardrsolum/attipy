@@ -398,18 +398,18 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _update_state_space(self, f_corr, w_corr, R_nm) -> None:
-        """
-        Update continuous time state space matrices.
-        """
-        S = _skew_symmetric
+    # def _update_state_space(self, f_corr, w_corr, R_nm) -> None:
+    #     """
+    #     Update continuous time state space matrices.
+    #     """
+    #     S = _skew_symmetric
 
-        # State matrix
-        self._dfdx[0:3, 0:3] = -S(w_corr)
-        self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
+    #     # State matrix
+    #     self._dfdx[0:3, 0:3] = -S(w_corr)
+    #     self._dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
 
-        # White noise input matrix
-        self._dfdw[6:9, 6:9] = -R_nm
+    #     # White noise input matrix
+    #     self._dfdw[6:9, 6:9] = -R_nm
 
     def _project_ahead(self):
         """
@@ -425,6 +425,27 @@ class AHRS:
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
+
+    def _update_state(self, f: NDArray[np.float64], w: NDArray[np.float64]) -> None:
+        """
+        Update states and state space matrices.
+        """
+
+        # States
+        self._R_nm[:] = self._att.as_matrix()  # avoiding repeated calls
+        self._f[:] = f
+        self._a[:] = self._R_nm @ self._f + self._g_n
+        self._w[:] = w - self._bg
+
+        # Continuous time state space
+        S = _skew_symmetric
+        self._dfdx[0:3, 0:3] = -S(self._w)
+        self._dfdx[6:9, 0:3] = -self._R_nm @ S(self._f)
+        self._dfdw[6:9, 6:9] = -self._R_nm
+
+        # Discretized state space
+        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
+        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
     def update(
         self,
@@ -488,14 +509,6 @@ class AHRS:
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
-
-        # Update other state variables
-        self._R_nm[:] = self._att.as_matrix()  # avoiding repeated calls
-        self._f[:] = f
-        self._a[:] = self._R_nm @ self._f + self._g_n
-        self._w[:] = w - self._bg
-        self._update_state_space(self._f, self._w, self._R_nm)
-        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
-        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
+        self._update_state(f, w)
 
         return self
