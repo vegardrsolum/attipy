@@ -396,13 +396,13 @@ class AHRS:
 
     def _project_ahead(self):
         """
-        Project state ahead using dead reckoning.
+        Project state and covariance ahead.
         """
 
-        # Velocity
+        # Velocity (dead reckoning)
         self._v_n[:] += self._a_n * self._dt
 
-        # Attitude
+        # Attitude (dead reckoning)
         dtheta = self._w_b * self._dt
         self._att_nb.update(dtheta, degrees=False)
 
