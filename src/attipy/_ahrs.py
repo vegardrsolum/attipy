@@ -282,7 +282,7 @@ class AHRS:
     @property
     def attitude(self) -> Attitude:
         """
-        Attitude estimate.
+        Attitude estimate (no copy).
         """
         return self._att_nb
 
