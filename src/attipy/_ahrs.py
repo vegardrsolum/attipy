@@ -257,7 +257,7 @@ class AHRS:
         self._P = np.asarray_chkfinite(P).copy()
 
         # Continuous time state space model (updated each time step)
-        # TODO: avoid unnecessary continuous time state space by computing phi and Q directly
+        # TODO: avoid continuous time state space by computing phi and Q directly
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._att._q)
