@@ -332,7 +332,7 @@ class AHRS:
         """
         return self._dhdx[0:3]
 
-    def _dhdx_hdg(self, q_nb):
+    def _dhdx_yaw(self, q_nb):
         """
         Heading measurement matrix.
         """
@@ -371,27 +371,27 @@ class AHRS:
 
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_update_hdg(self, hdg_meas, hdg_var, hdg_degrees):
+    def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
         Update with heading measurement.
         """
         dx, P = self._dx, self._P
 
-        if hdg_meas is None:
+        if yaw_meas is None:
             return dx, P
 
-        if hdg_var is None:
-            raise ValueError("'hdg_var' not provided.")
+        if yaw_var is None:
+            raise ValueError("'yaw_var' not provided.")
 
-        if hdg_degrees:
-            hdg_meas = (np.pi / 180.0) * hdg_meas
-            hdg_var = (np.pi / 180.0) ** 2 * hdg_var
+        if yaw_degrees:
+            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        hdg = _yaw_from_quat(self._att_nb._q)  # heading estimate
+        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        var = np.asarray([hdg_var], dtype=float)
-        dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
-        dhdx = self._dhdx_hdg(self._att_nb._q)
+        var = np.asarray([yaw_var], dtype=float)
+        dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
+        dhdx = self._dhdx_yaw(self._att_nb._q)
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _project_ahead(self):
@@ -437,9 +437,9 @@ class AHRS:
         degrees: bool = False,
         v: ArrayLike | None = (0.0, 0.0, 0.0),
         v_var: ArrayLike | None = (100.0, 100.0, 100.0),
-        hdg: float | None = None,
-        hdg_var: float | None = None,
-        hdg_degrees: bool = False,
+        yaw: float | None = None,
+        yaw_var: float | None = None,
+        yaw_degrees: bool = False,
     ) -> Self:
         """
         Update the AHRS' states with IMU and aiding measurements.
@@ -457,16 +457,15 @@ class AHRS:
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
         v_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``v``.
-        hdg : float, optional
-            Heading measurement. I.e., the yaw angle of the body frame relative
-            to the navigation frame ('NED' or 'ENU') specified during initialization.
-            See ``hdg_degrees`` for units. If ``None``, compass aiding is not used.
-        hdg_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``hdg``.
-            See ``hdg_degrees`` for units. Required for ``hdg``.
-        hdg_degrees : bool, default False
-            Specifies whether the unit of ``hdg`` and ``hdg_var`` are in degrees and degrees^2,
-            or radians and radians^2 (default).
+        yaw : float, optional
+            Heading (yaw angle) measurement. See ``yaw_degrees`` for units. If ``None``,
+            heading aiding is not used.
+        yaw_var : float, optional
+            Variance of heading (yaw angle) measurement noise. Units must be compatible
+            with ``yaw``. See ``yaw_degrees`` for units. Required for ``yaw``.
+        yaw_degrees : bool, default False
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in degrees
+            and degrees^2, or radians and radians^2 (default).
 
         Returns
         -------
@@ -485,7 +484,7 @@ class AHRS:
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
         self._aiding_update_vel(v, v_var)
-        self._aiding_update_hdg(hdg, hdg_var, hdg_degrees)
+        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()

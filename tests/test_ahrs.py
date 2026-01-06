@@ -190,9 +190,9 @@ class Test_AHRS:
             euler_out[warmup:, :2], euler[warmup:, :2], atol=0.005
         )
 
-    def test_update_hdg_aiding(self, pva_data):
+    def test_update_yaw_aiding(self, pva_data):
         _, _, _, euler, f, w = pva_data
-        hdg = euler[:, 2]
+        yaw = euler[:, 2]
         fs = 10.24
 
         acc_noise_density = 0.001
@@ -204,21 +204,21 @@ class Test_AHRS:
         bg = np.radians([0.1, -0.2, 0.3])
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
-        hdg_meas = hdg + np.radians(1.0) * rng.standard_normal(hdg.shape)
+        yaw_meas = yaw + np.radians(1.0) * rng.standard_normal(yaw.shape)
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
         ahrs = AHRS(fs, q0)
 
         euler_out = []
-        for f_i, w_i, h_i in zip(f_imu, w_imu, hdg_meas):
+        for f_i, w_i, yaw_i in zip(f_imu, w_imu, yaw_meas):
             ahrs.update(
                 f_i,
                 w_i,
                 degrees=False,
-                hdg=h_i,
-                hdg_var=np.radians(1.0) ** 2,
-                hdg_degrees=False,
+                yaw=yaw_i,
+                yaw_var=np.radians(1.0) ** 2,
+                yaw_degrees=False,
             )
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
@@ -229,7 +229,7 @@ class Test_AHRS:
 
     def test_update_full_aiding(self, pva_data):
         _, _, vel, euler, f, w = pva_data
-        hdg = euler[:, 2]
+        yaw = euler[:, 2]
         fs = 10.24
 
         acc_noise_density = 0.001
@@ -241,7 +241,7 @@ class Test_AHRS:
         bg = np.radians([0.1, -0.2, 0.3])
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
-        hdg_meas = hdg + np.radians(1.0) * rng.standard_normal(hdg.shape)
+        yaw_meas = yaw + np.radians(1.0) * rng.standard_normal(yaw.shape)
         vel_meas = vel + 1.0 * rng.standard_normal(vel.shape)
 
         fs = 10.24
@@ -249,16 +249,16 @@ class Test_AHRS:
         ahrs = AHRS(fs, q0)
 
         euler_out = []
-        for f_i, w_i, h_i, v_i in zip(f_imu, w_imu, hdg_meas, vel_meas):
+        for f_i, w_i, yaw_i, v_i in zip(f_imu, w_imu, yaw_meas, vel_meas):
             ahrs.update(
                 f_i,
                 w_i,
                 degrees=False,
                 v=v_i,
                 v_var=1.0**2 * np.ones(3),
-                hdg=h_i,
-                hdg_var=np.radians(1.0) ** 2,
-                hdg_degrees=False,
+                yaw=yaw_i,
+                yaw_var=np.radians(1.0) ** 2,
+                yaw_degrees=False,
             )
             euler_out.append(ahrs.attitude.as_euler(degrees=False))
 
