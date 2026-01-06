@@ -289,28 +289,28 @@ class AHRS:
     @property
     def q(self) -> NDArray[np.float64]:
         """
-        Attitude estimate as unit quaternion.
+        Attitude estimate represented as a unit quaternion.
         """
         return self._att_nb._q.copy()
 
     @property
     def bg(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate.
+        Gyroscope bias estimate expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
     def v(self) -> NDArray[np.float64]:
         """
-        Velocity estimate.
+        Velocity estimate expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
     def w(self) -> NDArray[np.float64]:
         """
-        Angular rate estimate (bias corrected) expressed in the body frame..
+        Angular rate estimate (bias corrected) expressed in the body frame.
         """
         return self._w_b.copy()
 
