@@ -250,11 +250,6 @@ class AHRS:
         self._w = np.asarray_chkfinite(w).reshape(3)
         self._P = np.asarray_chkfinite(P).copy()
 
-        # Additional variables needed for error-state model
-        # self._f = np.array([0.0, 0.0, -g])
-        # self._w = np.zeros(3)
-        # self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-
         # Prepare system matrices
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
