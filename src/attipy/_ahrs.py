@@ -29,7 +29,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-def _state_matrix(f_corr, w_corr, R_nm, gbc) -> NDArray[np.float64]:
+def _state_matrix(f_b_corr, w_b_corr, R_nm, gbc) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -40,10 +40,10 @@ def _state_matrix(f_corr, w_corr, R_nm, gbc) -> NDArray[np.float64]:
 
     # State transition matrix
     dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
     dfdx[0:3, 3:6] = -np.eye(3)
     dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-    dfdx[6:9, 0:3] = -R_nm @ S(f_corr)  # NB! update each time step
+    dfdx[6:9, 0:3] = -R_nm @ S(f_b_corr)  # NB! update each time step
 
     return dfdx
 
@@ -250,15 +250,15 @@ class AHRS:
         self._att = q if isinstance(q, Attitude) else Attitude(q)
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
         self._bg = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._v = np.asarray_chkfinite(v).reshape(3).copy()
-        self._w = np.asarray_chkfinite(w).reshape(3).copy()
-        self._a = np.asarray_chkfinite(a).reshape(3).copy()
-        self._f = self._R_nm.T @ (self._a - self._g_n)
+        self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._a_n = np.asarray_chkfinite(a).reshape(3).copy()
+        self._f_b = self._R_nm.T @ (self._a_n - self._g_n)
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Continuous time state space model (updated each time step)
         # TODO: avoid continuous time state space by computing phi and Q directly
-        self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
+        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nm, self._gbc)
         self._dfdw = _wn_input_matrix(self._R_nm)
         self._dhdx = _measurement_matrix(self._att._q)
         self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
@@ -305,14 +305,14 @@ class AHRS:
         """
         Velocity estimate.
         """
-        return self._v.copy()
+        return self._v_n.copy()
 
     @property
     def w(self) -> NDArray[np.float64]:
         """
         Angular rate estimate (bias corrected) expressed in the body frame..
         """
-        return self._w.copy()
+        return self._w_b.copy()
 
     @property
     def a(self) -> NDArray[np.float64]:
@@ -320,7 +320,7 @@ class AHRS:
         Linear acceleration estimate (no bias correction) expressed in the navigation
         frame.
         """
-        return self._a.copy()
+        return self._a_n.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -353,7 +353,7 @@ class AHRS:
         self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
         self._att._q[:] = _normalize(_quatprod(self._att._q, self._dq))
         self._bg[:] = self._bg + dx[3:6]
-        self._v[:] = self._v + dx[6:9]
+        self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_vel(self, v_meas, v_var):
@@ -368,11 +368,11 @@ class AHRS:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v
+        dz = v_meas - self._v_n
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _aiding_update_hdg(self, hdg_meas, hdg_var, hdg_degrees):
         """
@@ -396,7 +396,7 @@ class AHRS:
         dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
         dhdx = self._dhdx_head(self._att._q)
 
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _project_ahead(self):
         """
@@ -404,30 +404,30 @@ class AHRS:
         """
 
         # Velocity
-        self._v[:] += self._a * self._dt
+        self._v_n[:] += self._a_n * self._dt
 
         # Attitude
-        dtheta = self._w * self._dt
+        dtheta = self._w_b * self._dt
         self._att.update(dtheta, degrees=False)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
-    def _update_state(self, f: NDArray[np.float64], w: NDArray[np.float64]) -> None:
+    def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
         """
         Update states and state space matrices.
         """
 
         # States
         self._R_nm[:] = self._att.as_matrix()  # avoiding repeated calls
-        self._f[:] = f
-        self._a[:] = self._R_nm @ self._f + self._g_n
-        self._w[:] = w - self._bg
+        self._f_b[:] = f_b
+        self._a_n[:] = self._R_nm @ self._f_b + self._g_n
+        self._w_b[:] = w_b - self._bg
 
         # Continuous time state space
         S = _skew_symmetric
-        self._dfdx[0:3, 0:3] = -S(self._w)
-        self._dfdx[6:9, 0:3] = -self._R_nm @ S(self._f)
+        self._dfdx[0:3, 0:3] = -S(self._w_b)
+        self._dfdx[6:9, 0:3] = -self._R_nm @ S(self._f_b)
         self._dfdw[6:9, 6:9] = -self._R_nm
 
         # Discretized state space

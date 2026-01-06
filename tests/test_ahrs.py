@@ -56,10 +56,10 @@ class Test_AHRS:
 
         np.testing.assert_allclose(ahrs._att._q, q)
         np.testing.assert_allclose(ahrs._bg, bg)
-        np.testing.assert_allclose(ahrs._v, v)
-        np.testing.assert_allclose(ahrs._w, w)
-        np.testing.assert_allclose(ahrs._a, a)
-        np.testing.assert_allclose(ahrs._f, ahrs._R_nm.T @ (ahrs._a - ahrs._g_n))
+        np.testing.assert_allclose(ahrs._v_n, v)
+        np.testing.assert_allclose(ahrs._w_b, w)
+        np.testing.assert_allclose(ahrs._a_n, a)
+        np.testing.assert_allclose(ahrs._f_b, ahrs._R_nm.T @ (ahrs._a_n - ahrs._g_n))
         np.testing.assert_allclose(ahrs._P, P)
 
     def test__init__default(self):
@@ -79,11 +79,11 @@ class Test_AHRS:
 
         np.testing.assert_allclose(ahrs._att._q, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(ahrs._bg, np.zeros(3))
-        np.testing.assert_allclose(ahrs._v, np.zeros(3))
+        np.testing.assert_allclose(ahrs._v_n, np.zeros(3))
         np.testing.assert_allclose(ahrs._P, 1e-6 * np.eye(9))
 
-        np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, -9.80665]))
-        np.testing.assert_allclose(ahrs._w, np.zeros(3))
+        np.testing.assert_allclose(ahrs._f_b, np.array([0.0, 0.0, -9.80665]))
+        np.testing.assert_allclose(ahrs._w_b, np.zeros(3))
 
     def test__init__nav_frame(self):
         ahrs_ned = AHRS(10.0, nav_frame="NED")
