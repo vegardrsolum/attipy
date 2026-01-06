@@ -29,7 +29,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-def _state_matrix(f_b_corr, w_b_corr, R_nm, gbc) -> NDArray[np.float64]:
+def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -43,19 +43,19 @@ def _state_matrix(f_b_corr, w_b_corr, R_nm, gbc) -> NDArray[np.float64]:
     dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
     dfdx[0:3, 3:6] = -np.eye(3)
     dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-    dfdx[6:9, 0:3] = -R_nm @ S(f_b_corr)  # NB! update each time step
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
 
     return dfdx
 
 
-def _wn_input_matrix(R_nm):
+def _wn_input_matrix(R_nb):
     """Setup linearized (white noise) input matrix, dfdw."""
 
     # Input (white noise) matrix
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nm  # NB! update each time step
+    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
 
     return dfdw
 
@@ -140,11 +140,11 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dhda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nm) -> None:
+def _measurement_matrix(q_nb) -> None:
     """Setup linearized measurement matrix, dhdx."""
     dhdx = np.zeros((7, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
+    dhdx[3:4, 0:3] = _dhda_head(q_nb)  # heading
     return dhdx
 
 
@@ -247,20 +247,20 @@ class AHRS:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att = q if isinstance(q, Attitude) else Attitude(q)
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
+        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg = np.asarray_chkfinite(bg).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(a).reshape(3).copy()
-        self._f_b = self._R_nm.T @ (self._a_n - self._g_n)
+        self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Continuous time state space model (updated each time step)
         # TODO: avoid continuous time state space by computing phi and Q directly
-        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nm, self._gbc)
-        self._dfdw = _wn_input_matrix(self._R_nm)
-        self._dhdx = _measurement_matrix(self._att._q)
+        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nb, self._gbc)
+        self._dfdw = _wn_input_matrix(self._R_nb)
+        self._dhdx = _measurement_matrix(self._att_nb._q)
         self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
 
         # Discretized state space model (updated each time step)
@@ -284,14 +284,14 @@ class AHRS:
         """
         Attitude estimate.
         """
-        return self._att
+        return self._att_nb
 
     @property
     def q(self) -> NDArray[np.float64]:
         """
         Attitude estimate as unit quaternion.
         """
-        return self._att._q.copy()
+        return self._att_nb._q.copy()
 
     @property
     def bg(self) -> NDArray[np.float64]:
@@ -335,11 +335,11 @@ class AHRS:
         """
         return self._dhdx[0:3]
 
-    def _dhdx_head(self, q_nm):
+    def _dhdx_head(self, q_nb):
         """
         Heading measurement matrix.
         """
-        self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
+        self._dhdx[3:4, 0:3] = _dhda_head(q_nb)
         return self._dhdx[3:4]
 
     def _reset(self) -> None:
@@ -351,7 +351,7 @@ class AHRS:
 
         da = dx[0:3]
         self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
-        self._att._q[:] = _normalize(_quatprod(self._att._q, self._dq))
+        self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
         self._bg[:] = self._bg + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
@@ -390,12 +390,11 @@ class AHRS:
             hdg_meas = (np.pi / 180.0) * hdg_meas
             hdg_var = (np.pi / 180.0) ** 2 * hdg_var
 
-        hdg = _h_head(self._att._q)  # heading estimate
+        hdg = _h_head(self._att_nb._q)  # heading estimate
 
         var = np.asarray([hdg_var], dtype=float)
         dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
-        dhdx = self._dhdx_head(self._att._q)
-
+        dhdx = self._dhdx_head(self._att_nb._q)
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _project_ahead(self):
@@ -408,7 +407,7 @@ class AHRS:
 
         # Attitude
         dtheta = self._w_b * self._dt
-        self._att.update(dtheta, degrees=False)
+        self._att_nb.update(dtheta, degrees=False)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
@@ -419,16 +418,16 @@ class AHRS:
         """
 
         # States
-        self._R_nm[:] = self._att.as_matrix()  # avoiding repeated calls
+        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._f_b[:] = f_b
-        self._a_n[:] = self._R_nm @ self._f_b + self._g_n
+        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg
 
         # Continuous time state space
         S = _skew_symmetric
         self._dfdx[0:3, 0:3] = -S(self._w_b)
-        self._dfdx[6:9, 0:3] = -self._R_nm @ S(self._f_b)
-        self._dfdw[6:9, 6:9] = -self._R_nm
+        self._dfdx[6:9, 0:3] = -self._R_nb @ S(self._f_b)
+        self._dfdw[6:9, 6:9] = -self._R_nb
 
         # Discretized state space
         self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
