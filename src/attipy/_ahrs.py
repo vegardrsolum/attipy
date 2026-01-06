@@ -92,9 +92,9 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
-    q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    qw, qx, qy, qz = q
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
@@ -121,15 +121,15 @@ def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
-    q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    qw, qx, qy, qz = q
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     u = u_y / u_x
 
     duda_scale = 1.0 / u_x**2
-    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
-    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
-    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
+    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
+    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
+    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
     duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
     dyawda = 1.0 / (1.0 + u**2) * duda

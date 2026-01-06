@@ -101,8 +101,8 @@ class Attitude:
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
-        part, and q_x, q_y and q_z are the vector parts, respectively.
+        The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+        part, and qx, qy and qz are the vector parts, respectively.
     """
 
     def __init__(self, q: ArrayLike) -> None:
@@ -110,8 +110,8 @@ class Attitude:
         self._q = _canonical(self._q)
 
     def __repr__(self) -> str:
-        q_w, q_x, q_y, q_z = self._q
-        return f"Attitude(q=[{q_w:.3g} + {q_x:.3g}i + {q_y:.3g}j + {q_z:.3g}k])"
+        qw, qx, qy, qz = self._q
+        return f"Attitude(q=[{qw:.3g} + {qx:.3g}i + {qy:.3g}j + {qz:.3g}k])"
 
     @classmethod
     def from_quaternion(cls, q: ArrayLike) -> Self:
@@ -133,8 +133,8 @@ class Attitude:
         Parameters
         ----------
         q : ArrayLike
-            The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
-            part, and q_x, q_y and q_z are the vector parts, respectively.
+            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            part, and qx, qy and qz are the vector parts, respectively.
 
         Returns
         -------
@@ -162,8 +162,8 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            The 4-element unit quaternion, [q_w, q_x, q_y, q_z], where q_w is the scalar
-            part, and q_x, q_y and q_z are the vector parts, respectively.
+            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            part, and qx, qy and qz are the vector parts, respectively.
         """
         return self._q.copy()
 
@@ -212,14 +212,14 @@ class Attitude:
         The direction cosine matrix is computed from the unit quaternion, q, using
         the formula:
 
-            R = I + 2 * q_w * S(q_xyz) + 2 * S(q_xyz)^2
+            R = I + 2 * qw * S(qxyz) + 2 * S(qxyz)^2
 
         where,
 
         - I is the 3x3 identity matrix.
-        - q_w is the scalar part of the unit quaternion.
-        - q_xyz is the vector part, [q_x, q_y, q_z], of the unit quaternion.
-        - S(q_xyz) is the skew-symmetric matrix of q_xyz.
+        - qw is the scalar part of the unit quaternion.
+        - qxyz is the vector part, [qx, qy, qz], of the unit quaternion.
+        - S(qxyz) is the skew-symmetric matrix of qxyz.
 
         Returns
         -------

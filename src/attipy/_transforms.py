@@ -121,11 +121,11 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
-    q_w, q_x, q_y, q_z = q
+    qw, qx, qy, qz = q
 
-    alpha = np.arctan2(2.0 * (q_y * q_z + q_x * q_w), 1.0 - 2.0 * (q_x**2 + q_y**2))
-    beta = -np.arcsin(2.0 * (q_x * q_z - q_y * q_w))
-    gamma = np.arctan2(2.0 * (q_x * q_y + q_z * q_w), 1.0 - 2.0 * (q_y**2 + q_z**2))
+    alpha = np.arctan2(2.0 * (qy * qz + qx * qw), 1.0 - 2.0 * (qx**2 + qy**2))
+    beta = -np.arcsin(2.0 * (qx * qz - qy * qw))
+    gamma = np.arctan2(2.0 * (qx * qy + qz * qw), 1.0 - 2.0 * (qy**2 + qz**2))
 
     return np.array([alpha, beta, gamma])
 
@@ -198,12 +198,12 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     cg_half = np.cos(gamma_half)
     sg_half = np.sin(gamma_half)
 
-    q_w = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
-    q_x = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
-    q_y = ca_half * sb_half * cg_half + sa_half * cb_half * sg_half
-    q_z = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
+    qw = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
+    qx = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
+    qy = ca_half * sb_half * cg_half + sa_half * cb_half * sg_half
+    qz = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
 
-    return np.array([q_w, q_x, q_y, q_z])
+    return np.array([qw, qx, qy, qz])
 
 
 @njit  # type: ignore[misc]
@@ -243,10 +243,10 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
         Rotation vector.
     """
     q = _canonical(q)
-    q_w, q_x, q_y, q_z = q
+    qw, qx, qy, qz = q
 
-    q_xyz_norm = np.sqrt(q_x**2 + q_y**2 + q_z**2)
-    angle = 2.0 * np.arctan2(q_xyz_norm, q_w)
+    qxyz_norm = np.sqrt(qx**2 + qy**2 + qz**2)
+    angle = 2.0 * np.arctan2(qxyz_norm, qw)
 
     if angle <= 1e-3:  # 4th order approximation (avoids division by zero)
         angle2 = angle**2
@@ -254,4 +254,4 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     else:
         scale = angle / np.sin(angle / 2.0)
 
-    return np.array([scale * q_x, scale * q_y, scale * q_z])
+    return np.array([scale * qx, scale * qy, scale * qz])
