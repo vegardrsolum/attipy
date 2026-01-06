@@ -450,7 +450,7 @@ class AHRS:
         Parameters
         ----------
         f : array_like, shape (3,)
-            Specific force (i.e., accelerations + gravity) measurement (fx, fy, fz).
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz).
         w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
