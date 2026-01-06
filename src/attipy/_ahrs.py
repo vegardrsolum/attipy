@@ -356,21 +356,20 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _aiding_update_vel(self, vel_meas, vel_var):
+    def _aiding_update_vel(self, v_meas, v_var):
         """
         Update with velocity vector measurement.
         """
         dx, P = self._dx, self._P
 
-        if vel_meas is None:
+        if v_meas is None:
             return dx, P
 
-        if vel_var is None:
+        if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        vel_meas = np.asarray(vel_meas, dtype=float)
-        var = np.asarray(vel_var, dtype=float)
-        dz = vel_meas - self._v
+        dz = v_meas - self._v
+        var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
@@ -432,8 +431,8 @@ class AHRS:
         f: ArrayLike,
         w: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike | None = (0.0, 0.0, 0.0),
-        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        v: ArrayLike | None = (0.0, 0.0, 0.0),
+        v_var: ArrayLike | None = (100.0, 100.0, 100.0),
         hdg: float | None = None,
         hdg_var: float | None = None,
         hdg_degrees: bool = True,
@@ -453,9 +452,9 @@ class AHRS:
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of ``w`` are in degrees or radians.
-        vel : array_like, shape (3,), optional
+        v : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
-        vel_var : array_like, shape (3,), optional
+        v_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``vel``.
         hdg : float, optional
             Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
@@ -484,7 +483,7 @@ class AHRS:
         self._project_ahead(self._dt)
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
-        self._aiding_update_vel(vel, vel_var)
+        self._aiding_update_vel(v, v_var)
         self._aiding_update_hdg(hdg, hdg_var, hdg_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
