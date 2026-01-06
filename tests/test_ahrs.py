@@ -115,6 +115,16 @@ class Test_AHRS:
         bg_expected = np.array([0.01, -0.02, 0.03])
         np.testing.assert_allclose(ahrs.bg, bg_expected)
 
+    def test_w(self):
+        w = np.array([0.1, -0.2, 0.3])
+        ahrs = AHRS(10.0, w=w)
+        np.testing.assert_allclose(ahrs.w, w)
+
+    def test_a(self):
+        a = np.array([1.0, 2.0, 3.0])
+        ahrs = AHRS(10.0, a=a)
+        np.testing.assert_allclose(ahrs.a, a)
+
     def test_P(self, ahrs):
         ahrs = AHRS(10.0, P=np.eye(9))
         np.testing.assert_allclose(ahrs.P, np.eye(9))
