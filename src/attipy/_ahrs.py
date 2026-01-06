@@ -176,7 +176,7 @@ class AHRS:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude estimate represented as unit quaternion (qw, qx, qy, qz)
+        Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
