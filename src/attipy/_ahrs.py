@@ -175,21 +175,24 @@ class AHRS:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude estimate. Defaults to no rotation (identity quaternion).
+        Initial attitude estimate represented as unit quaternion (q_w, q_x, q_y, q_z)
+        or an Attitude object. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate. Defaults to zero bias.
+        Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
     v : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial velocity estimate in the navigation frame. Defaults to zero velocity
-        (static state).
+        Initial linear velocity estimate (vx, vy, vz) expressed in the navigation
+        frame. Defaults to zero velocity (stationary).
     w: array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial angular rate estimate in the body frame. Defaults to zero angular
-        rate (static state).
+        Initial angular rate estimate (wx, wy, wz) expressed in the body frame.
+        Defaults to zero angular rate (stationary).
     a: array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear acceleration estimate in the navigation frame. Defaults to
-        zero linear acceleration (static state).
+        Initial linear acceleration estimate (ax, ay, az) expressed in the navigation
+        frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
-        Initial error covariance matrix estimate . Defaults to a small diagonal
-        matrix (1e-6 * np.eye(9)).
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * np.eye(9)). The state vector is ordered as: dx = (da, dbg, dv), where
+        da is the attitude error (3-parameter scaled Gibbs vector), dbg is the gyroscope
+        bias error, and dv is the velocity error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
