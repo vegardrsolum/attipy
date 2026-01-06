@@ -204,16 +204,16 @@ class AHRS:
         Furthermore, the aiding heading angle is also interpreted relative to this
         frame according to the right-hand rule.
     acc_noise_density : float, default 0.001
-        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Default
-        is 0.001 (typical value for low-cost MEMS IMUs).
+        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
+        to 0.001 (typical value for low-cost MEMS IMUs).
     gyro_noise_density : float, default 0.0001
-        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Default is
+        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
     gyro_bias_stability : float, default 0.00005
-        Gyroscope bias stability (1-sigma) in rad/s. Default is 0.00005 (typical
+        Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
         value for low-cost MEMS IMUs).
     bias_corr_time : float, default 50.0
-        Gyroscope bias correlation time in seconds. Default is 50.0 s.
+        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
     _I = np.eye(9)
