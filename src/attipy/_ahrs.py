@@ -6,7 +6,6 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
-from ._transforms import _matrix_from_quat
 from ._vectorops import _normalize, _skew_symmetric
 
 
@@ -30,7 +29,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-def _state_matrix(f_corr, w_corr, R_nm, gbc) -> NDArray[np.float64]:
+def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -41,22 +40,22 @@ def _state_matrix(f_corr, w_corr, R_nm, gbc) -> NDArray[np.float64]:
 
     # State transition matrix
     dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_corr)  # NB! update each time step
+    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
     dfdx[0:3, 3:6] = -np.eye(3)
     dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-    dfdx[6:9, 0:3] = -R_nm @ S(f_corr)  # NB! update each time step
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
 
     return dfdx
 
 
-def _wn_input_matrix(R_nm):
+def _wn_input_matrix(R_nb):
     """Setup linearized (white noise) input matrix, dfdw."""
 
     # Input (white noise) matrix
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nm  # NB! update each time step
+    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
 
     return dfdw
 
@@ -74,12 +73,9 @@ def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _h_head(q: NDArray[np.float64]) -> float:
+def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
-
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
 
     Parameters
     ----------
@@ -89,7 +85,7 @@ def _h_head(q: NDArray[np.float64]) -> float:
     Returns
     -------
     float
-        Yaw angle in the NED reference frame.
+        Yaw angle in radians.
 
     References
     ----------
@@ -103,9 +99,9 @@ def _h_head(q: NDArray[np.float64]) -> float:
 
 
 @njit  # type: ignore[misc]
-def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the unit quaternion.
+    Compute yaw angle gradient wrt to the scaled Gibbs vector.
 
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
     unit quaternion here to avoid singularities.
@@ -136,16 +132,16 @@ def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
     duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
     duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
-    dhda = 1.0 / (1.0 + u**2) * duda
+    dyawda = 1.0 / (1.0 + u**2) * duda
 
-    return dhda  # type: ignore[no-any-return]
+    return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nm) -> None:
+def _measurement_matrix(q_nb) -> None:
     """Setup linearized measurement matrix, dhdx."""
     dhdx = np.zeros((7, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dhda_head(q_nm)  # heading
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading
     return dhdx
 
 
@@ -179,12 +175,18 @@ class AHRS:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude state estimate. Defaults to no rotation (identity quaternion).
+        Initial attitude estimate. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate. Defaults to zero bias.
     v : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial velocity state estimate in the navigation frame. Defaults to zero
-        velocity.
+        Initial velocity estimate in the navigation frame. Defaults to zero velocity
+        (static state).
+    w: array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate estimate in the body frame. Defaults to zero angular
+        rate (static state).
+    a: array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial linear acceleration estimate in the navigation frame. Defaults to
+        zero linear acceleration (static state).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate . Defaults to a small diagonal
         matrix (1e-6 * np.eye(9)).
@@ -210,8 +212,8 @@ class AHRS:
     """
 
     _I = np.eye(9)
-    _dx = np.zeros(9)  # (da, dbg, dv), always zero after reset
-    _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
+    _dx = np.zeros(9)  # error state estimate, (da, dbg, dv), always zero after reset
+    _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
     def __init__(
         self,
@@ -219,6 +221,8 @@ class AHRS:
         q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         v: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
+        a: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -240,21 +244,25 @@ class AHRS:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att = q if isinstance(q, Attitude) else Attitude(q)
-        self._bg = np.asarray_chkfinite(bg).reshape(3)
-        self._v = np.asarray_chkfinite(v).reshape(3)
-        self._P = np.asarray_chkfinite(P).copy()
+        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._a_n = np.asarray_chkfinite(a).reshape(3).copy()
+        self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
+        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
-        # Additional state variables
-        self._f = -self._g_n.copy()
-        self._w = np.zeros(3)
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
-
-        # Prepare system matrices
-        self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
-        self._dfdw = _wn_input_matrix(self._R_nm)
-        self._dhdx = _measurement_matrix(self._att._q)
+        # Continuous time state space model (updated each time step)
+        # TODO: avoid continuous time state space by computing phi and Q directly
+        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nb, self._gbc)
+        self._dfdw = _wn_input_matrix(self._R_nb)
+        self._dhdx = _measurement_matrix(self._att_nb._q)
         self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
+
+        # Discretized state space model (updated each time step)
+        self._phi = self._I + self._dt * self._dfdx  # first-order approximation
+        self._Q = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
     def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
         """
@@ -271,26 +279,52 @@ class AHRS:
     @property
     def attitude(self) -> Attitude:
         """
-        Attitude estimate.
+        Attitude estimate (no copy).
         """
-        return self._att
+        return self._att_nb
 
-    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
+    @property
+    def q(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate.
+        Attitude estimate represented as a unit quaternion.
         """
-        bg = self._bg.copy()
-        if degrees:
-            bg = np.degrees(bg)
-        return bg
+        return self._att_nb._q.copy()
+
+    @property
+    def bg(self) -> NDArray[np.float64]:
+        """
+        Gyroscope bias estimate expressed in the body frame.
+        """
+        return self._bg_b.copy()
+
+    @property
+    def v(self) -> NDArray[np.float64]:
+        """
+        Velocity estimate expressed in the navigation frame.
+        """
+        return self._v_n.copy()
+
+    @property
+    def w(self) -> NDArray[np.float64]:
+        """
+        Angular rate estimate (bias corrected) expressed in the body frame.
+        """
+        return self._w_b.copy()
+
+    @property
+    def a(self) -> NDArray[np.float64]:
+        """
+        Linear acceleration estimate (no bias correction) expressed in the navigation
+        frame.
+        """
+        return self._a_n.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
         """
         Error covariance matrix estimate.
         """
-        P = self._P.copy()
-        return P
+        return self._P.copy()
 
     def _dhdx_vel(self):
         """
@@ -298,11 +332,11 @@ class AHRS:
         """
         return self._dhdx[0:3]
 
-    def _dhdx_head(self, q_nm):
+    def _dhdx_hdg(self, q_nb):
         """
         Heading measurement matrix.
         """
-        self._dhdx[3:4, 0:3] = _dhda_head(q_nm)
+        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
 
     def _reset(self) -> None:
@@ -313,34 +347,31 @@ class AHRS:
             return
 
         da = dx[0:3]
-        self._dq_prealloc[1:4] = da
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        self._att._q[:] = _quatprod(self._att._q, dq)
-        self._att._q[:] = _normalize(self._att._q)
-        self._bg[:] = self._bg + dx[3:6]
-        self._v[:] = self._v + dx[6:9]
+        self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
+        self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
+        self._bg_b[:] = self._bg_b + dx[3:6]
+        self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _apply_aiding_vel(self, vel_meas, vel_var):
+    def _aiding_update_vel(self, v_meas, v_var):
         """
         Update with velocity vector measurement.
         """
         dx, P = self._dx, self._P
 
-        if vel_meas is None:
+        if v_meas is None:
             return dx, P
 
-        if vel_var is None:
+        if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        vel_meas = np.asarray(vel_meas, dtype=float)
-        var = np.asarray(vel_var, dtype=float)
-        dz = vel_meas - self._v
+        dz = v_meas - self._v_n
+        var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _apply_aiding_hdg(self, hdg_meas, hdg_var, hdg_degrees):
+    def _aiding_update_hdg(self, hdg_meas, hdg_var, hdg_degrees):
         """
         Update with heading measurement.
         """
@@ -356,116 +387,86 @@ class AHRS:
             hdg_meas = (np.pi / 180.0) * hdg_meas
             hdg_var = (np.pi / 180.0) ** 2 * hdg_var
 
-        hdg = _h_head(self._att._q)  # heading estimate
+        hdg = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
         var = np.asarray([hdg_var], dtype=float)
         dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
-        dhdx = self._dhdx_head(self._att._q)
+        dhdx = self._dhdx_hdg(self._att_nb._q)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-        self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
-
-    def _phi(self, dt):
+    def _project_ahead(self):
         """
-        State transition matrix.
-        """
-
-        dfdx = self._dfdx
-        I_ = self._I
-        f_corr = self._f
-        w_corr = self._w - self._bg
-        R_nm = self._R_nm
-
-        # Update
-        S = _skew_symmetric
-        dfdx[0:3, 0:3] = -S(w_corr)
-        dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
-
-        # Discretize
-        phi = I_ + dt * dfdx  # first-order approximation
-
-        return phi
-
-    def _Q(self, dt):
-        """
-        Process noise covariance matrix.
-        """
-        dfdw = self._dfdw
-        W = self._W
-        R_nm = self._R_nm
-
-        # Update
-        dfdw[6:9, 6:9] = -R_nm
-
-        # Discretize
-        Q = dt * dfdw @ W @ dfdw.T
-
-        return Q
-
-    def _project_ahead(self, dt, f, w):
-        """
-        Project state ahead using dead reckoning.
+        Project state and covariance ahead.
         """
 
-        f_corr = f
-        w_corr = w - self._bg
-        f_corr_prev = self._f
-        w_corr_prev = self._w - self._bg
+        # Velocity (dead reckoning)
+        self._v_n[:] += self._a_n * self._dt
 
-        # Discretized (error) state space
-        phi, Q = self._phi(dt), self._Q(dt)
-
-        # Velocity
-        dv = 0.5 * (f_corr + f_corr_prev) * dt  # trapezoidal rule
-        dv_corr = dt * self._g_n
-        self._v += self._R_nm @ dv + dv_corr
-
-        # Attitude
-        dtheta = 0.5 * (w_corr + w_corr_prev) * dt  # trapezoidal rule
-        self._att.update(dtheta, degrees=False)
+        # Attitude (dead reckoning)
+        dtheta = self._w_b * self._dt
+        self._att_nb.update(dtheta, degrees=False)
 
         # Covariance
-        self._P = phi @ self._P @ phi.T + Q
+        self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
+
+    def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
+        """
+        Update states and state space matrices.
+        """
+
+        # States
+        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._f_b[:] = f_b
+        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
+        self._w_b[:] = w_b - self._bg_b
+
+        # Continuous time state space
+        S = _skew_symmetric
+        self._dfdx[0:3, 0:3] = -S(self._w_b)
+        self._dfdx[6:9, 0:3] = -self._R_nb @ S(self._f_b)
+        self._dfdw[6:9, 6:9] = -self._R_nb
+
+        # Discretized state space
+        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
+        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
     def update(
         self,
         f: ArrayLike,
         w: ArrayLike,
         degrees: bool = False,
-        vel: ArrayLike | None = (0.0, 0.0, 0.0),
-        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        v: ArrayLike | None = (0.0, 0.0, 0.0),
+        v_var: ArrayLike | None = (100.0, 100.0, 100.0),
         hdg: float | None = None,
         hdg_var: float | None = None,
-        hdg_degrees: bool = True,
+        hdg_degrees: bool = False,
     ) -> Self:
         """
-        Update/correct the AHRS' state estimate with aiding measurements, and project
-        ahead using IMU measurements.
-
-        If no aiding measurements are provided, the AHRS is simply propagated ahead
-        using dead reckoning with the IMU measurements.
+        Update the AHRS' states with IMU and aiding measurements.
 
         Parameters
         ----------
         f : array_like, shape (3,)
-            Specific force (i.e., accelerations + gravity) measurement (fx, fy, fz).
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz).
         w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
-            Specifies whether the unit of ``w`` are in degrees or radians.
-        vel : array_like, shape (3,), optional
+            Specifies whether the unit of the rotation rate, ``w``, are in degrees
+            or radians (default).
+        v : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
-        vel_var : array_like, shape (3,), optional
+        v_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise. Required for ``vel``.
         hdg : float, optional
-            Heading measurement. I.e., the yaw angle of the 'body' frame relative to the
-            assumed 'navigation' frame ('NED' or 'ENU') specified during initialization.
-            If ``None``, compass aiding is not used. See ``hdg_degrees`` for units.
+            Heading measurement. I.e., the yaw angle of the body frame relative
+            to the navigation frame ('NED' or 'ENU') specified during initialization.
+            See ``hdg_degrees`` for units. If ``None``, compass aiding is not used.
         hdg_var : float, optional
             Variance of heading measurement noise. Units must be compatible with ``hdg``.
             See ``hdg_degrees`` for units. Required for ``hdg``.
         hdg_degrees : bool, default False
             Specifies whether the unit of ``hdg`` and ``hdg_var`` are in degrees and degrees^2,
-            or radians and radians^2. Default is in radians and radians^2.
+            or radians and radians^2 (default).
 
         Returns
         -------
@@ -480,17 +481,14 @@ class AHRS:
             w = (np.pi / 180.0) * w
 
         # Project state and covariance estimates ahead (a priori)
-        self._project_ahead(self._dt, f, w)
+        self._project_ahead()
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
-        self._apply_aiding_vel(vel, vel_var)
-        self._apply_aiding_hdg(hdg, hdg_var, hdg_degrees)
+        self._aiding_update_vel(v, v_var)
+        self._aiding_update_hdg(hdg, hdg_var, hdg_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
-
-        self._f = f
-        self._w = w
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
+        self._update_state(f, w)
 
         return self
