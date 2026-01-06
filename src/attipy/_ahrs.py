@@ -92,9 +92,9 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
-    q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    qw, qx, qy, qz = q
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
@@ -121,15 +121,15 @@ def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
-    q_w, q_x, q_y, q_z = q
-    u_y = 2.0 * (q_x * q_y + q_z * q_w)
-    u_x = 1.0 - 2.0 * (q_y**2 + q_z**2)
+    qw, qx, qy, qz = q
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     u = u_y / u_x
 
     duda_scale = 1.0 / u_x**2
-    duda_x = -(q_w * q_y) * (1.0 - 2.0 * q_w**2) - (2.0 * q_w**2 * q_x * q_z)
-    duda_y = (q_w * q_x) * (1.0 - 2.0 * q_z**2) + (2.0 * q_w**2 * q_y * q_z)
-    duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
+    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
+    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
+    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
     duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
     dyawda = 1.0 / (1.0 + u**2) * duda
@@ -168,32 +168,37 @@ class AHRS:
     """
     Attitude and Heading Reference System (AHRS).
 
-    The internal filter is a multiplicative extended Kalman filter (MEKF).
+    The internal fusion filter is an (error-state) multiplicative extended Kalman
+    filter (MEKF).
 
     Parameters
     ----------
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude estimate. Defaults to no rotation (identity quaternion).
+        Initial attitude estimate represented as unit quaternion (qw, qx, qy, qz)
+        or an Attitude object. Defaults to no rotation (identity quaternion).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate. Defaults to zero bias.
+        Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
     v : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial velocity estimate in the navigation frame. Defaults to zero velocity
-        (static state).
+        Initial linear velocity estimate (vx, vy, vz) expressed in the navigation
+        frame. Defaults to zero velocity (stationary).
     w: array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial angular rate estimate in the body frame. Defaults to zero angular
-        rate (static state).
+        Initial angular rate estimate (wx, wy, wz) expressed in the body frame.
+        Defaults to zero angular rate (stationary).
     a: array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear acceleration estimate in the navigation frame. Defaults to
-        zero linear acceleration (static state).
+        Initial linear acceleration estimate (ax, ay, az) expressed in the navigation
+        frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
-        Initial error covariance matrix estimate . Defaults to a small diagonal
-        matrix (1e-6 * np.eye(9)).
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
+        is ordered as: dx = (da, dbg, dv), where da is the attitude error (3-parameter
+        scaled Gibbs vector), dbg is the gyroscope bias error, and dv is the velocity
+        error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
         sensor's) degrees of freedom will be expressed relative to this frame.
         Furthermore, the aiding heading angle is also interpreted relative to this
@@ -212,7 +217,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate, (da, dbg, dv), always zero after reset
+    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
     def __init__(
@@ -286,43 +291,43 @@ class AHRS:
     @property
     def q(self) -> NDArray[np.float64]:
         """
-        Attitude estimate represented as a unit quaternion.
+        Copy of the attitude estimate (represented as a unit quaternion).
         """
         return self._att_nb._q.copy()
 
     @property
     def bg(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate expressed in the body frame.
+        Copy of the gyroscope bias estimate expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
     def v(self) -> NDArray[np.float64]:
         """
-        Velocity estimate expressed in the navigation frame.
+        Copy of the velocity estimate expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
     def w(self) -> NDArray[np.float64]:
         """
-        Angular rate estimate (bias corrected) expressed in the body frame.
+        Copy of the angular rate estimate (bias corrected) expressed in the body frame.
         """
         return self._w_b.copy()
 
     @property
     def a(self) -> NDArray[np.float64]:
         """
-        Linear acceleration estimate (no bias correction) expressed in the navigation
-        frame.
+        Copy of the linear acceleration estimate (no bias correction) expressed
+        in the navigation frame.
         """
         return self._a_n.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Error covariance matrix estimate.
+        Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
 
@@ -332,9 +337,9 @@ class AHRS:
         """
         return self._dhdx[0:3]
 
-    def _dhdx_hdg(self, q_nb):
+    def _dhdx_yaw(self, q_nb):
         """
-        Heading measurement matrix.
+        Heading (yaw angle) measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
@@ -371,27 +376,27 @@ class AHRS:
 
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _aiding_update_hdg(self, hdg_meas, hdg_var, hdg_degrees):
+    def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
         Update with heading measurement.
         """
         dx, P = self._dx, self._P
 
-        if hdg_meas is None:
+        if yaw_meas is None:
             return dx, P
 
-        if hdg_var is None:
-            raise ValueError("'hdg_var' not provided.")
+        if yaw_var is None:
+            raise ValueError("'yaw_var' not provided.")
 
-        if hdg_degrees:
-            hdg_meas = (np.pi / 180.0) * hdg_meas
-            hdg_var = (np.pi / 180.0) ** 2 * hdg_var
+        if yaw_degrees:
+            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        hdg = _yaw_from_quat(self._att_nb._q)  # heading estimate
+        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        var = np.asarray([hdg_var], dtype=float)
-        dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
-        dhdx = self._dhdx_hdg(self._att_nb._q)
+        var = np.asarray([yaw_var], dtype=float)
+        dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
+        dhdx = self._dhdx_yaw(self._att_nb._q)
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _project_ahead(self):
@@ -437,12 +442,12 @@ class AHRS:
         degrees: bool = False,
         v: ArrayLike | None = (0.0, 0.0, 0.0),
         v_var: ArrayLike | None = (100.0, 100.0, 100.0),
-        hdg: float | None = None,
-        hdg_var: float | None = None,
-        hdg_degrees: bool = False,
+        yaw: float | None = None,
+        yaw_var: float | None = None,
+        yaw_degrees: bool = False,
     ) -> Self:
         """
-        Update the AHRS' states with IMU and aiding measurements.
+        Update the AHRS state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
@@ -456,17 +461,16 @@ class AHRS:
         v : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
         v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``vel``.
-        hdg : float, optional
-            Heading measurement. I.e., the yaw angle of the body frame relative
-            to the navigation frame ('NED' or 'ENU') specified during initialization.
-            See ``hdg_degrees`` for units. If ``None``, compass aiding is not used.
-        hdg_var : float, optional
-            Variance of heading measurement noise. Units must be compatible with ``hdg``.
-            See ``hdg_degrees`` for units. Required for ``hdg``.
-        hdg_degrees : bool, default False
-            Specifies whether the unit of ``hdg`` and ``hdg_var`` are in degrees and degrees^2,
-            or radians and radians^2 (default).
+            Variance of the velocity measurement noise. Required for ``v``.
+        yaw : float, optional
+            Heading (yaw angle) measurement. See ``yaw_degrees`` for units. If ``None``,
+            heading aiding is not used.
+        yaw_var : float, optional
+            Variance of heading (yaw angle) measurement noise. Units must be compatible
+            with ``yaw``. See ``yaw_degrees`` for units. Required for ``yaw``.
+        yaw_degrees : bool, default False
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in degrees
+            and degrees^2, or radians and radians^2 (default).
 
         Returns
         -------
@@ -485,7 +489,7 @@ class AHRS:
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
         self._aiding_update_vel(v, v_var)
-        self._aiding_update_hdg(hdg, hdg_var, hdg_degrees)
+        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
