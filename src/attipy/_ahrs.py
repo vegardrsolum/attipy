@@ -215,7 +215,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate, (da, dbg, dv), always zero after reset
+    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
     def __init__(
