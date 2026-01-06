@@ -217,9 +217,9 @@ class AHRS:
         fs: float,
         q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
         v: ArrayLike = (0.0, 0.0, 0.0),
         a: ArrayLike = (0.0, 0.0, 0.0),
-        w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -245,9 +245,9 @@ class AHRS:
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
         self._bg = np.asarray_chkfinite(bg).reshape(3)
         self._v = np.asarray_chkfinite(v).reshape(3)
-        self._a = np.asarray_chkfinite(a).reshape(3)
-        self._f = self._R_nm.T @ (self._a - self._g_n)  # TODO: correct?
         self._w = np.asarray_chkfinite(w).reshape(3)
+        self._a = np.asarray_chkfinite(a).reshape(3)
+        self._f = self._R_nm.T @ (self._a - self._g_n)
         self._P = np.asarray_chkfinite(P).copy()
 
         # Prepare system matrices
