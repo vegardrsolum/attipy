@@ -456,7 +456,7 @@ class AHRS:
         v : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
         v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``vel``.
+            Variance of the velocity measurement noise. Required for ``v``.
         hdg : float, optional
             Heading measurement. I.e., the yaw angle of the body frame relative
             to the navigation frame ('NED' or 'ENU') specified during initialization.
