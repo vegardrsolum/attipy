@@ -184,6 +184,12 @@ class AHRS:
     v : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial velocity state estimate in the navigation frame. Defaults to zero
         velocity.
+    w: array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate state estimate in the body frame. Defaults to zero
+        angular rate.
+    a: array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial linear acceleration state estimate in the navigation frame. Defaults
+        to zero linear acceleration.
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate . Defaults to a small diagonal
         matrix (1e-6 * np.eye(9)).
@@ -217,8 +223,8 @@ class AHRS:
         fs: float,
         q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        w: ArrayLike = (0.0, 0.0, 0.0),
         v: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
         a: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
