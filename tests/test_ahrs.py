@@ -266,3 +266,80 @@ class Test_AHRS:
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
         np.testing.assert_allclose(euler_out[warmup:], euler[warmup:], atol=0.005)
+
+    def test_recover_state(self, pva_data):
+        _, _, _, euler, f, w = pva_data
+        fs = 10.24
+
+        acc_noise_density = 0.001
+        gyro_noise_density = 0.0001
+        acc_noise_std = acc_noise_density * np.sqrt(fs)
+        gyro_noise_std = gyro_noise_density * np.sqrt(fs)
+
+        rng = np.random.default_rng(seed=42)
+        bg = np.radians([0.1, -0.2, 0.3])
+        f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
+        w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
+
+        fs = 10.24
+        q0 = _quat_from_euler_zyx(euler[0])
+        ahrs_a = AHRS(fs, q0)
+
+        q_a, q_b = [], []
+        bg_a, bg_b = [], []
+        v_a, v_b = [], []
+        w_a, w_b = [], []
+        a_a, a_b = [], []
+        P_a, P_b = [], []
+        for f_i, w_i in zip(f_imu[:10], w_imu[:10]):
+            ahrs_b = AHRS(
+                fs,
+                q=ahrs_a.q,
+                bg=ahrs_a.bg,
+                v=ahrs_a.v,
+                w=ahrs_a.w,
+                a=ahrs_a.a,
+                P=ahrs_a.P,
+                g=ahrs_a._g,
+                nav_frame=ahrs_a._nav_frame,
+                acc_noise_density=ahrs_a._vrw,
+                gyro_noise_density=ahrs_a._arw,
+                gyro_bias_stability=ahrs_a._gbs,
+                bias_corr_time=ahrs_a._gbc,
+            )
+
+            ahrs_a.update(f_i, w_i, degrees=False)
+            ahrs_b.update(f_i, w_i, degrees=False)
+
+            q_a.append(ahrs_a.q)
+            q_b.append(ahrs_b.q)
+            bg_a.append(ahrs_a.bg)
+            bg_b.append(ahrs_b.bg)
+            v_a.append(ahrs_a.v)
+            v_b.append(ahrs_b.v)
+            w_a.append(ahrs_a.w)
+            w_b.append(ahrs_b.w)
+            a_a.append(ahrs_a.a)
+            a_b.append(ahrs_b.a)
+            P_a.append(ahrs_a.P)
+            P_b.append(ahrs_b.P)
+
+        q_a = np.asarray(q_a)
+        q_b = np.asarray(q_b)
+        bg_a = np.asarray(bg_a)
+        bg_b = np.asarray(bg_b)
+        v_a = np.asarray(v_a)
+        v_b = np.asarray(v_b)
+        w_a = np.asarray(w_a)
+        w_b = np.asarray(w_b)
+        a_a = np.asarray(a_a)
+        a_b = np.asarray(a_b)
+        P_a = np.asarray(P_a)
+        P_b = np.asarray(P_b)
+
+        np.testing.assert_allclose(q_a, q_b)
+        np.testing.assert_allclose(bg_a, bg_b)
+        np.testing.assert_allclose(v_a, v_b)
+        np.testing.assert_allclose(w_a, w_b)
+        np.testing.assert_allclose(a_a, a_b)
+        np.testing.assert_allclose(P_a, P_b)
