@@ -216,7 +216,7 @@ class AHRS:
 
     _I = np.eye(9)
     _dx = np.zeros(9)  # error state estimate, (da, dbg, dv), always zero after reset
-    _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # preallocation
+    _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
     def __init__(
         self,
@@ -351,10 +351,9 @@ class AHRS:
 
         # Quaternion error
         da = dx[0:3]
-        self._dq_prealloc[1:4] = da
-        dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
+        self._dq[:] = np.array([2.0, *da]) / np.sqrt(4.0 + da.T @ da)
 
-        self._att._q[:] = _normalize(_quatprod(self._att._q, dq))
+        self._att._q[:] = _normalize(_quatprod(self._att._q, self._dq))
         self._bg[:] = self._bg + dx[3:6]
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
