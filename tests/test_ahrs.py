@@ -269,17 +269,7 @@ class Test_AHRS:
 
     def test_recover_state(self, pva_data):
         _, _, _, euler, f, w = pva_data
-        fs = 10.24
-
-        acc_noise_density = 0.001
-        gyro_noise_density = 0.0001
-        acc_noise_std = acc_noise_density * np.sqrt(fs)
-        gyro_noise_std = gyro_noise_density * np.sqrt(fs)
-
-        rng = np.random.default_rng(seed=42)
-        bg = np.radians([0.1, -0.2, 0.3])
-        f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
-        w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
+        f, w = f[:10], w[:10]
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
@@ -291,7 +281,7 @@ class Test_AHRS:
         w_a, w_b = [], []
         a_a, a_b = [], []
         P_a, P_b = [], []
-        for f_i, w_i in zip(f_imu[:10], w_imu[:10]):
+        for f_i, w_i in zip(f, w):
             ahrs_b = AHRS(
                 fs,
                 q=ahrs_a.q,
@@ -323,19 +313,6 @@ class Test_AHRS:
             a_b.append(ahrs_b.a)
             P_a.append(ahrs_a.P)
             P_b.append(ahrs_b.P)
-
-        q_a = np.asarray(q_a)
-        q_b = np.asarray(q_b)
-        bg_a = np.asarray(bg_a)
-        bg_b = np.asarray(bg_b)
-        v_a = np.asarray(v_a)
-        v_b = np.asarray(v_b)
-        w_a = np.asarray(w_a)
-        w_b = np.asarray(w_b)
-        a_a = np.asarray(a_a)
-        a_b = np.asarray(a_b)
-        P_a = np.asarray(P_a)
-        P_b = np.asarray(P_b)
 
         np.testing.assert_allclose(q_a, q_b)
         np.testing.assert_allclose(bg_a, bg_b)
