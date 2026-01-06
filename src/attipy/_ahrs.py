@@ -334,7 +334,7 @@ class AHRS:
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading measurement matrix.
+        Heading (yaw angle) measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
