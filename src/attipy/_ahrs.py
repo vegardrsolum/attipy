@@ -77,9 +77,6 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
 
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
-
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
@@ -88,7 +85,7 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     Returns
     -------
     float
-        Yaw angle in the NED reference frame.
+        Yaw angle in radians.
 
     References
     ----------
