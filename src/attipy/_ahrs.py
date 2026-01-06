@@ -209,7 +209,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate (da, dbg, dv), always zero after reset
+    _dx = np.zeros(9)  # error state estimate, (da, dbg, dv), always zero after reset
     _dq_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # preallocation
 
     def __init__(
