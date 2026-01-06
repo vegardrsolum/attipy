@@ -337,7 +337,7 @@ class AHRS:
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
-    def _apply_vel_aiding(self, vel_meas, vel_var):
+    def _aiding_update_vel(self, vel_meas, vel_var):
         """
         Update with velocity vector measurement.
         """
@@ -356,7 +356,7 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    def _apply_hdg_aiding(self, hdg_meas, hdg_var, hdg_degrees):
+    def _aiding_update_hdg(self, hdg_meas, hdg_var, hdg_degrees):
         """
         Update with heading measurement.
         """
@@ -465,8 +465,8 @@ class AHRS:
         self._project_ahead(self._dt)
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
-        self._apply_vel_aiding(vel, vel_var)
-        self._apply_hdg_aiding(hdg, hdg_var, hdg_degrees)
+        self._aiding_update_vel(vel, vel_var)
+        self._aiding_update_hdg(hdg, hdg_var, hdg_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
