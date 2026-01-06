@@ -196,7 +196,7 @@ class AHRS:
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like 'navigation' frame. Should be 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
         sensor's) degrees of freedom will be expressed relative to this frame.
         Furthermore, the aiding heading angle is also interpreted relative to this
