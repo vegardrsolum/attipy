@@ -132,9 +132,9 @@ def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     duda_z = q_w**2 * (1.0 - 2.0 * q_y**2) + (2.0 * q_w * q_x * q_y * q_z)
     duda = duda_scale * np.array([duda_x, duda_y, duda_z])
 
-    dhda = 1.0 / (1.0 + u**2) * duda
+    dyawda = 1.0 / (1.0 + u**2) * duda
 
-    return dhda  # type: ignore[no-any-return]
+    return dyawda  # type: ignore[no-any-return]
 
 
 def _measurement_matrix(q_nb) -> None:
