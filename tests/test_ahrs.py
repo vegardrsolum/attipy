@@ -55,7 +55,7 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs._v, v)
         np.testing.assert_allclose(ahrs._P, P)
 
-        np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, -g]))
+        np.testing.assert_allclose(ahrs._f, np.array([0.0, 0.0, g]))
         np.testing.assert_allclose(ahrs._w, np.zeros(3))
 
     def test__init__default(self):

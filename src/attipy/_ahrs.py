@@ -218,6 +218,8 @@ class AHRS:
         q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         v: ArrayLike = (0.0, 0.0, 0.0),
+        a: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -240,14 +242,18 @@ class AHRS:
 
         # State and covariance estimates
         self._att = q if isinstance(q, Attitude) else Attitude(q)
+        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
         self._bg = np.asarray_chkfinite(bg).reshape(3)
         self._v = np.asarray_chkfinite(v).reshape(3)
+        self._a = np.asarray_chkfinite(a).reshape(3)
+        self._f = self._R_nm.T @ self._a - self._g_n  # TODO: correct?
+        self._w = np.asarray_chkfinite(w).reshape(3)
         self._P = np.asarray_chkfinite(P).copy()
 
         # Additional variables needed for error-state model
-        self._f = np.array([0.0, 0.0, -g])
-        self._w = np.zeros(3)
-        self._R_nm = self._att.as_matrix()  # avoiding repeated calls
+        # self._f = np.array([0.0, 0.0, -g])
+        # self._w = np.zeros(3)
+        # self._R_nm = self._att.as_matrix()  # avoiding repeated calls
 
         # Prepare system matrices
         self._dfdx = _state_matrix(self._f, self._w, self._R_nm, self._gbc)
@@ -381,8 +387,8 @@ class AHRS:
 
         dfdx = self._dfdx
         I_ = self._I
-        f_corr = self._f
-        w_corr = self._w - self._bg
+        f_corr = self._f  # bias corrected specific force
+        w_corr = self._w  # bias corrected rotation rate
         R_nm = self._R_nm
 
         # Update
@@ -411,26 +417,19 @@ class AHRS:
 
         return Q
 
-    def _project_ahead(self, dt, f, w):
+    def _project_ahead(self, dt):
         """
         Project state ahead using dead reckoning.
         """
-
-        f_corr = f
-        w_corr = w - self._bg
-        f_corr_prev = self._f
-        w_corr_prev = self._w - self._bg
 
         # Discretized (error) state space
         phi, Q = self._phi(dt), self._Q(dt)
 
         # Velocity
-        dv = 0.5 * (f_corr + f_corr_prev) * dt  # trapezoidal rule
-        dv_corr = dt * self._g_n
-        self._v += self._R_nm @ dv + dv_corr
+        self._v += self._a * dt
 
         # Attitude
-        dtheta = 0.5 * (w_corr + w_corr_prev) * dt  # trapezoidal rule
+        dtheta = self._w * dt
         self._att.update(dtheta, degrees=False)
 
         # Covariance
@@ -490,7 +489,7 @@ class AHRS:
             w = (np.pi / 180.0) * w
 
         # Project state and covariance estimates ahead (a priori)
-        self._project_ahead(self._dt, f, w)
+        self._project_ahead(self._dt)
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
         self._apply_vel_aiding(vel, vel_var)
@@ -499,8 +498,9 @@ class AHRS:
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
 
-        self._f = f
-        self._w = w
         self._R_nm = self._att.as_matrix()  # avoiding repeated calls
+        self._f = f
+        self._a = self._R_nm @ self._f + self._g_n
+        self._w = w - self._bg
 
         return self
