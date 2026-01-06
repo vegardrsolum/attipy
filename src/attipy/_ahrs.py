@@ -380,43 +380,6 @@ class AHRS:
 
         self._dx[:], self._P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
-    # def _phi(self, dt):
-    #     """
-    #     State transition matrix.
-    #     """
-
-    #     dfdx = self._dfdx
-    #     I_ = self._I
-    #     f_corr = self._f  # bias corrected specific force
-    #     w_corr = self._w  # bias corrected rotation rate
-    #     R_nm = self._R_nm
-
-    #     # Update
-    #     S = _skew_symmetric
-    #     dfdx[0:3, 0:3] = -S(w_corr)
-    #     dfdx[6:9, 0:3] = -R_nm @ S(f_corr)
-
-    #     # Discretize
-    #     phi = I_ + dt * dfdx  # first-order approximation
-
-    #     return phi
-
-    # def _Q(self, dt):
-    #     """
-    #     Process noise covariance matrix.
-    #     """
-    #     dfdw = self._dfdw
-    #     W = self._W
-    #     R_nm = self._R_nm
-
-    #     # Update
-    #     dfdw[6:9, 6:9] = -R_nm
-
-    #     # Discretize
-    #     Q = dt * dfdw @ W @ dfdw.T
-
-    #     return Q
-
     def _update_state_space(self, f_corr, w_corr, R_nm) -> None:
         """
         Update continuous time state space matrices.
