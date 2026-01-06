@@ -73,7 +73,7 @@ def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _h_head(q: NDArray[np.float64]) -> float:
+def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
 
@@ -102,9 +102,9 @@ def _h_head(q: NDArray[np.float64]) -> float:
 
 
 @njit  # type: ignore[misc]
-def _dhda_head(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the unit quaternion.
+    Compute yaw angle gradient wrt to the scaled Gibbs vector.
 
     Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
     unit quaternion here to avoid singularities.
@@ -144,7 +144,7 @@ def _measurement_matrix(q_nb) -> None:
     """Setup linearized measurement matrix, dhdx."""
     dhdx = np.zeros((7, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dhda_head(q_nb)  # heading
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading
     return dhdx
 
 
@@ -335,11 +335,11 @@ class AHRS:
         """
         return self._dhdx[0:3]
 
-    def _dhdx_head(self, q_nb):
+    def _dhdx_hdg(self, q_nb):
         """
         Heading measurement matrix.
         """
-        self._dhdx[3:4, 0:3] = _dhda_head(q_nb)
+        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
 
     def _reset(self) -> None:
@@ -390,11 +390,11 @@ class AHRS:
             hdg_meas = (np.pi / 180.0) * hdg_meas
             hdg_var = (np.pi / 180.0) ** 2 * hdg_var
 
-        hdg = _h_head(self._att_nb._q)  # heading estimate
+        hdg = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
         var = np.asarray([hdg_var], dtype=float)
         dz = np.asarray([_ssa(hdg_meas - hdg, degrees=False)], dtype=float)
-        dhdx = self._dhdx_head(self._att_nb._q)
+        dhdx = self._dhdx_hdg(self._att_nb._q)
         dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
 
     def _project_ahead(self):
