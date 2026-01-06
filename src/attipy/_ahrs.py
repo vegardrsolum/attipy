@@ -411,16 +411,16 @@ class AHRS:
         # White noise input matrix
         self._dfdw[6:9, 6:9] = -R_nm
 
-    def _project_ahead(self, dt):
+    def _project_ahead(self):
         """
         Project state ahead using dead reckoning.
         """
 
         # Velocity
-        self._v[:] += self._a * dt
+        self._v[:] += self._a * self._dt
 
         # Attitude
-        dtheta = self._w * dt
+        dtheta = self._w * self._dt
         self._att.update(dtheta, degrees=False)
 
         # Covariance
@@ -480,7 +480,7 @@ class AHRS:
             w = (np.pi / 180.0) * w
 
         # Project state and covariance estimates ahead (a priori)
-        self._project_ahead(self._dt)
+        self._project_ahead()
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
         self._aiding_update_vel(v, v_var)
