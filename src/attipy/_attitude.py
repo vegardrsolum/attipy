@@ -105,7 +105,7 @@ class Attitude:
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+        The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
         part, and qx, qy and qz are the vector parts, respectively.
     """
 
@@ -137,7 +137,7 @@ class Attitude:
         Parameters
         ----------
         q : ArrayLike
-            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
             part, and qx, qy and qz are the vector parts, respectively.
 
         Returns
@@ -166,7 +166,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            The 4-element unit quaternion, [qw, qx, qy, qz], where qw is the scalar
+            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
             part, and qx, qy and qz are the vector parts, respectively.
         """
         return self._q.copy()
