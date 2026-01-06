@@ -286,43 +286,43 @@ class AHRS:
     @property
     def q(self) -> NDArray[np.float64]:
         """
-        Attitude estimate (copy) represented as a unit quaternion.
+        Copy of the attitude estimate (represented as a unit quaternion).
         """
         return self._att_nb._q.copy()
 
     @property
     def bg(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate (copy) expressed in the body frame.
+        Copy of the gyroscope bias estimate expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
     def v(self) -> NDArray[np.float64]:
         """
-        Velocity estimate (copy) expressed in the navigation frame.
+        Copy of the velocity estimate expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
     def w(self) -> NDArray[np.float64]:
         """
-        Angular rate estimate (copy) (bias corrected) expressed in the body frame.
+        Copy of the angular rate estimate (bias corrected) expressed in the body frame.
         """
         return self._w_b.copy()
 
     @property
     def a(self) -> NDArray[np.float64]:
         """
-        Linear acceleration estimate (copy) (no bias correction) expressed in the
-        navigation frame.
+        Copy of the linear acceleration estimate (no bias correction) expressed
+        in the navigation frame.
         """
         return self._a_n.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Error covariance matrix estimate (copy).
+        Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
 
@@ -442,7 +442,7 @@ class AHRS:
         yaw_degrees: bool = False,
     ) -> Self:
         """
-        Update the AHRS' states with IMU and aiding measurements.
+        Update the AHRS state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
