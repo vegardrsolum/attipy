@@ -349,11 +349,12 @@ class AHRS:
         if not dx.any():
             return
 
+        # Quaternion error
         da = dx[0:3]
         self._dq_prealloc[1:4] = da
         dq = (1.0 / np.sqrt(4.0 + da.T @ da)) * self._dq_prealloc
-        self._att._q[:] = _quatprod(self._att._q, dq)
-        self._att._q[:] = _normalize(self._att._q)
+
+        self._att._q[:] = _normalize(_quatprod(self._att._q, dq))
         self._bg[:] = self._bg + dx[3:6]
         self._v[:] = self._v + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
