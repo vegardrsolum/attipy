@@ -193,7 +193,7 @@ class AHRS:
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
         is ordered as: dx = (da, dbg, dv), where da is the attitude error (3-parameter
-        scaled Gibbs vector), dbg is the gyroscope bias error, and dv is the velocity
+        2xGibbs vector), dbg is the gyroscope bias error, and dv is the velocity
         error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
