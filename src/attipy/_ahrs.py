@@ -246,7 +246,7 @@ class AHRS:
         self._bg = np.asarray_chkfinite(bg).reshape(3)
         self._v = np.asarray_chkfinite(v).reshape(3)
         self._a = np.asarray_chkfinite(a).reshape(3)
-        self._f = -self._R_nm.T @ self._g_n  # TODO: correct?
+        self._f = self._R_nm.T @ (self._a - self._g_n)  # TODO: correct?
         self._w = np.asarray_chkfinite(w).reshape(3)
         self._P = np.asarray_chkfinite(P).copy()
 
