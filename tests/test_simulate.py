@@ -657,5 +657,8 @@ class Test_pva_data:
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
 
+        pos_est = np.cumsum(vel_est, axis=0) / fs_expect
+
+        np.testing.assert_allclose(pos_est[:100], pos[:100], atol=1e-1)
         np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
