@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import attipy as ap
+from attipy._transforms import _matrix_from_euler
 from attipy._simulate import DOF, BeatDOF, ChirpDOF, ConstantDOF, PVASimulator, SineDOF
 
 
@@ -493,7 +493,7 @@ class Test_PVASimulator:
         acc_z = sim._pos_z.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
-            R_nb_i = sf._transforms._rot_matrix_from_euler(np.radians(euler_i))
+            R_nb_i = _matrix_from_euler(np.radians(euler_i))
             f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
             np.testing.assert_allclose(f_i, f_i_expect)
 
@@ -541,7 +541,7 @@ class Test_PVASimulator:
         acc_z = sim._pos_z.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
-            R_nb_i = sf._transforms._rot_matrix_from_euler(np.radians(euler_i))
+            R_nb_i = _matrix_from_euler(np.radians(euler_i))
             f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
             np.testing.assert_allclose(f_i, f_i_expect)
 
@@ -589,7 +589,7 @@ class Test_PVASimulator:
         acc_z = sim._pos_z.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
-            R_nb_i = sf._transforms._rot_matrix_from_euler(euler_i)
+            R_nb_i = _matrix_from_euler(euler_i)
             f_i_expect = R_nb_i.T.dot(acc_i - sim._g_n)
             np.testing.assert_allclose(f_i, f_i_expect)
 
