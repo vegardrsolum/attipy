@@ -420,12 +420,140 @@ def _angular_velocity_body(
     return w_b
 
 
+class PVASimulator:
+    """
+    Position, velocity and attitude (PVA) and IMU simulator.
+
+    Parameters
+    ----------
+    pos_x : float or DOF, default 0.0
+        X position signal.
+    pos_y : float or DOF, default 0.0
+        Y position signal.
+    pos_z : float or DOF, default 0.0
+        Z position signal.
+    alpha : float or DOF, default 0.0
+        Roll signal.
+    beta : float or DOF, default 0.0
+        Pitch signal
+    gamma : float or DOF, default 0.0
+        Yaw signal
+    degrees: bool, default False
+        Whether to interpret the Euler angle signals as degrees (True) or radians (False).
+        Default is False.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    nav_frame : str, default "NED"
+        Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
+        Default is "NED".
+    """
+
+    def __init__(
+        self,
+        pos_x: float | DOF = 0.0,
+        pos_y: float | DOF = 0.0,
+        pos_z: float | DOF = 0.0,
+        alpha: float | DOF = 0.0,
+        beta: float | DOF = 0.0,
+        gamma: float | DOF = 0.0,
+        degrees: bool = False,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+    ) -> None:
+        self._pos_x = pos_x if isinstance(pos_x, DOF) else ConstantDOF(pos_x)
+        self._pos_y = pos_y if isinstance(pos_y, DOF) else ConstantDOF(pos_y)
+        self._pos_z = pos_z if isinstance(pos_z, DOF) else ConstantDOF(pos_z)
+        self._alpha = alpha if isinstance(alpha, DOF) else ConstantDOF(alpha)
+        self._beta = beta if isinstance(beta, DOF) else ConstantDOF(beta)
+        self._gamma = gamma if isinstance(gamma, DOF) else ConstantDOF(gamma)
+        self._degrees = degrees
+        self._nav_frame = nav_frame.lower()
+        self._g_n = _gravity_nav(g, self._nav_frame)
+
+    def __call__(self, fs: float, n: int, degrees: bool | None = None):
+        """
+        Generate a length-n gyroscope signal and corresponding Euler angles.
+
+        Parameters
+        ----------
+        fs : float
+            Sampling frequency in Hz.
+        n : int
+            Number of samples to generate.
+        degrees : bool, optional
+            Whether to return Euler angles and angular velocities in degrees and
+            degrees per second (True) or radians and radians per second (False).
+            Defaults to the value specified at initialization.
+
+        Returns
+        -------
+        t : ndarray, shape (n,)
+            Time vector in seconds.
+        euler : ndarray, shape (n, 3)
+            Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
+        w_b : ndarray, shape (n, 3)
+            Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
+        """
+        if degrees is None:
+            degrees = self._degrees
+
+        # Time
+        dt = 1.0 / fs
+        t = dt * np.arange(n)
+
+        # DOFs and corresponding rates and accelerations
+        pos_x, pos_x_dot, pos_x_ddot = self._pos_x(t)
+        pos_y, pos_y_dot, pos_y_ddot = self._pos_y(t)
+        pos_z, pos_z_dot, pos_z_ddot = self._pos_z(t)
+        alpha, alpha_dot, _ = self._alpha(t)
+        beta, beta_dot, _ = self._beta(t)
+        gamma, gamma_dot, _ = self._gamma(t)
+
+        pos = np.column_stack([pos_x, pos_y, pos_z])
+        vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
+        acc = np.column_stack([pos_x_ddot, pos_y_ddot, pos_z_ddot])
+        euler = np.column_stack([alpha, beta, gamma])
+        euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
+
+        if self._degrees:
+            euler = np.deg2rad(euler)
+            euler_dot = np.deg2rad(euler_dot)
+
+        # IMU measurements (i.e., specific force and angular velocity in body frame)
+        f_b = _specific_force_body(pos, acc, euler, self._g_n)
+        w_b = _angular_velocity_body(euler, euler_dot)
+
+        if degrees:
+            euler = np.rad2deg(euler)
+            w_b = np.rad2deg(w_b)
+
+        return t, pos, vel, euler, f_b, w_b
+
+
+def _beating_sim(g, nav_frame):
+    f_main, f_beat = 0.1, 0.01
+    amp_p, amp_r = 0.5, np.radians(5.0)
+    sim = PVASimulator(
+        pos_x=BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=0.0),
+        pos_y=BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=np.pi / 3),
+        pos_z=BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=2 * np.pi / 3),
+        alpha=BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=np.pi),
+        beta=BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=4 * np.pi / 3),
+        gamma=BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=5 * np.pi / 3),
+        degrees=False,
+        g=g,
+        nav_frame=nav_frame,
+    )
+    return sim
+
+
 def pva_data(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
+    type_: str = "beating",
 ):
     """
     Generate position, velocity and attitude (PVA) data, and corresponding IMU data
@@ -440,6 +568,13 @@ def pva_data(
     degrees : bool, optional
         Specifies whether to return Euler angles and angular velocities in degrees
         and degrees per second or radians and radians per second (default).
+    type_ : {'beating', 'standstill'}, default 'beating'
+        Type of motion to simulate.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+    nav_frame : str, default "NED"
+        Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
+        Default is "NED".
 
     Returns
     -------
@@ -456,46 +591,11 @@ def pva_data(
     w : ndarray
         Angular rate array of shape (n, 3).
     """
+    if type_.lower() == "beating":
+        sim = _beating_sim(g, nav_frame)
+    elif type_.lower() == "standstill":
+            sim = PVASimulator(g=g, nav_frame=nav_frame)
+    else:
+        raise ValueError(f"Unknown simulation type: {type_}")
 
-    # DOF signal generators
-    f_main, f_beat = 0.1, 0.01
-    amp_p, amp_r = 0.5, np.radians(5.0)
-    pos_x = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=0.0)
-    pos_y = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=np.pi / 3)
-    pos_z = BeatDOF(amp_p, f_main, f_beat, freq_hz=True, phase=2 * np.pi / 3)
-    alpha = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=np.pi)
-    beta = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=4 * np.pi / 3)
-    gamma = BeatDOF(amp_r, f_main, f_beat, freq_hz=True, phase=5 * np.pi / 3)
-
-    # Time
-    dt = 1.0 / fs
-    t = dt * np.arange(n)
-
-    # DOFs and corresponding rates and accelerations
-    pos_x, pos_x_dot, pos_x_ddot = pos_x._y(t), pos_x._dydt(t), pos_x._d2ydt2(t)
-    pos_y, pos_y_dot, pos_y_ddot = pos_y._y(t), pos_y._dydt(t), pos_y._d2ydt2(t)
-    pos_z, pos_z_dot, pos_z_ddot = pos_z._y(t), pos_z._dydt(t), pos_z._d2ydt2(t)
-    alpha, alpha_dot, _ = alpha._y(t), alpha._dydt(t), alpha._d2ydt2(t)
-    beta, beta_dot, _ = beta._y(t), beta._dydt(t), beta._d2ydt2(t)
-    gamma, gamma_dot, _ = gamma._y(t), gamma._dydt(t), gamma._d2ydt2(t)
-
-    pos = np.column_stack([pos_x, pos_y, pos_z])
-    vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
-    acc = np.column_stack([pos_x_ddot, pos_y_ddot, pos_z_ddot])
-    euler = np.column_stack([alpha, beta, gamma])
-    euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
-
-    if degrees:
-        euler = np.radians(euler)
-        euler_dot = np.radians(euler_dot)
-
-    # IMU measurements (i.e., specific force and angular velocity in body frame)
-    g_n = _gravity_nav(g, nav_frame.lower())
-    f_b = _specific_force_body(pos, acc, euler, g_n)
-    w_b = _angular_velocity_body(euler, euler_dot)
-
-    if degrees:
-        euler = np.rad2deg(euler)
-        w_b = np.rad2deg(w_b)
-
-    return t, pos, vel, euler, f_b, w_b
+    return sim(fs, n, degrees=degrees)
