@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from smsfusion._transforms import _matrix_from_euler
+
+from ._transforms import _matrix_from_euler
 
 
 class DOF(ABC):
