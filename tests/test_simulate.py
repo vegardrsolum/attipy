@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._transforms import _matrix_from_euler
 from attipy._simulate import DOF, BeatDOF, ChirpDOF, ConstantDOF, PVASimulator, SineDOF
+from attipy._transforms import _matrix_from_euler
 
 
 @pytest.fixture
