@@ -591,13 +591,13 @@ def pva_data(
     degrees : bool, optional
         Specifies whether to return Euler angles and angular velocities in degrees
         and degrees per second or radians and radians per second (default).
-    type_ : {'beating', 'standstill'}, default 'beating'
-        Type of motion to simulate.
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : str, default "NED"
         Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
         Default is "NED".
+    type_ : {'beating', 'chirp', 'standstill'}, default 'beating'
+        Type of motion to simulate.
 
     Returns
     -------
