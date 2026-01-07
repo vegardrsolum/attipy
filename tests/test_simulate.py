@@ -612,52 +612,57 @@ class Test_pva_data:
         t, pos, vel, euler, f, w = ap.pva_data()
 
         w_main, w_beat = (2.0 * np.pi) * 0.1, (2.0 * np.pi) * 0.01
-        amp_p, amp_r = 0.5, np.radians(5.0)
 
-        # Position and velocity X
-        phase_px = 0.0
-        main = np.cos(w_main * t + phase_px)
+        # Expected position and velocity X
+        amp = 0.5
+        phase = 0.0
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase_px)
+        dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-        px_expect = amp_p * beat * main
-        vx_expect = amp_p * (dbeat * main + beat * dmain)
+        px_expect = amp * beat * main
+        vx_expect = amp * (dbeat * main + beat * dmain)
 
-        # Position and velocity Y
-        phase_py = np.pi / 3
-        main = np.cos(w_main * t + phase_py)
+        # Expected position and velocity Y
+        amp = 0.5
+        phase = np.pi / 3
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase_py)
+        dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-        py_expect = amp_p * beat * main
-        vy_expect = amp_p * (dbeat * main + beat * dmain)
+        py_expect = amp * beat * main
+        vy_expect = amp * (dbeat * main + beat * dmain)
 
-        # Position and velocity Z
-        phase_pz = 2 * np.pi / 3
-        main = np.cos(w_main * t + phase_pz)
+        # Expected position and velocity Z
+        amp = 0.5
+        phase = 2 * np.pi / 3
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase_pz)
+        dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-        pz_expect = amp_p * beat * main
-        vz_expect = amp_p * (dbeat * main + beat * dmain)
+        pz_expect = amp * beat * main
+        vz_expect = amp * (dbeat * main + beat * dmain)
 
-        # Roll
-        phase_alpha = np.pi
-        main = np.cos(w_main * t + phase_alpha)
+        # Expected roll
+        amp = np.radians(5.0)
+        phase = np.pi
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        alpha_expect = amp_r * beat * main
+        roll_expect = amp * beat * main
 
-        # Pitch
-        phase_beta = 4 * np.pi / 3
-        main = np.cos(w_main * t + phase_beta)
+        # Expected pitch
+        amp = np.radians(5.0)
+        phase = 4 * np.pi / 3
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        beta_expect = amp_r * beat * main
+        pitch_expect = amp * beat * main
 
-        # Yaw
-        phase_gamma = 5 * np.pi / 3
-        main = np.cos(w_main * t + phase_gamma)
+        # Expected yaw
+        amp = np.radians(5.0)
+        phase = 5 * np.pi / 3
+        main = np.cos(w_main * t + phase)
         beat = np.sin(w_beat / 2.0 * t)
-        gamma_expect = amp_r * beat * main
+        yaw_expect = amp * beat * main
 
         # Time
         fs_expect = 10.0
@@ -679,9 +684,9 @@ class Test_pva_data:
 
         # Euler angles
         assert euler.shape == (10_000, 3)
-        np.testing.assert_allclose(euler[:, 0], alpha_expect)
-        np.testing.assert_allclose(euler[:, 1], beta_expect)
-        np.testing.assert_allclose(euler[:, 2], gamma_expect)
+        np.testing.assert_allclose(euler[:, 0], roll_expect)
+        np.testing.assert_allclose(euler[:, 1], pitch_expect)
+        np.testing.assert_allclose(euler[:, 2], yaw_expect)
 
         # Specific force
         assert f.shape == (10_000, 3)
