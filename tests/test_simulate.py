@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import attipy as ap
 from attipy._transforms import _matrix_from_euler
 from attipy._simulate import DOF, BeatDOF, ChirpDOF, ConstantDOF, PVASimulator, SineDOF
 
@@ -604,3 +605,48 @@ class Test_PVASimulator:
         w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
+
+
+class Test_pva_data:
+    def test_default(self):
+        t, pos, vel, euler, f, w = ap.pva_data()
+
+        w_main, w_beat = (2.0 * np.pi) * 0.1, (2.0 * np.pi) * 0.01
+
+        amp_p = 0.5
+        phase_px, phase_py, phase_pz = 0.0, np.pi / 3, 2 * np.pi / 3
+        px_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_px)
+        py_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_py)
+        pz_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_pz)
+
+        amp_r = np.radians(5.0)
+        phase_alpha, phase_beta, phase_gamma = np.pi, 4 * np.pi / 3, 5 * np.pi / 3
+        alpha_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_alpha)
+        beta_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_beta)
+        gamma_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_gamma)
+
+        # Time
+        assert t.shape == (10_000,)
+        assert t[0] == 0.0
+        np.testing.assert_allclose(t[1:] - t[:-1], 1 / 10.0)
+
+        # Position
+        assert pos.shape == (10_000, 3)
+        np.testing.assert_allclose(pos[:, 0], px_expect)
+        np.testing.assert_allclose(pos[:, 1], py_expect)
+        np.testing.assert_allclose(pos[:, 2], pz_expect)
+
+        # Velocity
+        assert vel.shape == (10_000, 3)
+        
+        # Euler angles
+        assert euler.shape == (10_000, 3)
+        np.testing.assert_allclose(euler[:, 0], alpha_expect)
+        np.testing.assert_allclose(euler[:, 1], beta_expect)
+        np.testing.assert_allclose(euler[:, 2], gamma_expect)
+
+        # Specific force
+        assert f.shape == (10_000, 3)
+
+        # Angular rate
+        assert w.shape == (10_000, 3)
