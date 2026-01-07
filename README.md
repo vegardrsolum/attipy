@@ -61,15 +61,10 @@ roll and pitch degrees of freedom will converge using this aiding configuration;
 these states are still observable using specific force measurements and the known
 direction of gravity.
 
-
-Only the roll and pitch
-degrees of freedom will converge using this aiding configuration, since these are
-the only DOFs that are observable using the specific force and the known direction
-of gravity.
-
-
-Under sustained linear acceleration, attitude estimates can be improved using velocity
-measurements as aiding, and heading aiding can be used to correct the yaw angle drift:
+Under sustained linear acceleration, it is recommended to aid with actual velocity
+measurements to improve the accuracy of the attitude estimates. Heading (yaw angle)
+aiding should also be used to correct the yaw angle drift. The following example
+demonstrates how to incorporate velocity and heading aiding:
 
 ```python
 import attipy as ap
