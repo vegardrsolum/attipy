@@ -61,7 +61,7 @@ roll and pitch degrees of freedom will converge using this aiding configuration;
 these states are still observable using specific force measurements and the known
 direction of gravity.
 
-Under sustained linear acceleration, it is recommended to aid with actual velocity
+Under sustained linear acceleration, it is recommended to use actual velocity aiding
 measurements to improve the accuracy of the attitude estimates. Heading (yaw angle)
 aiding should also be used to correct the yaw angle drift. The following example
 demonstrates how to incorporate velocity and heading aiding:
