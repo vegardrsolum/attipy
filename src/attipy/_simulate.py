@@ -531,6 +531,7 @@ class PVASimulator:
 
 
 def _beating_sim(g, nav_frame):
+    """Create a beating PVA simulator."""
     f_main, f_beat = 0.1, 0.01
     amp_p, amp_r = 0.5, np.radians(5.0)
     sim = PVASimulator(
@@ -597,5 +598,4 @@ def pva_data(
             sim = PVASimulator(g=g, nav_frame=nav_frame)
     else:
         raise ValueError(f"Unknown simulation type: {type_}")
-
     return sim(fs, n, degrees=degrees)
