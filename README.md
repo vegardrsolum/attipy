@@ -60,7 +60,7 @@ yaw = euler[:, 0]
 
 euler_est = []
 for f_i, w_i, v_i, yaw_i in zip(f, w, vel, yaw_i):
-    ahrs.update(f_i, w_i, v=v_i, vel_var=(0.1, 0.1, 0.1), yaw=yaw_i, yaw_var=1.0)
+    ahrs.update(f_i, w_i, v=v_i, v_var=(0.1, 0.1, 0.1), yaw=yaw_i, yaw_var=1.0)
     euler_est.append(ahrs.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
