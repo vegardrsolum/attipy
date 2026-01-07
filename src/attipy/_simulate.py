@@ -418,16 +418,16 @@ def _angular_velocity_body(
     return w_b
 
 
-def pva_data(fs: float, n: int, degrees: bool = False):
+def pva_data(fs: float = 10.0, n: int = 10_000, degrees: bool = False):
     """
     Generate position, velocity and attitude (PVA) data, and corresponding specific
     force, and angular rate data a beating motion.
 
     Parameters
     ----------
-    fs : float
+    fs : float, default 10.0
         Sampling frequency in Hz.
-    n : int
+    n : int, default 10_000
         Number of samples to generate.
     degrees : bool, optional
         Specifies whether to return Euler angles and angular velocities in degrees
