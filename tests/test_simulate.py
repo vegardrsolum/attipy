@@ -690,7 +690,6 @@ class Test_pva_data:
         np.testing.assert_allclose(f, f_expect)
         np.testing.assert_allclose(w, np.zeros_like(w))
 
-
     def test_fs_n(self):
         fs = 20.0
         n = 5000
