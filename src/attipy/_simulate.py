@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from ._ahrs import _gravity_nav
 from ._transforms import _matrix_from_euler
 
 
@@ -364,10 +365,10 @@ class ChirpDOF(DOF):
 
 
 def _specific_force_body(
-    self,
     pos: NDArray[np.float64],
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
+    g_n: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
     Specific force in the body frame.
@@ -388,13 +389,13 @@ def _specific_force_body(
 
     for i in range(n):
         R_i = _matrix_from_euler(euler[i])
-        f_b[i] = R_i.T.dot(acc[i] - self._g_n)
+        f_b[i] = R_i.T.dot(acc[i] - g_n)
 
     return f_b
 
 
 def _angular_velocity_body(
-    self, euler: NDArray[np.float64], euler_dot: NDArray[np.float64]
+    euler: NDArray[np.float64], euler_dot: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
     Angular velocity in the body frame.
@@ -419,7 +420,13 @@ def _angular_velocity_body(
     return w_b
 
 
-def pva_data(fs: float = 10.0, n: int = 10_000, degrees: bool = False):
+def pva_data(
+    fs: float = 10.0,
+    n: int = 10_000,
+    degrees: bool = False,
+    g: float = 9.80665,
+    nav_frame: str = "NED",
+):
     """
     Generate position, velocity and attitude (PVA) data, and corresponding specific
     force, and angular rate data a beating motion.
@@ -483,7 +490,8 @@ def pva_data(fs: float = 10.0, n: int = 10_000, degrees: bool = False):
         euler_dot = np.radians(euler_dot)
 
     # IMU measurements (i.e., specific force and angular velocity in body frame)
-    f_b = _specific_force_body(pos, acc, euler)
+    g_n = _gravity_nav(g, nav_frame.lower())
+    f_b = _specific_force_body(pos, acc, euler, g_n)
     w_b = _angular_velocity_body(euler, euler_dot)
 
     if degrees:
