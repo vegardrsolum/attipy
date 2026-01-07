@@ -556,12 +556,12 @@ def _chirp_sim(g, nav_frame):
     amp_p, amp_r = 0.5, np.radians(5.0)
 
     sim = PVASimulator(
-        ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=0.0, phase_degrees=True),
-        ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=30.0, phase_degrees=True),
-        ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=60.0, phase_degrees=True),
-        ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=90.0, phase_degrees=True),
-        ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=120.0, phase_degrees=True),
-        ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=150.0, phase_degrees=True),
+        pos_x=ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=0.0),
+        pos_y=ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=np.pi / 3),
+        pos_z=ChirpDOF(amp_p, f_max, f_os, freq_hz=True, phase=2 * np.pi / 3),
+        alpha=ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=np.pi),
+        beta=ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=4 * np.pi / 3),
+        gamma=ChirpDOF(amp_r, f_max, f_os, freq_hz=True, phase=5 * np.pi / 3),
         degrees=False,
         g=g,
         nav_frame=nav_frame,
