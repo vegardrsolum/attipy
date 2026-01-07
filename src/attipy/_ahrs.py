@@ -9,6 +9,19 @@ from ._quatops import _quatprod
 from ._vectorops import _normalize, _skew_symmetric
 
 
+def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
+    """
+    Gravity vector direction in the navigation frame (NED or ENU).
+    """
+    if nav_frame == "ned":
+        g_n = np.array([0.0, 0.0, g])
+    elif nav_frame == "enu":
+        g_n = np.array([0.0, 0.0, -g])
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+    return g_n
+
+
 def _ssa(angle: float, degrees: bool = True) -> float:
     """
     Convert the given angle to the smallest signed angle between [-180., 180) degrees.
@@ -240,7 +253,7 @@ class AHRS:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._g = g
-        self._g_n = self._gravity_nav(self._nav_frame)
+        self._g_n = _gravity_nav(self._g, self._nav_frame)
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -268,18 +281,6 @@ class AHRS:
         # Discretized state space model (updated each time step)
         self._phi = self._I + self._dt * self._dfdx  # first-order approximation
         self._Q = self._dt * self._dfdw @ self._W @ self._dfdw.T
-
-    def _gravity_nav(self, nav_frame) -> NDArray[np.float64]:
-        """
-        Gravity vector direction in the navigation frame (NED or ENU).
-        """
-        if nav_frame == "ned":
-            g_n = np.array([0.0, 0.0, self._g])
-        elif nav_frame == "enu":
-            g_n = np.array([0.0, 0.0, -self._g])
-        else:
-            raise ValueError(f"Unknown navigation frame: {self._nav_frame}.")
-        return g_n
 
     @property
     def attitude(self) -> Attitude:
