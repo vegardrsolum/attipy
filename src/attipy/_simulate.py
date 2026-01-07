@@ -428,8 +428,8 @@ def pva_data(
     nav_frame: str = "NED",
 ):
     """
-    Generate position, velocity and attitude (PVA) data, and corresponding specific
-    force, and angular rate data a beating motion.
+    Generate position, velocity and attitude (PVA) data, and corresponding IMU data
+    (specific force and angular rate).
 
     Parameters
     ----------
