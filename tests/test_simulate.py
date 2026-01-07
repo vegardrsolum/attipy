@@ -611,19 +611,13 @@ class Test_pva_data:
     def test_default(self):
         t, pos, vel, euler, f, w = ap.pva_data()
 
-        amp = 0.5
-        phase = 0.0
-        w_main = 2.0 * np.pi * 0.1
-        w_beat = 2.0 * np.pi * 0.01
-        main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-        signature_signal = amp * beat * main
-        signature_signal_dot = amp * (dbeat * main + beat * dmain)
-
-        np.testing.assert_allclose(pos[:, 0], signature_signal)
-        np.testing.assert_allclose(vel[:, 0], signature_signal_dot)
+        # Expected DOF signals
+        px, vx, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=0.0)(t)
+        py, vy, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=np.pi / 3)(t)
+        pz, vz, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3)(t)
+        r, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=3 * np.pi / 3)(t)
+        p, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3)(t)
+        y, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3)(t)
 
         # Time
         fs_expect = 10.0
@@ -633,12 +627,21 @@ class Test_pva_data:
 
         # Position
         assert pos.shape == (10_000, 3)
+        np.testing.assert_allclose(pos[:, 0], px)
+        np.testing.assert_allclose(pos[:, 1], py)
+        np.testing.assert_allclose(pos[:, 2], pz)
 
         # Velocity
         assert vel.shape == (10_000, 3)
+        np.testing.assert_allclose(vel[:, 0], vx)
+        np.testing.assert_allclose(vel[:, 1], vy)
+        np.testing.assert_allclose(vel[:, 2], vz)
 
         # Euler angles
         assert euler.shape == (10_000, 3)
+        np.testing.assert_allclose(euler[:, 0], r)
+        np.testing.assert_allclose(euler[:, 1], p)
+        np.testing.assert_allclose(euler[:, 2], y)
 
         # Specific force
         assert f.shape == (10_000, 3)
@@ -656,7 +659,6 @@ class Test_pva_data:
             euler_est.append(ahrs.attitude.as_euler(degrees=False))
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
-
         pos_est = np.cumsum(vel_est, axis=0) / fs_expect
 
         np.testing.assert_allclose(pos_est[:100], pos[:100], atol=1e-1)
