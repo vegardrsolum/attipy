@@ -612,23 +612,58 @@ class Test_pva_data:
         t, pos, vel, euler, f, w = ap.pva_data()
 
         w_main, w_beat = (2.0 * np.pi) * 0.1, (2.0 * np.pi) * 0.01
+        amp_p, amp_r = 0.5, np.radians(5.0)
 
-        amp_p = 0.5
-        phase_px, phase_py, phase_pz = 0.0, np.pi / 3, 2 * np.pi / 3
-        px_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_px)
-        py_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_py)
-        pz_expect = amp_p * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_pz)
+        # Position and velocity X
+        phase_px = 0.0
+        main = np.cos(w_main * t + phase_px)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase_px)
+        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
+        px_expect = amp_p * beat * main
+        vx_expect = amp_p * (dbeat * main + beat * dmain)
 
-        amp_r = np.radians(5.0)
-        phase_alpha, phase_beta, phase_gamma = np.pi, 4 * np.pi / 3, 5 * np.pi / 3
-        alpha_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_alpha)
-        beta_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_beta)
-        gamma_expect = amp_r * np.sin(w_beat / 2.0 * t) * np.cos(w_main * t + phase_gamma)
+        # Position and velocity Y
+        phase_py = np.pi / 3
+        main = np.cos(w_main * t + phase_py)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase_py)
+        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
+        py_expect = amp_p * beat * main
+        vy_expect = amp_p * (dbeat * main + beat * dmain)
+
+        # Position and velocity Z
+        phase_pz = 2 * np.pi / 3
+        main = np.cos(w_main * t + phase_pz)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase_pz)
+        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
+        pz_expect = amp_p * beat * main
+        vz_expect = amp_p * (dbeat * main + beat * dmain)
+
+        # Roll
+        phase_alpha = np.pi
+        main = np.cos(w_main * t + phase_alpha)
+        beat = np.sin(w_beat / 2.0 * t)
+        alpha_expect = amp_r * beat * main
+
+        # Pitch
+        phase_beta = 4 * np.pi / 3
+        main = np.cos(w_main * t + phase_beta)
+        beat = np.sin(w_beat / 2.0 * t)
+        beta_expect = amp_r * beat * main
+
+        # Yaw
+        phase_gamma = 5 * np.pi / 3
+        main = np.cos(w_main * t + phase_gamma)
+        beat = np.sin(w_beat / 2.0 * t)
+        gamma_expect = amp_r * beat * main
 
         # Time
+        fs_expect = 10.0
         assert t.shape == (10_000,)
         assert t[0] == 0.0
-        np.testing.assert_allclose(t[1:] - t[:-1], 1 / 10.0)
+        np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs_expect)
 
         # Position
         assert pos.shape == (10_000, 3)
@@ -638,7 +673,10 @@ class Test_pva_data:
 
         # Velocity
         assert vel.shape == (10_000, 3)
-        
+        np.testing.assert_allclose(vel[:, 0], vx_expect)
+        np.testing.assert_allclose(vel[:, 1], vy_expect)
+        np.testing.assert_allclose(vel[:, 2], vz_expect)
+
         # Euler angles
         assert euler.shape == (10_000, 3)
         np.testing.assert_allclose(euler[:, 0], alpha_expect)
@@ -650,3 +688,17 @@ class Test_pva_data:
 
         # Angular rate
         assert w.shape == (10_000, 3)
+
+        # Validate f and w by strapdown integration using AHRS (no aiding)
+        att0 = ap.Attitude.from_euler(euler[0], degrees=False)
+        ahrs = ap.AHRS(fs_expect, q=att0, v=vel[0])
+        vel_est, euler_est = [vel[0]], [euler[0]]
+        for f_i, w_i in zip(f[1:], w[1:]):
+            ahrs.update(f_i, w_i, v=None)
+            vel_est.append(ahrs.v)
+            euler_est.append(ahrs.attitude.as_euler(degrees=False))
+        vel_est = np.array(vel_est)
+        euler_est = np.array(euler_est)
+
+        np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
+        np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
