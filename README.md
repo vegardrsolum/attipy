@@ -25,7 +25,7 @@ q = att.as_quaternion()
 ```
 
 
-Estimate attitude from IMU measurements (accelerometer and gyroscope) using the AHRS class:
+Estimate attitude from IMU (accelerometer and gyroscope) measurements using the AHRS class:
 
 ```python
 import attipy as ap
