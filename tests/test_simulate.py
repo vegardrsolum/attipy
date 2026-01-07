@@ -664,3 +664,22 @@ class Test_pva_data:
         np.testing.assert_allclose(pos_est[:100], pos[:100], atol=1e-1)
         np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
+
+    def test_fs_n(self):
+        fs = 20.0
+        n = 5000
+        t, pos, vel, euler, f, w = ap.pva_data(fs=fs, n=n)
+
+        assert t.shape == (n,)
+        assert pos.shape == (n, 3)
+        assert vel.shape == (n, 3)
+        assert euler.shape == (n, 3)
+        assert f.shape == (n, 3)
+        assert w.shape == (n, 3)
+        np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
+
+    def test_degrees(self):
+        *_, euler_deg, _, _ = ap.pva_data(degrees=True)
+        *_, euler_rad, _, _ = ap.pva_data(degrees=False)
+
+        np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
