@@ -32,11 +32,19 @@ import attipy as ap
 import numpy as np
 
 
+# PVA/IMU reference signals
 fs = 10.0  # sampling rate in Hz
-ahrs = ap.AHRS(fs)
-
 *_, f, w = ap.pva_data()
 
+# Add IMU measurement noise
+acc_noise_density = 0.001
+gyro_noise_density = 0.0001
+rng = np.random.default_rng(42)
+f += acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
+w += gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+
+# Estimate attitude using AHRS
+ahrs = ap.AHRS(fs)
 euler_est = []
 for f_i, w_i in zip(f, w):
     ahrs.update(f_i, w_i)
