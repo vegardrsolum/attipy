@@ -19,23 +19,9 @@ import attipy as ap
 import numpy as np
 
 
-# Quaternion to Euler angles
-q = [1.0, 0.0, 0.0, 0.0]
-euler = ap.Attitude.from_quaternion(q).as_euler()
-
-# Euler angles to quaternion
-euler = [np.pi/8, np.pi/4, np.pi/2]
-q = ap.Attitude.from_euler(euler).as_quaternion()
-
-# Quaternion to rotation matrix
-q = [1.0, 0.0, 0.0, 0.0]
-R = ap.Attitude.from_quaternion(q).as_matrix()
-
-# Rotation matrix to Euler angles
-R = np.eye(3)
-euler = ap.Attitude.from_quaternion(q).as_matrix()
-
-# etc.
+# From Euler angles to unit quaternion
+att = ap.Attitude.from_euler([0.0, 0.0, 0.0])
+q = att.as_quaternion()
 ```
 
 
@@ -49,10 +35,12 @@ import numpy as np
 fs = 10.0  # sampling rate in Hz
 ahrs = ap.AHRS(fs)
 
-euler = []
-for f_i, w_i in zip(acc, gyro):
+*_, f, w = ap.pva_data()
+
+euler_est = []
+for f_i, w_i in zip(f, w):
     ahrs.update(f_i, w_i)
-    euler.append(ahrs.attitude.as_euler())
-euler = np.asarray(euler)
+    euler_est.append(ahrs.attitude.as_euler())
+euler_est = np.asarray(euler_est)
 ```
 
