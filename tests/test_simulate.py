@@ -665,6 +665,32 @@ class Test_pva_data:
         np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
 
+    def test_beating(self):
+        t, pos, vel, *_ = ap.pva_data(type_="beating")
+        px, vx, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=0.0)(t)
+
+        np.testing.assert_allclose(pos[:, 0], px)
+        np.testing.assert_allclose(vel[:, 0], vx)
+
+    def test_chirp(self):
+        t, pos, vel, *_ = ap.pva_data(type_="chirp")
+        px, vx, _ = ChirpDOF(0.5, 0.25, 0.01, freq_hz=True, phase=0.0)(t)
+
+        np.testing.assert_allclose(pos[:, 0], px)
+        np.testing.assert_allclose(vel[:, 0], vx)
+
+    def test_standstill(self):
+        _, pos, vel, euler, f, w = ap.pva_data(type_="standstill")
+
+        f_expect = np.full(f.shape, np.array([0.0, 0.0, -9.80665]))
+
+        np.testing.assert_allclose(pos, np.zeros_like(pos))
+        np.testing.assert_allclose(vel, np.zeros_like(vel))
+        np.testing.assert_allclose(euler, np.zeros_like(euler))
+        np.testing.assert_allclose(f, f_expect)
+        np.testing.assert_allclose(w, np.zeros_like(w))
+
+
     def test_fs_n(self):
         fs = 20.0
         n = 5000
