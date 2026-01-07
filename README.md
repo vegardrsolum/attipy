@@ -52,6 +52,22 @@ for f_i, w_i in zip(f_meas, w_meas):
 euler_est = np.asarray(euler_est)
 ```
 
+To limit integration drift, the AHRS state estimates must be corrected using long
+term stable aiding measurements. If no aiding measurements are available (as in the
+example above), an assumption of stationarity must be used to ensure convergence and
+stability of the attitude estimates. The default aiding configuration is thus set
+to zero velocity with an uncertainty of 10 m/s standard deviation. Note: only the
+roll and pitch degrees of freedom will converge using this aiding configuration;
+these states are still observable using specific force measurements and the known
+direction of gravity.
+
+
+Only the roll and pitch
+degrees of freedom will converge using this aiding configuration, since these are
+the only DOFs that are observable using the specific force and the known direction
+of gravity.
+
+
 Under sustained linear acceleration, attitude estimates can be improved using velocity
 measurements as aiding, and heading aiding can be used to correct the yaw angle drift:
 
