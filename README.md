@@ -39,8 +39,8 @@ fs = 10.0  # sampling rate in Hz
 _, _, _, euler, f, w = ap.pva_data(fs)
 
 # Add IMU measurement noise
-acc_noise_density = 0.001
-gyro_noise_density = 0.0001
+acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
+gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
@@ -76,15 +76,15 @@ t, pos, vel, euler, f, w = ap.pva_data(fs)
 yaw = euler[:, 2]
 
 # Add IMU measurement noise
-acc_noise_density = 0.001
-gyro_noise_density = 0.0001
+acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
+gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
 # Add velocity and heading measurement noise
-vel_var = 0.01
-yaw_var = 0.0003
+vel_var = 0.01  # (m/s)^2
+yaw_var = 0.0003  # rad^2
 rng = np.random.default_rng(42)
 vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
