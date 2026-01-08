@@ -140,7 +140,9 @@ class Test_AHRS:
         rng = np.random.default_rng(42)
         f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+            w_b
+            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
+            + bg_b
         )
 
         # Estimate attitude using AHRS
@@ -176,7 +178,9 @@ class Test_AHRS:
         rng = np.random.default_rng(42)
         f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+            w_b
+            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
+            + bg_b
         )
 
         # Add velocity and heading measurement noise
@@ -224,7 +228,9 @@ class Test_AHRS:
         rng = np.random.default_rng(42)
         f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+            w_b
+            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
+            + bg_b
         )
 
         # Add velocity and heading measurement noise
@@ -265,7 +271,9 @@ class Test_AHRS:
         rng = np.random.default_rng(42)
         f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+            w_b
+            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
+            + bg_b
         )
 
         # Add velocity and heading measurement noise
