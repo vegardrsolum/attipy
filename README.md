@@ -60,10 +60,9 @@ with a 10 m/s standard deviation is used; this constrains roll and pitch only, a
 these are the only degrees of freedom observable from specific force and the known
 direction of gravity.
 
-Under sustained linear acceleration it is recommended to use actual velocity aiding
-measurements to improve the accuracy of the attitude estimates. Heading (yaw angle)
-aiding should also be used to correct the yaw angle drift. The following example
-demonstrates how to incorporate velocity and heading aiding:
+Under sustained linear acceleration, velocity aiding is recommended to maintain
+accurate attitude estimates. Heading (yaw) aiding should also be applied to correct
+the yaw drift. The following example shows how to incorporate both.
 
 ```python
 import attipy as ap
