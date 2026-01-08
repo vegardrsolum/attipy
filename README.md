@@ -41,9 +41,10 @@ _, _, _, euler, f, w = ap.pva_data(fs)
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
 gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
+bg = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
 
 # Estimate attitude using AHRS
 ahrs = ap.AHRS(fs)
@@ -78,9 +79,10 @@ yaw = euler[:, 2]
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
 gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
+bg = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
 
 # Add velocity and heading measurement noise
 vel_var = 0.01  # (m/s)^2
