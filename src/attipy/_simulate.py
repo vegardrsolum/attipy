@@ -647,8 +647,8 @@ def pva_data(
         - 'standstill': no motion (stationary).
         - 'beat': beating motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
         - 'chirp': chirp motion (oscillates between 0 and 0.25 Hz at a rate of 0.01 Hz).
-        Amplitudes are +/- 5 degrees for attitude and +/- 1 meter for position.
-        Phases are assigned to provide variation across all axes.
+        Attitude is +/- 5 degrees and position is +/- 1 meters. Phases are assigned
+        to provide variation across all axes.
 
     Returns
     -------
