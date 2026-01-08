@@ -552,6 +552,49 @@ def _beating_sim(g, nav_frame):
     return sim
 
 
+def _beating_pva_sim(g, nav_frame):
+    """Create a beating PVA simulator."""
+    f_main, f_beat = 0.1, 0.01
+
+    amp_att = np.radians(5.0)
+    amp_pos = 0.5
+    phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
+    phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
+
+    sim = PVASimulator(
+        pos_x=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0]),
+        pos_y=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1]),
+        pos_z=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2]),
+        alpha=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
+        beta=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
+        gamma=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
+        degrees=False,
+        g=g,
+        nav_frame=nav_frame,
+    )
+
+    return sim
+
+
+def _beating_att_sim(g, nav_frame):
+    """Create a beating PVA simulator."""
+    f_main, f_beat = 0.1, 0.01
+
+    amp_att = np.radians(5.0)
+    phases_att = (np.pi, 4 * np.pi / 3, 5 * np.pi / 3)
+
+    sim = PVASimulator(
+        alpha=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
+        beta=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
+        gamma=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
+        degrees=False,
+        g=g,
+        nav_frame=nav_frame,
+    )
+
+    return sim
+
+
 def _chirp_sim(g, nav_frame):
     """Create a beating PVA simulator."""
     f_max, f_os = 0.25, 0.01
@@ -637,12 +680,16 @@ def pva_data(
     w : ndarray
         Angular rate array of shape (n, 3).
     """
-    if type_.lower() == "beating":
+    if type_.lower() == "standstill":
+        sim = PVASimulator(g=g, nav_frame=nav_frame)
+    elif type_.lower() == "beating_att":
+        sim = _beating_att_sim(g, nav_frame)
+    elif type_.lower() == "beating_pva":
+        sim = _beating_pva_sim(g, nav_frame)
+    elif type_.lower() == "beating":
         sim = _beating_sim(g, nav_frame)
     elif type_.lower() == "chirp":
         sim = _chirp_sim(g, nav_frame)
-    elif type_.lower() == "standstill":
-        sim = PVASimulator(g=g, nav_frame=nav_frame)
     else:
         raise ValueError(f"Unknown simulation type: {type_}")
     return sim(fs, n, degrees=degrees)
