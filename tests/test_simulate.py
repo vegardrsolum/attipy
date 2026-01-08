@@ -393,10 +393,10 @@ class Test_PVASimulator:
         pos_x = SineDOF(1.0, 1.0)
         pos_y = SineDOF(2.0, 0.5)
         pos_z = SineDOF(3.0, 0.1)
-        alpha = SineDOF(4.0, 1.0)
-        beta = SineDOF(5.0, 0.5)
-        gamma = SineDOF(6.0, 0.1)
-        sim = PVASimulator(pos_x, pos_y, pos_z, alpha, beta, gamma, degrees=True)
+        roll = SineDOF(4.0, 1.0)
+        pitch = SineDOF(5.0, 0.5)
+        yaw = SineDOF(6.0, 0.1)
+        sim = PVASimulator(pos_x, pos_y, pos_z, roll, pitch, yaw, degrees=True)
         return sim
 
     def test__init__default(self):
@@ -404,15 +404,15 @@ class Test_PVASimulator:
         assert isinstance(sim._pos_x, ConstantDOF)
         assert isinstance(sim._pos_y, ConstantDOF)
         assert isinstance(sim._pos_z, ConstantDOF)
-        assert isinstance(sim._alpha, ConstantDOF)
-        assert isinstance(sim._beta, ConstantDOF)
-        assert isinstance(sim._gamma, ConstantDOF)
+        assert isinstance(sim._roll, ConstantDOF)
+        assert isinstance(sim._pitch, ConstantDOF)
+        assert isinstance(sim._yaw, ConstantDOF)
         assert sim._pos_x._value == 0.0
         assert sim._pos_y._value == 0.0
         assert sim._pos_z._value == 0.0
-        assert sim._alpha._value == 0.0
-        assert sim._beta._value == 0.0
-        assert sim._gamma._value == 0.0
+        assert sim._roll._value == 0.0
+        assert sim._pitch._value == 0.0
+        assert sim._yaw._value == 0.0
         assert sim._degrees is False
         assert sim._nav_frame == "ned"
         np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, 9.80665]))
@@ -422,31 +422,31 @@ class Test_PVASimulator:
         assert isinstance(sim._pos_x, ConstantDOF)
         assert isinstance(sim._pos_y, ConstantDOF)
         assert isinstance(sim._pos_z, ConstantDOF)
-        assert isinstance(sim._alpha, ConstantDOF)
-        assert isinstance(sim._beta, ConstantDOF)
-        assert isinstance(sim._gamma, ConstantDOF)
+        assert isinstance(sim._roll, ConstantDOF)
+        assert isinstance(sim._pitch, ConstantDOF)
+        assert isinstance(sim._yaw, ConstantDOF)
         assert sim._pos_x._value == 1.0
         assert sim._pos_y._value == 2.0
         assert sim._pos_z._value == 3.0
-        assert sim._alpha._value == 4.0
-        assert sim._beta._value == 5.0
-        assert sim._gamma._value == 6.0
+        assert sim._roll._value == 4.0
+        assert sim._pitch._value == 5.0
+        assert sim._yaw._value == 6.0
 
     def test__init__dof(self):
         pos_x = SineDOF(1.0, 1.0)
         pos_y = ConstantDOF(2.0)
         pos_z = SineDOF(0.5, 0.5)
-        alpha = ConstantDOF(10.0)
-        beta = SineDOF(5.0, 2.0)
-        gamma = ConstantDOF(-5.0)
+        roll = ConstantDOF(10.0)
+        pitch = SineDOF(5.0, 2.0)
+        yaw = ConstantDOF(-5.0)
 
         sim = PVASimulator(
             pos_x=pos_x,
             pos_y=pos_y,
             pos_z=pos_z,
-            alpha=alpha,
-            beta=beta,
-            gamma=gamma,
+            roll=roll,
+            pitch=pitch,
+            yaw=yaw,
             degrees=True,
             g=9.84,
             nav_frame="ENU",
@@ -455,9 +455,9 @@ class Test_PVASimulator:
         assert sim._pos_x is pos_x
         assert sim._pos_y is pos_y
         assert sim._pos_z is pos_z
-        assert sim._alpha is alpha
-        assert sim._beta is beta
-        assert sim._gamma is gamma
+        assert sim._roll is roll
+        assert sim._pitch is pitch
+        assert sim._yaw is yaw
         assert sim._degrees is True
         assert sim._nav_frame == "enu"
         np.testing.assert_allclose(sim._g_n, np.array([0.0, 0.0, -9.84]))
@@ -483,9 +483,9 @@ class Test_PVASimulator:
 
         # Euler angles
         assert euler.shape == (n, 3)
-        np.testing.assert_allclose(euler[:, 0], sim._alpha.y(t))
-        np.testing.assert_allclose(euler[:, 1], sim._beta.y(t))
-        np.testing.assert_allclose(euler[:, 2], sim._gamma.y(t))
+        np.testing.assert_allclose(euler[:, 0], sim._roll.y(t))
+        np.testing.assert_allclose(euler[:, 1], sim._pitch.y(t))
+        np.testing.assert_allclose(euler[:, 2], sim._yaw.y(t))
 
         # Specific force
         assert f.shape == (n, 3)
@@ -500,13 +500,13 @@ class Test_PVASimulator:
 
         # Angular rate
         assert w.shape == (n, 3)
-        alpha, beta = np.radians(euler[:, 0:2]).T
-        alpha_dot = sim._alpha.dydt(t)
-        beta_dot = sim._beta.dydt(t)
-        gamma_dot = sim._gamma.dydt(t)
-        w_x = alpha_dot - np.sin(beta) * gamma_dot
-        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
-        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        roll, pitch = np.radians(euler[:, 0:2]).T
+        roll_dot = sim._roll.dydt(t)
+        pitch_dot = sim._pitch.dydt(t)
+        yaw_dot = sim._yaw.dydt(t)
+        w_x = roll_dot - np.sin(pitch) * yaw_dot
+        w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
+        w_z = -np.sin(roll) * pitch_dot + np.cos(roll) * np.cos(pitch) * yaw_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
 
@@ -531,9 +531,9 @@ class Test_PVASimulator:
 
         # Euler angles
         assert euler.shape == (n, 3)
-        np.testing.assert_allclose(euler[:, 0], sim._alpha.y(t))
-        np.testing.assert_allclose(euler[:, 1], sim._beta.y(t))
-        np.testing.assert_allclose(euler[:, 2], sim._gamma.y(t))
+        np.testing.assert_allclose(euler[:, 0], sim._roll.y(t))
+        np.testing.assert_allclose(euler[:, 1], sim._pitch.y(t))
+        np.testing.assert_allclose(euler[:, 2], sim._yaw.y(t))
 
         # Specific force
         assert f.shape == (n, 3)
@@ -548,13 +548,13 @@ class Test_PVASimulator:
 
         # Angular rate
         assert w.shape == (n, 3)
-        alpha, beta = np.radians(euler[:, 0:2]).T
-        alpha_dot = sim._alpha.dydt(t)
-        beta_dot = sim._beta.dydt(t)
-        gamma_dot = sim._gamma.dydt(t)
-        w_x = alpha_dot - np.sin(beta) * gamma_dot
-        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
-        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        roll, pitch = np.radians(euler[:, 0:2]).T
+        roll_dot = sim._roll.dydt(t)
+        pitch_dot = sim._pitch.dydt(t)
+        yaw_dot = sim._yaw.dydt(t)
+        w_x = roll_dot - np.sin(pitch) * yaw_dot
+        w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
+        w_z = -np.sin(roll) * pitch_dot + np.cos(roll) * np.cos(pitch) * yaw_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
 
@@ -579,9 +579,9 @@ class Test_PVASimulator:
 
         # Euler angles
         assert euler.shape == (n, 3)
-        np.testing.assert_allclose(euler[:, 0], np.radians(sim._alpha.y(t)))
-        np.testing.assert_allclose(euler[:, 1], np.radians(sim._beta.y(t)))
-        np.testing.assert_allclose(euler[:, 2], np.radians(sim._gamma.y(t)))
+        np.testing.assert_allclose(euler[:, 0], np.radians(sim._roll.y(t)))
+        np.testing.assert_allclose(euler[:, 1], np.radians(sim._pitch.y(t)))
+        np.testing.assert_allclose(euler[:, 2], np.radians(sim._yaw.y(t)))
 
         # Specific force
         assert f.shape == (n, 3)
@@ -596,13 +596,13 @@ class Test_PVASimulator:
 
         # Angular rate
         assert w.shape == (n, 3)
-        alpha, beta = euler[:, 0:2].T
-        alpha_dot = np.radians(sim._alpha.dydt(t))
-        beta_dot = np.radians(sim._beta.dydt(t))
-        gamma_dot = np.radians(sim._gamma.dydt(t))
-        w_x = alpha_dot - np.sin(beta) * gamma_dot
-        w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
-        w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+        roll, pitch = euler[:, 0:2].T
+        roll_dot = np.radians(sim._roll.dydt(t))
+        pitch_dot = np.radians(sim._pitch.dydt(t))
+        yaw_dot = np.radians(sim._yaw.dydt(t))
+        w_x = roll_dot - np.sin(pitch) * yaw_dot
+        w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
+        w_z = -np.sin(roll) * pitch_dot + np.cos(roll) * np.cos(pitch) * yaw_dot
         w_b = np.column_stack([w_x, w_y, w_z])
         np.testing.assert_allclose(w, w_b)
 

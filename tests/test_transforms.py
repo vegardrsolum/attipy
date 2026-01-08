@@ -58,8 +58,8 @@ def test__euler_zyx_from_quat(angle, axis, euler):
         ]
     )
 
-    alpha_beta_gamma = _euler_zyx_from_quat(q)
-    np.testing.assert_array_almost_equal(alpha_beta_gamma, euler, decimal=16)
+    roll_pitch_yaw = _euler_zyx_from_quat(q)
+    np.testing.assert_array_almost_equal(roll_pitch_yaw, euler, decimal=16)
 
 
 @pytest.mark.parametrize(

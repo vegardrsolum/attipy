@@ -113,9 +113,9 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
-            - Roll (alpha): Rotation about the x-axis.
-            - Pitch (beta): Rotation about the y-axis.
-            - Yaw (gamma): Rotation about the z-axis.
+            - Roll (roll): Rotation about the x-axis.
+            - Pitch (pitch): Rotation about the y-axis.
+            - Yaw (yaw): Rotation about the z-axis.
 
     References
     ----------
@@ -123,11 +123,11 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     qw, qx, qy, qz = q
 
-    alpha = np.arctan2(2.0 * (qy * qz + qx * qw), 1.0 - 2.0 * (qx**2 + qy**2))
-    beta = -np.arcsin(2.0 * (qx * qz - qy * qw))
-    gamma = np.arctan2(2.0 * (qx * qy + qz * qw), 1.0 - 2.0 * (qy**2 + qz**2))
+    roll = np.arctan2(2.0 * (qy * qz + qx * qw), 1.0 - 2.0 * (qx**2 + qy**2))
+    pitch = -np.arcsin(2.0 * (qx * qz - qy * qw))
+    yaw = np.arctan2(2.0 * (qx * qy + qz * qw), 1.0 - 2.0 * (qy**2 + qz**2))
 
-    return np.array([alpha, beta, gamma])
+    return np.array([roll, pitch, yaw])
 
 
 @njit  # type: ignore[misc]
@@ -140,9 +140,9 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
-            - Roll (alpha): Rotation about the x-axis.
-            - Pitch (beta): Rotation about the y-axis.
-            - Yaw (gamma): Rotation about the z-axis.
+            - Roll (roll): Rotation about the x-axis.
+            - Pitch (pitch): Rotation about the y-axis.
+            - Yaw (yaw): Rotation about the z-axis.
 
     Notes
     -----
@@ -156,25 +156,25 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
-    alpha, beta, gamma = euler
-    cos_gamma = np.cos(gamma)
-    sin_gamma = np.sin(gamma)
-    cos_beta = np.cos(beta)
-    sin_beta = np.sin(beta)
-    cos_alpha = np.cos(alpha)
-    sin_alpha = np.sin(alpha)
+    roll, pitch, yaw = euler
+    cos_yaw = np.cos(yaw)
+    sin_yaw = np.sin(yaw)
+    cos_pitch = np.cos(pitch)
+    sin_pitch = np.sin(pitch)
+    cos_roll = np.cos(roll)
+    sin_roll = np.sin(roll)
 
-    r00 = cos_gamma * cos_beta
-    r01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
-    r02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+    r00 = cos_yaw * cos_pitch
+    r01 = -sin_yaw * cos_roll + cos_yaw * sin_pitch * sin_roll
+    r02 = sin_yaw * sin_roll + cos_yaw * sin_pitch * cos_roll
 
-    r10 = sin_gamma * cos_beta
-    r11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    r12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+    r10 = sin_yaw * cos_pitch
+    r11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll
+    r12 = -cos_yaw * sin_roll + sin_yaw * sin_pitch * cos_roll
 
-    r20 = -sin_beta
-    r21 = cos_beta * sin_alpha
-    r22 = cos_beta * cos_alpha
+    r20 = -sin_pitch
+    r21 = cos_pitch * sin_roll
+    r22 = cos_pitch * cos_roll
 
     R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
     return R
@@ -190,13 +190,13 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
 
-    alpha_half, beta_half, gamma_half = euler / 2.0
-    ca_half = np.cos(alpha_half)
-    sa_half = np.sin(alpha_half)
-    cb_half = np.cos(beta_half)
-    sb_half = np.sin(beta_half)
-    cg_half = np.cos(gamma_half)
-    sg_half = np.sin(gamma_half)
+    roll_half, pitch_half, yaw_half = euler / 2.0
+    ca_half = np.cos(roll_half)
+    sa_half = np.sin(roll_half)
+    cb_half = np.cos(pitch_half)
+    sb_half = np.sin(pitch_half)
+    cg_half = np.cos(yaw_half)
+    sg_half = np.sin(yaw_half)
 
     qw = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
     qx = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
@@ -268,9 +268,9 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     euler : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
-            - Roll (alpha): Rotation about the x-axis.
-            - Pitch (beta): Rotation about the y-axis.
-            - Yaw (gamma): Rotation about the z-axis.
+            - Roll (roll): Rotation about the x-axis.
+            - Pitch (pitch): Rotation about the y-axis.
+            - Yaw (yaw): Rotation about the z-axis.
 
     Notes
     -----
@@ -284,25 +284,25 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
-    alpha, beta, gamma = euler
-    cos_gamma = np.cos(gamma)
-    sin_gamma = np.sin(gamma)
-    cos_beta = np.cos(beta)
-    sin_beta = np.sin(beta)
-    cos_alpha = np.cos(alpha)
-    sin_alpha = np.sin(alpha)
+    roll, pitch, yaw = euler
+    cos_yaw = np.cos(yaw)
+    sin_yaw = np.sin(yaw)
+    cos_pitch = np.cos(pitch)
+    sin_pitch = np.sin(pitch)
+    cos_roll = np.cos(roll)
+    sin_roll = np.sin(roll)
 
-    rot_00 = cos_gamma * cos_beta
-    rot_01 = -sin_gamma * cos_alpha + cos_gamma * sin_beta * sin_alpha
-    rot_02 = sin_gamma * sin_alpha + cos_gamma * sin_beta * cos_alpha
+    rot_00 = cos_yaw * cos_pitch
+    rot_01 = -sin_yaw * cos_roll + cos_yaw * sin_pitch * sin_roll
+    rot_02 = sin_yaw * sin_roll + cos_yaw * sin_pitch * cos_roll
 
-    rot_10 = sin_gamma * cos_beta
-    rot_11 = cos_gamma * cos_alpha + sin_gamma * sin_beta * sin_alpha
-    rot_12 = -cos_gamma * sin_alpha + sin_gamma * sin_beta * cos_alpha
+    rot_10 = sin_yaw * cos_pitch
+    rot_11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll
+    rot_12 = -cos_yaw * sin_roll + sin_yaw * sin_pitch * cos_roll
 
-    rot_20 = -sin_beta
-    rot_21 = cos_beta * sin_alpha
-    rot_22 = cos_beta * cos_alpha
+    rot_20 = -sin_pitch
+    rot_21 = cos_pitch * sin_roll
+    rot_22 = cos_pitch * cos_roll
 
     rot = np.array(
         [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
