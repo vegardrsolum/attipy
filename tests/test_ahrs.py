@@ -188,25 +188,30 @@ class Test_AHRS:
 
         # Estimate attitude using AHRS
         ahrs = ap.AHRS(fs)
-        euler_est, bg_est = [], []
+        euler_est, bg_est, v_est = [], [], []
         for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
             ahrs.update(
                 f_i, w_i, v=v_i, v_var=vel_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
             euler_est.append(ahrs.attitude.as_euler())
             bg_est.append(ahrs.bg)
+            v_est.append(ahrs.v)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
+        v_est = np.asarray(v_est)
 
         # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
-        euler_out = euler_est[warmup:, :2]
-        bg_out = bg_est[warmup:, :2]
+        euler_expect = euler[warmup:]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:]
+        v_expect = vel[warmup:]
+        euler_out = euler_est[warmup:]
+        bg_out = bg_est[warmup:]
+        v_out = v_est[warmup:]
 
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+        np.testing.assert_allclose(v_out, v_expect, atol=2.0 * np.sqrt(vel_var))
 
     def test_update_vel_aiding(self, pva_data):
         _, _, vel, euler, f, w = pva_data
@@ -280,10 +285,10 @@ class Test_AHRS:
 
         # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
-        euler_out = euler_est[warmup:, :2]
-        bg_out = bg_est[warmup:, :2]
+        euler_expect = euler[warmup:]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:]
+        euler_out = euler_est[warmup:]
+        bg_out = bg_est[warmup:]
 
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
