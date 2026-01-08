@@ -99,14 +99,13 @@ class Attitude:
     - Rotation vector (3 parameters).
 
     The attitude can also be updated with incremental rotations, making it useful
-    for attitude propagation (strapdown algorithm) in inertial navigation systems
-    (INS).
+    for attitude propagation in inertial navigation systems (strapdown algorithm).
 
     Parameters
     ----------
     q : ArrayLike
         The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-        part, and qx, qy and qz are the vector parts, respectively.
+        part and (qx, qy, qz) is the vector part.
     """
 
     def __init__(self, q: ArrayLike) -> None:
@@ -138,7 +137,7 @@ class Attitude:
         ----------
         q : ArrayLike
             The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-            part, and qx, qy and qz are the vector parts, respectively.
+            part and (qx, qy, qz) is the vector part.
 
         Returns
         -------
@@ -167,7 +166,7 @@ class Attitude:
         -------
         numpy.ndarray, shape (4,)
             The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-            part, and qx, qy and qz are the vector parts, respectively.
+            part and (qx, qy, qz) is the vector part.
         """
         return self._q.copy()
 
@@ -188,7 +187,7 @@ class Attitude:
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix, R. Should be element of SO(3).
+            Direction cosine matrix, R. Element of SO(3).
 
         Returns
         -------
@@ -331,7 +330,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Rotation vector, [theta_x, theta_y, theta_z].
+            Rotation vector, (theta_x, theta_y, theta_z).
         degrees : bool, default False
             Specifies whether the input rotation vector is given in degrees or radians
             (default).
@@ -362,7 +361,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            Rotation vector, [theta_x, theta_y, theta_z].
+            Rotation vector, (theta_x, theta_y, theta_z).
 
         References
         ----------

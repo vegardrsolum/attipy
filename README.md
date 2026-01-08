@@ -47,7 +47,8 @@ f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
 
 # Estimate attitude using AHRS
-ahrs = ap.AHRS(fs)
+att0 = ap.Attitude.from_euler(euler[0])
+ahrs = ap.AHRS(fs, att0)
 euler_est = []
 for f_i, w_i in zip(f_meas, w_meas):
     ahrs.update(f_i, w_i)
@@ -92,7 +93,8 @@ vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
 # Estimate attitude using AHRS
-ahrs = ap.AHRS(fs)
+att0 = ap.Attitude.from_euler(euler[0])
+ahrs = ap.AHRS(fs, att0)
 euler_est = []
 for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
     ahrs.update(f_i, w_i, v=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)

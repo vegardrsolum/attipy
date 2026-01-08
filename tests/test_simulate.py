@@ -390,26 +390,26 @@ class Test_PVASimulator:
 
     @pytest.fixture
     def sim(self):
-        pos_x = SineDOF(1.0, 1.0)
-        pos_y = SineDOF(2.0, 0.5)
-        pos_z = SineDOF(3.0, 0.1)
+        px = SineDOF(1.0, 1.0)
+        py = SineDOF(2.0, 0.5)
+        pz = SineDOF(3.0, 0.1)
         roll = SineDOF(4.0, 1.0)
         pitch = SineDOF(5.0, 0.5)
         yaw = SineDOF(6.0, 0.1)
-        sim = PVASimulator(pos_x, pos_y, pos_z, roll, pitch, yaw, degrees=True)
+        sim = PVASimulator(px, py, pz, roll, pitch, yaw, degrees=True)
         return sim
 
     def test__init__default(self):
         sim = PVASimulator()
-        assert isinstance(sim._pos_x, ConstantDOF)
-        assert isinstance(sim._pos_y, ConstantDOF)
-        assert isinstance(sim._pos_z, ConstantDOF)
+        assert isinstance(sim._px, ConstantDOF)
+        assert isinstance(sim._py, ConstantDOF)
+        assert isinstance(sim._pz, ConstantDOF)
         assert isinstance(sim._roll, ConstantDOF)
         assert isinstance(sim._pitch, ConstantDOF)
         assert isinstance(sim._yaw, ConstantDOF)
-        assert sim._pos_x._value == 0.0
-        assert sim._pos_y._value == 0.0
-        assert sim._pos_z._value == 0.0
+        assert sim._px._value == 0.0
+        assert sim._py._value == 0.0
+        assert sim._pz._value == 0.0
         assert sim._roll._value == 0.0
         assert sim._pitch._value == 0.0
         assert sim._yaw._value == 0.0
@@ -419,31 +419,31 @@ class Test_PVASimulator:
 
     def test__init__float(self):
         sim = PVASimulator(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-        assert isinstance(sim._pos_x, ConstantDOF)
-        assert isinstance(sim._pos_y, ConstantDOF)
-        assert isinstance(sim._pos_z, ConstantDOF)
+        assert isinstance(sim._px, ConstantDOF)
+        assert isinstance(sim._py, ConstantDOF)
+        assert isinstance(sim._pz, ConstantDOF)
         assert isinstance(sim._roll, ConstantDOF)
         assert isinstance(sim._pitch, ConstantDOF)
         assert isinstance(sim._yaw, ConstantDOF)
-        assert sim._pos_x._value == 1.0
-        assert sim._pos_y._value == 2.0
-        assert sim._pos_z._value == 3.0
+        assert sim._px._value == 1.0
+        assert sim._py._value == 2.0
+        assert sim._pz._value == 3.0
         assert sim._roll._value == 4.0
         assert sim._pitch._value == 5.0
         assert sim._yaw._value == 6.0
 
     def test__init__dof(self):
-        pos_x = SineDOF(1.0, 1.0)
-        pos_y = ConstantDOF(2.0)
-        pos_z = SineDOF(0.5, 0.5)
+        px = SineDOF(1.0, 1.0)
+        py = ConstantDOF(2.0)
+        pz = SineDOF(0.5, 0.5)
         roll = ConstantDOF(10.0)
         pitch = SineDOF(5.0, 2.0)
         yaw = ConstantDOF(-5.0)
 
         sim = PVASimulator(
-            pos_x=pos_x,
-            pos_y=pos_y,
-            pos_z=pos_z,
+            px=px,
+            py=py,
+            pz=pz,
             roll=roll,
             pitch=pitch,
             yaw=yaw,
@@ -452,9 +452,9 @@ class Test_PVASimulator:
             nav_frame="ENU",
         )
 
-        assert sim._pos_x is pos_x
-        assert sim._pos_y is pos_y
-        assert sim._pos_z is pos_z
+        assert sim._px is px
+        assert sim._py is py
+        assert sim._pz is pz
         assert sim._roll is roll
         assert sim._pitch is pitch
         assert sim._yaw is yaw
@@ -471,15 +471,15 @@ class Test_PVASimulator:
 
         # Position
         assert pos.shape == (n, 3)
-        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
-        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
-        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+        np.testing.assert_allclose(pos[:, 0], sim._px.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._py.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pz.y(t))
 
         # Velocity
         assert vel.shape == (n, 3)
-        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
-        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
-        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+        np.testing.assert_allclose(vel[:, 0], sim._px.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._py.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pz.dydt(t))
 
         # Euler angles
         assert euler.shape == (n, 3)
@@ -489,9 +489,9 @@ class Test_PVASimulator:
 
         # Specific force
         assert f.shape == (n, 3)
-        acc_x = sim._pos_x.d2ydt2(t)
-        acc_y = sim._pos_y.d2ydt2(t)
-        acc_z = sim._pos_z.d2ydt2(t)
+        acc_x = sim._px.d2ydt2(t)
+        acc_y = sim._py.d2ydt2(t)
+        acc_z = sim._pz.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
             R_nb_i = _matrix_from_euler(np.radians(euler_i))
@@ -519,15 +519,15 @@ class Test_PVASimulator:
 
         # Position
         assert pos.shape == (n, 3)
-        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
-        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
-        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+        np.testing.assert_allclose(pos[:, 0], sim._px.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._py.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pz.y(t))
 
         # Velocity
         assert vel.shape == (n, 3)
-        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
-        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
-        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+        np.testing.assert_allclose(vel[:, 0], sim._px.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._py.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pz.dydt(t))
 
         # Euler angles
         assert euler.shape == (n, 3)
@@ -537,9 +537,9 @@ class Test_PVASimulator:
 
         # Specific force
         assert f.shape == (n, 3)
-        acc_x = sim._pos_x.d2ydt2(t)
-        acc_y = sim._pos_y.d2ydt2(t)
-        acc_z = sim._pos_z.d2ydt2(t)
+        acc_x = sim._px.d2ydt2(t)
+        acc_y = sim._py.d2ydt2(t)
+        acc_z = sim._pz.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
             R_nb_i = _matrix_from_euler(np.radians(euler_i))
@@ -567,15 +567,15 @@ class Test_PVASimulator:
 
         # Position
         assert pos.shape == (n, 3)
-        np.testing.assert_allclose(pos[:, 0], sim._pos_x.y(t))
-        np.testing.assert_allclose(pos[:, 1], sim._pos_y.y(t))
-        np.testing.assert_allclose(pos[:, 2], sim._pos_z.y(t))
+        np.testing.assert_allclose(pos[:, 0], sim._px.y(t))
+        np.testing.assert_allclose(pos[:, 1], sim._py.y(t))
+        np.testing.assert_allclose(pos[:, 2], sim._pz.y(t))
 
         # Velocity
         assert vel.shape == (n, 3)
-        np.testing.assert_allclose(vel[:, 0], sim._pos_x.dydt(t))
-        np.testing.assert_allclose(vel[:, 1], sim._pos_y.dydt(t))
-        np.testing.assert_allclose(vel[:, 2], sim._pos_z.dydt(t))
+        np.testing.assert_allclose(vel[:, 0], sim._px.dydt(t))
+        np.testing.assert_allclose(vel[:, 1], sim._py.dydt(t))
+        np.testing.assert_allclose(vel[:, 2], sim._pz.dydt(t))
 
         # Euler angles
         assert euler.shape == (n, 3)
@@ -585,9 +585,9 @@ class Test_PVASimulator:
 
         # Specific force
         assert f.shape == (n, 3)
-        acc_x = sim._pos_x.d2ydt2(t)
-        acc_y = sim._pos_y.d2ydt2(t)
-        acc_z = sim._pos_z.d2ydt2(t)
+        acc_x = sim._px.d2ydt2(t)
+        acc_y = sim._py.d2ydt2(t)
+        acc_z = sim._pz.d2ydt2(t)
         acc_expect = np.column_stack((acc_x, acc_y, acc_z))
         for f_i, euler_i, acc_i in zip(f, euler, acc_expect):
             R_nb_i = _matrix_from_euler(euler_i)
@@ -669,8 +669,9 @@ class Test_pva_data:
         np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
 
-    def test_beating_pva(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="beating_pva")
+    def test_beat(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="beat")
+
         roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
 
@@ -678,30 +679,15 @@ class Test_pva_data:
         np.testing.assert_allclose(pos[:, 0], px)
         np.testing.assert_allclose(vel[:, 0], vx)
 
-    def test_beating_att(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="beating_att")
-        roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
+    def test_chirp(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp")
 
-        np.testing.assert_allclose(euler[:, 0], roll)
-        np.testing.assert_allclose(pos[:, 0], np.zeros_like(pos[:, 0]))
-        np.testing.assert_allclose(vel[:, 0], np.zeros_like(vel[:, 0]))
-
-    def test_chirp_pva(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp_pva")
         roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = ChirpDOF(1.0, 0.25, 0.01, freq_hz=True, phase=np.pi)(t)
 
         np.testing.assert_allclose(euler[:, 0], roll)
         np.testing.assert_allclose(pos[:, 0], px)
         np.testing.assert_allclose(vel[:, 0], vx)
-
-    def test_chirp_att(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp_att")
-        roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
-
-        np.testing.assert_allclose(euler[:, 0], roll)
-        np.testing.assert_allclose(pos[:, 0], np.zeros_like(pos[:, 0]))
-        np.testing.assert_allclose(vel[:, 0], np.zeros_like(vel[:, 0]))
 
     def test_standstill(self):
         _, pos, vel, euler, f, w = ap.pva_data(type_="standstill")
@@ -744,6 +730,9 @@ class Test_pva_data:
         *_, f_enu, _ = ap.pva_data(nav_frame="ENU", type_="standstill")
         f_expect = np.full(f_enu.shape, np.array([0.0, 0.0, 9.80665]))
         np.testing.assert_allclose(f_enu, f_expect)
+
+        with pytest.raises(ValueError):
+            ap.pva_data(type_="invalid")
 
     def test_g(self):
         g = 9.81
