@@ -655,11 +655,11 @@ class Test_pva_data:
 
         # Validate f and w by strapdown integration using AHRS (no aiding)
         att0 = ap.Attitude.from_euler(euler[0], degrees=False)
-        ahrs = ap.AHRS(fs_expect, q=att0, v=vel[0])
+        ahrs = ap.AHRS(fs_expect, q_nb=att0, v_n=vel[0])
         vel_est, euler_est = [vel[0]], [euler[0]]
         for f_i, w_i in zip(f[1:], w[1:]):
-            ahrs.update(f_i, w_i, v=None)
-            vel_est.append(ahrs.v)
+            ahrs.update(f_i, w_i, v_n=None)
+            vel_est.append(ahrs.v_n)
             euler_est.append(ahrs.attitude.as_euler(degrees=False))
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
