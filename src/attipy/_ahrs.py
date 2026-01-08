@@ -86,7 +86,7 @@ def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _yaw_from_quat(q: NDArray[np.float64]) -> float:
+def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
 
@@ -105,14 +105,14 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
-    qw, qx, qy, qz = q
+    qw, qx, qy, qz = q_nb
     u_y = 2.0 * (qx * qy + qz * qw)
     u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]
-def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the scaled Gibbs vector.
 
@@ -134,7 +134,7 @@ def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
-    qw, qx, qy, qz = q
+    qw, qx, qy, qz = q_nb
     u_y = 2.0 * (qx * qy + qz * qw)
     u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     u = u_y / u_x
