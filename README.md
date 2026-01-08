@@ -97,3 +97,8 @@ for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
     euler_est.append(ahrs.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
+
+## Limitations and assumptions
+
+- Intended for small-area, low-velocity applications; Earth rotation is neglected.
+- Accelerometer bias is not estimated; a calibrated accelerometer is assumed.
