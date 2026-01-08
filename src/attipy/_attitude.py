@@ -240,7 +240,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention), [roll, pitch, yaw], representing
+            Set of three Euler angles (ZYX convention), (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
             If True, the input angles are interpreted as degrees. Otherwise, they are
@@ -291,7 +291,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles, [roll, pitch, yaw], representing
+            The 3-element Euler (ZYX) angles, (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
         Notes
