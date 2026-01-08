@@ -291,7 +291,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles, [roll, pitch, yaw], representing
+            The 3-element Euler (ZYX) angles, (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
         Notes
