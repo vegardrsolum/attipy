@@ -130,17 +130,17 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs.P, np.eye(9))
 
     def test_update(self, pva_data):
-        _, _, _, euler, f, w = pva_data
+        _, _, _, euler_nb, f_b, w_b = pva_data
         fs = 10.24
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
         gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-        bg = (0.001, 0.002, 0.003)  # rad/s
+        bg_b = (0.001, 0.002, 0.003)  # rad/s
         rng = np.random.default_rng(42)
-        f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
+        f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
         )
 
         # Estimate attitude using AHRS
@@ -156,8 +156,8 @@ class Test_AHRS:
         # Truncate 600 seconds from the beginning (so that filter has converged)
         # Check roll and pitch only
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_expect = euler_nb[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg_b)[warmup:, :2]
         euler_out = euler_est[warmup:, :2]
         bg_out = bg_est[warmup:, :2]
 
@@ -165,33 +165,33 @@ class Test_AHRS:
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_full_aiding(self, pva_data):
-        _, _, vel, euler, f, w = pva_data
-        yaw = euler[:, 2]
+        _, _, v_n, euler_nb, f_b, w_b = pva_data
+        yaw = euler_nb[:, 2]
         fs = 10.24
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
         gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-        bg = (0.001, 0.002, 0.003)  # rad/s
+        bg_b = (0.001, 0.002, 0.003)  # rad/s
         rng = np.random.default_rng(42)
-        f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
+        f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
         )
 
         # Add velocity and heading measurement noise
-        vel_var = 0.01  # (m/s)^2
+        v_var = 0.01  # (m/s)^2
         yaw_var = 0.0001  # rad^2
         rng = np.random.default_rng(42)
-        vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
+        v_meas = v_n + np.sqrt(v_var) * rng.standard_normal(v_n.shape)
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using AHRS
         ahrs = ap.AHRS(fs)
         euler_est, bg_est, v_est = [], [], []
-        for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
+        for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, v_meas, yaw_meas):
             ahrs.update(
-                f_i, w_i, v_n=v_i, v_var=vel_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
+                f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
             euler_est.append(ahrs.attitude.as_euler())
             bg_est.append(ahrs.bg_b)
@@ -202,41 +202,41 @@ class Test_AHRS:
 
         # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:]
-        v_expect = vel[warmup:]
+        euler_expect = euler_nb[warmup:]
+        bg_expect = np.full(bg_est.shape, bg_b)[warmup:]
+        v_expect = v_n[warmup:]
         euler_out = euler_est[warmup:]
         bg_out = bg_est[warmup:]
         v_out = v_est[warmup:]
 
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
-        np.testing.assert_allclose(v_out, v_expect, atol=2.0 * np.sqrt(vel_var))
+        np.testing.assert_allclose(v_out, v_expect, atol=2.0 * np.sqrt(v_var))
 
     def test_update_vel_aiding(self, pva_data):
-        _, _, vel, euler, f, w = pva_data
+        _, _, v_n, euler_nb, f_b, w_b = pva_data
         fs = 10.24
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
         gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-        bg = (0.001, 0.002, 0.003)  # rad/s
+        bg_b = (0.001, 0.002, 0.003)  # rad/s
         rng = np.random.default_rng(42)
-        f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
+        f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
         )
 
         # Add velocity and heading measurement noise
-        vel_var = 0.01  # (m/s)^2
+        v_var = 0.01  # (m/s)^2
         rng = np.random.default_rng(42)
-        vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
+        v_meas = v_n + np.sqrt(v_var) * rng.standard_normal(v_n.shape)
 
         # Estimate attitude using AHRS
         ahrs = ap.AHRS(fs)
         euler_est, bg_est = [], []
-        for f_i, w_i, v_i in zip(f_meas, w_meas, vel_meas):
-            ahrs.update(f_i, w_i, v_n=v_i, v_var=vel_var * np.ones(3))
+        for f_i, w_i, v_i in zip(f_meas, w_meas, v_meas):
+            ahrs.update(f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3))
             euler_est.append(ahrs.attitude.as_euler())
             bg_est.append(ahrs.bg_b)
         euler_est = np.asarray(euler_est)
@@ -245,8 +245,8 @@ class Test_AHRS:
         # Truncate 600 seconds from the beginning (so that filter has converged)
         # Check roll and pitch only
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_expect = euler_nb[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg_b)[warmup:, :2]
         euler_out = euler_est[warmup:, :2]
         bg_out = bg_est[warmup:, :2]
 
@@ -254,18 +254,18 @@ class Test_AHRS:
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_yaw_aiding(self, pva_data):
-        _, _, _, euler, f, w = pva_data
-        yaw = euler[:, 2]
+        _, _, _, euler_nb, f_b, w_b = pva_data
+        yaw = euler_nb[:, 2]
         fs = 10.24
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
         gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-        bg = (0.001, 0.002, 0.003)  # rad/s
+        bg_b = (0.001, 0.002, 0.003)  # rad/s
         rng = np.random.default_rng(42)
-        f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
+        f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
         w_meas = (
-            w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+            w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
         )
 
         # Add velocity and heading measurement noise
@@ -285,8 +285,8 @@ class Test_AHRS:
 
         # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler[warmup:]
-        bg_expect = np.full(bg_est.shape, bg)[warmup:]
+        euler_expect = euler_nb[warmup:]
+        bg_expect = np.full(bg_est.shape, bg_b)[warmup:]
         euler_out = euler_est[warmup:]
         bg_out = bg_est[warmup:]
 
@@ -294,11 +294,11 @@ class Test_AHRS:
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_recover_state(self, pva_data):
-        _, _, _, euler, f, w = pva_data
-        f, w = f[:10], w[:10]
+        _, _, _, euler_nb, f_b, w_b = pva_data
+        f_b, w_b = f_b[:10], w_b[:10]
 
         fs = 10.24
-        q0 = _quat_from_euler_zyx(euler[0])
+        q0 = _quat_from_euler_zyx(euler_nb[0])
         ahrs_a = ap.AHRS(fs, q0)
 
         q_a, q_b = [], []
@@ -307,7 +307,7 @@ class Test_AHRS:
         w_a, w_b = [], []
         a_a, a_b = [], []
         P_a, P_b = [], []
-        for f_i, w_i in zip(f, w):
+        for f_i, w_i in zip(f_b, w_b):
             ahrs_b = ap.AHRS(
                 fs,
                 q_nb=ahrs_a.q_nb,
