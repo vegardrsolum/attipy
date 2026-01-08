@@ -10,4 +10,4 @@ TEST_PATH = Path(__file__).parent
 def pva_data():
     fs = 10.24
     n = 1800.0 * fs  # 30 minutes
-    return ap.pva_data(fs, n, type_="beating")
+    return ap.pva_data(fs, n, g=9.80665, nav_frame="ned", type_="beating")
