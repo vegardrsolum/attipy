@@ -616,15 +616,15 @@ def pva_data(
     -------
     t : ndarray
         Time array of shape (n,).
-    pos : ndarray
+    p_n : ndarray
         Position array of shape (n, 3).
-    vel : ndarray
+    v_n : ndarray
         Velocity array of shape (n, 3).
-    euler : ndarray
+    euler_nb : ndarray
         Euler angles array of shape (n, 3).
-    f : ndarray
+    f_b : ndarray
         Specific force array of shape (n, 3).
-    w : ndarray
+    w_b : ndarray
         Angular rate array of shape (n, 3).
     """
     if type_.lower() == "standstill":
