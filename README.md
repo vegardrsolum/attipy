@@ -36,18 +36,18 @@ import numpy as np
 
 # PVA/IMU reference signals
 fs = 10.0  # Hz
-_, _, _, euler, f, w = ap.pva_data(fs)
+_, _, _, euler_nb, f_b, w_b = ap.pva_data(fs)
 
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
 gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-bg = (0.001, 0.002, 0.003)  # rad/s
+bg_b = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
-f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
+w_meas = w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
 
 # Estimate attitude using AHRS
-att0 = ap.Attitude.from_euler(euler[0])
+att0 = ap.Attitude.from_euler(euler_nb[0])
 ahrs = ap.AHRS(fs, att0)
 euler_est = []
 for f_i, w_i in zip(f_meas, w_meas):
@@ -74,30 +74,30 @@ import numpy as np
 
 # PVA/IMU reference signals
 fs = 10.0  # Hz
-t, pos, vel, euler, f, w = ap.pva_data(fs)
-yaw = euler[:, 2]
+t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data(fs)
+yaw = euler_nb[:, 2]
 
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
 gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-bg = (0.001, 0.002, 0.003)  # rad/s
+bg_b = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
-f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
+f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
+w_meas = w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
 
 # Add velocity and heading measurement noise
-vel_var = 0.01  # (m/s)^2
+v_var = 0.01  # (m/s)^2
 yaw_var = 0.0001  # rad^2
 rng = np.random.default_rng(42)
-vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
+v_meas = v_n + np.sqrt(v_var) * rng.standard_normal(v_n.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
 # Estimate attitude using AHRS
-att0 = ap.Attitude.from_euler(euler[0])
+att0 = ap.Attitude.from_euler(euler_nb[0])
 ahrs = ap.AHRS(fs, att0)
 euler_est = []
-for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
-    ahrs.update(f_i, w_i, v_n=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
+for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, v_meas, yaw_meas):
+    ahrs.update(f_i, w_i, v_n=v_i, v_var=v_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
     euler_est.append(ahrs.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
