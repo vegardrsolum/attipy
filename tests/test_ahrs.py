@@ -153,16 +153,16 @@ class Test_AHRS:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        euler_expect = euler
-        bg_expect = np.full(bg_est.shape, bg)
-
+        # Truncate 600 seconds from the beginning (so that filter has converged)
+        # Check roll and pitch only
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(
-            euler_est[warmup:, :2], euler_expect[warmup:, :2], atol=0.006
-        )
-        np.testing.assert_allclose(
-            bg_est[warmup:, :2], bg_expect[warmup:, :2], atol=0.005
-        )
+        euler_expect = euler[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_out = euler_est[warmup:, :2]
+        bg_out = bg_est[warmup:, :2]
+
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_full_aiding(self, pva_data):
         _, _, vel, euler, f, w = pva_data
@@ -198,14 +198,15 @@ class Test_AHRS:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        euler_expect = euler
-        bg_expect = np.full(bg_est.shape, bg)
-
+        # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(
-            euler_est[warmup:], euler_expect[warmup:], atol=0.006
-        )
-        np.testing.assert_allclose(bg_est[warmup:], bg_expect[warmup:], atol=0.005)
+        euler_expect = euler[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_out = euler_est[warmup:, :2]
+        bg_out = bg_est[warmup:, :2]
+
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_vel_aiding(self, pva_data):
         _, _, vel, euler, f, w = pva_data
@@ -236,16 +237,16 @@ class Test_AHRS:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        euler_expect = euler
-        bg_expect = np.full(bg_est.shape, bg)
-
+        # Truncate 600 seconds from the beginning (so that filter has converged)
+        # Check roll and pitch only
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(
-            euler_est[warmup:, :2], euler_expect[warmup:, :2], atol=0.006
-        )
-        np.testing.assert_allclose(
-            bg_est[warmup:, :2], bg_expect[warmup:, :2], atol=0.005
-        )
+        euler_expect = euler[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_out = euler_est[warmup:, :2]
+        bg_out = bg_est[warmup:, :2]
+
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_yaw_aiding(self, pva_data):
         _, _, _, euler, f, w = pva_data
@@ -277,14 +278,15 @@ class Test_AHRS:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        euler_expect = euler
-        bg_expect = np.full(bg_est.shape, bg)
-
+        # Truncate 600 seconds from the beginning (so that filter has converged)
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(
-            euler_est[warmup:], euler_expect[warmup:], atol=0.006
-        )
-        np.testing.assert_allclose(bg_est[warmup:], bg_expect[warmup:], atol=0.005)
+        euler_expect = euler[warmup:, :2]
+        bg_expect = np.full(bg_est.shape, bg)[warmup:, :2]
+        euler_out = euler_est[warmup:, :2]
+        bg_out = bg_est[warmup:, :2]
+
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_recover_state(self, pva_data):
         _, _, _, euler, f, w = pva_data
