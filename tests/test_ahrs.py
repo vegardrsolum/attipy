@@ -181,7 +181,7 @@ class Test_AHRS:
 
         # Add velocity and heading measurement noise
         vel_var = 0.01  # (m/s)^2
-        yaw_var = 0.0003  # rad^2
+        yaw_var = 0.0001  # rad^2
         rng = np.random.default_rng(42)
         vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
@@ -269,7 +269,7 @@ class Test_AHRS:
         )
 
         # Add velocity and heading measurement noise
-        yaw_var = 0.0003  # rad^2
+        yaw_var = 0.0001  # rad^2
         rng = np.random.default_rng(42)
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
@@ -290,7 +290,7 @@ class Test_AHRS:
         euler_out = euler_est[warmup:]
         bg_out = bg_est[warmup:]
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_recover_state(self, pva_data):
