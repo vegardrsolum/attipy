@@ -382,7 +382,7 @@ def _specific_force_body(
     acc : ndarray, shape (n, 3)
         Acceleration [x_ddot, y_ddot, z_ddot]^T in meters per second squared.
     euler : ndarray, shape (n, 3)
-        Euler angles [alpha, beta, gamma]^T in radians.
+        Euler angles [roll, pitch, yaw]^T in radians.
     """
     n = pos.shape[0]
     f_b = np.zeros((n, 3))
@@ -403,17 +403,17 @@ def _angular_velocity_body(
     Parameters
     ----------
     euler : ndarray, shape (n, 3)
-        Euler angles [alpha, beta, gamma]^T in radians.
+        Euler angles [roll, pitch, yaw]^T in radians.
     euler_dot : ndarray, shape (n, 3)
-        Time derivatives of Euler angles [alpha_dot, beta_dot, gamma_dot]^T
+        Time derivatives of Euler angles [roll_dot, pitch_dot, yaw_dot]^T
         in radians per second.
     """
-    alpha, beta, _ = euler.T
-    alpha_dot, beta_dot, gamma_dot = euler_dot.T
+    roll, pitch, _ = euler.T
+    roll_dot, pitch_dot, yaw_dot = euler_dot.T
 
-    w_x = alpha_dot - np.sin(beta) * gamma_dot
-    w_y = np.cos(alpha) * beta_dot + np.sin(alpha) * np.cos(beta) * gamma_dot
-    w_z = -np.sin(alpha) * beta_dot + np.cos(alpha) * np.cos(beta) * gamma_dot
+    w_x = roll_dot - np.sin(pitch) * yaw_dot
+    w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
+    w_z = -np.sin(roll) * pitch_dot + np.cos(roll) * np.cos(pitch) * yaw_dot
 
     w_b = np.column_stack([w_x, w_y, w_z])
 
@@ -432,11 +432,11 @@ class PVASimulator:
         Y position signal.
     pos_z : float or DOF, default 0.0
         Z position signal.
-    alpha : float or DOF, default 0.0
+    roll : float or DOF, default 0.0
         Roll signal.
-    beta : float or DOF, default 0.0
+    pitch : float or DOF, default 0.0
         Pitch signal
-    gamma : float or DOF, default 0.0
+    yaw : float or DOF, default 0.0
         Yaw signal
     degrees: bool, default False
         Whether to interpret the Euler angle signals as degrees (True) or radians (False).
@@ -453,9 +453,9 @@ class PVASimulator:
         pos_x: float | DOF = 0.0,
         pos_y: float | DOF = 0.0,
         pos_z: float | DOF = 0.0,
-        alpha: float | DOF = 0.0,
-        beta: float | DOF = 0.0,
-        gamma: float | DOF = 0.0,
+        roll: float | DOF = 0.0,
+        pitch: float | DOF = 0.0,
+        yaw: float | DOF = 0.0,
         degrees: bool = False,
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -463,9 +463,9 @@ class PVASimulator:
         self._pos_x = pos_x if isinstance(pos_x, DOF) else ConstantDOF(pos_x)
         self._pos_y = pos_y if isinstance(pos_y, DOF) else ConstantDOF(pos_y)
         self._pos_z = pos_z if isinstance(pos_z, DOF) else ConstantDOF(pos_z)
-        self._alpha = alpha if isinstance(alpha, DOF) else ConstantDOF(alpha)
-        self._beta = beta if isinstance(beta, DOF) else ConstantDOF(beta)
-        self._gamma = gamma if isinstance(gamma, DOF) else ConstantDOF(gamma)
+        self._roll = roll if isinstance(roll, DOF) else ConstantDOF(roll)
+        self._pitch = pitch if isinstance(pitch, DOF) else ConstantDOF(pitch)
+        self._yaw = yaw if isinstance(yaw, DOF) else ConstantDOF(yaw)
         self._degrees = degrees
         self._nav_frame = nav_frame.lower()
         self._g_n = _gravity_nav(g, self._nav_frame)
@@ -505,15 +505,15 @@ class PVASimulator:
         pos_x, pos_x_dot, pos_x_ddot = self._pos_x(t)
         pos_y, pos_y_dot, pos_y_ddot = self._pos_y(t)
         pos_z, pos_z_dot, pos_z_ddot = self._pos_z(t)
-        alpha, alpha_dot, _ = self._alpha(t)
-        beta, beta_dot, _ = self._beta(t)
-        gamma, gamma_dot, _ = self._gamma(t)
+        roll, roll_dot, _ = self._roll(t)
+        pitch, pitch_dot, _ = self._pitch(t)
+        yaw, yaw_dot, _ = self._yaw(t)
 
         pos = np.column_stack([pos_x, pos_y, pos_z])
         vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
         acc = np.column_stack([pos_x_ddot, pos_y_ddot, pos_z_ddot])
-        euler = np.column_stack([alpha, beta, gamma])
-        euler_dot = np.column_stack([alpha_dot, beta_dot, gamma_dot])
+        euler = np.column_stack([roll, pitch, yaw])
+        euler_dot = np.column_stack([roll_dot, pitch_dot, yaw_dot])
 
         if self._degrees:
             euler = np.deg2rad(euler)
@@ -543,9 +543,9 @@ def _beating_pva_sim(g, nav_frame):
         pos_x=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0]),
         pos_y=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1]),
         pos_z=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2]),
-        alpha=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
-        beta=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
-        gamma=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
+        roll=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
+        pitch=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
+        yaw=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
         degrees=False,
         g=g,
         nav_frame=nav_frame,
@@ -562,9 +562,9 @@ def _beating_att_sim(g, nav_frame):
     phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
 
     sim = PVASimulator(
-        alpha=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
-        beta=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
-        gamma=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
+        roll=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
+        pitch=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
+        yaw=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
         degrees=False,
         g=g,
         nav_frame=nav_frame,
@@ -586,9 +586,9 @@ def _chirp_pva_sim(g, nav_frame):
         pos_x=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[0]),
         pos_y=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[1]),
         pos_z=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[2]),
-        alpha=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[0]),
-        beta=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[1]),
-        gamma=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[2]),
+        roll=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[0]),
+        pitch=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[1]),
+        yaw=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[2]),
         degrees=False,
         g=g,
         nav_frame=nav_frame,
@@ -605,9 +605,9 @@ def _chirp_att_sim(g, nav_frame):
     phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
 
     sim = PVASimulator(
-        alpha=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[0]),
-        beta=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[1]),
-        gamma=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[2]),
+        roll=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[0]),
+        pitch=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[1]),
+        yaw=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[2]),
         degrees=False,
         g=g,
         nav_frame=nav_frame,

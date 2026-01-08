@@ -240,7 +240,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention), [alpha, beta, gamma], representing
+            Set of three Euler angles (ZYX convention), [roll, pitch, yaw], representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
             If True, the input angles are interpreted as degrees. Otherwise, they are
@@ -259,13 +259,13 @@ class Attitude:
 
         Defined as:
 
-            R = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            R = R_z(yaw) @ R_y(pitch) @ R_x(roll)
 
         where,
 
-        - gamma is a first rotation about the navigation frame's Z-axis.
-        - beta is a second rotation about the intermediate Y-axis.
-        - alpha is a final rotation about the second intermediate X-axis to arrive
+        - yaw is a first rotation about the navigation frame's Z-axis.
+        - pitch is a second rotation about the intermediate Y-axis.
+        - roll is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
         and R is the direction cosine matrix (transforming vectors from the body frame to
@@ -291,7 +291,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles, [alpha, beta, gamma], representing
+            The 3-element Euler (ZYX) angles, [roll, pitch, yaw], representing
             rotations about the X, Y, and Z axes, respectively.
 
         Notes
@@ -302,13 +302,13 @@ class Attitude:
 
         Defined as:
 
-            R = R_z(gamma) @ R_y(beta) @ R_x(alpha)
+            R = R_z(yaw) @ R_y(pitch) @ R_x(roll)
 
         where,
 
-        - gamma is a first rotation about the navigation frame's Z-axis.
-        - beta is a second rotation about the intermediate Y-axis.
-        - alpha is a final rotation about the second intermediate X-axis to arrive
+        - yaw is a first rotation about the navigation frame's Z-axis.
+        - pitch is a second rotation about the intermediate Y-axis.
+        - roll is a final rotation about the second intermediate X-axis to arrive
           at the body frame.
 
         and R is the direction cosine matrix (transforming vectors from the body frame to
