@@ -3,17 +3,17 @@ AttiPy is a lightweight Python package for representing and estimating the attit
 (orientation) of a moving body using IMU measurements and optional external aiding.
 It provides a practical Attitude and Heading Reference System (AHRS) implementation
 based on a multiplicative extended Kalman filter (MEKF), along with a clean, explicit
-abstraction for attitude representation with clearly defined reference frames and
+abstraction for attitude representation, with clearly defined reference frames and
 rotation conventions.
 
-## How to install
-```
+## Installation
+```bash
 pip install attipy
 ```
 
 ## Quick start
 
-Convert to/from a variaty of attitude representations using the Attitude class:
+Convert to/from a variety of attitude representations using the ``Attitude`` class:
 
 ```python
 import attipy as ap
@@ -26,7 +26,8 @@ q = att.as_quaternion()
 ```
 
 
-Estimate attitude from IMU (accelerometer and gyroscope) measurements using the AHRS class:
+Estimate attitude using IMU (accelerometer and gyroscope) measurements with the
+``AHRS`` class:
 
 ```python
 import attipy as ap
@@ -35,7 +36,7 @@ import numpy as np
 
 # PVA/IMU reference signals
 fs = 10.0  # sampling rate in Hz
-*_, euler, f, w = ap.pva_data(fs)
+_, _, _, euler, f, w = ap.pva_data(fs)
 
 # Add IMU measurement noise
 acc_noise_density = 0.001
@@ -62,7 +63,7 @@ direction of gravity.
 
 Under sustained linear acceleration, velocity aiding is recommended to maintain
 accurate attitude estimates. Heading (yaw) aiding should also be applied to correct
-the yaw drift. The following example shows how to incorporate both.
+yaw drift. The following example shows how to incorporate both.
 
 ```python
 import attipy as ap
