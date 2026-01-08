@@ -86,7 +86,7 @@ w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + b
 
 # Add velocity and heading measurement noise
 vel_var = 0.01  # (m/s)^2
-yaw_var = 0.0003  # rad^2
+yaw_var = 0.0001  # rad^2
 rng = np.random.default_rng(42)
 vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
