@@ -1,9 +1,10 @@
 # AttiPy
 AttiPy is a lightweight Python package for representing and estimating the attitude
-(orientation) of a moving body using IMU measurements, and optional external aiding.
+(orientation) of a moving body using IMU measurements and optional external aiding.
 It provides a practical Attitude and Heading Reference System (AHRS) implementation
-based on a multiplicative extended Kalman filter (MEKF), as well as a clean abstraction
-for attitude representation with clearly defined reference frames and rotation conventions.
+based on a multiplicative extended Kalman filter (MEKF), along with a clean, explicit
+abstraction for attitude representation with clearly defined reference frames and
+rotation conventions.
 
 ## How to install
 ```
