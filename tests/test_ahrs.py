@@ -143,7 +143,6 @@ class Test_AHRS:
         f_imu = f + acc_noise_std * rng.standard_normal(f.shape)
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
 
-        fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
         ahrs = AHRS(fs, q0)
 
@@ -174,7 +173,6 @@ class Test_AHRS:
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
         vel_meas = vel + 1.0 * rng.standard_normal(vel.shape)
 
-        fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
         ahrs = AHRS(fs, q0)
 
@@ -206,7 +204,6 @@ class Test_AHRS:
         w_imu = w + gyro_noise_std * rng.standard_normal(w.shape) + bg
         yaw_meas = yaw + np.radians(1.0) * rng.standard_normal(yaw.shape)
 
-        fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
         ahrs = AHRS(fs, q0)
 
@@ -244,7 +241,6 @@ class Test_AHRS:
         yaw_meas = yaw + np.radians(1.0) * rng.standard_normal(yaw.shape)
         vel_meas = vel + 1.0 * rng.standard_normal(vel.shape)
 
-        fs = 10.24
         q0 = _quat_from_euler_zyx(euler[0])
         ahrs = AHRS(fs, q0)
 
