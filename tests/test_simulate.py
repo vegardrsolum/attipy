@@ -671,6 +671,7 @@ class Test_pva_data:
 
     def test_beat(self):
         t, pos, vel, euler, _, _ = ap.pva_data(type_="beat")
+
         roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
 
@@ -680,6 +681,7 @@ class Test_pva_data:
 
     def test_chirp(self):
         t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp")
+
         roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = ChirpDOF(1.0, 0.25, 0.01, freq_hz=True, phase=np.pi)(t)
 
