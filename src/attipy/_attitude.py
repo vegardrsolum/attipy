@@ -330,7 +330,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Rotation vector, [theta_x, theta_y, theta_z].
+            Rotation vector, (theta_x, theta_y, theta_z).
         degrees : bool, default False
             Specifies whether the input rotation vector is given in degrees or radians
             (default).
@@ -361,7 +361,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            Rotation vector, [theta_x, theta_y, theta_z].
+            Rotation vector, (theta_x, theta_y, theta_z).
 
         References
         ----------
