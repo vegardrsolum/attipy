@@ -1,18 +1,19 @@
 # AttiPy
 AttiPy is a lightweight Python package for representing and estimating the attitude
-(orientation) of a moving body using IMU measurements, and optional external aiding.
+(orientation) of a moving body using IMU measurements and optional external aiding.
 It provides a practical Attitude and Heading Reference System (AHRS) implementation
-based on a multiplicative extended Kalman filter (MEKF), as well as a clean abstraction
-for attitude representation with clearly defined reference frames and rotation conventions.
+based on a multiplicative extended Kalman filter (MEKF), along with a clean, explicit
+abstraction for attitude representation, with clearly defined reference frames and
+rotation conventions.
 
-## How to install
-```
+## Installation
+```bash
 pip install attipy
 ```
 
 ## Quick start
 
-Convert to/from a variaty of attitude representations using the Attitude class:
+Convert to/from a variety of attitude representations using the ``Attitude`` class:
 
 ```python
 import attipy as ap
@@ -25,7 +26,8 @@ q = att.as_quaternion()
 ```
 
 
-Estimate attitude from IMU (accelerometer and gyroscope) measurements using the AHRS class:
+Estimate attitude using IMU (accelerometer and gyroscope) measurements with the
+``AHRS`` class:
 
 ```python
 import attipy as ap
@@ -33,15 +35,16 @@ import numpy as np
 
 
 # PVA/IMU reference signals
-fs = 10.0  # sampling rate in Hz
-*_, euler, f, w = ap.pva_data()
+fs = 10.0  # Hz
+_, _, _, euler, f, w = ap.pva_data(fs)
 
 # Add IMU measurement noise
-acc_noise_density = 0.001
-gyro_noise_density = 0.0001
+acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
+gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
+bg = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
 
 # Estimate attitude using AHRS
 ahrs = ap.AHRS(fs)
@@ -52,17 +55,16 @@ for f_i, w_i in zip(f_meas, w_meas):
 euler_est = np.asarray(euler_est)
 ```
 
-To limit integration drift, the AHRS state estimates must be corrected using long
-term stable aiding measurements. If no aiding measurements are available (as in the
-example above), an assumption of stationarity must be used to ensure convergence and
-stability of the attitude estimates. The default aiding configuration is thus set
-to zero velocity with an uncertainty of 10 m/s standard deviation. Note: only the
-roll and pitch degrees of freedom will converge using this aiding configuration.
+To limit integration drift, the AHRS state estimates must be corrected using long-term
+stable aiding measurements. When no aiding is available (as in the example above),
+stationarity is assumed to ensure convergence. By default, zero-velocity aiding
+with a 10 m/s standard deviation is used; this constrains roll and pitch only, as
+these are the only degrees of freedom observable from specific force and the known
+direction of gravity.
 
-Under sustained linear acceleration it is recommended to use actual velocity aiding
-measurements to improve the accuracy of the attitude estimates. Heading (yaw angle)
-aiding should also be used to correct the yaw angle drift. The following example
-demonstrates how to incorporate velocity and heading aiding:
+Under sustained linear acceleration, velocity aiding is recommended to maintain
+accurate attitude estimates. Heading (yaw) aiding should also be applied to correct
+yaw drift. The following example shows how to incorporate both.
 
 ```python
 import attipy as ap
@@ -70,20 +72,21 @@ import numpy as np
 
 
 # PVA/IMU reference signals
-fs = 10.0  # sampling rate in Hz
+fs = 10.0  # Hz
 t, pos, vel, euler, f, w = ap.pva_data(fs)
 yaw = euler[:, 2]
 
 # Add IMU measurement noise
-acc_noise_density = 0.001
-gyro_noise_density = 0.0001
+acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
+gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
+bg = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
-w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+w_meas = w + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape) + bg
 
 # Add velocity and heading measurement noise
-vel_var = 0.01
-yaw_var = 0.0003
+vel_var = 0.01  # (m/s)^2
+yaw_var = 0.0001  # rad^2
 rng = np.random.default_rng(42)
 vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
@@ -96,3 +99,8 @@ for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
     euler_est.append(ahrs.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
+
+## Limitations and assumptions
+
+- Intended for small-area, low-velocity applications; Earth rotation is neglected.
+- Accelerometer bias is not estimated; a calibrated accelerometer is assumed.
