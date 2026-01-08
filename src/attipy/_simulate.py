@@ -601,7 +601,10 @@ def pva_data(
         Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
         Default is "NED".
     type_ : {'beating', 'chirp', 'standstill'}, default 'beating'
-        Type of motion to simulate.
+        Type of motion to simulate. The options are:
+        - 'beating'  : Beating sinusoidal motion in position and attitude.
+        - 'chirp'    : Chirp sinusoidal motion in position and attitude.
+        - 'standstill' : No motion (stationary).
 
     Returns
     -------
