@@ -612,12 +612,16 @@ class Test_pva_data:
         t, pos, vel, euler, f, w = ap.pva_data()
 
         # Expected DOF signals
-        px, vx, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=0.0)(t)
-        py, vy, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=np.pi / 3)(t)
-        pz, vz, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3)(t)
-        r, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=3 * np.pi / 3)(t)
-        p, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3)(t)
-        y, *_ = BeatDOF(np.deg2rad(5), 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3)(t)
+        amp_att = np.radians(5.0)
+        amp_pos = 1.0
+        phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
+        phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
+        px, vx, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[0])(t)
+        py, vy, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[1])(t)
+        pz, vz, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[2])(t)
+        r, *_ = BeatDOF(amp_att, 0.1, 0.01, freq_hz=True, phase=phases_att[0])(t)
+        p, *_ = BeatDOF(amp_att, 0.1, 0.01, freq_hz=True, phase=phases_att[1])(t)
+        y, *_ = BeatDOF(amp_att, 0.1, 0.01, freq_hz=True, phase=phases_att[2])(t)
 
         # Time
         fs_expect = 10.0
@@ -666,18 +670,16 @@ class Test_pva_data:
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
 
     def test_beating(self):
-        t, pos, vel, *_ = ap.pva_data(type_="beating")
-        px, vx, _ = BeatDOF(0.5, 0.1, 0.01, freq_hz=True, phase=0.0)(t)
+        t, _, _, euler, _, _ = ap.pva_data(type_="beating_pva")
+        roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
 
-        np.testing.assert_allclose(pos[:, 0], px)
-        np.testing.assert_allclose(vel[:, 0], vx)
+        np.testing.assert_allclose(euler[:, 0], roll)
 
     def test_chirp(self):
-        t, pos, vel, *_ = ap.pva_data(type_="chirp")
-        px, vx, _ = ChirpDOF(0.5, 0.25, 0.01, freq_hz=True, phase=0.0)(t)
+        t, _, _, euler, _, _ = ap.pva_data(type_="chirp_pva")
+        roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
 
-        np.testing.assert_allclose(pos[:, 0], px)
-        np.testing.assert_allclose(vel[:, 0], vx)
+        np.testing.assert_allclose(euler[:, 0], roll)
 
     def test_standstill(self):
         _, pos, vel, euler, f, w = ap.pva_data(type_="standstill")
