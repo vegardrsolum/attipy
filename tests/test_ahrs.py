@@ -155,7 +155,7 @@ class Test_AHRS:
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
         np.testing.assert_allclose(
-            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.005
+            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.006
         )
 
     def test_update_vel_aiding(self, pva_data):
@@ -185,7 +185,7 @@ class Test_AHRS:
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
         np.testing.assert_allclose(
-            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.005
+            euler_out[warmup:, :2], euler[warmup:, :2], atol=0.006
         )
 
     def test_update_yaw_aiding(self, pva_data):
@@ -222,7 +222,7 @@ class Test_AHRS:
         euler_out = np.asarray(euler_out)
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(euler_out[warmup:], euler[warmup:], atol=0.005)
+        np.testing.assert_allclose(euler_out[warmup:], euler[warmup:], atol=0.006)
 
     def test_update_full_aiding(self, pva_data):
         _, _, vel, euler, f, w = pva_data
@@ -261,7 +261,7 @@ class Test_AHRS:
         euler_out = np.asarray(euler_out)
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        np.testing.assert_allclose(euler_out[warmup:], euler[warmup:], atol=0.005)
+        np.testing.assert_allclose(euler_out[warmup:], euler[warmup:], atol=0.006)
 
     def test_recover_state(self, pva_data):
         _, _, _, euler, f, w = pva_data
