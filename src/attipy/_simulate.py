@@ -642,16 +642,13 @@ def pva_data(
     nav_frame : str, default "NED"
         Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
         Default is "NED".
-    type_ : {'standstill', 'beating_att', 'beating_pva', 'chirp_att', 'chirp_pva'}
+    type_ : {'standstill', 'beat', 'chirp'}, default 'beat'
         Type of motion to simulate:
         - 'standstill': no motion (stationary).
-        - 'beating_att': beating attitude motion (5° amplitude).
-        - 'beating_pva': beating position (1.0 m) and attitude (5°) motion.
-        - 'chirp_att': chirp attitude motion (5° amplitude).
-        - 'chirp_pva': chirp position (1.0 m) and attitude (5°) motion.
-        The beating motion is characterized by 0.1 Hz main frequency and 0.01 Hz
-        beating frequency. The chirp motion oscillates between 0 and 0.25 Hz at
-        a rate of 0.01 Hz. Different phases are assigned to each degree of freedom.
+        - 'beat': beating motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
+        - 'chirp': chirp motion (oscillates between 0 and 0.25 Hz at a rate of 0.01 Hz).
+        Amplitudes are +/- 5 degrees for attitude and +/- 1 meter for position.
+        Phases are assigned to provide variation across all axes.
 
     Returns
     -------
@@ -670,13 +667,9 @@ def pva_data(
     """
     if type_.lower() == "standstill":
         sim = PVASimulator(g=g, nav_frame=nav_frame)
-    elif type_.lower() == "beating_att":
-        sim = _beating_att_sim(g, nav_frame)
-    elif type_.lower() == "beating_pva":
+    elif type_.lower() == "beating":
         sim = _beating_pva_sim(g, nav_frame)
-    elif type_.lower() == "chirp_att":
-        sim = _chirp_att_sim(g, nav_frame)
-    elif type_.lower() == "chirp_pva":
+    elif type_.lower() == "chirp":
         sim = _chirp_pva_sim(g, nav_frame)
     else:
         raise ValueError(f"Unknown simulation type: {type_}")
