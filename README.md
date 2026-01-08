@@ -35,7 +35,7 @@ import numpy as np
 
 
 # PVA/IMU reference signals
-fs = 10.0  # sampling rate in Hz
+fs = 10.0  # Hz
 _, _, _, euler, f, w = ap.pva_data(fs)
 
 # Add IMU measurement noise
@@ -71,7 +71,7 @@ import numpy as np
 
 
 # PVA/IMU reference signals
-fs = 10.0  # sampling rate in Hz
+fs = 10.0  # Hz
 t, pos, vel, euler, f, w = ap.pva_data(fs)
 yaw = euler[:, 2]
 
