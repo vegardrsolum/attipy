@@ -97,7 +97,7 @@ att0 = ap.Attitude.from_euler(euler[0])
 ahrs = ap.AHRS(fs, att0)
 euler_est = []
 for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
-    ahrs.update(f_i, w_i, v=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
+    ahrs.update(f_i, w_i, v_n=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
     euler_est.append(ahrs.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
