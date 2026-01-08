@@ -559,7 +559,7 @@ def _beating_att_sim(g, nav_frame):
     f_main, f_beat = 0.1, 0.01
 
     amp_att = np.radians(5.0)
-    phases_att = (np.pi, 4 * np.pi / 3, 5 * np.pi / 3)
+    phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
 
     sim = PVASimulator(
         alpha=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),

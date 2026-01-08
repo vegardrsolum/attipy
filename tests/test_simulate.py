@@ -669,17 +669,39 @@ class Test_pva_data:
         np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
         np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
 
-    def test_beating(self):
-        t, _, _, euler, _, _ = ap.pva_data(type_="beating_pva")
+    def test_beating_pva(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="beating_pva")
+        roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
+        px, vx, _ = BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
+
+        np.testing.assert_allclose(euler[:, 0], roll)
+        np.testing.assert_allclose(pos[:, 0], px)
+        np.testing.assert_allclose(vel[:, 0], vx)
+
+    def test_beating_att(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="beating_att")
         roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
 
         np.testing.assert_allclose(euler[:, 0], roll)
+        np.testing.assert_allclose(pos[:, 0], np.zeros_like(pos[:, 0]))
+        np.testing.assert_allclose(vel[:, 0], np.zeros_like(vel[:, 0]))
 
-    def test_chirp(self):
-        t, _, _, euler, _, _ = ap.pva_data(type_="chirp_pva")
+    def test_chirp_pva(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp_pva")
+        roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
+        px, vx, _ = ChirpDOF(1.0, 0.25, 0.01, freq_hz=True, phase=np.pi)(t)
+
+        np.testing.assert_allclose(euler[:, 0], roll)
+        np.testing.assert_allclose(pos[:, 0], px)
+        np.testing.assert_allclose(vel[:, 0], vx)
+
+    def test_chirp_att(self):
+        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp_att")
         roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
 
         np.testing.assert_allclose(euler[:, 0], roll)
+        np.testing.assert_allclose(pos[:, 0], np.zeros_like(pos[:, 0]))
+        np.testing.assert_allclose(vel[:, 0], np.zeros_like(vel[:, 0]))
 
     def test_standstill(self):
         _, pos, vel, euler, f, w = ap.pva_data(type_="standstill")
