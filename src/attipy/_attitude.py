@@ -99,8 +99,7 @@ class Attitude:
     - Rotation vector (3 parameters).
 
     The attitude can also be updated with incremental rotations, making it useful
-    for attitude propagation (strapdown algorithm) in inertial navigation systems
-    (INS).
+    for attitude propagation in inertial navigation systems (strapdown algorithm).
 
     Parameters
     ----------
