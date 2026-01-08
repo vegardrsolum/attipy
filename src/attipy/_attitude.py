@@ -240,7 +240,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention), [roll, pitch, yaw], representing
+            Set of three Euler angles (ZYX convention), (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
             If True, the input angles are interpreted as degrees. Otherwise, they are
