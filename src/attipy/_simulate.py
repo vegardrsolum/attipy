@@ -557,7 +557,7 @@ def _beating_pva_sim(g, nav_frame):
     f_main, f_beat = 0.1, 0.01
 
     amp_att = np.radians(5.0)
-    amp_pos = 0.5
+    amp_pos = 1.0
     phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
     phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
 
@@ -643,27 +643,16 @@ def pva_data(
     nav_frame : str, default "NED"
         Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
         Default is "NED".
-    type_ : {'beating', 'chirp', 'standstill'}, default 'beating'
-        Type of motion to simulate. The options are:
-        - 'beating'  : Beating sinusoidal motion in position and attitude.
-        - 'chirp'    : Chirp sinusoidal motion in position and attitude.
-        - 'standstill' : No motion (stationary).
-        Type of motion to simulate. The options are:
-        - 'standstill' :
-                No motion (stationary).
-        - 'beating' :
-                Beating sinusoidal motion in position and attitude.                
-        - 'chirp' :
-                Chirp sinusoidal motion in position and attitude.
-        - 'beating_att' :
-                Beating sinusoidal motion in attitude only (no linear acceleration).
-                Characterized by 0.1 Hz main frequency and 0.01 Hz beating frequency,
-                with 5 degrees amplitude in attitude (roll, pitch and yaw).
-        - 'beating_pva' :
-                Beating sinusoidal motion in position, velocity and attitude.
-                Characterized by 0.1 Hz main frequency and 0.01 Hz beating frequency,
-                with 0.5 m amplitude in position (x, y and z) and 5 degrees amplitude
-                in attitude (roll, pitch and yaw).
+    type_ : {'standstill', 'beating_att', 'beating_pva', 'chirp_att', 'chirp_pva'}, default 'beating_att'
+        Type of motion to simulate:
+        - 'standstill': no motion (stationary).
+        - 'beating_att': beating attitude motion (5° amplitude).
+        - 'beating_pva': beating position (1.0 m) and attitude (5°) motion.
+        - 'chirp_att': chirp attitude motion (5° amplitude).
+        - 'chirp_pva': chirp position (1.0 m) and attitude (5°) motion.
+        The beating motion is characterized by 0.1 Hz main frequency and 0.01 Hz
+        beating frequency. The chirp motion oscillates between 0 and 0.25 Hz at
+        a rate of 0.01 Hz.
 
     Returns
     -------
