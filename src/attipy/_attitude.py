@@ -105,7 +105,7 @@ class Attitude:
     ----------
     q : ArrayLike
         The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-        part, and qx, qy and qz are the vector parts, respectively.
+        part and (qx, qy, qz) is the vector part.
     """
 
     def __init__(self, q: ArrayLike) -> None:
@@ -137,7 +137,7 @@ class Attitude:
         ----------
         q : ArrayLike
             The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-            part, and qx, qy and qz are the vector parts, respectively.
+            part and (qx, qy, qz) is the vector part.
 
         Returns
         -------
@@ -166,7 +166,7 @@ class Attitude:
         -------
         numpy.ndarray, shape (4,)
             The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
-            part, and qx, qy and qz are the vector parts, respectively.
+            part and (qx, qy, qz) is the vector part.
         """
         return self._q.copy()
 
