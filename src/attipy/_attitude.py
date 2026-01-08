@@ -187,7 +187,7 @@ class Attitude:
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix, R. Should be element of SO(3).
+            Direction cosine matrix, R. Element of SO(3).
 
         Returns
         -------
