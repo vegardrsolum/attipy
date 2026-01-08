@@ -426,11 +426,11 @@ class PVASimulator:
 
     Parameters
     ----------
-    pos_x : float or DOF, default 0.0
+    px : float or DOF, default 0.0
         X position signal.
-    pos_y : float or DOF, default 0.0
+    py : float or DOF, default 0.0
         Y position signal.
-    pos_z : float or DOF, default 0.0
+    pz : float or DOF, default 0.0
         Z position signal.
     roll : float or DOF, default 0.0
         Roll signal.
@@ -450,9 +450,9 @@ class PVASimulator:
 
     def __init__(
         self,
-        pos_x: float | DOF = 0.0,
-        pos_y: float | DOF = 0.0,
-        pos_z: float | DOF = 0.0,
+        px: float | DOF = 0.0,
+        py: float | DOF = 0.0,
+        pz: float | DOF = 0.0,
         roll: float | DOF = 0.0,
         pitch: float | DOF = 0.0,
         yaw: float | DOF = 0.0,
@@ -460,9 +460,9 @@ class PVASimulator:
         g: float = 9.80665,
         nav_frame: str = "NED",
     ) -> None:
-        self._pos_x = pos_x if isinstance(pos_x, DOF) else ConstantDOF(pos_x)
-        self._pos_y = pos_y if isinstance(pos_y, DOF) else ConstantDOF(pos_y)
-        self._pos_z = pos_z if isinstance(pos_z, DOF) else ConstantDOF(pos_z)
+        self._px = px if isinstance(px, DOF) else ConstantDOF(px)
+        self._py = py if isinstance(py, DOF) else ConstantDOF(py)
+        self._pz = pz if isinstance(pz, DOF) else ConstantDOF(pz)
         self._roll = roll if isinstance(roll, DOF) else ConstantDOF(roll)
         self._pitch = pitch if isinstance(pitch, DOF) else ConstantDOF(pitch)
         self._yaw = yaw if isinstance(yaw, DOF) else ConstantDOF(yaw)
@@ -502,16 +502,16 @@ class PVASimulator:
         t = dt * np.arange(n)
 
         # DOFs and corresponding rates and accelerations
-        pos_x, pos_x_dot, pos_x_ddot = self._pos_x(t)
-        pos_y, pos_y_dot, pos_y_ddot = self._pos_y(t)
-        pos_z, pos_z_dot, pos_z_ddot = self._pos_z(t)
+        px, px_dot, px_ddot = self._px(t)
+        py, py_dot, py_ddot = self._py(t)
+        pz, pz_dot, pz_ddot = self._pz(t)
         roll, roll_dot, _ = self._roll(t)
         pitch, pitch_dot, _ = self._pitch(t)
         yaw, yaw_dot, _ = self._yaw(t)
 
-        pos = np.column_stack([pos_x, pos_y, pos_z])
-        vel = np.column_stack([pos_x_dot, pos_y_dot, pos_z_dot])
-        acc = np.column_stack([pos_x_ddot, pos_y_ddot, pos_z_ddot])
+        pos = np.column_stack([px, py, pz])
+        vel = np.column_stack([px_dot, py_dot, pz_dot])
+        acc = np.column_stack([px_ddot, py_ddot, pz_ddot])
         euler = np.column_stack([roll, pitch, yaw])
         euler_dot = np.column_stack([roll_dot, pitch_dot, yaw_dot])
 
@@ -540,9 +540,9 @@ def _beat_sim(g, nav_frame):
     phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
 
     sim = PVASimulator(
-        pos_x=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0]),
-        pos_y=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1]),
-        pos_z=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2]),
+        px=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0]),
+        py=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1]),
+        pz=BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2]),
         roll=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0]),
         pitch=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1]),
         yaw=BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2]),
@@ -564,9 +564,9 @@ def _chirp_sim(g, nav_frame):
     phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
 
     sim = PVASimulator(
-        pos_x=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[0]),
-        pos_y=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[1]),
-        pos_z=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[2]),
+        px=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[0]),
+        py=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[1]),
+        pz=ChirpDOF(amp_pos, f_max, f_os, freq_hz=True, phase=phases_pos[2]),
         roll=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[0]),
         pitch=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[1]),
         yaw=ChirpDOF(amp_att, f_max, f_os, freq_hz=True, phase=phases_att[2]),
