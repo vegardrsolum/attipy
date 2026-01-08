@@ -609,7 +609,7 @@ class Test_PVASimulator:
 
 class Test_pva_data:
     def test_default(self):
-        t, pos, vel, euler, f, w = ap.pva_data()
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data()
 
         # Expected DOF signals
         amp_att = np.radians(5.0)
@@ -630,87 +630,87 @@ class Test_pva_data:
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs_expect)
 
         # Position
-        assert pos.shape == (10_000, 3)
-        np.testing.assert_allclose(pos[:, 0], px)
-        np.testing.assert_allclose(pos[:, 1], py)
-        np.testing.assert_allclose(pos[:, 2], pz)
+        assert p_n.shape == (10_000, 3)
+        np.testing.assert_allclose(p_n[:, 0], px)
+        np.testing.assert_allclose(p_n[:, 1], py)
+        np.testing.assert_allclose(p_n[:, 2], pz)
 
         # Velocity
-        assert vel.shape == (10_000, 3)
-        np.testing.assert_allclose(vel[:, 0], vx)
-        np.testing.assert_allclose(vel[:, 1], vy)
-        np.testing.assert_allclose(vel[:, 2], vz)
+        assert v_n.shape == (10_000, 3)
+        np.testing.assert_allclose(v_n[:, 0], vx)
+        np.testing.assert_allclose(v_n[:, 1], vy)
+        np.testing.assert_allclose(v_n[:, 2], vz)
 
         # Euler angles
-        assert euler.shape == (10_000, 3)
-        np.testing.assert_allclose(euler[:, 0], r)
-        np.testing.assert_allclose(euler[:, 1], p)
-        np.testing.assert_allclose(euler[:, 2], y)
+        assert euler_nb.shape == (10_000, 3)
+        np.testing.assert_allclose(euler_nb[:, 0], r)
+        np.testing.assert_allclose(euler_nb[:, 1], p)
+        np.testing.assert_allclose(euler_nb[:, 2], y)
 
         # Specific force
-        assert f.shape == (10_000, 3)
+        assert f_b.shape == (10_000, 3)
 
         # Angular rate
-        assert w.shape == (10_000, 3)
+        assert w_b.shape == (10_000, 3)
 
         # Validate f and w by strapdown integration using AHRS (no aiding)
-        att0 = ap.Attitude.from_euler(euler[0], degrees=False)
-        ahrs = ap.AHRS(fs_expect, q=att0, v=vel[0])
-        vel_est, euler_est = [vel[0]], [euler[0]]
-        for f_i, w_i in zip(f[1:], w[1:]):
-            ahrs.update(f_i, w_i, v=None)
-            vel_est.append(ahrs.v)
+        att0 = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        ahrs = ap.AHRS(fs_expect, q_nb=att0, v_n=v_n[0])
+        vel_est, euler_est = [v_n[0]], [euler_nb[0]]
+        for f_i, w_i in zip(f_b[1:], w_b[1:]):
+            ahrs.update(f_i, w_i, v_n=None)
+            vel_est.append(ahrs.v_n)
             euler_est.append(ahrs.attitude.as_euler(degrees=False))
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
         pos_est = np.cumsum(vel_est, axis=0) / fs_expect
 
-        np.testing.assert_allclose(pos_est[:100], pos[:100], atol=1e-1)
-        np.testing.assert_allclose(vel_est[:100], vel[:100], atol=1e-1)
-        np.testing.assert_allclose(euler_est[:100], euler[:100], atol=1e-3)
+        np.testing.assert_allclose(pos_est[:100], p_n[:100], atol=1e-1)
+        np.testing.assert_allclose(vel_est[:100], v_n[:100], atol=1e-1)
+        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=1e-3)
 
     def test_beat(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="beat")
+        t, p_n, v_n, euler_nb, _, _ = ap.pva_data(type_="beat")
 
         roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
 
-        np.testing.assert_allclose(euler[:, 0], roll)
-        np.testing.assert_allclose(pos[:, 0], px)
-        np.testing.assert_allclose(vel[:, 0], vx)
+        np.testing.assert_allclose(euler_nb[:, 0], roll)
+        np.testing.assert_allclose(p_n[:, 0], px)
+        np.testing.assert_allclose(v_n[:, 0], vx)
 
     def test_chirp(self):
-        t, pos, vel, euler, _, _ = ap.pva_data(type_="chirp")
+        t, p_n, v_n, euler_nb, _, _ = ap.pva_data(type_="chirp")
 
         roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = ChirpDOF(1.0, 0.25, 0.01, freq_hz=True, phase=np.pi)(t)
 
-        np.testing.assert_allclose(euler[:, 0], roll)
-        np.testing.assert_allclose(pos[:, 0], px)
-        np.testing.assert_allclose(vel[:, 0], vx)
+        np.testing.assert_allclose(euler_nb[:, 0], roll)
+        np.testing.assert_allclose(p_n[:, 0], px)
+        np.testing.assert_allclose(v_n[:, 0], vx)
 
     def test_standstill(self):
-        _, pos, vel, euler, f, w = ap.pva_data(type_="standstill")
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data(type_="standstill")
 
-        f_expect = np.full(f.shape, np.array([0.0, 0.0, -9.80665]))
+        f_expect = np.full(f_b.shape, np.array([0.0, 0.0, -9.80665]))
 
-        np.testing.assert_allclose(pos, np.zeros_like(pos))
-        np.testing.assert_allclose(vel, np.zeros_like(vel))
-        np.testing.assert_allclose(euler, np.zeros_like(euler))
-        np.testing.assert_allclose(f, f_expect)
-        np.testing.assert_allclose(w, np.zeros_like(w))
+        np.testing.assert_allclose(p_n, np.zeros_like(p_n))
+        np.testing.assert_allclose(v_n, np.zeros_like(v_n))
+        np.testing.assert_allclose(euler_nb, np.zeros_like(euler_nb))
+        np.testing.assert_allclose(f_b, f_expect)
+        np.testing.assert_allclose(w_b, np.zeros_like(w_b))
 
     def test_fs_n(self):
         fs = 20.0
         n = 5000
-        t, pos, vel, euler, f, w = ap.pva_data(fs=fs, n=n)
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data(fs=fs, n=n)
 
         assert t.shape == (n,)
-        assert pos.shape == (n, 3)
-        assert vel.shape == (n, 3)
-        assert euler.shape == (n, 3)
-        assert f.shape == (n, 3)
-        assert w.shape == (n, 3)
+        assert p_n.shape == (n, 3)
+        assert v_n.shape == (n, 3)
+        assert euler_nb.shape == (n, 3)
+        assert f_b.shape == (n, 3)
+        assert w_b.shape == (n, 3)
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
     def test_degrees(self):

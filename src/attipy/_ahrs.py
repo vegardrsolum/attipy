@@ -86,7 +86,7 @@ def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _yaw_from_quat(q: NDArray[np.float64]) -> float:
+def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from unit quaternion.
 
@@ -105,14 +105,14 @@ def _yaw_from_quat(q: NDArray[np.float64]) -> float:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
-    qw, qx, qy, qz = q
+    qw, qx, qy, qz = q_nb
     u_y = 2.0 * (qx * qy + qz * qw)
     u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]
-def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
+def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the scaled Gibbs vector.
 
@@ -134,7 +134,7 @@ def _dyawda(q: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
-    qw, qx, qy, qz = q
+    qw, qx, qy, qz = q_nb
     u_y = 2.0 * (qx * qy + qz * qw)
     u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     u = u_y / u_x
@@ -188,18 +188,18 @@ class AHRS:
     ----------
     fs : float
         Sampling rate in Hz.
-    q : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+    q_nb : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
-    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
-    v : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) expressed in the navigation
         frame. Defaults to zero velocity (stationary).
-    w: array_like, shape (3,), default (0.0, 0.0, 0.0)
+    w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    a: array_like, shape (3,), default (0.0, 0.0, 0.0)
+    a_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear acceleration estimate (ax, ay, az) expressed in the navigation
         frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
@@ -236,11 +236,11 @@ class AHRS:
     def __init__(
         self,
         fs: float,
-        q: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
-        v: ArrayLike = (0.0, 0.0, 0.0),
-        w: ArrayLike = (0.0, 0.0, 0.0),
-        a: ArrayLike = (0.0, 0.0, 0.0),
+        q_nb: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
+        bg_b: ArrayLike = (0.0, 0.0, 0.0),
+        v_n: ArrayLike = (0.0, 0.0, 0.0),
+        w_b: ArrayLike = (0.0, 0.0, 0.0),
+        a_n: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -262,12 +262,12 @@ class AHRS:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._att_nb = q_nb if isinstance(q_nb, Attitude) else Attitude(q_nb)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(v).reshape(3).copy()
-        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._a_n = np.asarray_chkfinite(a).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
+        self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
@@ -290,35 +290,35 @@ class AHRS:
         return self._att_nb
 
     @property
-    def q(self) -> NDArray[np.float64]:
+    def q_nb(self) -> NDArray[np.float64]:
         """
         Copy of the attitude estimate (represented as a unit quaternion).
         """
         return self._att_nb._q.copy()
 
     @property
-    def bg(self) -> NDArray[np.float64]:
+    def bg_b(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
-    def v(self) -> NDArray[np.float64]:
+    def v_n(self) -> NDArray[np.float64]:
         """
         Copy of the velocity estimate expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
-    def w(self) -> NDArray[np.float64]:
+    def w_b(self) -> NDArray[np.float64]:
         """
         Copy of the angular rate estimate (bias corrected) expressed in the body frame.
         """
         return self._w_b.copy()
 
     @property
-    def a(self) -> NDArray[np.float64]:
+    def a_n(self) -> NDArray[np.float64]:
         """
         Copy of the linear acceleration estimate (no bias correction) expressed
         in the navigation frame.
@@ -438,10 +438,10 @@ class AHRS:
 
     def update(
         self,
-        f: ArrayLike,
-        w: ArrayLike,
+        f_b: ArrayLike,
+        w_b: ArrayLike,
         degrees: bool = False,
-        v: ArrayLike | None = (0.0, 0.0, 0.0),
+        v_n: ArrayLike | None = (0.0, 0.0, 0.0),
         v_var: ArrayLike | None = (100.0, 100.0, 100.0),
         yaw: float | None = None,
         yaw_var: float | None = None,
@@ -452,17 +452,17 @@ class AHRS:
 
         Parameters
         ----------
-        f : array_like, shape (3,)
+        f_b : array_like, shape (3,)
             Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz).
-        w : array_like, shape (3,)
+        w_b : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz).
         degrees : bool, default False
             Specifies whether the unit of the rotation rate, ``w``, are in degrees
             or radians (default).
-        v : array_like, shape (3,), optional
+        v_n : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
         v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``v``.
+            Variance of the velocity measurement noise. Required for ``v_n``.
         yaw : float, optional
             Heading (yaw angle) measurement. See ``yaw_degrees`` for units. If ``None``,
             heading aiding is not used.
@@ -479,21 +479,21 @@ class AHRS:
             A reference to the instance itself after the update.
         """
 
-        f = np.asarray(f, dtype=float)
-        w = np.asarray(w, dtype=float)
+        f_b = np.asarray(f_b, dtype=float)
+        w_b = np.asarray(w_b, dtype=float)
 
         if degrees:
-            w = (np.pi / 180.0) * w
+            w_b = (np.pi / 180.0) * w_b
 
         # Project state and covariance estimates ahead (a priori)
         self._project_ahead()
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
-        self._aiding_update_vel(v, v_var)
+        self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state estimates (regulating error state estimate to zero)
         self._reset()
-        self._update_state(f, w)
+        self._update_state(f_b, w_b)
 
         return self
