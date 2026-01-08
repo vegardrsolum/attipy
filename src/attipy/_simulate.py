@@ -376,13 +376,13 @@ def _specific_force_body(
     Parameters
     ----------
     pos : ndarray, shape (n, 3)
-        Position [x, y, z]^T in meters.
+        Position (x, y, z) in meters.
     vel : ndarray, shape (n, 3)
-        Velocity [x_dot, y_dot, z_dot]^T in meters per second.
+        Velocity (x_dot, y_dot, z_dot) in meters per second.
     acc : ndarray, shape (n, 3)
-        Acceleration [x_ddot, y_ddot, z_ddot]^T in meters per second squared.
+        Acceleration (x_ddot, y_ddot, z_ddot) in meters per second squared.
     euler : ndarray, shape (n, 3)
-        Euler angles [roll, pitch, yaw]^T in radians.
+        Euler angles (roll, pitch, yaw) in radians.
     """
     n = pos.shape[0]
     f_b = np.zeros((n, 3))
@@ -403,9 +403,9 @@ def _angular_velocity_body(
     Parameters
     ----------
     euler : ndarray, shape (n, 3)
-        Euler angles [roll, pitch, yaw]^T in radians.
+        Euler angles (roll, pitch, yaw) in radians.
     euler_dot : ndarray, shape (n, 3)
-        Time derivatives of Euler angles [roll_dot, pitch_dot, yaw_dot]^T
+        Time derivatives of Euler angles (roll_dot, pitch_dot, yaw_dot)
         in radians per second.
     """
     roll, pitch, _ = euler.T
@@ -490,9 +490,9 @@ class PVASimulator:
         t : ndarray, shape (n,)
             Time vector in seconds.
         euler : ndarray, shape (n, 3)
-            Simulated (ZYX) Euler angles [roll, pitch, yaw]^T.
+            Simulated (ZYX) Euler angles (roll, pitch, yaw).
         w_b : ndarray, shape (n, 3)
-            Simulated angular velocities, [w_x, w_y, w_z]^T, in the body frame.
+            Simulated angular velocities, (w_x, w_y, w_z), in the body frame.
         """
         if degrees is None:
             degrees = self._degrees
