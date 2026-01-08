@@ -605,6 +605,22 @@ def pva_data(
         - 'beating'  : Beating sinusoidal motion in position and attitude.
         - 'chirp'    : Chirp sinusoidal motion in position and attitude.
         - 'standstill' : No motion (stationary).
+        Type of motion to simulate. The options are:
+        - 'standstill' :
+                No motion (stationary).
+        - 'beating' :
+                Beating sinusoidal motion in position and attitude.                
+        - 'chirp' :
+                Chirp sinusoidal motion in position and attitude.
+        - 'beating_att' :
+                Beating sinusoidal motion in attitude only (no linear acceleration).
+                Characterized by 0.1 Hz main frequency and 0.01 Hz beating frequency,
+                with 5 degrees amplitude in attitude (roll, pitch and yaw).
+        - 'beating_pva' :
+                Beating sinusoidal motion in position, velocity and attitude.
+                Characterized by 0.1 Hz main frequency and 0.01 Hz beating frequency,
+                with 0.5 m amplitude in position (x, y and z) and 5 degrees amplitude
+                in attitude (roll, pitch and yaw).
 
     Returns
     -------
