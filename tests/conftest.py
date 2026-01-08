@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 import attipy as ap
 
 TEST_PATH = Path(__file__).parent
