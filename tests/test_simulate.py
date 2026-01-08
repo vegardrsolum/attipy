@@ -729,6 +729,9 @@ class Test_pva_data:
         f_expect = np.full(f_enu.shape, np.array([0.0, 0.0, 9.80665]))
         np.testing.assert_allclose(f_enu, f_expect)
 
+        with pytest.raises(ValueError):
+            ap.pva_data(type_="invalid")
+
     def test_g(self):
         g = 9.81
         *_, f, _ = ap.pva_data(g=g, type_="standstill")
