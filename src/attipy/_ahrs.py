@@ -31,7 +31,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     angle : float
         Value of angle.
     degrees : bool, default True
-        Specify whether ``angle`` is given degrees or radians.
+        Specifies whether ``angle`` is given degrees or radians.
 
     Returns
     -------
@@ -73,7 +73,9 @@ def _wn_input_matrix(R_nb):
     return dfdw
 
 
-def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
+def _wn_psd_matrix(
+    vrw: float, arw: float, gbs: float, gbc: float
+) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
 
     # White noise power spectral density matrix
@@ -321,7 +323,6 @@ class AHRS:
         Copy of the specific force measurement (m/s^2) expressed in the body frame.
         """
         return self._f_b.copy()
-
 
     @property
     def a_n(self) -> NDArray[np.float64]:
