@@ -475,15 +475,15 @@ class AHRS:
         v_var : array_like, shape (3,), optional
             Variance of the velocity measurement noise in (m/s)^2. Required for ``v_n``.
         yaw : float, optional
-            Heading (yaw angle) measurement in radians (default) or degrees. See
-            ``yaw_degrees`` for units. If ``None``, heading aiding is not used.
+            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
+            for units. If ``None``, heading aiding is not used.
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement noise in radians^2 (default)
-            or degrees^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
+            Variance of heading (yaw angle) measurement noise in rad^2 (default)
+            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
             for units. Required for ``yaw``.
         yaw_degrees : bool, default False
-            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in degrees
-            and degrees^2, or radians and radians^2 (default).
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in rad and
+            rad^2 (default) or deg and deg^2.
 
         Returns
         -------
