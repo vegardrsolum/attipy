@@ -75,7 +75,7 @@ import numpy as np
 # PVA/IMU reference signals
 fs = 10.0  # Hz
 t, pos, vel, euler, f_b, w_b = ap.pva_sim(fs)
-yaw = euler_nb[:, 2]
+yaw = euler[:, 2]
 
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
