@@ -415,7 +415,7 @@ class AHRS:
 
         # Attitude (dead reckoning)
         dtheta = self._w_b * self._dt
-        self._att_nb.update(dtheta, degrees=False)
+        self._att_nb._update(dtheta)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q

@@ -406,5 +406,8 @@ class Attitude:
         if degrees:
             dtheta = np.radians(dtheta)
 
+        self._update(dtheta)
+
+    def _update(self, dtheta):
         dq = _quat_from_rotvec(dtheta)
         self._q = _normalize(_quatprod(self._q, dq))
