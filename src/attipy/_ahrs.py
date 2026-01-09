@@ -206,10 +206,9 @@ class AHRS:
         the navigation frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
-        is ordered as: dx = (da, dbg, dv), where da is the attitude error (3-parameter
-        2xGibbs vector), dbg is the gyroscope bias error, and dv is the velocity
-        error.
+        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
+        where da is the attitude error (3-parameter 2xGibbs vector), dbg is the
+        gyroscope bias error, and dv is the velocity error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
