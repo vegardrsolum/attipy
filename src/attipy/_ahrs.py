@@ -461,22 +461,26 @@ class AHRS:
         Parameters
         ----------
         f_b : array_like, shape (3,)
-            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz).
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
+            in m/s^2.
         w_b : array_like, shape (3,)
-            Angular rate measurement (wx, wy, wz).
+            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
+            ``degrees`` parameter for units.
         degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w``, are in degrees
-            or radians (default).
+            Specifies whether the unit of the rotation rate, ``w_b``, are in radians
+            per second (rad/s) (default) or degrees per second (deg/s).
         v_n : array_like, shape (3,), optional
-            Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
+            Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
+            is not used.
         v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``v_n``.
+            Variance of the velocity measurement noise in (m/s)^2. Required for ``v_n``.
         yaw : float, optional
-            Heading (yaw angle) measurement. See ``yaw_degrees`` for units. If ``None``,
-            heading aiding is not used.
+            Heading (yaw angle) measurement in radians (default) or degrees. See
+            ``yaw_degrees`` for units. If ``None``, heading aiding is not used.
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement noise. Units must be compatible
-            with ``yaw``. See ``yaw_degrees`` for units. Required for ``yaw``.
+            Variance of heading (yaw angle) measurement noise in radians^2 (default)
+            or degrees^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
+            for units. Required for ``yaw``.
         yaw_degrees : bool, default False
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are in degrees
             and degrees^2, or radians and radians^2 (default).
