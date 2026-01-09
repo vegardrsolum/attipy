@@ -104,21 +104,25 @@ class Test_AHRS:
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         ahrs = ap.AHRS(10.0, q_nb=q_nb)
         np.testing.assert_allclose(ahrs.q_nb, q_nb)
+        assert ahrs.q_nb is not ahrs._att_nb._q  # ensure it is a copy
 
     def test_v_n(self):
         v_n = np.array([1.0, 2.0, 3.0])
         ahrs = ap.AHRS(10.0, v_n=v_n)
         np.testing.assert_allclose(ahrs.v_n, v_n)
+        assert ahrs.v_n is not ahrs._v_n  # ensure it is a copy
 
     def test_bg_b(self):
         ahrs = ap.AHRS(10.0, bg_b=np.array([0.01, -0.02, 0.03]))
         bg_b_expected = np.array([0.01, -0.02, 0.03])
         np.testing.assert_allclose(ahrs.bg_b, bg_b_expected)
+        assert ahrs.bg_b is not ahrs._bg_b  # ensure it is a copy
 
     def test_w_b(self):
         w_b = np.array([0.1, -0.2, 0.3])
         ahrs = ap.AHRS(10.0, w_b=w_b)
         np.testing.assert_allclose(ahrs.w_b, w_b)
+        assert ahrs.w_b is not ahrs._w_b  # ensure it is a copy
 
     def test_f_b(self):
         q_nb = (1.0, 0.0, 0.0, 0.0)  # no rotation
@@ -130,10 +134,12 @@ class Test_AHRS:
         a_n = np.array([1.0, 2.0, 3.0])
         ahrs = ap.AHRS(10.0, a_n=a_n)
         np.testing.assert_allclose(ahrs.a_n, a_n)
+        assert ahrs.a_n is not ahrs._a_n  # ensure it is a copy
 
     def test_P(self, ahrs):
         ahrs = ap.AHRS(10.0, P=np.eye(9))
         np.testing.assert_allclose(ahrs.P, np.eye(9))
+        assert ahrs.P is not ahrs._P  # ensure it is a copy
 
     def test_update(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
