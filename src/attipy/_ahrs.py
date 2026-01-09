@@ -192,16 +192,16 @@ class AHRS:
         Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
     bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear velocity estimate (vx, vy, vz) expressed in the navigation
+        Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
     w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial angular rate estimate (wx, wy, wz) expressed in the body frame.
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
     a_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear acceleration estimate (ax, ay, az) expressed in the navigation
-        frame. Defaults to zero linear acceleration (stationary).
+        Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
+        the navigation frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
