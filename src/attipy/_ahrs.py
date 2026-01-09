@@ -13,9 +13,9 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
     Gravity vector direction in the navigation frame (NED or ENU).
     """
-    if nav_frame == "ned":
+    if nav_frame.lower() == "ned":
         g_n = np.array([0.0, 0.0, g])
-    elif nav_frame == "enu":
+    elif nav_frame.lower() == "enu":
         g_n = np.array([0.0, 0.0, -g])
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
@@ -31,7 +31,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     angle : float
         Value of angle.
     degrees : bool, default True
-        Specify whether ``angle`` is given degrees or radians.
+        Specifies whether ``angle`` is given degrees or radians.
 
     Returns
     -------
@@ -73,7 +73,9 @@ def _wn_input_matrix(R_nb):
     return dfdw
 
 
-def _wn_psd_matrix(vrw, arw, gbs, gbc) -> NDArray[np.float64]:
+def _wn_psd_matrix(
+    vrw: float, arw: float, gbs: float, gbc: float
+) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
 
     # White noise power spectral density matrix
@@ -154,7 +156,7 @@ def _measurement_matrix(q_nb) -> None:
     """Setup linearized measurement matrix, dhdx."""
     dhdx = np.zeros((7, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle)
     return dhdx
 
 
@@ -192,30 +194,26 @@ class AHRS:
         Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
     bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate (bgx, bgy, bgz). Defaults to zero bias.
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear velocity estimate (vx, vy, vz) expressed in the navigation
+        Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
     w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial angular rate estimate (wx, wy, wz) expressed in the body frame.
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
     a_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial linear acceleration estimate (ax, ay, az) expressed in the navigation
-        frame. Defaults to zero linear acceleration (stationary).
+        Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
+        the navigation frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(9)). The internal error-state Kalman filter's state vector
-        is ordered as: dx = (da, dbg, dv), where da is the attitude error (3-parameter
-        2xGibbs vector), dbg is the gyroscope bias error, and dv is the velocity
-        error.
+        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
+        where da is the attitude error (3-parameter 2xGibbs vector), dbg is the
+        gyroscope bias error, and dv is the velocity error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
-        (North-East-Down) (default) or 'ENU' (East-North-Up). The body's (or IMU/AHRS
-        sensor's) degrees of freedom will be expressed relative to this frame.
-        Furthermore, the aiding heading angle is also interpreted relative to this
-        frame according to the right-hand rule.
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
@@ -299,29 +297,36 @@ class AHRS:
     @property
     def bg_b(self) -> NDArray[np.float64]:
         """
-        Copy of the gyroscope bias estimate expressed in the body frame.
+        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
     def v_n(self) -> NDArray[np.float64]:
         """
-        Copy of the velocity estimate expressed in the navigation frame.
+        Copy of the velocity estimate (m/s) expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
     def w_b(self) -> NDArray[np.float64]:
         """
-        Copy of the angular rate estimate (bias corrected) expressed in the body frame.
+        Copy of the bias corrected angular rate measurement (rad/s) expressed in
+        the body frame.
         """
         return self._w_b.copy()
 
     @property
+    def f_b(self) -> NDArray[np.float64]:
+        """
+        Copy of the specific force measurement (m/s^2) expressed in the body frame.
+        """
+        return self._f_b.copy()
+
+    @property
     def a_n(self) -> NDArray[np.float64]:
         """
-        Copy of the linear acceleration estimate (no bias correction) expressed
-        in the navigation frame.
+        Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
         """
         return self._a_n.copy()
 
@@ -453,25 +458,29 @@ class AHRS:
         Parameters
         ----------
         f_b : array_like, shape (3,)
-            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz).
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
+            in m/s^2.
         w_b : array_like, shape (3,)
-            Angular rate measurement (wx, wy, wz).
+            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
+            ``degrees`` parameter for units.
         degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w``, are in degrees
-            or radians (default).
+            Specifies whether the unit of the rotation rate, ``w_b``, are deg/s
+            or rad/s (default).
         v_n : array_like, shape (3,), optional
-            Velocity measurement (vx, vy, vz). If ``None``, velocity aiding is not used.
+            Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
+            is not used.
         v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise. Required for ``v_n``.
+            Variance of the velocity measurement noise in (m/s)^2. Required for ``v_n``.
         yaw : float, optional
-            Heading (yaw angle) measurement. See ``yaw_degrees`` for units. If ``None``,
-            heading aiding is not used.
+            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
+            for units. If ``None``, heading aiding is not used.
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement noise. Units must be compatible
-            with ``yaw``. See ``yaw_degrees`` for units. Required for ``yaw``.
+            Variance of heading (yaw angle) measurement noise in rad^2 (default)
+            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
+            for units. Required for ``yaw``.
         yaw_degrees : bool, default False
-            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in degrees
-            and degrees^2, or radians and radians^2 (default).
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
+            or rad and rad^2 (default).
 
         Returns
         -------

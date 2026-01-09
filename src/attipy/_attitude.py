@@ -93,13 +93,13 @@ class Attitude:
     The class provides methods for transforming to/from a variety of attitude representations,
     including:
 
-    - Direction cosine matrix (DCM) (9 parameters).
+    - Direction cosine matrix (rotation matrix) (9 parameters).
     - Unit quaternion (4 parameters).
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
 
-    The attitude can also be updated with incremental rotations, making it useful
-    for attitude propagation in inertial navigation systems (strapdown algorithm).
+    The attitude can be updated with incremental rotations, making it useful for
+    attitude propagation in inertial navigation systems (strapdown algorithm).
 
     Parameters
     ----------
@@ -180,14 +180,14 @@ class Attitude:
             v_n = R @ v_b
 
         where,
-        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - R is the 3x3 direction cosine matrix (rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix, R. Element of SO(3).
+            Direction cosine matrix (rotation matrix), R. Element of SO(3).
 
         Returns
         -------
@@ -208,7 +208,7 @@ class Attitude:
 
         where,
 
-        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - R is the 3x3 direction cosine matrix (rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
@@ -220,14 +220,14 @@ class Attitude:
         where,
 
         - I is the 3x3 identity matrix.
-        - qw is the scalar part of the unit quaternion.
-        - qxyz is the vector part, [qx, qy, qz], of the unit quaternion.
+        - qw is the scalar part of the unit quaternion, q.
+        - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
         - S(qxyz) is the skew-symmetric matrix of qxyz.
 
         Returns
         -------
         numpy.ndarray, shape (3, 3)
-            Direction cosine matrix, R.
+            Direction cosine matrix (rotation matrix), R.
         """
         return _matrix_from_quat(self._q)
 
@@ -242,8 +242,7 @@ class Attitude:
             Set of three Euler angles (ZYX convention), (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
-            If True, the input angles are interpreted as degrees. Otherwise, they are
-            interpreted as radians. Internally, angles are stored as radians.
+            Specifies whether the Euler angles are given in degrees or radians (default).
 
         Returns
         -------
@@ -285,7 +284,8 @@ class Attitude:
         Parameters
         ----------
         degrees : bool, default False
-            If True, the output angles are in degrees. Otherwise, they are in radians.
+            Specifies whether the output Euler angles should be given in degrees
+            or radians (default).
 
         Returns
         -------
@@ -332,8 +332,8 @@ class Attitude:
         theta : ArrayLike
             Rotation vector, (theta_x, theta_y, theta_z).
         degrees : bool, default False
-            Specifies whether the input rotation vector is given in degrees or radians
-            (default).
+            Specifies whether the input rotation vector, theta, is given in degrees
+            or radians (default).
 
         References
         ----------
@@ -398,8 +398,8 @@ class Attitude:
             The direction of the vector indicates the axis of rotation, and the
             magnitude (norm) of the vector indicates the angle of rotation.
         degrees : bool, default False
-            Specifies whether the input rotation vector is given in degrees or radians
-            (default).
+            Specifies whether the rotation vector, dtheta, is given in degrees or
+            radians (default).
         """
         dtheta = _asarray_check_rotvec(dtheta)
 

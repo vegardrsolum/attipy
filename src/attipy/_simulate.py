@@ -444,8 +444,7 @@ class PVASimulator:
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : str, default "NED"
-        Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
-        Default is "NED".
+        Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
     def __init__(
@@ -602,8 +601,7 @@ def pva_sim(
     g : float, default 9.80665
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : str, default "NED"
-        Navigation frame. Either "NED" (North-East-Down) or "ENU" (East-North-Up).
-        Default is "NED".
+        Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
     type_ : {'standstill', 'beat', 'chirp'}, default 'beat'
         Type of motion to simulate:
         - 'standstill': no motion (stationary).
