@@ -299,14 +299,14 @@ class AHRS:
     @property
     def bg_b(self) -> NDArray[np.float64]:
         """
-        Copy of the gyroscope bias estimate expressed in the body frame.
+        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
     def v_n(self) -> NDArray[np.float64]:
         """
-        Copy of the velocity estimate expressed in the navigation frame.
+        Copy of the velocity estimate (m/s) expressed in the navigation frame.
         """
         return self._v_n.copy()
 
@@ -329,8 +329,7 @@ class AHRS:
     @property
     def a_n(self) -> NDArray[np.float64]:
         """
-        Copy of the linear acceleration estimate (no bias correction) expressed
-        in the navigation frame.
+        Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
         """
         return self._a_n.copy()
 
