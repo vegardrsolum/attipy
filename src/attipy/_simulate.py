@@ -578,7 +578,7 @@ def _chirp_sim(g, nav_frame):
     return sim
 
 
-def pva_data(
+def pva_sim(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,

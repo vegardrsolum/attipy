@@ -607,9 +607,9 @@ class Test_PVASimulator:
         np.testing.assert_allclose(w, w_b)
 
 
-class Test_pva_data:
+class Test_pva_sim:
     def test_default(self):
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data()
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim()
 
         # Expected DOF signals
         amp_att = np.radians(5.0)
@@ -670,7 +670,7 @@ class Test_pva_data:
         np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=1e-3)
 
     def test_beat(self):
-        t, p_n, v_n, euler_nb, _, _ = ap.pva_data(type_="beat")
+        t, p_n, v_n, euler_nb, _, _ = ap.pva_sim(type_="beat")
 
         roll, _, _ = BeatDOF(np.radians(5.0), 0.1, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
@@ -680,7 +680,7 @@ class Test_pva_data:
         np.testing.assert_allclose(v_n[:, 0], vx)
 
     def test_chirp(self):
-        t, p_n, v_n, euler_nb, _, _ = ap.pva_data(type_="chirp")
+        t, p_n, v_n, euler_nb, _, _ = ap.pva_sim(type_="chirp")
 
         roll, _, _ = ChirpDOF(np.radians(5.0), 0.25, 0.01, freq_hz=True, phase=0.0)(t)
         px, vx, _ = ChirpDOF(1.0, 0.25, 0.01, freq_hz=True, phase=np.pi)(t)
@@ -690,7 +690,7 @@ class Test_pva_data:
         np.testing.assert_allclose(v_n[:, 0], vx)
 
     def test_standstill(self):
-        _, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data(type_="standstill")
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(type_="standstill")
 
         f_expect = np.full(f_b.shape, np.array([0.0, 0.0, -9.80665]))
 
@@ -703,7 +703,7 @@ class Test_pva_data:
     def test_fs_n(self):
         fs = 20.0
         n = 5000
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_data(fs=fs, n=n)
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(fs=fs, n=n)
 
         assert t.shape == (n,)
         assert p_n.shape == (n, 3)
@@ -714,28 +714,28 @@ class Test_pva_data:
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
     def test_degrees(self):
-        *_, euler_deg, _, _ = ap.pva_data(degrees=True)
-        *_, euler_rad, _, _ = ap.pva_data(degrees=False)
+        *_, euler_deg, _, _ = ap.pva_sim(degrees=True)
+        *_, euler_rad, _, _ = ap.pva_sim(degrees=False)
 
         np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
 
     def test_nav_frame(self):
 
         # NED
-        *_, f_ned, _ = ap.pva_data(nav_frame="NED", type_="standstill")
+        *_, f_ned, _ = ap.pva_sim(nav_frame="NED", type_="standstill")
         f_expect = np.full(f_ned.shape, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(f_ned, f_expect)
 
         # ENU
-        *_, f_enu, _ = ap.pva_data(nav_frame="ENU", type_="standstill")
+        *_, f_enu, _ = ap.pva_sim(nav_frame="ENU", type_="standstill")
         f_expect = np.full(f_enu.shape, np.array([0.0, 0.0, 9.80665]))
         np.testing.assert_allclose(f_enu, f_expect)
 
         with pytest.raises(ValueError):
-            ap.pva_data(type_="invalid")
+            ap.pva_sim(type_="invalid")
 
     def test_g(self):
         g = 9.81
-        *_, f, _ = ap.pva_data(g=g, type_="standstill")
+        *_, f, _ = ap.pva_sim(g=g, type_="standstill")
         f_expect = np.full(f.shape, np.array([0.0, 0.0, -g]))
         np.testing.assert_allclose(f, f_expect)

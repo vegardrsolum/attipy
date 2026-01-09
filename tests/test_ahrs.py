@@ -129,8 +129,8 @@ class Test_AHRS:
         ahrs = ap.AHRS(10.0, P=np.eye(9))
         np.testing.assert_allclose(ahrs.P, np.eye(9))
 
-    def test_update(self, pva_data):
-        _, _, _, euler_nb, f_b, w_b = pva_data
+    def test_update(self, pva_sim):
+        _, _, _, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
 
         # Add IMU measurement noise
@@ -166,8 +166,8 @@ class Test_AHRS:
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
-    def test_update_full_aiding(self, pva_data):
-        _, _, v_n, euler_nb, f_b, w_b = pva_data
+    def test_update_full_aiding(self, pva_sim):
+        _, _, v_n, euler_nb, f_b, w_b = pva_sim
         yaw = euler_nb[:, 2]
         fs = 10.24
 
@@ -217,8 +217,8 @@ class Test_AHRS:
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
         np.testing.assert_allclose(v_out, v_expect, atol=2.0 * np.sqrt(v_var))
 
-    def test_update_vel_aiding(self, pva_data):
-        _, _, v_n, euler_nb, f_b, w_b = pva_data
+    def test_update_vel_aiding(self, pva_sim):
+        _, _, v_n, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
 
         # Add IMU measurement noise
@@ -259,8 +259,8 @@ class Test_AHRS:
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
-    def test_update_yaw_aiding(self, pva_data):
-        _, _, _, euler_nb, f_b, w_b = pva_data
+    def test_update_yaw_aiding(self, pva_sim):
+        _, _, _, euler_nb, f_b, w_b = pva_sim
         yaw = euler_nb[:, 2]
         fs = 10.24
 
@@ -301,8 +301,8 @@ class Test_AHRS:
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
-    def test_recover_state(self, pva_data):
-        _, _, _, euler_nb, f_b, w_b = pva_data
+    def test_recover_state(self, pva_sim):
+        _, _, _, euler_nb, f_b, w_b = pva_sim
         f_b, w_b = f_b[:10], w_b[:10]
 
         fs = 10.24
