@@ -13,9 +13,9 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
     Gravity vector direction in the navigation frame (NED or ENU).
     """
-    if nav_frame == "ned":
+    if nav_frame.lower() == "ned":
         g_n = np.array([0.0, 0.0, g])
-    elif nav_frame == "enu":
+    elif nav_frame.lower() == "enu":
         g_n = np.array([0.0, 0.0, -g])
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
