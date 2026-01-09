@@ -34,9 +34,9 @@ import attipy as ap
 import numpy as np
 
 
-# PVA/IMU reference signals
+# Position, velocity, attitude and IMU reference signals
 fs = 10.0  # Hz
-_, _, _, euler, f_b, w_b = ap.pva_sim(fs)
+t, pos, vel, euler, f_b, w_b = ap.pva_sim(fs)
 
 # Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
@@ -72,7 +72,7 @@ import attipy as ap
 import numpy as np
 
 
-# PVA/IMU reference signals
+# Position, velocity, attitude and IMU reference signals
 fs = 10.0  # Hz
 t, pos, vel, euler, f_b, w_b = ap.pva_sim(fs)
 yaw = euler[:, 2]
