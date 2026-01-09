@@ -39,7 +39,7 @@ gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
 bg_b = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
-w_meas = w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+w_meas = w_b + bg_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
 
 # Estimate attitude using AHRS
 att0 = ap.Attitude.from_euler(euler[0])
@@ -78,7 +78,7 @@ gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
 bg_b = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
 f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
-w_meas = w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape) + bg_b
+w_meas = w_b + bg_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
 
 # Add velocity and heading measurement noise
 vel_var = 0.01  # (m/s)^2
