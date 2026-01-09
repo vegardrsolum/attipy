@@ -313,9 +313,18 @@ class AHRS:
     @property
     def w_b(self) -> NDArray[np.float64]:
         """
-        Copy of the angular rate estimate (bias corrected) expressed in the body frame.
+        Copy of the bias corrected angular rate estimate expressed in the body frame.
         """
         return self._w_b.copy()
+
+    @property
+    def f_b(self) -> NDArray[np.float64]:
+        """
+        Copy of the specific force measurement (no bias correction) expressed in
+        the body frame.
+        """
+        return self._f_b.copy()
+
 
     @property
     def a_n(self) -> NDArray[np.float64]:

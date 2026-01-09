@@ -120,6 +120,12 @@ class Test_AHRS:
         ahrs = ap.AHRS(10.0, w_b=w_b)
         np.testing.assert_allclose(ahrs.w_b, w_b)
 
+    def test_f_b(self):
+        q_nb = (1.0, 0.0, 0.0, 0.0)  # no rotation
+        ahrs = ap.AHRS(10.0, q_nb=q_nb, a_n=np.zeros(3), g=9.80665, nav_frame="ned")
+        np.testing.assert_allclose(ahrs.f_b, np.array([0.0, 0.0, -9.80665]))
+        assert ahrs.f_b is not ahrs._f_b  # ensure it is a copy
+
     def test_a_n(self):
         a_n = np.array([1.0, 2.0, 3.0])
         ahrs = ap.AHRS(10.0, a_n=a_n)
