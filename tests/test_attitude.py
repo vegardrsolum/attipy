@@ -157,8 +157,8 @@ class Test_Attitude:
 
         np.testing.assert_allclose(rotvec_out, rotvec)
 
-    def test_update(self, pva_data):
-        _, _, _, euler, _, w = pva_data
+    def test_update(self, pva_sim):
+        _, _, _, euler, _, w = pva_sim
 
         fs = 10.24
         dt = 1.0 / fs
