@@ -156,7 +156,7 @@ def _measurement_matrix(q_nb) -> None:
     """Setup linearized measurement matrix, dhdx."""
     dhdx = np.zeros((7, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle)
     return dhdx
 
 
