@@ -467,8 +467,8 @@ class AHRS:
             Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
             ``degrees`` parameter for units.
         degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w_b``, are in radians
-            per second (rad/s) (default) or degrees per second (deg/s).
+            Specifies whether the unit of the rotation rate, ``w_b``, are deg/s
+            or rad/s (default).
         v_n : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
             is not used.
@@ -482,8 +482,8 @@ class AHRS:
             or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
             for units. Required for ``yaw``.
         yaw_degrees : bool, default False
-            Specifies whether the unit of ``yaw`` and ``yaw_var`` are in rad and
-            rad^2 (default) or deg and deg^2.
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
+            or rad and rad^2 (default).
 
         Returns
         -------
