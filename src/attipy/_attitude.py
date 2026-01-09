@@ -93,7 +93,7 @@ class Attitude:
     The class provides methods for transforming to/from a variety of attitude representations,
     including:
 
-    - Direction cosine matrix (DCM) (9 parameters).
+    - Direction cosine matrix (9 parameters).
     - Unit quaternion (4 parameters).
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
@@ -180,14 +180,14 @@ class Attitude:
             v_n = R @ v_b
 
         where,
-        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - R is the 3x3 direction cosine matrix (rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix, R. Element of SO(3).
+            Direction cosine matrix (rotation matrix), R. Element of SO(3).
 
         Returns
         -------
@@ -208,7 +208,7 @@ class Attitude:
 
         where,
 
-        - ``R`` is the 3x3 direction cosine matrix (or rotation matrix).
+        - R is the 3x3 direction cosine matrix (rotation matrix).
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
@@ -220,14 +220,14 @@ class Attitude:
         where,
 
         - I is the 3x3 identity matrix.
-        - qw is the scalar part of the unit quaternion.
-        - qxyz is the vector part, [qx, qy, qz], of the unit quaternion.
+        - qw is the scalar part of the unit quaternion, q.
+        - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
         - S(qxyz) is the skew-symmetric matrix of qxyz.
 
         Returns
         -------
         numpy.ndarray, shape (3, 3)
-            Direction cosine matrix, R.
+            Direction cosine matrix (rotation matrix), R.
         """
         return _matrix_from_quat(self._q)
 
