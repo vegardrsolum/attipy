@@ -93,13 +93,13 @@ class Attitude:
     The class provides methods for transforming to/from a variety of attitude representations,
     including:
 
-    - Direction cosine matrix (9 parameters).
+    - Direction cosine matrix (rotation matrix) (9 parameters).
     - Unit quaternion (4 parameters).
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
 
-    The attitude can also be updated with incremental rotations, making it useful
-    for attitude propagation in inertial navigation systems (strapdown algorithm).
+    The attitude can be updated with incremental rotations, making it useful for
+    attitude propagation in inertial navigation systems (strapdown algorithm).
 
     Parameters
     ----------
