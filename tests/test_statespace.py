@@ -25,6 +25,7 @@ def test_state_matrix():
 
     assert np.allclose(dfdx, dfdx_expect)
 
+
 def test_state_transition():
     dt = 0.1
     f_b_corr = np.array([0.1, 0.2, 9.7])
