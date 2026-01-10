@@ -228,7 +228,7 @@ class AHRS:
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
-        # Continuous time state space model (updated each time step)
+        # Discretized state space model (updated each time step)
         self._phi = _setup_phi(self._dt, self._f_b, self._w_b, self._R_nb, self._gbc)
         self._Q = _setup_Q(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q)
