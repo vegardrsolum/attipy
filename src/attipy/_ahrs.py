@@ -72,7 +72,6 @@ def _update_phi(phi, dt, I3x3, f_b, w_b, R_nb):
     S = _skew_symmetric
     phi[0:3, 0:3] = I3x3 - dt * S(w_b)
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
-    return phi
 
 
 def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -108,7 +107,7 @@ def _wn_cov_matrix(dt, R_nb, W):
     In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
         Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
-    
+
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
@@ -459,11 +458,8 @@ class AHRS:
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
 
-        # Discretized state space
-        self._phi[:] = _update_phi(
-            self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb
-        )
-        # self._Q[:] = _update_Q(self._Q, self._dt, self._R_nb, self._Wv)
+        # State space
+        _update_phi(self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb)
 
     def update(
         self,
