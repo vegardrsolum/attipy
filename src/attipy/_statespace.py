@@ -30,6 +30,7 @@ def _update_state_transition(phi, dt, I3x3, f_b, w_b, R_nb):
     S = _skew_symmetric
     phi[0:3, 0:3] = I3x3 - dt * S(w_b)
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+    return phi
 
 
 def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
