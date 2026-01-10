@@ -19,7 +19,7 @@ def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     phi = np.eye(9)
     phi[0:3, 0:3] += -dt * S(w_b_corr)
     phi[0:3, 3:6] += -dt * np.eye(3)
-    phi[3:6, 3:6] += -dt * beta_gyro * np.eye(3)  # => (1 - dt*beta_gyro) * I
+    phi[3:6, 3:6] += -dt * beta_gyro * np.eye(3)
     phi[6:9, 0:3] += -dt * (R_nb @ S(f_b_corr))
     return phi
 
@@ -38,6 +38,15 @@ def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
 
     First order approximation:
         Q = dt @ dfdw @ W @ dfdw.T
+
+    Notes
+    -----
+    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+
+        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+
+    However, if the acceleration noise (velocity random walk) is isotropic (same
+    for all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.zeros((9, 9))
     Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
