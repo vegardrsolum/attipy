@@ -83,7 +83,7 @@ def _wn_input_matrix(R_nb):
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
+    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step (for non-isotropic case)
 
     return dfdw
 
@@ -101,20 +101,6 @@ def _wn_cov_matrix(dt, R_nb, W):
     """
     dfdw = _wn_input_matrix(R_nb)
     Q = dt * dfdw @ W @ dfdw.T
-    return Q
-
-
-@njit  # type: ignore[misc]
-def _update_Q(Q, dt, R_nb, Wv):
-    """
-    Update process noise covariance matrix, Q.
-
-    In general, Q should be updated each time step if R_nb changes. However, if
-    the acceleration noise (velocity random walk) is the same for all axes (i.e.,
-    Wv is on the form vrw ** 2 * I), we do not need to update the Q matrix, since
-    R_nb @ Wv @ R_nb.T = vrw ** 2 * I = constant.
-    """
-    Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
     return Q
 
 
