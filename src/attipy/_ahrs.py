@@ -6,7 +6,10 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
-from ._vectorops import _normalize, _skew_symmetric
+from ._statespace import _process_noise_cov as _setup_Q
+from ._statespace import _state_transition as _setup_phi
+from ._statespace import _update_state_transition as _update_phi
+from ._vectorops import _normalize
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
@@ -40,51 +43,6 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
-
-
-def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
-    """
-    Setup linearized state matrix, dfdx.
-    """
-
-    beta_gyro = 1.0 / gbc
-
-    S = _skew_symmetric  # alias skew symmetric matrix
-
-    # State transition matrix
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
-
-    return dfdx
-
-
-def _wn_input_matrix(R_nb):
-    """Setup linearized (white noise) input matrix, dfdw."""
-
-    # Input (white noise) matrix
-    dfdw = np.zeros((9, 9))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
-
-    return dfdw
-
-
-def _wn_psd_matrix(
-    vrw: float, arw: float, gbs: float, gbc: float
-) -> NDArray[np.float64]:
-    """Setup white noise (process noise) power spectral density matrix, W."""
-
-    # White noise power spectral density matrix
-    W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
-
-    return W
 
 
 @njit  # type: ignore[misc]
@@ -228,6 +186,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
+    _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
@@ -269,16 +228,10 @@ class AHRS:
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
-        # Continuous time state space model (updated each time step)
-        # TODO: avoid continuous time state space by computing phi and Q directly
-        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nb, self._gbc)
-        self._dfdw = _wn_input_matrix(self._R_nb)
-        self._dhdx = _measurement_matrix(self._att_nb._q)
-        self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
-
         # Discretized state space model (updated each time step)
-        self._phi = self._I + self._dt * self._dfdx  # first-order approximation
-        self._Q = self._dt * self._dfdw @ self._W @ self._dfdw.T
+        self._phi = _setup_phi(self._dt, self._f_b, self._w_b, self._R_nb, self._gbc)
+        self._Q = _setup_Q(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
+        self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
     def attitude(self) -> Attitude:
@@ -431,15 +384,8 @@ class AHRS:
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
 
-        # Continuous time state space
-        S = _skew_symmetric
-        self._dfdx[0:3, 0:3] = -S(self._w_b)
-        self._dfdx[6:9, 0:3] = -self._R_nb @ S(self._f_b)
-        self._dfdw[6:9, 6:9] = -self._R_nb
-
-        # Discretized state space
-        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
-        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
+        # State space
+        _update_phi(self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb)
 
     def update(
         self,
