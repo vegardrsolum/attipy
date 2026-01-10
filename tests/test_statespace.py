@@ -1,15 +1,26 @@
 import numpy as np
+import pytest
 
 import attipy as ap
 from attipy._statespace import _state_matrix, _state_transition, _wn_input_matrix
 from attipy._vectorops import _skew_symmetric
 
 
-def test_state_matrix():
+@pytest.fixture
+def noise_params():
+    vrw = 0.001
+    arw = 0.0001
+    gbs = 0.00005
+    gbc = 50.0
+    return vrw, arw, gbs, gbc
+
+
+def test_state_matrix(noise_params):
+    *_, gbc = noise_params
+
     f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    gbc = 50.0
 
     dfdx_out = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
 
@@ -41,12 +52,13 @@ def test_wn_input_matrix():
     assert np.allclose(dfdw_out, dfdw)
 
 
-def test_state_transition():
+def test_state_transition(noise_params):
+    *_, gbc = noise_params
+
     dt = 0.1
     f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    gbc = 50.0
 
     phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
