@@ -92,10 +92,12 @@ def _wn_cov_matrix(dt, R_nb, W):
     """
     Setup process noise covariance matrix, Q.
 
-    In general, Q should be updated each time step if R_nb changes. However, if
-    the acceleration noise (velocity random walk) is the same for all axes (i.e.,
-    Wv is on the form vrw ** 2 * I), we do not need to update the Q matrix, since
-    R_nb @ Wv @ R_nb.T = vrw ** 2 * I = constant.
+    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+
+        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+    
+    However, if the acceleration noise (velocity random walk) is isotropic (same
+    in all axes), the rotation is not needed, and we can compute Q only once.
     """
     dfdw = _wn_input_matrix(R_nb)
     Q = dt * dfdw @ W @ dfdw.T
@@ -318,7 +320,6 @@ class AHRS:
             self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
         )
         W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
-        self._Wv = np.ascontiguousarray(W[6:9, 6:9])  # preallocation
         self._Q = _wn_cov_matrix(self._dt, self._R_nb, W)
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
