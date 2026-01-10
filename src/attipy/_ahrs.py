@@ -74,46 +74,54 @@ def _update_phi(phi, dt, I3x3, f_b, w_b, R_nb):
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
 
 
-def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Setup linearized (white noise) input matrix, dfdw."""
+# def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+#     """Setup linearized (white noise) input matrix, dfdw."""
 
-    # Input (white noise) matrix
-    dfdw = np.zeros((9, 9))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step (for non-isotropic case)
+#     # Input (white noise) matrix
+#     dfdw = np.zeros((9, 9))
+#     dfdw[0:3, 0:3] = -np.eye(3)
+#     dfdw[3:6, 3:6] = np.eye(3)
+#     dfdw[6:9, 6:9] = -R_nb  # NB! update each time step (for non-isotropic case)
 
-    return dfdw
-
-
-def _wn_psd_matrix(
-    vrw: float, arw: float, gbs: float, gbc: float
-) -> NDArray[np.float64]:
-    """Setup white noise (process noise) power spectral density matrix, W."""
-
-    # White noise power spectral density matrix
-    W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
-
-    return W
+#     return dfdw
 
 
-def _wn_cov_matrix(dt, R_nb, W):
-    """
-    Setup process noise covariance matrix, Q.
+# def _wn_psd_matrix(
+#     vrw: float, arw: float, gbs: float, gbc: float
+# ) -> NDArray[np.float64]:
+#     """Setup white noise (process noise) power spectral density matrix, W."""
 
-    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+#     # White noise power spectral density matrix
+#     W = np.eye(9)
+#     W[0:3, 0:3] *= arw**2
+#     W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+#     W[6:9, 6:9] *= vrw**2
 
-        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+#     return W
 
-    However, if the acceleration noise (velocity random walk) is isotropic (same
-    in all axes), the rotation is not needed, and we can compute Q only once.
-    """
-    # TODO: compute directly, avoiding dfdw computation
-    dfdw = _wn_input_matrix(R_nb)
-    Q = dt * dfdw @ W @ dfdw.T
+
+# def _wn_cov_matrix_old(dt, R_nb, W):
+#     """
+#     Setup process noise covariance matrix, Q.
+
+#     In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+
+#         Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+
+#     However, if the acceleration noise (velocity random walk) is isotropic (same
+#     in all axes), the rotation is not needed, and we can compute Q only once.
+#     """
+#     # TODO: compute directly, avoiding dfdw computation
+#     dfdw = _wn_input_matrix(R_nb)
+#     Q = dt * dfdw @ W @ dfdw.T
+#     return Q
+
+
+def _wn_cov_matrix(dt, vrw: float, arw: float, gbs: float, gbc: float):
+    Q = np.zeros((9, 9))
+    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[6:9, 6:9] = dt * vrw**2 * np.eye(3)
     return Q
 
 
@@ -304,8 +312,7 @@ class AHRS:
         self._phi = _state_transition_matrix(
             self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
         )
-        W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
-        self._Q = _wn_cov_matrix(self._dt, self._R_nb, W)
+        self._Q = _wn_cov_matrix(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
