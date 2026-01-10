@@ -111,6 +111,7 @@ def _wn_cov_matrix(dt, R_nb, W):
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
+    # TODO: compute directly, avoiding dfdw computation
     dfdw = _wn_input_matrix(R_nb)
     Q = dt * dfdw @ W @ dfdw.T
     return Q
