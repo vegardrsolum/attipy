@@ -63,7 +63,8 @@ def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
 
 def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
-    return np.eye(9) + dt * dfdx  # first-order approximation
+    phi = np.eye(9) + dt * dfdx  # first-order approximation
+    return phi
 
 
 @njit  # type: ignore[misc]
@@ -88,13 +89,29 @@ def _wn_input_matrix(R_nb):
 
 
 def _wn_cov_matrix(dt, R_nb, W):
+    """
+    Setup process noise covariance matrix, Q.
+
+    In general, Q should be updated each time step if R_nb changes. However, if
+    the acceleration noise (velocity random walk) is the same for all axes (i.e.,
+    Wv is on the form vrw ** 2 * I), we do not need to update the Q matrix, since
+    R_nb @ Wv @ R_nb.T = vrw ** 2 * I = constant.
+    """
     dfdw = _wn_input_matrix(R_nb)
-    return dt * dfdw @ W @ dfdw.T
+    Q = dt * dfdw @ W @ dfdw.T
+    return Q
 
 
 @njit  # type: ignore[misc]
 def _update_Q(Q, dt, R_nb, Wv):
-    """Update process noise covariance matrix, Q."""
+    """
+    Update process noise covariance matrix, Q.
+
+    In general, Q should be updated each time step if R_nb changes. However, if
+    the acceleration noise (velocity random walk) is the same for all axes (i.e.,
+    Wv is on the form vrw ** 2 * I), we do not need to update the Q matrix, since
+    R_nb @ Wv @ R_nb.T = vrw ** 2 * I = constant.
+    """
     Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
     return Q
 
@@ -460,7 +477,7 @@ class AHRS:
         self._phi[:] = _update_phi(
             self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb
         )
-        self._Q[:] = _update_Q(self._Q, self._dt, self._R_nb, self._Wv)
+        # self._Q[:] = _update_Q(self._Q, self._dt, self._R_nb, self._Wv)
 
     def update(
         self,
