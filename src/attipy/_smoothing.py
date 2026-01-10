@@ -5,8 +5,9 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._ahrs import AHRS, _update_phi, _update_Q
+from ._ahrs import AHRS
 from ._quatops import _quatprod
+from ._statespace import _update_state_transition as _update_phi
 from ._transforms import _matrix_from_quat
 from ._vectorops import _normalize
 
@@ -134,7 +135,6 @@ class FixedIntervalSmoother:
                 self._cov_smoothing,
                 self._ahrs._phi,
                 self._ahrs._Q,
-                self._ahrs._Wv,
                 self._ahrs._dt,
             )
             self._q_nb = np.asarray(q_nb)
@@ -201,7 +201,6 @@ def _rts_backward_sweep(
     cov_smoothing: bool,
     phi_k: NDArray,
     Q_k: NDArray,
-    Wv: NDArray,
     dt: float,
 ) -> tuple[list[NDArray], list[NDArray]]:
     """
@@ -251,7 +250,6 @@ def _rts_backward_sweep(
         # Update step k state space
         R_nb_k = _matrix_from_quat(q_nb[k])
         phi_k[:] = _update_phi(phi_k, dt, I3x3, f_b[k], w_b[k], R_nb_k)
-        Q_k[:] = _update_Q(Q_k, dt, R_nb_k, Wv)
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q_k
 
         # Smoothed error-state estimate and corresponding covariance
