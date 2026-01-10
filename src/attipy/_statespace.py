@@ -79,7 +79,10 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step (for non-isotropic case)
+    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
+
+    # For isotropic noise, R_nb rotation is not needed, and R_nb can be replaced
+    # with identity matrix. This allows pre-computing dfdw only once.
 
     return dfdw
 
