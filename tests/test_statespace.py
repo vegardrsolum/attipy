@@ -3,11 +3,12 @@ import pytest
 
 import attipy as ap
 from attipy._statespace import (
+    _process_noise_cov,
     _process_noise_psd,
     _state_matrix,
     _state_transition,
+    _update_state_transition,
     _wn_input_matrix,
-    _process_noise_cov,
 )
 from attipy._vectorops import _skew_symmetric
 
@@ -85,6 +86,27 @@ def test_state_transition(noise_params):
     phi = np.eye(9) + dt * dfdx
 
     assert np.allclose(phi_out, phi)
+
+
+def test_update_state_transition(noise_params):
+    *_, gbc = noise_params
+
+    dt = 0.1
+    f_b_corr = np.array([0.1, 0.2, 9.7])
+    w_b_corr = np.array([0.01, 0.02, 0.03])
+    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
+
+    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
+
+    f_b_corr = np.array([0.15, 0.25, 9.6])
+    w_b_corr = np.array([0.015, 0.025, 0.035])
+    R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
+
+    _update_state_transition(phi, dt, np.eye(3), f_b_corr, w_b_corr, R_nb)
+
+    phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
+
+    assert np.allclose(phi, phi_expected)
 
 
 def test_process_noise_cov(noise_params):
