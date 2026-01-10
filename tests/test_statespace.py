@@ -1,6 +1,7 @@
 import numpy as np
 
 import attipy as ap
+from attipy._statespace import _state_matrix, _state_transition
 from attipy._vectorops import _skew_symmetric
 
 
@@ -10,7 +11,7 @@ def test_state_matrix():
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
     gbc = 0.04
 
-    dfdx = ap._statespace._state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
@@ -33,8 +34,8 @@ def test_state_transition():
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
     gbc = 0.04
 
-    phi = ap._statespace._state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
-    dfdx = ap._statespace._state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
+    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
 
     # First order approximation
     phi_approx = np.eye(9) + dt * dfdx
