@@ -249,7 +249,7 @@ def _rts_backward_sweep(
 
         # Update step k state space
         R_nb_k = _matrix_from_quat(q_nb[k])
-        phi_k[:] = _update_phi(phi_k, dt, I3x3, f_b[k], w_b[k], R_nb_k)
+        _update_phi(phi_k, dt, I3x3, f_b[k], w_b[k], R_nb_k)
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q_k
 
         # Smoothed error-state estimate and corresponding covariance
