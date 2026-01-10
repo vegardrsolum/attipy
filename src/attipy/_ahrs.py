@@ -6,9 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
-from ._statespace import _state_transition_matrix
-from ._statespace import _update_state_transition_matrix as _update_phi
-from ._statespace import _wn_cov_matrix
+from ._statespace import _process_noise_cov, _state_transition, _update_state_transition
 from ._vectorops import _normalize
 
 
@@ -229,10 +227,12 @@ class AHRS:
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Continuous time state space model (updated each time step)
-        self._phi = _state_transition_matrix(
+        self._phi = _state_transition(
             self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
         )
-        self._Q = _wn_cov_matrix(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
+        self._Q = _process_noise_cov(
+            self._dt, self._vrw, self._arw, self._gbs, self._gbc
+        )
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
@@ -387,7 +387,9 @@ class AHRS:
         self._w_b[:] = w_b - self._bg_b
 
         # State space
-        _update_phi(self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb)
+        _update_state_transition(
+            self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb
+        )
 
     def update(
         self,

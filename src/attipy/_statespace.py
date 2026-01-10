@@ -5,24 +5,7 @@ from numpy.typing import NDArray
 from ._vectorops import _skew_symmetric
 
 
-def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
-    """Setup linearized state matrix, dfdx."""
-
-    beta_gyro = 1.0 / gbc
-
-    S = _skew_symmetric  # alias skew symmetric matrix
-
-    # State transition matrix
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
-
-    return dfdx
-
-
-def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     """
     Setup state transition matrix, phi.
 
@@ -42,11 +25,42 @@ def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.fl
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition_matrix(phi, dt, I3x3, f_b, w_b, R_nb):
+def _update_state_transition(phi, dt, I3x3, f_b, w_b, R_nb):
     """Update state transition matrix, phi."""
     S = _skew_symmetric
     phi[0:3, 0:3] = I3x3 - dt * S(w_b)
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+
+
+def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
+    """
+    Setup process noise covariance matrix, Q.
+
+    First order approximation:
+        Q = dt @ dfdw @ W @ dfdw.T
+    """
+    Q = np.zeros((9, 9))
+    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[6:9, 6:9] = dt * vrw**2 * np.eye(3)
+    return Q
+
+
+def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+    """Setup linearized state matrix, dfdx."""
+
+    beta_gyro = 1.0 / gbc
+
+    S = _skew_symmetric  # alias skew symmetric matrix
+
+    # State transition matrix
+    dfdx = np.zeros((9, 9))
+    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -beta_gyro * np.eye(3)
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
+
+    return dfdx
 
 
 def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -61,7 +75,7 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dfdw
 
 
-def _wn_psd_matrix(
+def _process_noise_psd(
     vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """Setup white noise (process noise) power spectral density matrix, W."""
@@ -73,17 +87,3 @@ def _wn_psd_matrix(
     W[6:9, 6:9] *= vrw**2
 
     return W
-
-
-def _wn_cov_matrix(dt, vrw: float, arw: float, gbs: float, gbc: float):
-    """
-    Setup process noise covariance matrix, Q.
-
-    First order approximation:
-        Q = dt @ dfdw @ W @ dfdw.T
-    """
-    Q = np.zeros((9, 9))
-    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
-    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
-    Q[6:9, 6:9] = dt * vrw**2 * np.eye(3)
-    return Q
