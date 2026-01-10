@@ -59,10 +59,26 @@ def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     return dfdx
 
 
-def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+def _state_transition_matrix_old(
+    dt, f_b_corr, w_b_corr, R_nb, gbc
+) -> NDArray[np.float64]:
     """Setup state transition matrix, phi."""
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
     phi = np.eye(9) + dt * dfdx  # first-order approximation
+    return phi
+
+
+def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+    """Setup state transition matrix, phi."""
+    S = _skew_symmetric  # alias skew symmetric matrix
+
+    beta_gyro = 1.0 / gbc
+
+    phi = np.eye(9)
+    phi[0:3, 0:3] += -dt * S(w_b_corr)
+    phi[0:3, 3:6] += -dt * np.eye(3)
+    phi[3:6, 3:6] += -dt * beta_gyro * np.eye(3)  # => (1 - dt*beta_gyro) * I
+    phi[6:9, 0:3] += -dt * (R_nb @ S(f_b_corr))
     return phi
 
 
