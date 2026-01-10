@@ -315,7 +315,7 @@ class AHRS:
         self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
         self._bg_b[:] = self._bg_b + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
-        self._dx[:] = np.zeros(dx.size)
+        # self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -444,6 +444,7 @@ class AHRS:
         self._project_ahead()
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
+        self._dx[:] = np.zeros(self._dx.size)  # reset error state estimate
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
