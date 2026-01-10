@@ -60,10 +60,10 @@ def test_state_transition(noise_params):
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
-    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    phi_out = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
     # First order approximation
-    phi_approx = np.eye(9) + dt * dfdx
+    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    phi = np.eye(9) + dt * dfdx
 
-    assert np.allclose(phi, phi_approx)
+    assert np.allclose(phi_out, phi)
