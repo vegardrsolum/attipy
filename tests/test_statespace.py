@@ -40,7 +40,7 @@ def test_state_matrix(noise_params):
     dfdx[3:6, 3:6] = -np.eye(3) / gbc
     dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)
 
-    assert np.allclose(dfdx_out, dfdx)
+    np.testing.assert_allclose(dfdx_out, dfdx)
 
 
 def test_wn_input_matrix():
@@ -54,7 +54,7 @@ def test_wn_input_matrix():
     dfdw[3:6, 3:6] = np.eye(3)
     dfdw[6:9, 6:9] = -R_nb
 
-    assert np.allclose(dfdw_out, dfdw)
+    np.testing.assert_allclose(dfdw_out, dfdw)
 
 
 def test_process_noise_psd(noise_params):
@@ -68,7 +68,7 @@ def test_process_noise_psd(noise_params):
     W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
     W[6:9, 6:9] *= vrw**2
 
-    assert np.allclose(W_out, W)
+    np.testing.assert_allclose(W_out, W)
 
 
 def test_state_transition(noise_params):
@@ -81,32 +81,30 @@ def test_state_transition(noise_params):
 
     phi_out = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
-    # First order approximation
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
-    phi = np.eye(9) + dt * dfdx
+    phi = np.eye(9) + dt * dfdx  # first order approximation
 
-    assert np.allclose(phi_out, phi)
+    np.testing.assert_allclose(phi_out, phi)
 
 
 def test_update_state_transition(noise_params):
     *_, gbc = noise_params
 
     dt = 0.1
+
     f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-
     phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
     R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
-
     _update_state_transition(phi, dt, np.eye(3), f_b_corr, w_b_corr, R_nb)
 
     phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
-    assert np.allclose(phi, phi_expected)
+    np.testing.assert_allclose(phi, phi_expected)
 
 
 def test_process_noise_cov(noise_params):
@@ -121,4 +119,4 @@ def test_process_noise_cov(noise_params):
 
     Q = dt * dfdw @ W @ dfdw.T
 
-    assert np.allclose(Q_out, Q)
+    np.testing.assert_allclose(Q_out, Q, atol=1e-12)
