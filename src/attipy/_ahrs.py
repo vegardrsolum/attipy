@@ -61,6 +61,20 @@ def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
     return dfdx
 
 
+def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    return np.eye(9) + dt * dfdx  # first-order approximation
+
+
+@njit  # type: ignore[misc]
+def _update_phi(phi, dt, I3x3, f_b, w_b, R_nb):
+    """Update state transition matrix, phi."""
+    S = _skew_symmetric
+    phi[0:3, 0:3] = I3x3 - dt * S(w_b)
+    phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+    return phi
+
+
 def _wn_input_matrix(R_nb):
     """Setup linearized (white noise) input matrix, dfdw."""
 
@@ -71,6 +85,18 @@ def _wn_input_matrix(R_nb):
     dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
 
     return dfdw
+
+
+def _wn_cov_matrix(dt, R_nb, W):
+    dfdw = _wn_input_matrix(R_nb)
+    return dt * dfdw @ W @ dfdw.T
+
+
+@njit  # type: ignore[misc]
+def _update_Q(Q, dt, R_nb, Wv):
+    """Update process noise covariance matrix, Q."""
+    Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+    return Q
 
 
 def _wn_psd_matrix(
@@ -228,6 +254,7 @@ class AHRS:
     """
 
     _I = np.eye(9)
+    _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
 
@@ -270,15 +297,13 @@ class AHRS:
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Continuous time state space model (updated each time step)
-        # TODO: avoid continuous time state space by computing phi and Q directly
-        self._dfdx = _state_matrix(self._f_b, self._w_b, self._R_nb, self._gbc)
-        self._dfdw = _wn_input_matrix(self._R_nb)
+        self._phi = _state_transition_matrix(
+            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+        )
+        W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
+        self._Wv = np.ascontiguousarray(W[6:9, 6:9])  # preallocation
+        self._Q = _wn_cov_matrix(self._dt, self._R_nb, W)
         self._dhdx = _measurement_matrix(self._att_nb._q)
-        self._W = _wn_psd_matrix(self._vrw, self._arw, self._gbs, self._gbc)
-
-        # Discretized state space model (updated each time step)
-        self._phi = self._I + self._dt * self._dfdx  # first-order approximation
-        self._Q = self._dt * self._dfdw @ self._W @ self._dfdw.T
 
     @property
     def attitude(self) -> Attitude:
@@ -431,15 +456,11 @@ class AHRS:
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
 
-        # Continuous time state space
-        S = _skew_symmetric
-        self._dfdx[0:3, 0:3] = -S(self._w_b)
-        self._dfdx[6:9, 0:3] = -self._R_nb @ S(self._f_b)
-        self._dfdw[6:9, 6:9] = -self._R_nb
-
         # Discretized state space
-        self._phi[:] = self._I + self._dt * self._dfdx  # first-order approximation
-        self._Q[:] = self._dt * self._dfdw @ self._W @ self._dfdw.T
+        self._phi[:] = _update_phi(
+            self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb
+        )
+        self._Q[:] = _update_Q(self._Q, self._dt, self._R_nb, self._Wv)
 
     def update(
         self,
