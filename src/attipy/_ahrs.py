@@ -88,6 +88,20 @@ def _wn_input_matrix(R_nb):
     return dfdw
 
 
+def _wn_psd_matrix(
+    vrw: float, arw: float, gbs: float, gbc: float
+) -> NDArray[np.float64]:
+    """Setup white noise (process noise) power spectral density matrix, W."""
+
+    # White noise power spectral density matrix
+    W = np.eye(9)
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
+
+    return W
+
+
 def _wn_cov_matrix(dt, R_nb, W):
     """
     Setup process noise covariance matrix, Q.
@@ -102,20 +116,6 @@ def _wn_cov_matrix(dt, R_nb, W):
     dfdw = _wn_input_matrix(R_nb)
     Q = dt * dfdw @ W @ dfdw.T
     return Q
-
-
-def _wn_psd_matrix(
-    vrw: float, arw: float, gbs: float, gbc: float
-) -> NDArray[np.float64]:
-    """Setup white noise (process noise) power spectral density matrix, W."""
-
-    # White noise power spectral density matrix
-    W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
-
-    return W
 
 
 @njit  # type: ignore[misc]
