@@ -43,9 +43,7 @@ def _ssa(angle: float, degrees: bool = True) -> float:
 
 
 def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
-    """
-    Setup linearized state matrix, dfdx.
-    """
+    """Setup linearized state matrix, dfdx."""
 
     beta_gyro = 1.0 / gbc
 
@@ -62,6 +60,7 @@ def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
 
 
 def _state_transition_matrix(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+    """Setup state transition matrix, phi."""
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
     phi = np.eye(9) + dt * dfdx  # first-order approximation
     return phi
@@ -76,7 +75,7 @@ def _update_phi(phi, dt, I3x3, f_b, w_b, R_nb):
     return phi
 
 
-def _wn_input_matrix(R_nb):
+def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """Setup linearized (white noise) input matrix, dfdw."""
 
     # Input (white noise) matrix
