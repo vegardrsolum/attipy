@@ -185,7 +185,7 @@ class AHRS:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I = np.eye(9)
+    _I9x9 = np.eye(9)
     _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
@@ -333,7 +333,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -356,7 +356,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
