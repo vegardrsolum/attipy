@@ -308,3 +308,29 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
     )
     return rot
+
+
+@njit  # type: ignore[misc]
+def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
+    """
+    Compute yaw angle from unit quaternion.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    Returns
+    -------
+    float
+        Yaw angle in radians.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
+    """
+    qw, qx, qy, qz = q_nb
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
+    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
