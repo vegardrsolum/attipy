@@ -3,8 +3,8 @@ import pytest
 from pytest import fixture
 
 import attipy as ap
-from attipy._transforms import _quat_from_euler_zyx
 from attipy._ahrs import _dyawda
+from attipy._transforms import _quat_from_euler_zyx
 
 
 class Test_AHRS:
