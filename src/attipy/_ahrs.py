@@ -385,7 +385,7 @@ class AHRS:
         self._w_b[:] = w_b - self._bg_b
 
         # State space
-        _update_phi(self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb)
+        _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb, self._I3x3)
 
     def update(
         self,

@@ -100,7 +100,7 @@ def test_update_state_transition(noise_params):
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
     R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
-    _update_state_transition(phi, dt, np.eye(3), f_b_corr, w_b_corr, R_nb)
+    _update_state_transition(phi, dt, f_b_corr, w_b_corr, R_nb, np.eye(3))
 
     phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 

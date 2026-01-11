@@ -25,7 +25,7 @@ def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(phi, dt, I3x3, f_b, w_b, R_nb):
+def _update_state_transition(phi, dt, f_b, w_b, R_nb, I3x3):
     """Update state transition matrix, phi."""
     S = _skew_symmetric
     phi[0:3, 0:3] = I3x3 - dt * S(w_b)
