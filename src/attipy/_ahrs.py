@@ -10,6 +10,7 @@ from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
 from ._statespace import _update_state_transition as _update_phi
+from ._transforms import _yaw_from_quat
 from ._vectorops import _normalize
 
 
@@ -44,32 +45,6 @@ def _ssa(angle: float, degrees: bool = True) -> float:
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
-
-
-@njit  # type: ignore[misc]
-def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
-    """
-    Compute yaw angle from unit quaternion.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
-
-    Returns
-    -------
-    float
-        Yaw angle in radians.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
-    """
-    qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]
