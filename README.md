@@ -61,7 +61,7 @@ stable aiding measurements. When no aiding is available (as in the example above
 stationarity is assumed to ensure convergence. By default, zero-velocity aiding
 with a 10 m/s standard deviation is used; this constrains roll and pitch only, as
 these are the only degrees of freedom observable from specific force and the known
-direction of gravity.
+direction of gravity. If the stationarity assumption is violated (i.e., during severe, highly dynamic motion), zero-velocity aiding can degrade the attitude estimates, and alternative aiding is required.
 
 Under sustained linear acceleration, velocity aiding is recommended to maintain
 accurate attitude estimates. Heading (yaw) aiding should also be applied to correct
