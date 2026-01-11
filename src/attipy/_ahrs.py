@@ -238,7 +238,9 @@ class AHRS:
         return self._dhdx[3:4]
 
     def _reset(self) -> None:
-        """Reset state (regulating error state to zero)."""
+        """
+        Reset state (regulating error state to zero).
+        """
         dx = self._dx
 
         if not dx.any():
@@ -309,16 +311,12 @@ class AHRS:
 
     def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
         """
-        Update states and state space matrices.
+        Update state vectors and state space matrices.
         """
-
-        # States
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._f_b[:] = f_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
-
-        # State space
         _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb, self._I3x3)
 
     def update(
