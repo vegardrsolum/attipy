@@ -99,3 +99,50 @@ def _process_noise_psd(
     W[6:9, 6:9] *= vrw**2
 
     return W
+
+
+@njit  # type: ignore[misc]
+def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute yaw angle gradient wrt to the scaled Gibbs vector.
+
+    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
+    unit quaternion here to avoid singularities.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (3,)
+        Unit quaternion.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        Yaw angle gradient vector.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
+    """
+    qw, qx, qy, qz = q_nb
+    u_y = 2.0 * (qx * qy + qz * qw)
+    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
+    u = u_y / u_x
+
+    duda_scale = 1.0 / u_x**2
+    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
+    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
+    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
+    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
+
+    dyawda = 1.0 / (1.0 + u**2) * duda
+
+    return dyawda  # type: ignore[no-any-return]
+
+
+def _measurement_matrix(q_nb) -> None:
+    """Setup linearized measurement matrix, dhdx."""
+    dhdx = np.zeros((7, 9))
+    dhdx[0:3, 6:9] = np.eye(3)  # velocity
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    return dhdx
