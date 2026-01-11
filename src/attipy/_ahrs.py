@@ -16,7 +16,7 @@ from ._vectorops import _normalize
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
-    Gravity vector direction in the navigation frame (NED or ENU).
+    Gravity vector in the navigation frame ('NED' or 'ENU').
     """
     if nav_frame.lower() == "ned":
         g_n = np.array([0.0, 0.0, g])
@@ -27,21 +27,21 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _ssa(angle: float, degrees: bool = True) -> float:
+def _ssa(angle: float, degrees: bool = False) -> float:
     """
-    Convert the given angle to the smallest signed angle between [-180., 180) degrees.
+    Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
     Parameters
     ----------
     angle : float
-        Value of angle.
-    degrees : bool, default True
-        Specifies whether ``angle`` is given degrees or radians.
+        Angle value.
+    degrees : bool, default False
+        Specifies whether ``angle`` is given degrees or radians (default).
 
     Returns
     -------
     float
-        The smallest angle between [-180., 180) degrees (or  [-pi, pi] radians).
+        The smallest angle between [-pi, pi] radians (or [-180., 180) degrees).
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
