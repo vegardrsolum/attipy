@@ -57,7 +57,7 @@ def _update_dx_P(
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-        H_i = np.ascontiguousarray(H[i, :])
+        H_i = H[i, :]
         K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
         dx += K_i * (dz_i - H_i @ dx)
         K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as 2D array

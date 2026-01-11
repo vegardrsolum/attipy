@@ -4,6 +4,7 @@ from pytest import fixture
 
 import attipy as ap
 from attipy._transforms import _quat_from_euler_zyx
+from attipy._ahrs import _dyawda
 
 
 class Test_AHRS:
@@ -62,6 +63,11 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs._f_b, ahrs._R_nb.T @ (ahrs._a_n - ahrs._g_n))
         np.testing.assert_allclose(ahrs._P, P)
 
+        # Check C contiguity
+        assert ahrs._dhdx.flags.c_contiguous
+        assert ahrs._phi.flags.c_contiguous
+        assert ahrs._Q.flags.c_contiguous
+
     def test__init__default(self):
         fs = 10.0
         ahrs = ap.AHRS(fs)
@@ -84,6 +90,21 @@ class Test_AHRS:
 
         np.testing.assert_allclose(ahrs._f_b, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(ahrs._w_b, np.zeros(3))
+
+    def test_dhdx_vel(self, ahrs):
+        dhdx_vel = ahrs._dhdx_vel()
+        dhdx_vel_expected = np.zeros((3, 9))
+        dhdx_vel_expected[:, 6:9] = np.eye(3)
+        np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
+        assert dhdx_vel.flags.c_contiguous
+
+    def test_dhdx_yaw(self, ahrs):
+        q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
+        dhdx_yaw = ahrs._dhdx_yaw(q_nb)
+        dhdx_yaw_expected = np.zeros((1, 9))
+        dhdx_yaw_expected[0, 0:3] = _dyawda(q_nb)
+        np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
+        assert dhdx_yaw.flags.c_contiguous
 
     def test__init__nav_frame(self):
         ahrs_ned = ap.AHRS(10.0, nav_frame="NED")
