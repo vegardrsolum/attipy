@@ -6,15 +6,17 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._quatops import _quatprod
+from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
 from ._statespace import _update_state_transition as _update_phi
+from ._transforms import _yaw_from_quat
 from ._vectorops import _normalize
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
-    Gravity vector direction in the navigation frame (NED or ENU).
+    Gravity vector in the navigation frame ('NED' or 'ENU').
     """
     if nav_frame.lower() == "ned":
         g_n = np.array([0.0, 0.0, g])
@@ -25,97 +27,24 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _ssa(angle: float, degrees: bool = True) -> float:
+def _ssa(angle: float, degrees: bool = False) -> float:
     """
-    Convert the given angle to the smallest signed angle between [-180., 180) degrees.
+    Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
     Parameters
     ----------
     angle : float
-        Value of angle.
-    degrees : bool, default True
-        Specifies whether ``angle`` is given degrees or radians.
+        Angle value.
+    degrees : bool, default False
+        Specifies whether ``angle`` is given degrees or radians (default).
 
     Returns
     -------
     float
-        The smallest angle between [-180., 180) degrees (or  [-pi, pi] radians).
+        The smallest angle between [-pi, pi] radians (or [-180., 180) degrees).
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
-
-
-@njit  # type: ignore[misc]
-def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
-    """
-    Compute yaw angle from unit quaternion.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
-
-    Returns
-    -------
-    float
-        Yaw angle in radians.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
-    """
-    qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
-
-
-@njit  # type: ignore[misc]
-def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute yaw angle gradient wrt to the scaled Gibbs vector.
-
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (3,)
-        Unit quaternion.
-
-    Returns
-    -------
-    numpy.ndarray, shape (3,)
-        Yaw angle gradient vector.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
-    """
-    qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    u = u_y / u_x
-
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
-    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
-    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
-
-    dyawda = 1.0 / (1.0 + u**2) * duda
-
-    return dyawda  # type: ignore[no-any-return]
-
-
-def _measurement_matrix(q_nb) -> None:
-    """Setup linearized measurement matrix, dhdx."""
-    dhdx = np.zeros((7, 9))
-    dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle)
-    return dhdx
 
 
 @njit  # type: ignore[misc]
@@ -127,12 +56,17 @@ def _update_dx_P(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Kalman filter update of error state, dx, and covariance matrix, P, with sequential
+    measurements.
+    """
+    # Note: all arrays must be C-contiguous for numba njit
     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-        H_i = np.ascontiguousarray(H[i, :])
+        H_i = H[i, :]  # must be C-contiguous
         K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
         dx += K_i * (dz_i - H_i @ dx)
-        K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as 2D array
-        H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as 2D array
+        K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as C-contiguous 2D array
+        H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as C-contiguous 2D array
         P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
     return dx, P
 
@@ -185,7 +119,7 @@ class AHRS:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I = np.eye(9)
+    _I9x9 = np.eye(9)
     _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
@@ -292,19 +226,21 @@ class AHRS:
 
     def _dhdx_vel(self):
         """
-        Velocity measurement matrix.
+        Velocity part of the measurement matrix.
         """
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading (yaw angle) measurement matrix.
+        Heading (yaw angle) part of the measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
 
     def _reset(self) -> None:
-        """Reset state (regulating error state to zero)."""
+        """
+        Reset state (regulating error state to zero).
+        """
         dx = self._dx
 
         if not dx.any():
@@ -319,7 +255,7 @@ class AHRS:
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
-        Update with velocity vector measurement.
+        Update with velocity vector aiding measurement.
         """
         dx, P = self._dx, self._P
 
@@ -333,11 +269,11 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
-        Update with heading measurement.
+        Update with heading aiding measurement.
         """
         dx, P = self._dx, self._P
 
@@ -356,11 +292,11 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
-        Project state and covariance ahead.
+        Project state and covariance estimates ahead.
         """
 
         # Velocity (dead reckoning)
@@ -375,17 +311,13 @@ class AHRS:
 
     def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
         """
-        Update states and state space matrices.
+        Update state vectors and state space matrices.
         """
-
-        # States
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._f_b[:] = f_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
-
-        # State space
-        _update_phi(self._phi, self._dt, self._I3x3, self._f_b, self._w_b, self._R_nb)
+        _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb, self._I3x3)
 
     def update(
         self,
