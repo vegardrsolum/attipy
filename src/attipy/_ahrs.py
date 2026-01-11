@@ -56,6 +56,11 @@ def _update_dx_P(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Kalman filter update of error state, dx, and covariance matrix, P, with sequential
+    measurements.
+    """
+    # Note: all arrays must be C-contiguous for numba njit
     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
         H_i = H[i, :]  # must be C-contiguous
         K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
@@ -221,13 +226,13 @@ class AHRS:
 
     def _dhdx_vel(self):
         """
-        Velocity measurement matrix.
+        Velocity part of the measurement matrix.
         """
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading (yaw angle) measurement matrix.
+        Heading (yaw angle) part of the measurement matrix.
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3:4]
@@ -248,7 +253,7 @@ class AHRS:
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
-        Update with velocity vector measurement.
+        Update with velocity vector aiding measurement.
         """
         dx, P = self._dx, self._P
 
@@ -266,7 +271,7 @@ class AHRS:
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
-        Update with heading measurement.
+        Update with heading aiding measurement.
         """
         dx, P = self._dx, self._P
 
@@ -289,7 +294,7 @@ class AHRS:
 
     def _project_ahead(self):
         """
-        Project state and covariance ahead.
+        Project state and covariance estimates ahead.
         """
 
         # Velocity (dead reckoning)
