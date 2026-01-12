@@ -127,7 +127,7 @@ def _kalman_update_v2(
 
 
 @njit  # type: ignore[misc]
-def _kalman_update(
+def _kalman_update_v3(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
@@ -142,7 +142,6 @@ def _kalman_update(
     K = np.empty(n, dtype=np.float64)
 
     A = np.empty((n, n), dtype=np.float64)
-    P_new = np.empty((n, n), dtype=np.float64)
 
     for i in range(z.shape[0]):
         h_i = H[i, :]
@@ -172,25 +171,21 @@ def _kalman_update(
         for a in range(n):
             x[a] += K[a] * r
 
-        # # Covariance update (Joseph form)
-        # A = I_ - np.outer(K, h_i)
-        # P = A @ P @ A.T + v_i * np.outer(K, K)
-
-        # A = I - k h^T  (build as dense n×n; OK for moderate n)
-        A = np.eye(n)
+        for i in range(n):
+            for j in range(n):
+                A[i, j] = 0.0
+            A[i, i] = 1.0
         for i in range(n):
             ki = K[i]
             for j in range(n):
                 A[i, j] -= ki * h_i[j]
 
-        # P_new = A P A^T + var * (k k^T)
-        P_new[:, :] = A @ P @ A.T
+        P[:, :] = A @ P @ A.T
 
-        # Add var * k k^T
         for i in range(n):
             ki = K[i]
             for j in range(n):
-                P_new[i, j] += v_i * ki * K[j]
+                P[i, j] += v_i * ki * K[j]
 
         # # Symmetrize (optional but recommended)
         # for i in range(n):
@@ -199,10 +194,10 @@ def _kalman_update(
         #         P_new[i, j] = s
         #         P_new[j, i] = s
 
-        # Write back in-place
-        P[:, :] = P_new
-
     return x, P
+
+
+_kalman_update = _kalman_update_v3
 
 
 # @njit  # type: ignore[misc]
