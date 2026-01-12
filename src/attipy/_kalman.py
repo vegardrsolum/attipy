@@ -12,7 +12,7 @@ def _kalman_update(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
     Ph: NDArray[np.float64],
-    K: NDArray[np.float64],
+    k: NDArray[np.float64],
     A: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
@@ -24,15 +24,14 @@ def _kalman_update(
         # Kalman gain
         Ph[:] = P @ hi
         S = hi @ Ph + vi
-        if S <= 1e-20:  # optional numerical safety
+        if S <= 1e-20:  # numerical safety
             S = 1e-20
-        K[:] = Ph / S
+        k[:] = Ph / S
 
         # State update
-        x += K * (zi - hi @ x)
+        x += k * (zi - hi @ x)
 
         # Covariance update (Joseph form)
-        A[:] = I_ - np.outer(K, hi)
-        P[:, :] = A @ P @ A.T + vi * np.outer(K, K)
-
+        A[:] = I_ - np.outer(k, hi)
+        P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
     return x, P
