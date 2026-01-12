@@ -75,8 +75,9 @@ def _kalman_update_v1(
     return x, P
 
 
+
 @njit  # type: ignore[misc]
-def _kalman_update(
+def _kalman_update_v2(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
@@ -121,6 +122,85 @@ def _kalman_update(
         # Covariance update (Joseph form)
         A = I_ - np.outer(K, h_i)
         P = A @ P @ A.T + v_i * np.outer(K, K)
+
+    return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    
+    n = x.size
+
+    PH = np.empty(n, dtype=np.float64)
+    K = np.empty(n, dtype=np.float64)
+
+    A = np.empty((n, n), dtype=np.float64)
+    P_new = np.empty((n, n), dtype=np.float64)
+
+    for i in range(z.shape[0]):
+        h_i = H[i, :]
+        z_i = z[i]
+        v_i = var[i]
+
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * h_i[b]
+            PH[a] = s
+
+        S = v_i
+        hx = 0.0
+        for a in range(n):
+            S += h_i[a] * PH[a]
+            hx += h_i[a] * x[a]
+
+        invS = 1.0 / S
+
+        # Kalman gain
+        for a in range(n):
+            K[a] = PH[a] * invS
+
+        # State update
+        r = z_i - hx
+        for a in range(n):
+            x[a] += K[a] * r
+
+        # # Covariance update (Joseph form)
+        # A = I_ - np.outer(K, h_i)
+        # P = A @ P @ A.T + v_i * np.outer(K, K)
+
+        # A = I - k h^T  (build as dense n×n; OK for moderate n)
+        A = np.eye(n)
+        for i in range(n):
+            ki = K[i]
+            for j in range(n):
+                A[i, j] -= ki * h_i[j]
+
+        # P_new = A P A^T + var * (k k^T)
+        P_new[:, :] = A @ P @ A.T
+
+        # Add var * k k^T
+        for i in range(n):
+            ki = K[i]
+            for j in range(n):
+                P_new[i, j] += v_i * ki * K[j]
+
+        # # Symmetrize (optional but recommended)
+        # for i in range(n):
+        #     for j in range(i + 1, n):
+        #         s = 0.5 * (P_new[i, j] + P_new[j, i])
+        #         P_new[i, j] = s
+        #         P_new[j, i] = s
+
+        # Write back in-place
+        P[:, :] = P_new
 
     return x, P
 
