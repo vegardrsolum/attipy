@@ -215,3 +215,64 @@ def _kalman_update_v3(
                 P[b, a] = s
 
     return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_v1p5(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    Ph: NDArray[np.float64],
+    hP: NDArray[np.float64],
+    K: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    n = 9  # number of states
+
+    for i in range(z.shape[0]):
+        v_i = var[i]
+
+        # Ph = P @ h
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * H[i, b]
+            Ph[a] = s
+
+        # hP = h.T @ P
+        for b in range(n):
+            s = 0.0
+            for a in range(n):
+                s += H[i, a] * P[a, b]
+            hP[b] = s
+
+        # S and predicted measurement
+        S = v_i
+        hx = 0.0
+        for a in range(n):
+            S += H[i, a] * Ph[a]
+            hx += H[i, a] * x[a]
+
+        if S <= 1e-20:
+            S = 1e-20
+        invS = 1.0 / S
+
+        # K = Ph / S
+        for a in range(n):
+            K[a] = Ph[a] * invS
+
+        # x update
+        r = z[i] - hx
+        for a in range(n):
+            x[a] += K[a] * r
+
+        # Joseph expansion (no A, no matmul, no outer)
+        for a in range(n):
+            Ka = K[a]
+            Pha = Ph[a]
+            for b in range(n):
+                P[a, b] = P[a, b] - Ka * hP[b] - Pha * K[b] + S * Ka * K[b]
+
+    return x, P
