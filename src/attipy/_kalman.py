@@ -99,3 +99,67 @@ def _kalman_update_v2(
                 P[a, b] += v_i * ka * k[b]
 
     return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_v3(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    Ph: NDArray[np.float64],   # P @ h
+    k: NDArray[np.float64],    # Kalman gain
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    n = 9  # number of states
+
+    for i in range(z.size):
+        v_i = var[i]
+
+        # Ph = P @ h
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * H[i, b]
+            Ph[a] = s
+
+        # Innovation covariance and predicted measurement
+        S = v_i
+        hx = 0.0
+        for a in range(n):
+            hia = H[i, a]
+            S += hia * Ph[a]
+            hx += hia * x[a]
+
+        # Safety (optional)
+        if S <= 1e-20:
+            S = 1e-20
+
+        invS = 1.0 / S
+
+        # Kalman gain
+        for a in range(n):
+            k[a] = Ph[a] * invS
+
+        # State update
+        r = z[i] - hx
+        for a in range(n):
+            x[a] += k[a] * r
+
+        # Joseph covariance update:
+        # P = P - k Ph^T - Ph k^T + S k k^T
+        for a in range(n):
+            ka = k[a]
+            pha = Ph[a]
+            for b in range(n):
+                P[a, b] = P[a, b] - ka * Ph[b] - pha * k[b] + S * ka * k[b]
+
+        # Optional symmetry enforcement
+        for a in range(n):
+            for b in range(a + 1, n):
+                s = 0.5 * (P[a, b] + P[b, a])
+                P[a, b] = s
+                P[b, a] = s
+
+    return x, P
