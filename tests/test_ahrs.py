@@ -396,9 +396,11 @@ def test_kalman_update():
 
     x = np.zeros(9)
     P = np.eye(9) + 0.01 * rng.random((9, 9))
-    var = np.array([0.01, 0.02, 0.03, 0.04])
-    H = _measurement_matrix(_quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0])))
-    z = rng.random(H.shape[0])
+    q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))  # arbitrary attitude
+    H = _measurement_matrix(q_nb)
+    m = H.shape[0]
+    var = rng.random(m)
+    z = rng.random(m)
 
     x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
 
