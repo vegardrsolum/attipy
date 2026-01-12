@@ -233,6 +233,12 @@ def _kalman_update_v5(
     k: NDArray[np.float64],
     A: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Update state and covariance estimates with a series of measurements, using the
+    sequential scalar Joseph form:
+
+        P = (I - k @ h.T) @ P @ (I - k @ h.T).T + v * k @ k.T
+    """
 
     n = 9  # number of states
 
