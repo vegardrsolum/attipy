@@ -173,7 +173,7 @@ class Test_Attitude:
 
         np.testing.assert_allclose(euler_out, euler, atol=0.01)
 
-    def test__update_dtheta(self, pva_sim):
+    def test__correct_dtheta(self, pva_sim):
         _, _, _, euler, _, w = pva_sim
 
         fs = 10.24
@@ -182,7 +182,7 @@ class Test_Attitude:
 
         euler_out = []
         for w_i in w:
-            att._update_dtheta(w_i * dt)
+            att._correct_dtheta(w_i * dt)
             euler_out.append(att.as_euler(degrees=False))
 
         euler_out = np.asarray(euler_out)

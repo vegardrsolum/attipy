@@ -246,7 +246,7 @@ class AHRS:
         if not dx.any():
             return
 
-        self._att_nb._update_dq(_quat_from_gibbs2(dx[0:3]))
+        self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
         self._bg_b[:] = self._bg_b + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
@@ -302,7 +302,7 @@ class AHRS:
 
         # Attitude (dead reckoning)
         dtheta = self._w_b * self._dt
-        self._att_nb._update_dtheta(dtheta)
+        self._att_nb._correct_dtheta(dtheta)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
