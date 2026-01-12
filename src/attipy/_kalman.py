@@ -73,7 +73,7 @@ def _kalman_update(
                 A[r, c] -= k[r] * hi[c]
 
         # Covariance update (Joseph form)
-        P[:, :] = A @ P @ A.T
+        P[:, :] = A @ P @ A.T  # TODO: optimize by avoiding matmul
         n = k.shape[0]
         for r in range(n):
             kr = k[r]
