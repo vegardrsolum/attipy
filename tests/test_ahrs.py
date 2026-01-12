@@ -3,7 +3,7 @@ import pytest
 from pytest import fixture
 
 import attipy as ap
-from attipy._ahrs import _dyawda
+from attipy._ahrs import _dyawda, _update_dx_P
 from attipy._transforms import _quat_from_euler_zyx
 
 
@@ -387,3 +387,31 @@ class Test_AHRS:
         np.testing.assert_allclose(w_a, w_b)
         np.testing.assert_allclose(a_a, a_b)
         np.testing.assert_allclose(P_a, P_b)
+
+
+# def test_update_dx_P():
+#     rng = np.random.default_rng(42)
+
+#     m = 3
+#     dx = rng.random(9)
+#     P = np.eye(9)
+#     dz = rng.random(m)
+#     var = rng.random(m) + 0.1  # ensure positive variance
+#     H = rng.random((m, 9))
+#     dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H)
+
+#     for i in range(m):
+#         # Kalman gain
+#         H_i = H[i, :]
+#         S = H_i @ P @ H_i.T + var[i]
+#         K = P @ H_i.T / S
+
+#         # Update state
+#         r = dz[i] - H_i @ dx
+#         dx += K * r
+
+#         # Update covariance (Joseph form)
+#         P -= np.outer(K, H_i @ P) + np.outer(P @ H_i.T, K) + S * np.outer(K, K)
+
+#     np.testing.assert_allclose(dx_upd, dx)
+#     np.testing.assert_allclose(P_upd, P)
