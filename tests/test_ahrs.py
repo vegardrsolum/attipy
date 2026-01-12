@@ -400,12 +400,12 @@ def test_kalman_update():
     H = _measurement_matrix(_quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0])))
     z = rng.random(H.shape[0])
 
-    dx_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
+    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    dx_expect = x + K @ (z - H @ x)
+    x_expect = x + K @ (z - H @ x)
     P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
 
-    np.testing.assert_allclose(dx_upd, dx_expect)
+    np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
