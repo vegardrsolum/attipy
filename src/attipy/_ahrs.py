@@ -97,9 +97,9 @@ class AHRS:
     _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
-    _Ph = np.empty(9, dtype=np.float64)
-    _k = np.empty(9, dtype=np.float64)
-    _A = np.empty((9, 9), dtype=np.float64)
+    _Ph = np.empty(9, dtype=np.float64)  # preallocation for Kalman update
+    _k = np.empty(9, dtype=np.float64)  # preallocation for Kalman gain
+    _A = np.empty((9, 9), dtype=np.float64)  # preallocation for Kalman update
 
     def __init__(
         self,
