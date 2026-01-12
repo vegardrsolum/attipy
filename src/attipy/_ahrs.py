@@ -46,6 +46,36 @@ def _ssa(angle: float, degrees: bool = False) -> float:
 
 
 @njit  # type: ignore[misc]
+def _kalman_update_v1(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    for i in range(z.shape[0]):
+        h_i = H[i, :]
+        z_i = z[i]
+        v_i = var[i]
+
+        # Kalman gain
+        PHt = P @ h_i
+        S = h_i @ PHt + v_i
+        K = PHt / S  # shape (n,)
+
+        # State update
+        x += K * (z_i - h_i @ x)
+
+        # Covariance update (Joseph form)
+        A = I_ - np.outer(K, h_i)
+        P = A @ P @ A.T + v_i * np.outer(K, K)
+
+    return x, P
+
+
+@njit  # type: ignore[misc]
 def _kalman_update(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -78,36 +108,6 @@ def _kalman_update(
         P = A @ P @ A.T + v_i * np.outer(K, K)
 
     return x, P
-
-
-# @njit  # type: ignore[misc]
-# def _kalman_update(
-#     x: NDArray[np.float64],
-#     P: NDArray[np.float64],
-#     z: NDArray[np.float64],
-#     var: NDArray[np.float64],
-#     H: NDArray[np.float64],
-#     I_: NDArray[np.float64],
-# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-
-#     for i in range(z.shape[0]):
-#         h_i = H[i, :]
-#         z_i = z[i]
-#         v_i = var[i]
-
-#         # Kalman gain
-#         PHt = P @ h_i
-#         S = h_i @ PHt + v_i
-#         K = PHt / S  # shape (n,)
-
-#         # State update
-#         x += K * (z_i - h_i @ x)
-
-#         # Covariance update (Joseph form)
-#         A = I_ - np.outer(K, h_i)
-#         P = A @ P @ A.T + v_i * np.outer(K, K)
-
-#     return x, P
 
 
 # @njit  # type: ignore[misc]
