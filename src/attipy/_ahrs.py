@@ -98,8 +98,8 @@ class AHRS:
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
     _Ph = np.empty(9, dtype=np.float64)
-    _hP = np.empty(9, dtype=np.float64)
-    _k = np.empty(9, dtype=np.float64)
+    _A = np.empty((9, 9), dtype=np.float64)
+    _K = np.empty(9, dtype=np.float64)
 
     def __init__(
         self,
@@ -244,7 +244,9 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update(
+            dx, P, dz, var, dhdx, self._I9x9, self._Ph, self._K, self._A
+        )
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -267,7 +269,9 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update(
+            dx, P, dz, var, dhdx, self._I9x9, self._Ph, self._K, self._A
+        )
 
     def _project_ahead(self):
         """
