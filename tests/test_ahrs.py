@@ -400,7 +400,7 @@ def test_update_dx_P():
     H = _measurement_matrix(_quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0])))
     dz = rng.random(H.shape[0])
 
-    dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H)
+    dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)

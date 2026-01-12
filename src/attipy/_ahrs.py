@@ -45,36 +45,6 @@ def _ssa(angle: float, degrees: bool = False) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-# @njit  # type: ignore[misc]
-# def _update_dx_P(
-#     dx: NDArray[np.float64],
-#     P: NDArray[np.float64],
-#     dz: NDArray[np.float64],
-#     var: NDArray[np.float64],
-#     H: NDArray[np.float64],
-#     I_: NDArray[np.float64],
-# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-
-#     for i in range(dz.shape[0]):
-#         h = H[i, :]
-#         z = dz[i]
-#         v = var[i]
-
-#         # Kalman gain
-#         PHt = P @ h
-#         S = h @ PHt + v
-#         K = PHt / S  # shape (n,)
-
-#         # State update
-#         dx += K * (z - h @ dx)
-
-#         # Covariance update (Joseph form)
-#         A = I_ - np.outer(K, h)
-#         P = A @ P @ A.T + v * np.outer(K, K)
-
-#     return dx, P
-
-
 @njit  # type: ignore[misc]
 def _update_dx_P(
     dx: NDArray[np.float64],
@@ -82,55 +52,85 @@ def _update_dx_P(
     dz: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
+    I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Update state and covariance estimates with a series of measurements.
-    """
-    n = dx.shape[0]
-
-    # Preallocation
-    PH = np.empty(n, dtype=np.float64)  # P @ H.T
-    K = np.empty(n, dtype=np.float64)
 
     for i in range(dz.shape[0]):
-        z = dz[i]
         h = H[i, :]
+        z = dz[i]
         v = var[i]
 
-        # P @ H.T
-        for a in range(n):
-            s = 0.0
-            for b in range(n):
-                s += P[a, b] * h[b]
-            PH[a] = s
+        # Kalman gain
+        PHt = P @ h
+        S = h @ PHt + v
+        K = PHt / S  # shape (n,)
 
-        # S = H @ P @ H.T + v, hx = H @ dx
-        S = v
-        hx = 0.0
-        for a in range(n):
-            S += h[a] * PH[a]
-            hx += h[a] * dx[a]
+        # State update
+        dx += K * (z - h @ dx)
 
-        # Precalculate inverse, since multiply is faster than divide
-        invS = 1.0 / S
-
-        # Kalman gain: K = P @ H.T / S
-        for a in range(n):
-            K[a] = PH[a] * invS
-
-        # State update: dx += K * (dz - H @ dx)
-        r = z - hx
-        for a in range(n):
-            dx[a] += K[a] * r
-
-        # Covariance update: P = P - K H P - P H.T K.T + S K K.T (Joseph, expanded)
-        for a in range(n):
-            Ka = K[a]
-            PHa = PH[a]
-            for b in range(n):
-                P[a, b] = P[a, b] - Ka * PH[b] - PHa * K[b] + S * Ka * K[b]
+        # Covariance update (Joseph form)
+        A = I_ - np.outer(K, h)
+        P = A @ P @ A.T + v * np.outer(K, K)
 
     return dx, P
+
+
+# @njit  # type: ignore[misc]
+# def _update_dx_P(
+#     dx: NDArray[np.float64],
+#     P: NDArray[np.float64],
+#     dz: NDArray[np.float64],
+#     var: NDArray[np.float64],
+#     H: NDArray[np.float64],
+# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+#     """
+#     Update state and covariance estimates with a series of measurements.
+#     """
+#     n = dx.shape[0]
+
+#     # Preallocation
+#     PH = np.empty(n, dtype=np.float64)  # P @ H.T
+#     K = np.empty(n, dtype=np.float64)
+
+#     for i in range(dz.shape[0]):
+#         z = dz[i]
+#         h = H[i, :]
+#         v = var[i]
+
+#         # P @ H.T
+#         for a in range(n):
+#             s = 0.0
+#             for b in range(n):
+#                 s += P[a, b] * h[b]
+#             PH[a] = s
+
+#         # S = H @ P @ H.T + v, hx = H @ dx
+#         S = v
+#         hx = 0.0
+#         for a in range(n):
+#             S += h[a] * PH[a]
+#             hx += h[a] * dx[a]
+
+#         # Precalculate inverse, since multiply is faster than divide
+#         invS = 1.0 / S
+
+#         # Kalman gain: K = P @ H.T / S
+#         for a in range(n):
+#             K[a] = PH[a] * invS
+
+#         # State update: dx += K * (dz - H @ dx)
+#         r = z - hx
+#         for a in range(n):
+#             dx[a] += K[a] * r
+
+#         # Covariance update: P = P - K H P - P H.T K.T + S K K.T (Joseph, expanded)
+#         for a in range(n):
+#             Ka = K[a]
+#             PHa = PH[a]
+#             for b in range(n):
+#                 P[a, b] = P[a, b] - Ka * PH[b] - PHa * K[b] + S * Ka * K[b]
+
+#     return dx, P
 
 
 class AHRS:
@@ -329,7 +329,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -352,7 +352,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
