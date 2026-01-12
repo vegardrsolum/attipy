@@ -54,6 +54,8 @@ def _kalman_update(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    
+    n = x.size
 
     for i in range(z.shape[0]):
         h_i = H[i, :]
@@ -66,13 +68,46 @@ def _kalman_update(
         K = PHt / S  # shape (n,)
 
         # State update
-        x += K * (z_i - h_i @ x)
+        hx = 0.0
+        for j in range(n):
+            hx += h_i[j] * x[j]
+        x += K * (z_i - hx)
 
         # Covariance update (Joseph form)
         A = I_ - np.outer(K, h_i)
         P = A @ P @ A.T + v_i * np.outer(K, K)
 
     return x, P
+
+
+# @njit  # type: ignore[misc]
+# def _kalman_update(
+#     x: NDArray[np.float64],
+#     P: NDArray[np.float64],
+#     z: NDArray[np.float64],
+#     var: NDArray[np.float64],
+#     H: NDArray[np.float64],
+#     I_: NDArray[np.float64],
+# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+#     for i in range(z.shape[0]):
+#         h_i = H[i, :]
+#         z_i = z[i]
+#         v_i = var[i]
+
+#         # Kalman gain
+#         PHt = P @ h_i
+#         S = h_i @ PHt + v_i
+#         K = PHt / S  # shape (n,)
+
+#         # State update
+#         x += K * (z_i - h_i @ x)
+
+#         # Covariance update (Joseph form)
+#         A = I_ - np.outer(K, h_i)
+#         P = A @ P @ A.T + v_i * np.outer(K, K)
+
+#     return x, P
 
 
 # @njit  # type: ignore[misc]
