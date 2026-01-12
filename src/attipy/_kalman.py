@@ -276,3 +276,54 @@ def _kalman_update_v1p5(
                 P[a, b] = P[a, b] - Ka * hP[b] - Pha * K[b] + S * Ka * K[b]
 
     return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_v4(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    for i in range(z.shape[0]):
+
+        # Kalman gain
+        Ph = P @ H[i, :]
+        S = H[i, :] @ Ph + var[i]
+        K = Ph / S
+
+        # State update
+        x += K * (z[i] - H[i, :] @ x)
+
+        # Covariance update (Joseph form)
+        A = I_ - np.outer(K, H[i, :])
+        P = A @ P @ A.T + var[i] * np.outer(K, K)
+
+    return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_org(
+    dx: NDArray[np.float64],
+    P: NDArray[np.float64],
+    dz: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Sequential Kalman filter measurement update of error state, dx, and covariance
+    matrix, P.
+    """
+    # Note: all arrays must be C-contiguous for numba njit
+    for i, (dz_i, var_i) in enumerate(zip(dz, var)):
+        H_i = H[i, :]  # must be C-contiguous
+        K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
+        dx += K_i * (dz_i - H_i @ dx)
+        K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as C-contiguous 2D array
+        H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as C-contiguous 2D array
+        P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
+    return dx, P
