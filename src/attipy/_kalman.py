@@ -67,6 +67,9 @@ def _kalman_update(
         x += k * (zi - np.dot(hi, x))
 
         # Covariance update (Joseph form)
-        A[:] = I_ - np.outer(k, hi)
+        A[:] = I_
+        for r in range(9):
+            for c in range(9):
+                A[r, c] -= k[r] * hi[c]
         P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
     return x, P
