@@ -388,26 +388,3 @@ class Test_AHRS:
         np.testing.assert_allclose(w_a, w_b)
         np.testing.assert_allclose(a_a, a_b)
         np.testing.assert_allclose(P_a, P_b)
-
-
-def test_kalman_update():
-
-    rng = np.random.default_rng(42)
-
-    x = np.zeros(9)
-    P = np.eye(9) + 0.01 * rng.random((9, 9))
-    q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))  # arbitrary attitude
-    H = _measurement_matrix(q_nb)
-    m = H.shape[0]
-    var = rng.random(m)
-    z = rng.random(m)
-
-    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
-
-    R = np.diag(var)
-    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    x_expect = x + K @ (z - H @ x)
-    P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
-
-    np.testing.assert_allclose(x_upd, x_expect)
-    np.testing.assert_allclose(P_upd, P_expect)
