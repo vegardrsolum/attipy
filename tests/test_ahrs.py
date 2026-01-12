@@ -3,7 +3,8 @@ import pytest
 from pytest import fixture
 
 import attipy as ap
-from attipy._ahrs import _dyawda, _update_dx_P
+from attipy._ahrs import _dyawda, _kalman_update
+from attipy._statespace import _measurement_matrix
 from attipy._transforms import _quat_from_euler_zyx
 
 
@@ -389,22 +390,21 @@ class Test_AHRS:
         np.testing.assert_allclose(P_a, P_b)
 
 
-def test_update_dx_P():
-    from attipy._statespace import _measurement_matrix
+def test_kalman_update():
 
     rng = np.random.default_rng(42)
 
-    dx = np.zeros(9)
+    x = np.zeros(9)
     P = np.eye(9) + 0.01 * rng.random((9, 9))
     var = np.array([0.01, 0.02, 0.03, 0.04])
     H = _measurement_matrix(_quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0])))
-    dz = rng.random(H.shape[0])
+    z = rng.random(H.shape[0])
 
-    dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H, np.eye(9))
+    dx_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    dx_expect = dx + K @ (dz - H @ dx)
+    dx_expect = x + K @ (z - H @ x)
     P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
 
     np.testing.assert_allclose(dx_upd, dx_expect)

@@ -46,7 +46,7 @@ def _ssa(angle: float, degrees: bool = False) -> float:
 
 
 @njit  # type: ignore[misc]
-def _update_dx_P(
+def _kalman_update(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
@@ -329,7 +329,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -352,7 +352,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
