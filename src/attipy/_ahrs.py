@@ -10,7 +10,7 @@ from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
 from ._statespace import _update_state_transition as _update_phi
-from ._transforms import _yaw_from_quat
+from ._transforms import _quat_from_gibbs2, _yaw_from_quat
 from ._vectorops import _normalize
 
 
@@ -246,8 +246,7 @@ class AHRS:
         if not dx.any():
             return
 
-        da = dx[0:3]
-        self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
+        self._dq[:] = _quat_from_gibbs2(dx[0:3])
         self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
         self._bg_b[:] = self._bg_b + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
