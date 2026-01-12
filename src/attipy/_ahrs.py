@@ -58,14 +58,14 @@ def _update_dx_P(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
     for i in range(dz.shape[0]):
-        h = H[i, :]  # (n,)
-        z = dz[i]  # scalar
-        v = var[i]  # scalar
+        h = H[i, :]
+        z = dz[i]
+        v = var[i]
 
         # Kalman gain
-        PHt = P @ h  # (n,)
-        S = h @ PHt + v  # scalar
-        K = PHt / S  # (n,)
+        PHt = P @ h
+        S = h @ PHt + v
+        K = PHt / S  # shape (n,)
 
         # State update
         dx += K * (z - h @ dx)
