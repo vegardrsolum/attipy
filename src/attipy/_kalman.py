@@ -222,6 +222,69 @@ def _kalman_update_v4(
     return x, P
 
 
+@njit  # type: ignore[misc]
+def _kalman_update_v5(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    PH: NDArray[np.float64],
+    k: NDArray[np.float64],
+    A: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    n = 9  # number of states
+
+    for i in range(z.size):
+        h_i = H[i, :]
+        z_i = z[i]
+        v_i = var[i]
+
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * h_i[b]
+            PH[a] = s
+
+        S = v_i
+        hx = 0.0
+        for a in range(n):
+            S += h_i[a] * PH[a]
+            hx += h_i[a] * x[a]
+
+        invS = 1.0 / S
+
+        # Kalman gain
+        for a in range(n):
+            k[a] = PH[a] * invS
+
+        # State update
+        r = z_i - hx
+        for a in range(n):
+            x[a] += k[a] * r
+
+        # A = I - k @ h.T, shape (n, n)
+        for i in range(n):
+            for j in range(n):
+                A[i, j] = 0.0
+            A[i, i] = 1.0
+
+        for i in range(n):
+            ki = k[i]
+            for j in range(n):
+                A[i, j] -= ki * h_i[j]
+
+        P[:, :] = A @ P @ A.T
+
+        for i in range(n):
+            ki = k[i]
+            for j in range(n):
+                P[i, j] += v_i * ki * k[j]
+
+    return x, P
+
+
 _kalman_update = _kalman_update_v3
 
 
