@@ -5,13 +5,11 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._quatops import _quatprod
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
 from ._statespace import _update_state_transition as _update_phi
-from ._transforms import _yaw_from_quat
-from ._vectorops import _normalize
+from ._transforms import _quat_from_gibbs2, _yaw_from_quat
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
@@ -57,8 +55,8 @@ def _update_dx_P(
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Kalman filter update of error state, dx, and covariance matrix, P, with sequential
-    measurements.
+    Sequential Kalman filter measurement update of error state, dx, and covariance
+    matrix, P.
     """
     # Note: all arrays must be C-contiguous for numba njit
     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
@@ -246,9 +244,7 @@ class AHRS:
         if not dx.any():
             return
 
-        da = dx[0:3]
-        self._dq[:] = (2.0, *da) / np.sqrt(4.0 + da.T @ da)
-        self._att_nb._q[:] = _normalize(_quatprod(self._att_nb._q, self._dq))
+        self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
         self._bg_b[:] = self._bg_b + dx[3:6]
         self._v_n[:] = self._v_n + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
@@ -304,7 +300,7 @@ class AHRS:
 
         # Attitude (dead reckoning)
         dtheta = self._w_b * self._dt
-        self._att_nb._update(dtheta)
+        self._att_nb._correct_dtheta(dtheta)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
