@@ -38,7 +38,7 @@ def _kalman_update_old(
 
 
 @njit  # type: ignore[misc]
-def _kalman_update(
+def _kalman_update_old2(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
@@ -73,10 +73,36 @@ def _kalman_update(
                 A[r, c] -= k[r] * hi[c]
 
         # Covariance update (Joseph form)
-        P[:, :] = A @ P @ A.T  # TODO: optimize by avoiding matmul
-        n = k.shape[0]
-        for r in range(n):
-            kr = k[r]
-            for c in range(n):
-                P[r, c] += vi * kr * k[c]
+        P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
+    return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+    Ph: NDArray[np.float64],
+    k: NDArray[np.float64],
+    A: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    for i in range(z.shape[0]):
+        hi = H[i]
+        vi = var[i]
+        zi = z[i]
+
+        # Kalman gain
+        Ph[:] = np.dot(P, hi)
+        k[:] = Ph / (np.dot(hi, Ph) + vi)
+
+        # State update
+        x += k * (zi - np.dot(hi, x))
+
+        # Covariance update (Joseph form)
+        A[:] = I_ - np.outer(k, hi)
+        P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
     return x, P
