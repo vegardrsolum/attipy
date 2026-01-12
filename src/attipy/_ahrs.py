@@ -5,13 +5,11 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._quatops import _quatprod
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
 from ._statespace import _update_state_transition as _update_phi
 from ._transforms import _quat_from_gibbs2, _yaw_from_quat
-from ._vectorops import _normalize
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
