@@ -44,7 +44,7 @@ def test_kalman_update_v2():
     PH = np.empty(n, dtype=np.float64)
     k = np.empty(n, dtype=np.float64)
     A = np.empty((n, n), dtype=np.float64)
-    
+
     x_upd, P_upd = _kalman_update_v2(x.copy(), P.copy(), z, var, H, PH, k, A)
 
     R = np.diag(var)
@@ -72,7 +72,7 @@ def test_kalman_update_v3():
     PH = np.empty(n, dtype=np.float64)
     k = np.empty(n, dtype=np.float64)
     # A = np.empty((n, n), dtype=np.float64)
-    
+
     x_upd, P_upd = _kalman_update_v3(x.copy(), P.copy(), z, var, H, PH, k)
 
     R = np.diag(var)

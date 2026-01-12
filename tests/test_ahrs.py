@@ -3,8 +3,7 @@ import pytest
 from pytest import fixture
 
 import attipy as ap
-from attipy._ahrs import _dyawda, _kalman_update
-from attipy._statespace import _measurement_matrix
+from attipy._ahrs import _dyawda
 from attipy._transforms import _quat_from_euler_zyx
 
 

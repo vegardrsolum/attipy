@@ -63,7 +63,7 @@ def _kalman_update_v2(
             for b in range(n):
                 s += P[a, b] * h_i[b]
             PH[a] = s
-            
+
         S = v_i
         hx = 0.0
         for a in range(n):
@@ -108,9 +108,61 @@ def _kalman_update_v3(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
-    Ph: NDArray[np.float64],   # P @ h
-    k: NDArray[np.float64],    # Kalman gain
+    Ph: NDArray[np.float64],
+    k: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Sequential scalar Kalman measurement update using the Joseph-stabilized
+    covariance form.
+
+    Each measurement z[i] with variance var[i] and measurement row hᵢ is
+    processed sequentially according to
+
+        S   = hᵢᵀ P hᵢ + vᵢ
+        k   = P hᵢ / S
+        x⁺  = x + k (zᵢ − hᵢᵀ x)
+        P⁺  = (I − k hᵢᵀ) P (I − k hᵢᵀ)ᵀ + vᵢ k kᵀ
+
+    The Joseph form guarantees symmetry and positive semi-definiteness of the
+    covariance matrix under finite-precision arithmetic.
+
+    This implementation avoids explicit matrix products and performs the update
+    using rank-1 operations, making it suitable for high-performance `numba`
+    compilation and sequential (scalar) measurement processing.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate (updated in place).
+    P : ndarray, shape (n, n)
+        State covariance matrix (updated in place).
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement variances (assumed independent).
+    H : ndarray, shape (m, n)
+        Measurement matrix (one row per scalar measurement).
+    Ph : ndarray, shape (n,)
+        Preallocated workspace for P @ hᵢ.
+    k : ndarray, shape (n,)
+        Preallocated workspace for the Kalman gain.
+
+    Returns
+    -------
+    x : ndarray
+        Updated state estimate.
+    P : ndarray
+        Updated covariance matrix.
+
+    Notes
+    -----
+    - Measurements are processed sequentially (scalar updates).
+    - A small lower bound is applied to the innovation covariance S for numerical
+      safety.
+    - The covariance matrix is explicitly symmetrized after each update to
+      counteract numerical drift.
+    - The state dimension n is assumed fixed (n = 9).
+    """
 
     n = 9  # number of states
 

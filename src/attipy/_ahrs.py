@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_v1 as _kalman_update
+from ._kalman import _kalman_update_v3
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
@@ -97,6 +97,8 @@ class AHRS:
     _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
     _dq = np.array([1.0, 0.0, 0.0, 0.0])  # error quaternion preallocation
+    _Ph = np.empty(9, dtype=np.float64)  # preallocation
+    _k = np.empty(9, dtype=np.float64)  # preallocation
 
     def __init__(
         self,
@@ -241,7 +243,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update_v3(dx, P, dz, var, dhdx, self._Ph, self._k)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -264,7 +266,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _kalman_update(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _kalman_update_v3(dx, P, dz, var, dhdx, self._Ph, self._k)
 
     def _project_ahead(self):
         """
