@@ -47,32 +47,32 @@ def _ssa(angle: float, degrees: bool = False) -> float:
 
 @njit  # type: ignore[misc]
 def _update_dx_P(
-    dx: NDArray[np.float64],
+    x: NDArray[np.float64],
     P: NDArray[np.float64],
-    dz: NDArray[np.float64],
+    z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
-    for i in range(dz.shape[0]):
-        h = H[i, :]
-        z = dz[i]
-        v = var[i]
+    for i in range(z.shape[0]):
+        h_i = H[i, :]
+        z_i = z[i]
+        v_i = var[i]
 
         # Kalman gain
-        PHt = P @ h
-        S = h @ PHt + v
+        PHt = P @ h_i
+        S = h_i @ PHt + v_i
         K = PHt / S  # shape (n,)
 
         # State update
-        dx += K * (z - h @ dx)
+        x += K * (z_i - h_i @ x)
 
         # Covariance update (Joseph form)
-        A = I_ - np.outer(K, h)
-        P = A @ P @ A.T + v * np.outer(K, K)
+        A = I_ - np.outer(K, h_i)
+        P = A @ P @ A.T + v_i * np.outer(K, K)
 
-    return dx, P
+    return x, P
 
 
 # @njit  # type: ignore[misc]
