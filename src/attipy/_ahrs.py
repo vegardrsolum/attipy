@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_v1p5
+from ._kalman import _kalman_update_v5
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
@@ -244,9 +244,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _kalman_update_v1p5(
-            dx, P, dz, var, dhdx, self._Ph, self._hP, self._k
-        )
+        dx[:], P[:] = _kalman_update_v5(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -269,9 +267,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _kalman_update_v1p5(
-            dx, P, dz, var, dhdx, self._Ph, self._hP, self._k
-        )
+        dx[:], P[:] = _kalman_update_v5(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """

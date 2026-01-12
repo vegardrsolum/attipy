@@ -327,3 +327,35 @@ def _kalman_update_org(
         H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as C-contiguous 2D array
         P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
     return dx, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_v5(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+    for i in range(z.shape[0]):
+        hi = H[i]
+        vi = var[i]
+        zi = z[i]
+
+        # Kalman gain
+        Ph = P @ hi
+        S = hi @ Ph + vi
+        if S <= 1e-20:  # optional numerical safety
+            S = 1e-20
+        K = Ph / S
+
+        # State update
+        x += K * (zi - hi @ x)
+
+        # Covariance update (Joseph form)
+        A = I_ - np.outer(K, hi)
+        P[:, :] = A @ P @ A.T + vi * np.outer(K, K)
+
+    return x, P
