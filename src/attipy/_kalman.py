@@ -270,12 +270,11 @@ def _kalman_update_v5(
         for a in range(n):
             x[a] += k[a] * r
 
-        # A = I - k @ h.T, shape (n, n)
+        # A = I - k @ h.T
         for a in range(n):
             for b in range(n):
                 A[a, b] = 0.0
             A[a, a] = 1.0
-
         for a in range(n):
             ka = k[a]
             for b in range(n):
