@@ -246,7 +246,7 @@ def _kalman_update_v5(
             for b in range(n):
                 s += P[a, b] * h_i[b]
             PH[a] = s
-
+            
         S = v_i
         hx = 0.0
         for a in range(n):
@@ -265,22 +265,22 @@ def _kalman_update_v5(
             x[a] += k[a] * r
 
         # A = I - k @ h.T, shape (n, n)
-        for i in range(n):
-            for j in range(n):
-                A[i, j] = 0.0
-            A[i, i] = 1.0
+        for a in range(n):
+            for b in range(n):
+                A[a, b] = 0.0
+            A[a, a] = 1.0
 
-        for i in range(n):
-            ki = k[i]
-            for j in range(n):
-                A[i, j] -= ki * h_i[j]
+        for a in range(n):
+            ka = k[a]
+            for b in range(n):
+                A[a, b] -= ka * h_i[b]
 
         P[:, :] = A @ P @ A.T
 
-        for i in range(n):
-            ki = k[i]
-            for j in range(n):
-                P[i, j] += v_i * ki * k[j]
+        for a in range(n):
+            ka = k[a]
+            for b in range(n):
+                P[a, b] += v_i * ka * k[b]
 
     return x, P
 
