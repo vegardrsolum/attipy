@@ -134,19 +134,19 @@ def _update_dx_P(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
     for i in range(dz.shape[0]):
-        h = H[i, :]          # (n,)
-        v = var[i]
-        z = dz[i]
+        h = H[i, :]  # (n,)
+        v = var[i]  # scalar
+        z = dz[i]  # scalar
 
-        PHt = P @ h          # (n,)
-        S = h @ PHt + v      # scalar
+        PHt = P @ h  # (n,)
+        S = h @ PHt + v  # scalar
 
-        K = PHt / S          # (n,)
-        r = z - (h @ dx)     # scalar residual
+        K = PHt / S  # (n,)
+        r = z - (h @ dx)  # scalar residual
 
         dx += K * r
 
-        A = I_ - np.outer(K, h)         # (n,n)
+        A = I_ - np.outer(K, h)  # (n, n)
         P = A @ P @ A.T + v * np.outer(K, K)
 
     return dx, P
