@@ -87,21 +87,36 @@ def _kalman_update(
     
     n = x.size
 
+    PH = np.empty(n, dtype=np.float64)
+    K = np.empty(n, dtype=np.float64)
+
     for i in range(z.shape[0]):
         h_i = H[i, :]
         z_i = z[i]
         v_i = var[i]
 
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * h_i[b]
+            PH[a] = s
+
+        S = v_i
+        hx = 0.0
+        for a in range(n):
+            S += h_i[a] * PH[a]
+            hx += h_i[a] * x[a]
+
+        invS = 1.0 / S
+
         # Kalman gain
-        PHt = P @ h_i
-        S = h_i @ PHt + v_i
-        K = PHt / S  # shape (n,)
+        for a in range(n):
+            K[a] = PH[a] * invS
 
         # State update
-        hx = 0.0
-        for j in range(n):
-            hx += h_i[j] * x[j]
-        x += K * (z_i - hx)
+        r = z_i - hx
+        for a in range(n):
+            x[a] += K[a] * r
 
         # Covariance update (Joseph form)
         A = I_ - np.outer(K, h_i)
