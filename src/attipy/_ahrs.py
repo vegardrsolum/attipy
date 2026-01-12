@@ -47,82 +47,6 @@ def _ssa(angle: float, degrees: bool = False) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-# @njit  # type: ignore[misc]
-# def _update_dx_P(
-#     dx: NDArray[np.float64],
-#     P: NDArray[np.float64],
-#     dz: NDArray[np.float64],
-#     var: NDArray[np.float64],
-#     H: NDArray[np.float64],
-#     I_: NDArray[np.float64],
-# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-#     """
-#     Kalman filter update of error state, dx, and covariance matrix, P, with sequential
-#     measurements.
-#     """
-#     # Note: all arrays must be C-contiguous for numba njit
-#     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-#         H_i = H[i, :]  # must be C-contiguous
-#         K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-#         dx += K_i * (dz_i - H_i @ dx)
-#         K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as C-contiguous 2D array
-#         H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as C-contiguous 2D array
-#         P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
-#     return dx, P
-
-
-# @njit  # type: ignore[misc]
-# def _update_dx_P(
-#     dx: NDArray[np.float64],
-#     P: NDArray[np.float64],
-#     dz: NDArray[np.float64],
-#     var: NDArray[np.float64],
-#     H: NDArray[np.float64],
-# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-#     n = dx.shape[0]
-
-#     # workspace (avoid per-iteration allocations)
-#     PHt = np.empty(n, dtype=np.float64)
-#     K = np.empty(n, dtype=np.float64)
-
-#     for i in range(dz.shape[0]):
-#         h = H[i, :]
-#         v = var[i]
-
-#         # PHt = P @ h
-#         for a in range(n):
-#             s = 0.0
-#             for b in range(n):
-#                 s += P[a, b] * h[b]
-#             PHt[a] = s
-
-#         S = v
-#         hx = 0.0
-#         for a in range(n):
-#             S += h[a] * PHt[a]
-#             hx += h[a] * dx[a]
-
-#         invS = 1.0 / S
-
-#         # K = PHt / S
-#         for a in range(n):
-#             K[a] = PHt[a] * invS
-
-#         # dx += K * (dz - h@dx)
-#         r = dz[i] - hx
-#         for a in range(n):
-#             dx[a] += K[a] * r
-
-#         # P = P - K PHt^T - PHt K^T + S K K^T   (Joseph, expanded)
-#         for a in range(n):
-#             Ka = K[a]
-#             PHa = PHt[a]
-#             for b in range(n):
-#                 P[a, b] = P[a, b] - Ka * PHt[b] - PHa * K[b] + S * Ka * K[b]
-
-#     return dx, P
-
-
 @njit  # type: ignore[misc]
 def _update_dx_P(
     dx: NDArray[np.float64],
@@ -135,18 +59,20 @@ def _update_dx_P(
 
     for i in range(dz.shape[0]):
         h = H[i, :]  # (n,)
-        v = var[i]  # scalar
         z = dz[i]  # scalar
+        v = var[i]  # scalar
 
         # Kalman gain
-        k = P @ h / (h @ P @ h + v)  # (n,)
+        PHt = P @ h  # (n,)
+        S = h @ PHt + v  # scalar
+        K = PHt / S  # (n,)
 
-        # Update state estimate
-        dx += k * (z - h @ dx)  # (n,)
+        # State update
+        dx += K * (z - h @ dx)
 
-        # Update covariance estimate
-        A = I_ - np.outer(k, h)  # (n, n)
-        P = A @ P @ A.T + v * np.outer(k, k)  # (n, n)
+        # Covariance update (Joseph form)
+        A = I_ - np.outer(K, h)
+        P = A @ P @ A.T + v * np.outer(K, K)
 
     return dx, P
 
