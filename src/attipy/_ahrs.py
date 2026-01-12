@@ -55,8 +55,8 @@ def _update_dx_P(
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Kalman filter update of error state, dx, and covariance matrix, P, with sequential
-    measurements.
+    Sequential Kalman filter measurement update of error state, dx, and covariance
+    matrix, P.
     """
     # Note: all arrays must be C-contiguous for numba njit
     for i, (dz_i, var_i) in enumerate(zip(dz, var)):
