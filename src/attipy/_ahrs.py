@@ -138,16 +138,15 @@ def _update_dx_P(
         v = var[i]  # scalar
         z = dz[i]  # scalar
 
-        PHt = P @ h  # (n,)
-        S = h @ PHt + v  # scalar
+        # Kalman gain
+        k = P @ h / (h @ P @ h + v)  # (n,)
 
-        K = PHt / S  # (n,)
-        r = z - (h @ dx)  # scalar residual
+        # Update state estimate
+        dx += k * (z - h @ dx)  # (n,)
 
-        dx += K * r
-
-        A = I_ - np.outer(K, h)  # (n, n)
-        P = A @ P @ A.T + v * np.outer(K, K)
+        # Update covariance estimate
+        A = I_ - np.outer(k, h)  # (n, n)
+        P = A @ P @ A.T + v * np.outer(k, k)  # (n, n)
 
     return dx, P
 
