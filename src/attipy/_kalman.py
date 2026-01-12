@@ -34,7 +34,7 @@ def _kalman_update_v1(
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_v5(
+def _kalman_update_v2(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],

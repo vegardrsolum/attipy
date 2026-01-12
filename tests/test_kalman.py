@@ -1,12 +1,11 @@
 import numpy as np
 
-import attipy as ap
-from attipy._kalman import _kalman_update
+from attipy._kalman import _kalman_update_v1, _kalman_update_v2
 from attipy._statespace import _measurement_matrix
 from attipy._transforms import _quat_from_euler_zyx
 
 
-def test_kalman_update():
+def test_kalman_update_v1():
 
     rng = np.random.default_rng(42)
 
@@ -18,7 +17,7 @@ def test_kalman_update():
     var = rng.random(m)
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
+    x_upd, P_upd = _kalman_update_v1(x.copy(), P.copy(), z, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
@@ -29,7 +28,7 @@ def test_kalman_update():
     np.testing.assert_allclose(P_upd, P_expect)
 
 
-def test_kalman_update_v5():
+def test_kalman_update_v2():
 
     rng = np.random.default_rng(42)
 
@@ -46,7 +45,7 @@ def test_kalman_update_v5():
     k = np.empty(n, dtype=np.float64)
     A = np.empty((n, n), dtype=np.float64)
     
-    x_upd, P_upd = ap._kalman._kalman_update_v5(x.copy(), P.copy(), z, var, H, PH, k, A)
+    x_upd, P_upd = _kalman_update_v2(x.copy(), P.copy(), z, var, H, PH, k, A)
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
