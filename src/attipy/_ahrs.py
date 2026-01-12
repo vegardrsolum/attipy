@@ -85,6 +85,9 @@ def _update_dx_P(
     var: NDArray[np.float64],
     H: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Update state and covariance estimates with a series of measurements.
+    """
     n = dx.shape[0]
 
     # Preallocation
