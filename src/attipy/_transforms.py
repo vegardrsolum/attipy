@@ -334,3 +334,16 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     u_y = 2.0 * (qx * qy + qz * qw)
     u_x = 1.0 - 2.0 * (qy**2 + qz**2)
     return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
+
+
+@njit  # type: ignore[misc]
+def _quat_from_gibbs2(g2):
+    """
+    Compute unit quaternion from 2xGibbs vector (scaled Gibbs vector.)
+    """
+    gx, gy, gz = g2
+
+    scale = 1.0 / np.sqrt(4.0 + gx**2 + gy**2 + gz**2)
+
+    q = scale * np.array([2.0, gx, gy, gz])
+    return q
