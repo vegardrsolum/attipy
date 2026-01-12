@@ -87,44 +87,50 @@ def _update_dx_P(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     n = dx.shape[0]
 
-    # workspace (avoid per-iteration allocations)
-    PHt = np.empty(n, dtype=np.float64)
+    # Preallocation
+    PH = np.empty(n, dtype=np.float64)  # P @ H.T
     K = np.empty(n, dtype=np.float64)
 
     for i in range(dz.shape[0]):
         h = H[i, :]
         v = var[i]
 
-        # PHt = P @ h
+        # P @ H.T
         for a in range(n):
             s = 0.0
             for b in range(n):
                 s += P[a, b] * h[b]
-            PHt[a] = s
+            PH[a] = s
 
+        # S = H @ P @ H.T + v
+        # hx = H @ dx
         S = v
         hx = 0.0
         for a in range(n):
-            S += h[a] * PHt[a]
+            S += h[a] * PH[a]
             hx += h[a] * dx[a]
 
+        # Precalculate inverse, since multiply is faster than divide
         invS = 1.0 / S
 
-        # K = PHt / S
+        # Kalman gain
+        # K = P H.T / S
         for a in range(n):
-            K[a] = PHt[a] * invS
+            K[a] = PH[a] * invS
 
-        # dx += K * (dz - h@dx)
+        # State update
+        # dx += K * (dz - H @ dx)
         r = dz[i] - hx
         for a in range(n):
             dx[a] += K[a] * r
 
-        # P = P - K PHt^T - PHt K^T + S K K^T   (Joseph, expanded)
+        # Covariance update
+        # P = P - K H P - P H.T K.T + S K K.T (Joseph, expanded)
         for a in range(n):
             Ka = K[a]
-            PHa = PHt[a]
+            PHa = PH[a]
             for b in range(n):
-                P[a, b] = P[a, b] - Ka * PHt[b] - PHa * K[b] + S * Ka * K[b]
+                P[a, b] = P[a, b] - Ka * PH[b] - PHa * K[b] + S * Ka * K[b]
 
     return dx, P
 
