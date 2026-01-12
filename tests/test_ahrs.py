@@ -389,29 +389,23 @@ class Test_AHRS:
         np.testing.assert_allclose(P_a, P_b)
 
 
-# def test_update_dx_P():
-#     rng = np.random.default_rng(42)
+def test_update_dx_P():
+    from attipy._statespace import _measurement_matrix
 
-#     m = 3
-#     dx = rng.random(9)
-#     P = np.eye(9)
-#     dz = rng.random(m)
-#     var = rng.random(m) + 0.1  # ensure positive variance
-#     H = rng.random((m, 9))
-#     dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H)
+    rng = np.random.default_rng(42)
 
-#     for i in range(m):
-#         # Kalman gain
-#         H_i = H[i, :]
-#         S = H_i @ P @ H_i.T + var[i]
-#         K = P @ H_i.T / S
+    dx = np.zeros(9)
+    P = np.eye(9) + 0.01 * rng.random((9, 9))
+    var = np.array([0.01, 0.02, 0.03, 0.04])
+    H = _measurement_matrix(_quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0])))
+    dz = rng.random(H.shape[0])
 
-#         # Update state
-#         r = dz[i] - H_i @ dx
-#         dx += K * r
+    dx_upd, P_upd = _update_dx_P(dx.copy(), P.copy(), dz, var, H)
 
-#         # Update covariance (Joseph form)
-#         P -= np.outer(K, H_i @ P) + np.outer(P @ H_i.T, K) + S * np.outer(K, K)
+    R = np.diag(var)
+    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
+    dx_expect = dx + K @ (dz - H @ dx)
+    P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
 
-#     np.testing.assert_allclose(dx_upd, dx)
-#     np.testing.assert_allclose(P_upd, P)
+    np.testing.assert_allclose(dx_upd, dx_expect)
+    np.testing.assert_allclose(P_upd, P_expect)
