@@ -1,6 +1,11 @@
 import numpy as np
 
-from attipy._kalman import _kalman_update_v1, _kalman_update_v2, _kalman_update_v3, _kalman_update_v1p5
+from attipy._kalman import (
+    _kalman_update_v1,
+    _kalman_update_v1p5,
+    _kalman_update_v2,
+    _kalman_update_v3,
+)
 from attipy._statespace import _measurement_matrix
 from attipy._transforms import _quat_from_euler_zyx
 
