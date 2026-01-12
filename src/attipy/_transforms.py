@@ -339,7 +339,16 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
 @njit  # type: ignore[misc]
 def _quat_from_gibbs2(g2):
     """
-    Compute unit quaternion from 2xGibbs vector (scaled Gibbs vector.)
+    Compute unit quaternion, q, from 2 x Gibbs vector (scaled Gibbs vector), g2:
+
+        qw = 2 / sqrt(4 + g2.T @ g2)
+        qv = g2 / sqrt(4 + g2.T @ g2)
+
+    where,
+
+        q = (qw, qv[0], qv[1], qv[2])
+
+    where,
     """
     gx, gy, gz = g2
 
