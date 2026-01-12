@@ -47,6 +47,36 @@ def _ssa(angle: float, degrees: bool = False) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
+# @njit  # type: ignore[misc]
+# def _update_dx_P(
+#     dx: NDArray[np.float64],
+#     P: NDArray[np.float64],
+#     dz: NDArray[np.float64],
+#     var: NDArray[np.float64],
+#     H: NDArray[np.float64],
+#     I_: NDArray[np.float64],
+# ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+
+#     for i in range(dz.shape[0]):
+#         h = H[i, :]
+#         z = dz[i]
+#         v = var[i]
+
+#         # Kalman gain
+#         PHt = P @ h
+#         S = h @ PHt + v
+#         K = PHt / S  # shape (n,)
+
+#         # State update
+#         dx += K * (z - h @ dx)
+
+#         # Covariance update (Joseph form)
+#         A = I_ - np.outer(K, h)
+#         P = A @ P @ A.T + v * np.outer(K, K)
+
+#     return dx, P
+
+
 @njit  # type: ignore[misc]
 def _update_dx_P(
     dx: NDArray[np.float64],
@@ -54,25 +84,47 @@ def _update_dx_P(
     dz: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
-    I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    n = dx.shape[0]
+
+    # workspace (avoid per-iteration allocations)
+    PHt = np.empty(n, dtype=np.float64)
+    K = np.empty(n, dtype=np.float64)
 
     for i in range(dz.shape[0]):
         h = H[i, :]
-        z = dz[i]
         v = var[i]
 
-        # Kalman gain
-        PHt = P @ h
-        S = h @ PHt + v
-        K = PHt / S  # shape (n,)
+        # PHt = P @ h
+        for a in range(n):
+            s = 0.0
+            for b in range(n):
+                s += P[a, b] * h[b]
+            PHt[a] = s
 
-        # State update
-        dx += K * (z - h @ dx)
+        S = v
+        hx = 0.0
+        for a in range(n):
+            S += h[a] * PHt[a]
+            hx += h[a] * dx[a]
 
-        # Covariance update (Joseph form)
-        A = I_ - np.outer(K, h)
-        P = A @ P @ A.T + v * np.outer(K, K)
+        invS = 1.0 / S
+
+        # K = PHt / S
+        for a in range(n):
+            K[a] = PHt[a] * invS
+
+        # dx += K * (dz - h@dx)
+        r = dz[i] - hx
+        for a in range(n):
+            dx[a] += K[a] * r
+
+        # P = P - K PHt^T - PHt K^T + S K K^T   (Joseph, expanded)
+        for a in range(n):
+            Ka = K[a]
+            PHa = PHt[a]
+            for b in range(n):
+                P[a, b] = P[a, b] - Ka * PHt[b] - PHa * K[b] + S * Ka * K[b]
 
     return dx, P
 
@@ -275,7 +327,7 @@ class AHRS:
         var = np.asarray(v_var, dtype=float)
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -298,7 +350,7 @@ class AHRS:
         var = np.asarray([yaw_var], dtype=float)
         dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx)
 
     def _project_ahead(self):
         """
