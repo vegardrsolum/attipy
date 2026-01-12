@@ -33,7 +33,7 @@ def test_kalman_update_v5():
 
     rng = np.random.default_rng(42)
 
-    x = np.zeros(9)
+    x = rng.random(9)
     P = np.eye(9) + 0.01 * rng.random((9, 9))
     q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))  # arbitrary attitude
     H = _measurement_matrix(q_nb)
