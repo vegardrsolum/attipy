@@ -92,6 +92,7 @@ def _update_dx_P(
     K = np.empty(n, dtype=np.float64)
 
     for i in range(dz.shape[0]):
+        z = dz[i]
         h = H[i, :]
         v = var[i]
 
@@ -102,8 +103,7 @@ def _update_dx_P(
                 s += P[a, b] * h[b]
             PH[a] = s
 
-        # S = H @ P @ H.T + v
-        # hx = H @ dx
+        # S = H @ P @ H.T + v, hx = H @ dx
         S = v
         hx = 0.0
         for a in range(n):
@@ -113,19 +113,16 @@ def _update_dx_P(
         # Precalculate inverse, since multiply is faster than divide
         invS = 1.0 / S
 
-        # Kalman gain
-        # K = P H.T / S
+        # Kalman gain: K = P @ H.T / S
         for a in range(n):
             K[a] = PH[a] * invS
 
-        # State update
-        # dx += K * (dz - H @ dx)
-        r = dz[i] - hx
+        # State update: dx += K * (dz - H @ dx)
+        r = z - hx
         for a in range(n):
             dx[a] += K[a] * r
 
-        # Covariance update
-        # P = P - K H P - P H.T K.T + S K K.T (Joseph, expanded)
+        # Covariance update: P = P - K H P - P H.T K.T + S K K.T (Joseph, expanded)
         for a in range(n):
             Ka = K[a]
             PHa = PH[a]
