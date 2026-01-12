@@ -17,7 +17,7 @@ def _kalman_update(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
     for i in range(z.shape[0]):
-        hi = H[i, :]
+        hi = H[i]
         vi = var[i]
         zi = z[i]
 
