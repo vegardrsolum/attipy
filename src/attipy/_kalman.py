@@ -78,7 +78,7 @@ def _kalman_update_old2(
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_old(
+def _kalman_update_old2(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
