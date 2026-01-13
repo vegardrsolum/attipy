@@ -97,6 +97,25 @@ def _kalman_update(
     Joseph stabilized form for the covariance update to preserve symmetry and positive
     semi-definiteness.
 
+    The following measurement model is assumed (for each scalar measurement):
+
+        z = h x + v ,    v ~ N(0, r)
+
+    and the update equations become:
+
+        S = h @ P @ h.T + R  (innovation covariance)
+
+        K = P @ h.T / S  (Kalman gain)
+
+        x = x + K @ (z - h @ x)  (state update)
+
+        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T  (Joseph covariance update)
+
+    where:
+    - h is the i-th row of `H`
+    - r = var[i] is the i-th measurement noise variance
+    - I is the identity matrix
+
     Parameters
     ----------
     x : ndarray, shape (n,)
