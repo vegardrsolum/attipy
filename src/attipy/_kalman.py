@@ -253,3 +253,35 @@ def _kalman_update(
         P[:, :] = (I_ - K @ h_i) @ P @ (I_ - K @ h_i).T + r_i * K @ K.T
 
     return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_scalar(x, P, z, r, h, I_):
+    # Kalman gain
+    Ph = np.dot(P, h)
+    k = Ph / (np.dot(h, Ph) + r)
+
+    # State update
+    x += k * (z - np.dot(h, x))
+
+    # Covariance update (Joseph form)
+    A = I_ - np.outer(k, h)
+    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
+
+    return x, P
+
+
+@njit  # type: ignore[misc]
+def _kalman_sequential(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    
+    for i in range(z.shape[0]):
+        x[:], P[:, :] = _kalman_scalar(x, P, z[i], var[i], H[i], I_)
+
+    return x, P
