@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_sequential
+from ._kalman import _kalman_scalar, _kalman_sequential
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
@@ -200,16 +200,16 @@ class AHRS:
 
     def _dhdx_vel(self):
         """
-        Velocity part of the measurement matrix.
+        Velocity part of the measurement matrix, shape (3, 9).
         """
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading (yaw angle) part of the measurement matrix.
+        Heading (yaw angle) part of the measurement matrix, shape (9,).
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
-        return self._dhdx[3:4]
+        return self._dhdx[3]
 
     def _reset(self) -> None:
         """
@@ -238,7 +238,7 @@ class AHRS:
             raise ValueError("'vel_var' not provided.")
 
         dz = v_meas - self._v_n
-        var = np.asarray(v_var, dtype=float)
+        var = v_var
         dhdx = self._dhdx_vel()
 
         dx[:], P[:, :] = _kalman_sequential(dx, P, dz, var, dhdx, self._I9x9)
@@ -261,10 +261,11 @@ class AHRS:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        var = np.asarray([yaw_var], dtype=float)
-        dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
+        var = yaw_var
+        dz = _ssa(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:, :] = _kalman_sequential(dx, P, dz, var, dhdx, self._I9x9)
+
+        dx[:], P[:, :] = _kalman_scalar(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
