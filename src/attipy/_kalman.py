@@ -6,22 +6,23 @@ from numpy.typing import NDArray
 @njit  # type: ignore[misc]
 def _kalman_scalar(x, P, z, r, h, I_):
     """
-    Kalman filter scalar measurement update.
+    Scalar Kalman filter measurement update.
 
-    Assuming the following measurement relationship:
+    Assumes the following scalar measurement model:
 
-        z = h x + v ,    v ~ N(0, r)
+        z = h x + v,    v ~ N(0, r)
 
     where:
-    - x is the state vector.
-    - z is the scalar measurement.
-    - v is the scalar measurement noise.
-    - h is the measurement vector.
-    - r is the scalar measurement noise variance.
+    - x is the state vector,
+    - z is the scalar measurement,
+    - h is the measurement (row) vector,
+    - v is zero-mean Gaussian measurement noise,
+    - r is the measurement noise variance.
 
-    The update equations are given below. They are expressed in terms of 2D array
-    (column vector) operations, but implemented as 1D array operations for efficiency.
-    See Parameters for shapes.
+    The Kalman update equations are given below. They are expressed in terms of
+    matrix (2D array) operations, but implemented using 1D array operations for
+    computational efficiency. See the parameter descriptions for expected array
+    shapes.
 
     Innovation covariance:
 
