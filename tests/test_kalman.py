@@ -1,6 +1,6 @@
 import numpy as np
 
-from attipy._kalman import _kalman_scalar, _kalman_sequential
+from attipy._kalman import _kalman_update_scalar, _kalman_update_sequential
 
 
 def test_kalman_sequential():
@@ -17,7 +17,9 @@ def test_kalman_sequential():
     var = rng.random(m)
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_sequential(x.copy(), P.copy(), z, var, H, np.eye(n))
+    x_upd = x.copy()
+    P_upd = P.copy()
+    _kalman_update_sequential(x_upd, P_upd, z, var, H, np.eye(n))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
@@ -41,7 +43,9 @@ def test_kalman_scalar():
     r = rng.random(1)
     z = rng.random(1)
 
-    x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(n))
+    x_upd = x.copy()
+    P_upd = P.copy()
+    _kalman_update_scalar(x_upd, P_upd, z, r, h, np.eye(n))
 
     x = np.ascontiguousarray(x[:, np.newaxis])  # (n, 1)
     h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
