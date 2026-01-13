@@ -278,15 +278,15 @@ def _kalman_scalar(x, P, z, r, h, I_):
 
     Kalman gain:
 
-        K = P @ h.T / S
+        k = P @ h.T / S
 
     State update (a posteriori)
 
-        x = x + K @ (z - h @ x)
+        x = x + k @ (z - h @ x)
 
     Covariance update (a posteriori) (Joseph form)
 
-        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T
+        P = (I - k @ h) @ P @ (I - k @ h).T + r @ k @ k.T
 
     Parameters
     ----------
