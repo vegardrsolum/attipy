@@ -1,10 +1,10 @@
 from typing import Self
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
+from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import _dyawda, _measurement_matrix
 from ._statespace import _process_noise_cov as _setup_Q
 from ._statespace import _state_transition as _setup_phi
@@ -43,30 +43,6 @@ def _ssa(angle: float, degrees: bool = False) -> float:
     """
     base = 180.0 if degrees else np.pi
     return (angle + base) % (2.0 * base) - base
-
-
-@njit  # type: ignore[misc]
-def _update_dx_P(
-    dx: NDArray[np.float64],
-    P: NDArray[np.float64],
-    dz: NDArray[np.float64],
-    var: NDArray[np.float64],
-    H: NDArray[np.float64],
-    I_: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Sequential Kalman filter measurement update of error state, dx, and covariance
-    matrix, P.
-    """
-    # Note: all arrays must be C-contiguous for numba njit
-    for i, (dz_i, var_i) in enumerate(zip(dz, var)):
-        H_i = H[i, :]  # must be C-contiguous
-        K_i = P @ H_i.T / (H_i @ P @ H_i.T + var_i)
-        dx += K_i * (dz_i - H_i @ dx)
-        K_i = np.ascontiguousarray(K_i[:, np.newaxis])  # as C-contiguous 2D array
-        H_i = np.ascontiguousarray(H_i[np.newaxis, :])  # as C-contiguous 2D array
-        P = (I_ - K_i @ H_i) @ P @ (I_ - K_i @ H_i).T + var_i * K_i @ K_i.T
-    return dx, P
 
 
 class AHRS:
@@ -224,16 +200,16 @@ class AHRS:
 
     def _dhdx_vel(self):
         """
-        Velocity part of the measurement matrix.
+        Velocity part of the measurement matrix, shape (3, 9).
         """
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading (yaw angle) part of the measurement matrix.
+        Heading (yaw angle) part of the measurement matrix, shape (9,).
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
-        return self._dhdx[3:4]
+        return self._dhdx[3]
 
     def _reset(self) -> None:
         """
@@ -262,10 +238,10 @@ class AHRS:
             raise ValueError("'vel_var' not provided.")
 
         dz = v_meas - self._v_n
-        var = np.asarray(v_var, dtype=float)
+        var = v_var
         dhdx = self._dhdx_vel()
 
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I9x9)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -285,10 +261,11 @@ class AHRS:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        var = np.asarray([yaw_var], dtype=float)
-        dz = np.asarray([_ssa(yaw_meas - yaw, degrees=False)], dtype=float)
+        var = yaw_var
+        dz = _ssa(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx[:], P[:] = _update_dx_P(dx, P, dz, var, dhdx, self._I9x9)
+
+        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I9x9)
 
     def _project_ahead(self):
         """
