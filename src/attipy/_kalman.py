@@ -327,6 +327,39 @@ def _kalman_sequential(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Sequential Kalman filter measurement update.
+
+    Performs a series of scalar measurement updates of the state vector `x` and
+    covariance matrix `P` using the corresponding measurement matrix rows in `H`,
+    measurements `z`, and measurement variances `var`.
+
+    The update is applied sequentially (one measurement at a time) and uses the
+    Joseph stabilized form for the covariance update to preserve symmetry and positive
+    semi-definiteness.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State covariance matrix to be updated in place.
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement noise variances corresponding to each scalar measurement.
+    H : ndarray, shape (m, n)
+        Measurement matrix; each row corresponds to a scalar measurement model.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+
+    Returns
+    -------
+    x : ndarray, shape (n,)
+        Updated state estimate.
+    P : ndarray, shape (n, n)
+        Updated state covariance matrix.
+    """
 
     for i in range(z.shape[0]):
         x[:], P[:, :] = _kalman_scalar(x, P, z[i], var[i], H[i], I_)
