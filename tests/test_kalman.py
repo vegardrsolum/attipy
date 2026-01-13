@@ -67,13 +67,12 @@ def test_kalman_scalar2():
 
     x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(9))
 
-    x = np.ascontiguousarray(x[np.newaxis, :])
+    x = np.ascontiguousarray(x[:, np.newaxis])
     h = np.ascontiguousarray(h[np.newaxis, :])
-    z = np.ascontiguousarray(z[np.newaxis, :])
+    z = np.ascontiguousarray(z[:, np.newaxis])
 
     S = h @ P @ h.T + r
     K = P @ h.T / S
-    print((z - h @ x).shape)
     x = x + K @ (z - h @ x)
     P[:, :] = (np.eye(9) - K @ h) @ P @ (np.eye(9) - K @ h).T + r * K @ K.T
 
