@@ -1,11 +1,11 @@
 import numpy as np
 
-from attipy._kalman import _kalman_update
+from attipy._kalman import _kalman_sequential
 from attipy._statespace import _measurement_matrix
 from attipy._transforms import _quat_from_euler_zyx
 
 
-def test_kalman_update():
+def test_kalman_sequential():
 
     rng = np.random.default_rng(42)
 
@@ -17,7 +17,7 @@ def test_kalman_update():
     var = rng.random(m)
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
+    x_upd, P_upd = _kalman_sequential(x.copy(), P.copy(), z, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
