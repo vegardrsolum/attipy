@@ -17,12 +17,7 @@ def test_kalman_update():
     var = rng.random(m)
     z = rng.random(m)
 
-    # Preallocation
-    Ph = np.empty(9, dtype=np.float64)
-    A = np.empty((9, 9), dtype=np.float64)
-    K = np.empty(9, dtype=np.float64)
-
-    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9), Ph, K, A)
+    x_upd, P_upd = _kalman_update(x.copy(), P.copy(), z, var, H, np.eye(9))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)

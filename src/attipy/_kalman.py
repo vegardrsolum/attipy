@@ -85,9 +85,6 @@ def _kalman_update(
     var: NDArray[np.float64],
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
-    Ph: NDArray[np.float64],
-    k: NDArray[np.float64],
-    A: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
 
     for i in range(z.shape[0]):
@@ -96,13 +93,13 @@ def _kalman_update(
         zi = z[i]
 
         # Kalman gain
-        Ph[:] = np.dot(P, hi)
-        k[:] = Ph / (np.dot(hi, Ph) + vi)
+        Ph = np.dot(P, hi)
+        k = Ph / (np.dot(hi, Ph) + vi)
 
         # State update
         x += k * (zi - np.dot(hi, x))
 
         # Covariance update (Joseph form)
-        A[:] = I_ - np.outer(k, hi)
+        A = I_ - np.outer(k, hi)
         P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
     return x, P
