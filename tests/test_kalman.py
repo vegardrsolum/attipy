@@ -35,8 +35,8 @@ def test_kalman_scalar():
     x = np.zeros(9)
     P = np.eye(9)
     h = np.array([0.1, 0.2, 0.3, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0])  # arbitrary
-    r = rng.random((1,))
-    z = rng.random((1,))
+    r = rng.random(1)
+    z = rng.random(1)
 
     x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(9))
 
@@ -45,8 +45,37 @@ def test_kalman_scalar():
 
     S = h @ P @ h.T + r
     K = P @ h.T / S
+    print(K.shape)
+    print((K @ (z - h @ x)).shape)
+    print((x + K @ (z - h @ x)).shape)
     x = x + K @ (z - h @ x)
     P[:, :] = (np.eye(9) - K @ h) @ P @ (np.eye(9) - K @ h).T + r * K @ K.T
 
     np.testing.assert_allclose(x_upd, x)
+    np.testing.assert_allclose(P_upd, P)
+
+
+def test_kalman_scalar2():
+
+    rng = np.random.default_rng(42)
+
+    x = np.zeros(9)
+    P = np.eye(9)
+    h = np.array([0.1, 0.2, 0.3, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0])  # arbitrary
+    r = rng.random(1)
+    z = rng.random(1)
+
+    x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(9))
+
+    x = np.ascontiguousarray(x[np.newaxis, :])
+    h = np.ascontiguousarray(h[np.newaxis, :])
+    z = np.ascontiguousarray(z[np.newaxis, :])
+
+    S = h @ P @ h.T + r
+    K = P @ h.T / S
+    print((z - h @ x).shape)
+    x = x + K @ (z - h @ x)
+    P[:, :] = (np.eye(9) - K @ h) @ P @ (np.eye(9) - K @ h).T + r * K @ K.T
+
+    np.testing.assert_allclose(x_upd, x.ravel())
     np.testing.assert_allclose(P_upd, P)
