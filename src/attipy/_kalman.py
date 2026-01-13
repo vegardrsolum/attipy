@@ -25,11 +25,11 @@ def _kalman_scalar(x, P, z, r, h, I_):
 
     Innovation covariance:
 
-        S = h @ P @ h.T + r
+        s = h @ P @ h.T + r
 
     Kalman gain:
 
-        k = P @ h.T / S
+        k = P @ h.T / s
 
     State update (a posteriori)
 
