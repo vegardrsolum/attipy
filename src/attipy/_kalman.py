@@ -280,7 +280,7 @@ def _kalman_sequential(
     H: NDArray[np.float64],
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    
+
     for i in range(z.shape[0]):
         x[:], P[:, :] = _kalman_scalar(x, P, z[i], var[i], H[i], I_)
 
