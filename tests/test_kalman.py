@@ -12,7 +12,7 @@ def test_kalman_sequential():
 
     x = rng.random(n)
     A = rng.random((n, n))
-    P = A @ A.T + np.eye(n)  # positive semidefinite
+    P = A @ A.T + np.eye(n)  # positive semi-definite
     H = rng.random((m, n))
     var = rng.random(m)
     z = rng.random(m)
@@ -36,7 +36,7 @@ def test_kalman_scalar():
 
     x = rng.random(n)
     A = rng.random((n, n))
-    P = A @ A.T + np.eye(n)  # positive semidefinite
+    P = A @ A.T + np.eye(n)  # positive semi-definite
     h = rng.random(n)
     r = rng.random(1)
     z = rng.random(1)

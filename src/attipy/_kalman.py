@@ -20,8 +20,8 @@ def _kalman_scalar(x, P, z, r, h, I_):
     - r is the measurement noise variance.
 
     The update equations are given below. They are expressed in terms of 2D array
-    operations, but implemented as 1D array and float operations in the code for
-    efficiency. See Parameters for shapes.
+    (column vector) operations, but implemented as 1D array operations for efficiency.
+    See Parameters for shapes.
 
     Innovation covariance:
 
