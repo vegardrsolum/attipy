@@ -40,8 +40,8 @@ def test_kalman_scalar():
 
     x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(9))
 
-    h = np.ascontiguousarray(h[:, np.newaxis])
-    z = np.ascontiguousarray(z[:, np.newaxis])
+    h = np.ascontiguousarray(h[np.newaxis, :])
+    z = np.ascontiguousarray(z[np.newaxis, :])
 
     S = h @ P @ h.T + r
     K = P @ h.T / S
