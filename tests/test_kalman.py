@@ -32,9 +32,10 @@ def test_kalman_scalar():
 
     rng = np.random.default_rng(42)
 
-    x = np.zeros(9)
-    P = np.eye(9)
-    h = np.array([0.1, 0.2, 0.3, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0])  # arbitrary
+    x = rng.random(9)
+    A = rng.random((9, 9))
+    P = A @ A.T + np.eye(9)  # positive semidefinite
+    h = rng.random(9)
     r = rng.random(1)
     z = rng.random(1)
 
