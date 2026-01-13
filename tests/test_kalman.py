@@ -9,15 +9,17 @@ def test_kalman_sequential():
 
     rng = np.random.default_rng(42)
 
-    x = np.zeros(9)
-    P = np.eye(9)
-    q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))  # arbitrary attitude
-    H = _measurement_matrix(q_nb)
-    m = H.shape[0]
+    m = 4  # number of measurements
+    n = 9  # state dimension
+
+    x = rng.random(n)
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semidefinite
+    H = rng.random((m, n))
     var = rng.random(m)
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_sequential(x.copy(), P.copy(), z, var, H, np.eye(9))
+    x_upd, P_upd = _kalman_sequential(x.copy(), P.copy(), z, var, H, np.eye(n))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
@@ -30,16 +32,18 @@ def test_kalman_sequential():
 
 def test_kalman_scalar():
 
+    n = 9  # state dimension
+
     rng = np.random.default_rng(42)
 
-    x = rng.random(9)
-    A = rng.random((9, 9))
-    P = A @ A.T + np.eye(9)  # positive semidefinite
-    h = rng.random(9)
+    x = rng.random(n)
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semidefinite
+    h = rng.random(n)
     r = rng.random(1)
     z = rng.random(1)
 
-    x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(9))
+    x_upd, P_upd = _kalman_scalar(x.copy(), P.copy(), z, r, h, np.eye(n))
 
     x = np.ascontiguousarray(x[:, np.newaxis])  # (n, 1)
     h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
@@ -48,7 +52,7 @@ def test_kalman_scalar():
     S = h @ P @ h.T + r
     K = P @ h.T / S
     x = x + K @ (z - h @ x)
-    P[:, :] = (np.eye(9) - K @ h) @ P @ (np.eye(9) - K @ h).T + r * K @ K.T
+    P[:, :] = (np.eye(n) - K @ h) @ P @ (np.eye(n) - K @ h).T + r * K @ K.T
 
     np.testing.assert_allclose(x_upd, x.ravel())
     np.testing.assert_allclose(P_upd, P)
