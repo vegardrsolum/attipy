@@ -101,15 +101,23 @@ def _kalman_update_old(
 
         z = h x + v ,    v ~ N(0, r)
 
-    and the update equations become:
+    and the update equations are given below.
 
-        S = h @ P @ h.T + r  (innovation covariance)
+    Innovation covariance:
 
-        K = P @ h.T / S  (Kalman gain)
+        S = h @ P @ h.T + R
 
-        x = x + K @ (z - h @ x)  (state update)
+    Kalman gain:
 
-        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T  (Joseph covariance update)
+        K = P @ h.T / S
+
+    State update (a posteriori)
+
+        x = x + K @ (z - h @ x)
+
+    Covariance update (a posteriori) (Joseph form)
+
+        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T
 
     where:
     - h is the i-th row of `H`
@@ -181,15 +189,23 @@ def _kalman_update(
 
         z = h x + v ,    v ~ N(0, r)
 
-    and the update equations become:
+    and the update equations are given below.
 
-        S = h @ P @ h.T + R  (innovation covariance)
+    Innovation covariance:
 
-        K = P @ h.T / S  (Kalman gain)
+        S = h @ P @ h.T + R
 
-        x = x + K @ (z - h @ x)  (state update)
+    Kalman gain:
 
-        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T  (Joseph covariance update)
+        K = P @ h.T / S
+
+    State update (a posteriori)
+
+        x = x + K @ (z - h @ x)
+
+    Covariance update (a posteriori) (Joseph form)
+
+        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T
 
     where:
     - h is the i-th row of `H`
