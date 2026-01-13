@@ -56,12 +56,12 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
         Identity matrix.
     """
 
-    # Innovation covariance
+    # Innovation covariance (inverse)
     Ph = np.dot(P, h)
-    s = np.dot(h, Ph) + r
+    s_inv = 1.0 / (np.dot(h, Ph) + r)
 
     # Kalman gain
-    k = Ph / s
+    k = Ph * s_inv
 
     # Updated (a posteriori) state estimate
     x += k * (z - np.dot(h, x))

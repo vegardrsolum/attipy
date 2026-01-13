@@ -51,10 +51,10 @@ def test_kalman_scalar():
     h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
     z = np.ascontiguousarray(z[:, np.newaxis])  # (1, 1)
 
-    S = h @ P @ h.T + r
-    K = P @ h.T / S
-    x = x + K @ (z - h @ x)
-    P[:, :] = (np.eye(n) - K @ h) @ P @ (np.eye(n) - K @ h).T + r * K @ K.T
+    s = h @ P @ h.T + r
+    k = P @ h.T / s
+    x = x + k @ (z - h @ x)
+    P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
 
     np.testing.assert_allclose(x_upd, x.ravel())
     np.testing.assert_allclose(P_upd, P)
