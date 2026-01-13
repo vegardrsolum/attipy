@@ -32,11 +32,11 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
 
         k = P @ h.T / s
 
-    State update (a posteriori)
+    Updated (a posteriori) state estimate
 
         x = x + k @ (z - h @ x)
 
-    Covariance update (a posteriori) (Joseph form)
+    Updated (a posteriori) covariance estimate (Joseph form)
 
         P = (I - k @ h) @ P @ (I - k @ h).T + r @ k @ k.T
 
@@ -56,14 +56,17 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
         Identity matrix.
     """
 
-    # Kalman gain
+    # Innovation covariance
     Ph = np.dot(P, h)
-    k = Ph / (np.dot(h, Ph) + r)
+    s = np.dot(h, Ph) + r
 
-    # State update
+    # Kalman gain
+    k = Ph / s
+
+    # Updated (a posteriori) state estimate
     x += k * (z - np.dot(h, x))
 
-    # Covariance update (Joseph form)
+    # Updated (a posteriori) covariance estimate (Joseph form)
     A = I_ - np.outer(k, h)
     P[:, :] = A @ P @ A.T + r * np.outer(k, k)
 
