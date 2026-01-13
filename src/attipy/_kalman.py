@@ -148,20 +148,20 @@ def _kalman_update_old(
     """
 
     for i in range(z.shape[0]):
-        hi = H[i]
-        vi = var[i]
-        zi = z[i]
+        h_i = H[i]
+        r_i = var[i]
+        z_i = z[i]
 
         # Kalman gain
-        Ph = np.dot(P, hi)
-        k = Ph / (np.dot(hi, Ph) + vi)
+        Ph = np.dot(P, h_i)
+        k = Ph / (np.dot(h_i, Ph) + r_i)
 
         # State update
-        x += k * (zi - np.dot(hi, x))
+        x += k * (z_i - np.dot(h_i, x))
 
         # Covariance update (Joseph form)
-        A = I_ - np.outer(k, hi)
-        P[:, :] = A @ P @ A.T + vi * np.outer(k, k)
+        A = I_ - np.outer(k, h_i)
+        P[:, :] = A @ P @ A.T + r_i * np.outer(k, k)
     return x, P
 
 
