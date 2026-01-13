@@ -257,6 +257,53 @@ def _kalman_update(
 
 @njit  # type: ignore[misc]
 def _kalman_scalar(x, P, z, r, h, I_):
+    """
+    Scalar Kalman filter measurement update.
+
+    Assuming the following measurement relationship:
+
+        z = h x + v ,    v ~ N(0, r)
+
+    where:
+    - h is the measurement matrix.
+    - r is the measurement noise variance.
+
+    The update equations are given below. They are expressed in terms of 2D array
+    operations, but implemented as 1D array and float operations in the code for
+    efficiency. See Parameters for shapes.
+
+    Innovation covariance:
+
+        S = h @ P @ h.T + r
+
+    Kalman gain:
+
+        K = P @ h.T / S
+
+    State update (a posteriori)
+
+        x = x + K @ (z - h @ x)
+
+    Covariance update (a posteriori) (Joseph form)
+
+        P = (I - K @ h) @ P @ (I - K @ h).T + R @ K @ K.T
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State covariance matrix to be updated in place.
+    z : float
+        Measurement.
+    r : float
+        Measurement noise variance.
+    h : ndarray, shape (n,)
+        Measurement matrix.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
+    """
+
     # Kalman gain
     Ph = np.dot(P, h)
     k = Ph / (np.dot(h, Ph) + r)
