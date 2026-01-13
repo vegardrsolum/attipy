@@ -1,8 +1,6 @@
 import numpy as np
 
-from attipy._kalman import _kalman_sequential, _kalman_scalar
-from attipy._statespace import _measurement_matrix
-from attipy._transforms import _quat_from_euler_zyx
+from attipy._kalman import _kalman_scalar, _kalman_sequential
 
 
 def test_kalman_sequential():
