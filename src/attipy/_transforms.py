@@ -66,6 +66,8 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
+    # TODO: verify this implementation
+
     q0, q1, q2, q3 = q
 
     _2q1 = q1 + q1
