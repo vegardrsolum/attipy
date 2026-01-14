@@ -24,30 +24,30 @@ def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
 
     if trace > 0.0:
         s = 2.0 * np.sqrt(trace + 1.0)
-        w = 0.25 * s
-        x = (r21 - r12) / s
-        y = (r02 - r20) / s
-        z = (r10 - r01) / s
+        qw = 0.25 * s
+        qx = (r21 - r12) / s
+        qy = (r02 - r20) / s
+        qz = (r10 - r01) / s
     elif (r00 > r11) and (r00 > r22):
         s = 2.0 * np.sqrt(1.0 + r00 - r11 - r22)
-        w = (r21 - r12) / s
-        x = 0.25 * s
-        y = (r01 + r10) / s
-        z = (r02 + r20) / s
+        qw = (r21 - r12) / s
+        qx = 0.25 * s
+        qy = (r01 + r10) / s
+        qz = (r02 + r20) / s
     elif r11 > r22:
         s = 2.0 * np.sqrt(1.0 + r11 - r00 - r22)
-        w = (r02 - r20) / s
-        x = (r01 + r10) / s
-        y = 0.25 * s
-        z = (r12 + r21) / s
+        qw = (r02 - r20) / s
+        qx = (r01 + r10) / s
+        qy = 0.25 * s
+        qz = (r12 + r21) / s
     else:
         s = 2.0 * np.sqrt(1.0 + r22 - r00 - r11)
-        w = (r10 - r01) / s
-        x = (r02 + r20) / s
-        y = (r12 + r21) / s
-        z = 0.25 * s
+        qw = (r10 - r01) / s
+        qx = (r02 + r20) / s
+        qy = (r12 + r21) / s
+        qz = 0.25 * s
 
-    q = np.array([w, x, y, z])
+    q = np.array([qw, qx, qy, qz])
     return _normalize(q)
 
 
