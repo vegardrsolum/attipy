@@ -96,8 +96,8 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     r21 = _2q2q3 + _2q0q1
     r22 = 1.0 - (_2q1q1 + _2q2q2)
 
-    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
-    return R
+    dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+    return dcm
 
 
 @njit  # type: ignore[misc]
@@ -176,8 +176,8 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     r21 = cp * sr
     r22 = cp * cr
 
-    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
-    return R
+    dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+    return dcm
 
 
 @njit  # type: ignore[misc]
@@ -334,9 +334,9 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     r21 = cp * sr
     r22 = cp * cr
 
-    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+    dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
 
-    return R
+    return dcm
 
 
 @njit  # type: ignore[misc]
