@@ -211,8 +211,9 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
-    theta_x, theta_y, theta_z = theta
-    angle2 = theta_x**2 + theta_y**2 + theta_z**2
+    rx, ry, rz = theta
+
+    angle2 = rx**2 + ry**2 + rz**2
 
     if angle2 < 1e-6:  # 2nd order approximation (avoids division by zero)
         a = 0.25 * angle2
@@ -224,7 +225,7 @@ def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
         c = np.cos(half_angle)
         s = np.sin(half_angle) / angle
 
-    q = np.array([c, s * theta_x, s * theta_y, s * theta_z])
+    q = np.array([c, s * rx, s * ry, s * rz])
 
     return _normalize(q)
 
