@@ -66,7 +66,7 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
-    # TODO: verify this implementation
+    # TODO: verify this implementation and add reference
 
     q0, q1, q2, q3 = q
 
@@ -123,6 +123,8 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
+    # TODO: add reference
+
     qw, qx, qy, qz = q
 
     roll = np.arctan2(2.0 * (qy * qz + qx * qw), 1.0 - 2.0 * (qx**2 + qy**2))
@@ -158,6 +160,8 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
+    # TODO: add reference
+
     roll, pitch, yaw = euler
 
     cy = np.cos(yaw)
@@ -212,6 +216,10 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 @njit  # type: ignore[misc]
 def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the unit quaternion from a rotation vector.
+    """
+    # TODO: add reference
 
     rx, ry, rz = theta
 
@@ -247,6 +255,8 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Rotation vector.
     """
+    # TODO: add reference
+
     qw, qx, qy, qz = _canonical(q)
 
     qxyz_norm = np.sqrt(qx**2 + qy**2 + qz**2)
@@ -292,6 +302,8 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3, 3)
         Rotation matrix.
     """
+    # TODO: add reference
+
     roll, pitch, yaw = euler
 
     cy = np.cos(yaw)
