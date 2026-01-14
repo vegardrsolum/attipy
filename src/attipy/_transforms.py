@@ -360,6 +360,16 @@ def _quat_from_gibbs2(g2):
     ----------
     g2 : numpy.ndarray, shape (3,)
         2 x Gibbs vector.
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternion.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 14.229, John Wiley & Sons, 2021.
     """
     gx, gy, gz = g2
 
