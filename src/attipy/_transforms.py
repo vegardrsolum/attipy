@@ -9,7 +9,7 @@ from ._vectorops import _normalize
 @njit  # type: ignore[misc]
 def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
     """
-    Convert a rotation matrix to a unit quaternion (see ref [1]_).
+    Compute the unit quaternion from a rotation matrix (see ref [1]_).
 
     References
     ----------
@@ -54,7 +54,7 @@ def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
 @njit  # type: ignore[misc]
 def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the rotation matrix from a unit quaternion.
+    Compute the direction cosine matrix (rotation matrix) from a unit quaternion.
 
     Parameters
     ----------
@@ -137,7 +137,7 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the rotation matrix (from-body-to-origin) from Euler angles.
+    Compute the direction cosine matrix (rotation matrix) from Euler angles.
 
     Parameters
     ----------
@@ -147,13 +147,6 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
             - Roll (roll): Rotation about the x-axis.
             - Pitch (pitch): Rotation about the y-axis.
             - Yaw (yaw): Rotation about the z-axis.
-
-    Notes
-    -----
-    The Euler angles describe how to transition from the 'origin' frame to the 'body'
-    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
-    However, the returned rotation matrix represents the transformation of a vector
-    from the 'body' frame to the 'origin' frame.
 
     Returns
     -------
@@ -192,6 +185,20 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
 
+    Parameters
+    ----------
+    euler : numpy.ndarray, shape (3,)
+        Vector of Euler angles in radians (ZYX convention). Contains the following
+        three Euler angles in order:
+            - Roll (roll): Rotation about the x-axis.
+            - Pitch (pitch): Rotation about the y-axis.
+            - Yaw (yaw): Rotation about the z-axis.
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternion.
+
     References
     ----------
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
@@ -218,6 +225,16 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from a rotation vector.
+
+    Parameters
+    ----------
+    theta : numpy.ndarray, shape (3,)
+        Rotation vector (thetax, thetay, thetaz).
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz).
     """
     # TODO: add reference
 
@@ -248,12 +265,12 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
-        Unit quaternion.
+        Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
     numpy.ndarray, shape (3,)
-        Rotation vector.
+        Rotation vector (thetax, thetay, thetaz).
     """
     # TODO: add reference
 
@@ -278,8 +295,7 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the rotation matrix (from-body-to-origin) from Euler angles.
-
+    Compute the direction cosine matrix (rotation matrix) from Euler angles.
 
     Parameters
     ----------
@@ -290,17 +306,10 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
             - Pitch (pitch): Rotation about the y-axis.
             - Yaw (yaw): Rotation about the z-axis.
 
-    Notes
-    -----
-    The Euler angles describe how to transition from the 'origin' frame to the 'body'
-    frame through three consecutive (passive, intrinsic) rotations in the ZYX order.
-    However, the returned rotation matrix represents the transformation of a vector
-    from the 'body' frame to the 'origin' frame.
-
     Returns
     -------
     numpy.ndarray, shape (3, 3)
-        Rotation matrix.
+        Direction cosine matrix (rotation matrix).
     """
     # TODO: add reference
 
@@ -333,12 +342,12 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     """
-    Compute yaw angle from unit quaternion.
+    Compute yaw angle from a unit quaternion.
 
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
-        Unit quaternion.
+        Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
