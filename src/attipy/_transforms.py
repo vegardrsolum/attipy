@@ -157,24 +157,25 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         Rotation matrix.
     """
     roll, pitch, yaw = euler
-    cos_yaw = np.cos(yaw)
-    sin_yaw = np.sin(yaw)
-    cos_pitch = np.cos(pitch)
-    sin_pitch = np.sin(pitch)
-    cos_roll = np.cos(roll)
-    sin_roll = np.sin(roll)
 
-    r00 = cos_yaw * cos_pitch
-    r01 = -sin_yaw * cos_roll + cos_yaw * sin_pitch * sin_roll
-    r02 = sin_yaw * sin_roll + cos_yaw * sin_pitch * cos_roll
+    cy = np.cos(yaw)
+    sy = np.sin(yaw)
+    cp = np.cos(pitch)
+    sp = np.sin(pitch)
+    cr = np.cos(roll)
+    sr = np.sin(roll)
 
-    r10 = sin_yaw * cos_pitch
-    r11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll
-    r12 = -cos_yaw * sin_roll + sin_yaw * sin_pitch * cos_roll
+    r00 = cy * cp
+    r01 = -sy * cr + cy * sp * sr
+    r02 = sy * sr + cy * sp * cr
 
-    r20 = -sin_pitch
-    r21 = cos_pitch * sin_roll
-    r22 = cos_pitch * cos_roll
+    r10 = sy * cp
+    r11 = cy * cr + sy * sp * sr
+    r12 = -cy * sr + sy * sp * cr
+
+    r20 = -sp
+    r21 = cp * sr
+    r22 = cp * cr
 
     R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
     return R
@@ -191,17 +192,18 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
 
     roll_half, pitch_half, yaw_half = euler / 2.0
-    ca_half = np.cos(roll_half)
-    sa_half = np.sin(roll_half)
-    cb_half = np.cos(pitch_half)
-    sb_half = np.sin(pitch_half)
-    cg_half = np.cos(yaw_half)
-    sg_half = np.sin(yaw_half)
 
-    qw = ca_half * cb_half * cg_half + sa_half * sb_half * sg_half
-    qx = sa_half * cb_half * cg_half - ca_half * sb_half * sg_half
-    qy = ca_half * sb_half * cg_half + sa_half * cb_half * sg_half
-    qz = ca_half * cb_half * sg_half - sa_half * sb_half * cg_half
+    cr_half = np.cos(roll_half)
+    sr_half = np.sin(roll_half)
+    cp_half = np.cos(pitch_half)
+    sp_half = np.sin(pitch_half)
+    cy_half = np.cos(yaw_half)
+    sy_half = np.sin(yaw_half)
+
+    qw = cr_half * cp_half * cy_half + sr_half * sp_half * sy_half
+    qx = sr_half * cp_half * cy_half - cr_half * sp_half * sy_half
+    qy = cr_half * sp_half * cy_half + sr_half * cp_half * sy_half
+    qz = cr_half * cp_half * sy_half - sr_half * sp_half * cy_half
 
     return np.array([qw, qx, qy, qz])
 
