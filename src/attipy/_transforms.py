@@ -293,29 +293,29 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
         Rotation matrix.
     """
     roll, pitch, yaw = euler
-    cos_yaw = np.cos(yaw)
-    sin_yaw = np.sin(yaw)
-    cos_pitch = np.cos(pitch)
-    sin_pitch = np.sin(pitch)
-    cos_roll = np.cos(roll)
-    sin_roll = np.sin(roll)
 
-    rot_00 = cos_yaw * cos_pitch
-    rot_01 = -sin_yaw * cos_roll + cos_yaw * sin_pitch * sin_roll
-    rot_02 = sin_yaw * sin_roll + cos_yaw * sin_pitch * cos_roll
+    cy = np.cos(yaw)
+    sy = np.sin(yaw)
+    cp = np.cos(pitch)
+    sp = np.sin(pitch)
+    cr = np.cos(roll)
+    sr = np.sin(roll)
 
-    rot_10 = sin_yaw * cos_pitch
-    rot_11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll
-    rot_12 = -cos_yaw * sin_roll + sin_yaw * sin_pitch * cos_roll
+    r00 = cy * cp
+    r01 = -sy * cr + cy * sp * sr
+    r02 = sy * sr + cy * sp * cr
 
-    rot_20 = -sin_pitch
-    rot_21 = cos_pitch * sin_roll
-    rot_22 = cos_pitch * cos_roll
+    r10 = sy * cp
+    r11 = cy * cr + sy * sp * sr
+    r12 = -cy * sr + sy * sp * cr
 
-    rot = np.array(
-        [[rot_00, rot_01, rot_02], [rot_10, rot_11, rot_12], [rot_20, rot_21, rot_22]]
-    )
-    return rot
+    r20 = -sp
+    r21 = cp * sr
+    r22 = cp * cr
+
+    R = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+
+    return R
 
 
 @njit  # type: ignore[misc]
@@ -339,9 +339,9 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     2nd Edition, equation 14.251, John Wiley & Sons, 2021.
     """
     qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    return np.arctan2(u_y, u_x)  # type: ignore[no-any-return]
+    uy = 2.0 * (qx * qy + qz * qw)
+    ux = 1.0 - 2.0 * (qy**2 + qz**2)
+    return np.arctan2(uy, ux)  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]
@@ -356,7 +356,10 @@ def _quat_from_gibbs2(g2):
 
         q = (qw, qv[0], qv[1], qv[2])
 
-    where,
+    Parameters
+    ----------
+    g2 : numpy.ndarray, shape (3,)
+        2 x Gibbs vector.
     """
     gx, gy, gz = g2
 
