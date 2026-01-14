@@ -245,8 +245,7 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Rotation vector.
     """
-    q = _canonical(q)
-    qw, qx, qy, qz = q
+    qw, qx, qy, qz = _canonical(q)
 
     qxyz_norm = np.sqrt(qx**2 + qy**2 + qz**2)
     angle = 2.0 * np.arctan2(qxyz_norm, qw)
@@ -257,7 +256,11 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     else:
         scale = angle / np.sin(angle / 2.0)
 
-    return np.array([scale * qx, scale * qy, scale * qz])
+    rx = scale * qx
+    ry = scale * qy
+    rz = scale * qz
+
+    return np.array([rx, ry, rz])
 
 
 @njit  # type: ignore[misc]
