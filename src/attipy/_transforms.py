@@ -394,25 +394,3 @@ def _quat_from_gibbs2(g2):
 
     q = scale * np.array([2.0, gx, gy, gz])
     return q
-
-
-@njit  # type: ignore[misc]
-def _angular_matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute angular transformation matrix, T, from a unit quaternion.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion (qw, qx, qy, qz).
-
-    Returns
-    -------
-    numpy.ndarray, shape (4, 3)
-        Angular transformation matrix, T.
-    """
-    qw, qx, qy, qz = q
-
-    T = 0.5 * np.array([[-qx, -qy, -qz], [qw, -qz, qy], [qz, qx, -qy], [-qy, qx, qw]])
-
-    return T
