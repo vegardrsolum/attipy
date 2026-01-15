@@ -101,8 +101,8 @@ class Test_AHRS:
     def test_dhdx_yaw(self, ahrs):
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         dhdx_yaw = ahrs._dhdx_yaw(q_nb)
-        dhdx_yaw_expected = np.zeros((1, 9))
-        dhdx_yaw_expected[0, 0:3] = _dyawda(q_nb)
+        dhdx_yaw_expected = np.zeros((9,))
+        dhdx_yaw_expected[0:3] = _dyawda(q_nb)
         np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
         assert dhdx_yaw.flags.c_contiguous
 
