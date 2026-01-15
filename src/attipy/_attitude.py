@@ -330,7 +330,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Rotation vector, (theta_x, theta_y, theta_z).
+            Rotation vector, (rx, ry, rz).
         degrees : bool, default False
             Specifies whether the input rotation vector, theta, is given in degrees
             or radians (default).
@@ -361,7 +361,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            Rotation vector, (theta_x, theta_y, theta_z).
+            Rotation vector, (rx, ry, rz).
 
         References
         ----------
@@ -394,9 +394,9 @@ class Attitude:
         Parameters
         ----------
         dtheta : ArrayLike
-            Rotation vector representing the incremental rotation to be applied.
-            The direction of the vector indicates the axis of rotation, and the
-            magnitude (norm) of the vector indicates the angle of rotation.
+            Rotation vector (drx, dry, drz) representing the incremental rotation
+            to be applied. The direction of the vector indicates the axis of rotation,
+            and the magnitude (norm) of the vector indicates the angle of rotation.
         degrees : bool, default False
             Specifies whether the rotation vector, dtheta, is given in degrees or
             radians (default).
