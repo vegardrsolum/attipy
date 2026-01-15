@@ -65,6 +65,11 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     rot : numpy.ndarray, shape (3, 3)
         Rotation matrix.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 2.72, John Wiley & Sons, 2021.
     """
     # TODO: verify this implementation and add reference
 
