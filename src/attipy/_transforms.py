@@ -71,35 +71,34 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
     2nd Edition, equation 2.72, John Wiley & Sons, 2021.
     """
-    # TODO: verify this implementation and add reference
 
-    q0, q1, q2, q3 = q
+    qw, qx, qy, qz = q
 
-    _2q1 = q1 + q1
-    _2q2 = q2 + q2
-    _2q3 = q3 + q3
+    _2qx = qx + qx
+    _2qy = qy + qy
+    _2qz = qz + qz
 
-    _2q1q1 = q1 * _2q1
-    _2q1q2 = q1 * _2q2
-    _2q1q3 = q1 * _2q3
-    _2q2q2 = q2 * _2q2
-    _2q2q3 = q2 * _2q3
-    _2q3q3 = q3 * _2q3
-    _2q0q1 = q0 * _2q1
-    _2q0q2 = q0 * _2q2
-    _2q0q3 = q0 * _2q3
+    _2qxqx = qx * _2qx
+    _2qxqy = qx * _2qy
+    _2qxqz = qx * _2qz
+    _2qyqy = qy * _2qy
+    _2qyqz = qy * _2qz
+    _2qzqz = qz * _2qz
+    _2qwqx = qw * _2qx
+    _2qwqy = qw * _2qy
+    _2qwqz = qw * _2qz
 
-    r00 = 1.0 - (_2q2q2 + _2q3q3)
-    r01 = _2q1q2 - _2q0q3
-    r02 = _2q1q3 + _2q0q2
+    r00 = 1.0 - (_2qyqy + _2qzqz)
+    r01 = _2qxqy - _2qwqz
+    r02 = _2qxqz + _2qwqy
 
-    r10 = _2q1q2 + _2q0q3
-    r11 = 1.0 - (_2q1q1 + _2q3q3)
-    r12 = _2q2q3 - _2q0q1
+    r10 = _2qxqy + _2qwqz
+    r11 = 1.0 - (_2qxqx + _2qzqz)
+    r12 = _2qyqz - _2qwqx
 
-    r20 = _2q1q3 - _2q0q2
-    r21 = _2q2q3 + _2q0q1
-    r22 = 1.0 - (_2q1q1 + _2q2q2)
+    r20 = _2qxqz - _2qwqy
+    r21 = _2qyqz + _2qwqx
+    r22 = 1.0 - (_2qxqx + _2qyqy)
 
     dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
     return dcm
@@ -128,7 +127,6 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
-    # TODO: add reference
 
     qw, qx, qy, qz = q
 
