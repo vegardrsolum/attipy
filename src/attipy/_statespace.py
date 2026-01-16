@@ -32,7 +32,7 @@ def _update_state_transition_old(phi, dt, f_b, w_b, R_nb, I3x3):
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
 
 
-@njit
+@njit  # type: ignore[misc]
 def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     """
     Update state transition matrix, phi.
@@ -49,12 +49,12 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
 
     # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
     phi[0, 0] = 1.0
-    phi[0, 1] =  dt * wz
+    phi[0, 1] = dt * wz
     phi[0, 2] = -dt * wy
     phi[1, 0] = -dt * wz
     phi[1, 1] = 1.0
-    phi[1, 2] =  dt * wx
-    phi[2, 0] =  dt * wy
+    phi[1, 2] = dt * wx
+    phi[2, 0] = dt * wy
     phi[2, 1] = -dt * wx
     phi[2, 2] = 1.0
 
