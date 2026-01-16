@@ -10,13 +10,13 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
     """
-    w, x, y, z = q
+    qw, qx, qy, qz = q
 
     flip = (
-        w < 0
-        or (w == 0 and x < 0)
-        or (w == 0 and x == 0 and y < 0)
-        or (w == 0 and x == 0 and y == 0 and z < 0)
+        qw < 0
+        or (qw == 0 and qx < 0)
+        or (qw == 0 and qx == 0 and qy < 0)
+        or (qw == 0 and qx == 0 and qy == 0 and qz < 0)
     )
 
     if flip:
