@@ -232,8 +232,8 @@ def _rts_backward_sweep(
     q_nb = q_nb.copy()
     bg_b = bg_b.copy()
     v_n = v_n.copy()
-    # dx_k = dx_k.copy()
     P = P.copy()
+    P_prior_kp1 = np.empty_like(P[0])
 
     # Backward sweep
     n = len(q_nb)
@@ -242,7 +242,7 @@ def _rts_backward_sweep(
         # Update step k state space
         R_nb_k = _matrix_from_quat(q_nb[k])
         _update_state_transition(phi_k, dt, f_b[k], w_b[k], R_nb_k)
-        P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q_k
+        P_prior_kp1[:] = phi_k @ P[k] @ phi_k.T + Q_k
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
