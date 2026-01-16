@@ -16,7 +16,10 @@ def _state_transition(
     Setup state transition matrix, phi.
 
     First order approximation:
+
         phi = I + dt * dfdx
+
+    where dfdx is the linearized state matrix.
 
     Parameters
     ----------
@@ -48,12 +51,8 @@ def _update_state_transition(
     R_nb: NDArray[np.float64],
 ):
     """
-    Update state transition matrix, phi.
+    Update state transition matrix, phi:
 
-    Assuming first order approximation:
-        phi = I + dt * dfdx
-
-    Updating only the time varying parts:
         phi[0:3, 0:3] = I - dt * S(w_b)
         phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
 
@@ -69,6 +68,14 @@ def _update_state_transition(
         Angular rate measurement (bias corrected) in body frame.
     R_nb : ndarray, shape (3, 3)
         Rotation matrix (from body to navigation frame).
+
+    Notes
+    -----
+    Assuming first order approximation:
+
+        phi = I + dt * dfdx
+
+    where dfdx is the linearized state matrix.
     """
     wx, wy, wz = w_b
     fx, fy, fz = f_b
