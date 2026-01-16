@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical, _quatprod
+from ._quatops import _canonical, _normalize, _quatprod
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -12,7 +12,6 @@ from ._transforms import (
     _quat_from_rotvec,
     _rotvec_from_quat,
 )
-from ._vectorops import _normalize
 
 
 def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
@@ -44,14 +43,14 @@ def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
     return R
 
 
-def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_euler(euler: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid set of Euler angles.
     """
-    theta = np.asarray_chkfinite(theta, dtype=float)
-    if theta.shape != (3,):
+    euler = np.asarray_chkfinite(euler, dtype=float)
+    if euler.shape != (3,):
         raise ValueError("Euler angles must be a 3-element array.")
-    return theta
+    return euler
 
 
 def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
