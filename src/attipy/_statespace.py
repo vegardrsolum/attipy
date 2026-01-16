@@ -5,7 +5,13 @@ from numpy.typing import NDArray
 from ._vectorops import _skew_symmetric as S
 
 
-def _state_transition(dt, f_b, w_b, R_nb, gbc) -> NDArray[np.float64]:
+def _state_transition(
+    dt: float,
+    f_b: NDArray[np.float64],
+    w_b: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    gbc: float,
+) -> NDArray[np.float64]:
     """
     Setup state transition matrix, phi.
 
@@ -21,7 +27,13 @@ def _state_transition(dt, f_b, w_b, R_nb, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(phi, dt, f_b, w_b, R_nb):
+def _update_state_transition(
+    phi: NDArray[np.float64],
+    dt: float,
+    f_b: NDArray[np.float64],
+    w_b: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+):
     """
     Update state transition matrix, phi.
 
@@ -75,7 +87,9 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     phi[8, 2] = -dt * (fy * r20 - fx * r21)
 
 
-def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
+def _process_noise_cov(
+    dt: float, vrw: float, arw: float, gbs: float, gbc: float
+) -> NDArray[np.float64]:
     """
     Setup process noise covariance matrix, Q.
 
@@ -98,7 +112,12 @@ def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
     return Q
 
 
-def _state_matrix(f_b, w_b, R_nb, gbc) -> NDArray[np.float64]:
+def _state_matrix(
+    f_b: NDArray[np.float64],
+    w_b: NDArray[np.float64],
+    R_nb: NDArray[np.float64],
+    gbc: float,
+) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
@@ -173,7 +192,7 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nb) -> None:
+def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Setup linearized measurement matrix, dhdx.
     """
