@@ -6,10 +6,9 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ._ahrs import AHRS
-from ._quatops import _quatprod
-from ._statespace import _update_state_transition as _update_phi
+from ._quatops import _normalize, _quatprod
+from ._statespace import _update_state_transition
 from ._transforms import _matrix_from_quat
-from ._vectorops import _normalize
 
 
 class FixedIntervalSmoother:
@@ -233,7 +232,6 @@ def _rts_backward_sweep(
     [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
         filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
-    I3x3 = np.eye(3)
 
     q_nb = q_nb.copy()
     bg_b = bg_b.copy()
@@ -249,7 +247,7 @@ def _rts_backward_sweep(
 
         # Update step k state space
         R_nb_k = _matrix_from_quat(q_nb[k])
-        _update_phi(phi_k, dt, f_b[k], w_b[k], R_nb_k, I3x3)
+        _update_state_transition(phi_k, dt, f_b[k], w_b[k], R_nb_k)
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q_k
 
         # Smoothed error-state estimate and corresponding covariance
