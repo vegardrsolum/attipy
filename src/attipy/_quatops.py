@@ -10,13 +10,13 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
     """
-    w, x, y, z = q
+    qw, qx, qy, qz = q
 
     flip = (
-        w < 0
-        or (w == 0 and x < 0)
-        or (w == 0 and x == 0 and y < 0)
-        or (w == 0 and x == 0 and y == 0 and z < 0)
+        qw < 0
+        or (qw == 0 and qx < 0)
+        or (qw == 0 and qx == 0 and qy < 0)
+        or (qw == 0 and qx == 0 and qy == 0 and qz < 0)
     )
 
     if flip:
@@ -28,24 +28,60 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Unit quaternion (Hamilton) product: q_a ⊗ q_b.
+    Computes the product of two unit quaternions (Hamilton product):
+
+        q = q_a ⊗ q_b
+
+    Defined as:
+
+        qw = qw_a * qw_b - np.dot(qxyz_a, qxyz_b)
+        qxyz = qw_a * qxyz_b + qw_b * qxyz_a + np.cross(qxyz_a, qxyz_b)
 
     Parameters
     ----------
     qa, qb : numpy.ndarray, shape (4,)
-        Unit quaternions.
+        Unit quaternions (qw, qx, qy, qz).
 
     Returns
     -------
     numpy.ndarray, shape (4,)
-        Unit quaternions result of the product.
+        Unit quaternion product.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 2.69, John Wiley & Sons, 2021.
     """
-    qa_w, qa_xyz = np.split(qa, [1])
-    qb_w, qb_xyz = np.split(qb, [1])
-    return np.concatenate(
-        (
-            qa_w * qb_w - qa_xyz.T @ qb_xyz,
-            qa_w * qb_xyz + qb_w * qa_xyz + np.cross(qa_xyz, qb_xyz),
-        ),
-        axis=0,
-    )
+    qw_a, qx_a, qy_a, qz_a = qa
+    qw_b, qx_b, qy_b, qz_b = qb
+
+    qw = qw_a * qw_b - qx_a * qx_b - qy_a * qy_b - qz_a * qz_b
+    qx = qw_a * qx_b + qw_b * qx_a + qy_a * qz_b - qz_a * qy_b
+    qy = qw_a * qy_b + qw_b * qy_a + qz_a * qx_b - qx_a * qz_b
+    qz = qw_a * qz_b + qw_b * qz_a + qx_a * qy_b - qy_a * qx_b
+
+    return np.array([qw, qx, qy, qz])
+
+
+@njit  # type: ignore[misc]
+def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    L2-normalize a quaternion.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Quaternion to be normalized
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Normalized (unit) quaternion.
+    """
+    qw, qx, qy, qz = q
+    norm_inv = 1.0 / np.sqrt(qw**2 + qx**2 + qy**2 + qz**2)
+    qw *= norm_inv
+    qx *= norm_inv
+    qy *= norm_inv
+    qz *= norm_inv
+    return np.array([qw, qx, qy, qz])

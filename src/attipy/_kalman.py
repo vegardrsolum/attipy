@@ -55,6 +55,7 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     I_ : ndarray, shape (n, n)
         Identity matrix.
     """
+    # TODO: speed up by writing out the operations explicitly
 
     # Innovation covariance (inverse)
     Ph = np.dot(P, h)
