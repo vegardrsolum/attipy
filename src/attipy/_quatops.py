@@ -28,7 +28,7 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Unit quaternion (Hamilton) product:
+    Computes the product of two unit quaternions (Hamilton product):
 
         q = q_a ⊗ q_b
 
@@ -46,6 +46,11 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
     -------
     numpy.ndarray, shape (4,)
         Unit quaternion product.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 2.69, John Wiley & Sons, 2021.
     """
     qw_a, qx_a, qy_a, qz_a = qa
     qw_b, qx_b, qy_b, qz_b = qb
