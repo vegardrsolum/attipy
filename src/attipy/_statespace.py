@@ -13,13 +13,11 @@ def _state_transition(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi.
-
-    First order approximation:
+    Setup state transition matrix, phi, using the first order approximation:
 
         phi = I + dt * dfdx
 
-    where dfdx is the linearized state matrix.
+    where dfdx denotes the linearized state matrix.
 
     Parameters
     ----------
@@ -71,11 +69,11 @@ def _update_state_transition(
 
     Notes
     -----
-    Assuming first order approximation:
+    Assuming the first order approximation:
 
         phi = I + dt * dfdx
 
-    where dfdx is the linearized state matrix.
+    where dfdx denotes the linearized state matrix.
     """
     wx, wy, wz = w_b
     fx, fy, fz = f_b
@@ -111,9 +109,8 @@ def _process_noise_cov(
     dt: float, vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q.
+    Setup process noise covariance matrix, Q, using the first order approximation:
 
-    First order approximation:
         Q = dt @ dfdw @ W @ dfdw.T
 
     Parameters
