@@ -125,12 +125,12 @@ class FixedIntervalSmoother:
                 self._v_buf,
                 self._w_buf,
                 self._f_buf,
-                self._ahrs._dx,
                 self._P_buf,
-                self._cov_smoothing,
+                self._ahrs._dx,
                 self._ahrs._phi,
                 self._ahrs._Q,
                 self._ahrs._dt,
+                self._cov_smoothing,
             )
             self._q_nb = np.asarray(q_nb)
             self._bg_b = np.asarray(bg_b)
