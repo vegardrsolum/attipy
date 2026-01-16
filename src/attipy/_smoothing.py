@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from ._ahrs import AHRS
 from ._quatops import _normalize, _quatprod
 from ._statespace import _update_state_transition
-from ._transforms import _matrix_from_quat
+from ._transforms import _matrix_from_quat, _quat_from_gibbs2
 
 
 class FixedIntervalSmoother:
@@ -46,7 +46,6 @@ class FixedIntervalSmoother:
 
         # Buffers for storing state and covariance estimates from forward sweep
         self._P_buf = []  # error covariance estimates (w/o smoothing)
-        self._dx_buf = []  # error-state estimates (w/o smoothing)
         self._q_buf = []  # quaternion estimates (w/o smoothing)
         self._bg_buf = []  # gyro bias estimates (w/o smoothing)
         self._v_buf = []  # velocity estimates (w/o smoothing)
@@ -84,9 +83,6 @@ class FixedIntervalSmoother:
             Keyword arguments to be passed on to ``ains.update()``.
         """
         self._ahrs.update(*args, **kwargs)
-        # self._x_buf.append(self._ains.x)
-        self._P_buf.append(self._ahrs.P)
-        self._dx_buf.append(self._ahrs._dx.copy())
 
         # State
         self._q_buf.append(self._ahrs.q_nb)
@@ -94,6 +90,7 @@ class FixedIntervalSmoother:
         self._v_buf.append(self._ahrs.v_n)
         self._w_buf.append(self._ahrs.w_b)
         self._f_buf.append(self._ahrs.f_b)
+        self._P_buf.append(self._ahrs.P)
 
         return self
 
@@ -102,7 +99,6 @@ class FixedIntervalSmoother:
         Clear the internal buffer of state estimates. This resets the smoother,
         and prepares for a new interval of measurements.
         """
-        self._dx_buf.clear()
         self._P_buf.clear()
         self._q_buf.clear()
         self._bg_buf.clear()
@@ -116,7 +112,7 @@ class FixedIntervalSmoother:
             self._q_nb = np.empty((0, 4), dtype="float64")
             self._bg_b = np.empty((0, 3), dtype="float64")
             self._v_n = np.empty((0, 3), dtype="float64")
-            self._P = np.empty((0, *self._ains.P.shape), dtype="float64")
+            self._P = np.empty((0, *self._ahrs.P.shape), dtype="float64")
         elif n_samples == 1:
             self._q_nb = np.asarray(self._q_buf)
             self._bg_b = np.asarray(self._bg_buf)
@@ -195,7 +191,7 @@ def _rts_backward_sweep(
     v_n: list[NDArray],
     w_b: list[NDArray],
     f_b: list[NDArray],
-    dx_k: list[NDArray],
+    dx: list[NDArray],
     P: list[NDArray],
     cov_smoothing: bool,
     phi_k: NDArray,
@@ -236,10 +232,8 @@ def _rts_backward_sweep(
     q_nb = q_nb.copy()
     bg_b = bg_b.copy()
     v_n = v_n.copy()
-    dx_k = dx_k.copy()
+    # dx_k = dx_k.copy()
     P = P.copy()
-
-    q_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
 
     # Backward sweep
     n = len(q_nb)
@@ -252,16 +246,13 @@ def _rts_backward_sweep(
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
-        dx_k = A @ dx_k
+        dx = A @ dx
         if cov_smoothing:
             P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Reset
-        dda = dx_k[0:3]
-        q_prealloc[1:] = dda
-        ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * q_prealloc
-        q_nb[k][:] = _normalize(_quatprod(q_nb[k], ddq))
-        bg_b[k][:] = bg_b[k] + dx_k[3:6]
-        v_n[k][:] = v_n[k] + dx_k[6:9]
+        q_nb[k][:] = _normalize(_quatprod(q_nb[k], _quat_from_gibbs2(dx[0:3])))
+        bg_b[k][:] = bg_b[k] + dx[3:6]
+        v_n[k][:] = v_n[k] + dx[6:9]
 
     return q_nb, bg_b, v_n, P
