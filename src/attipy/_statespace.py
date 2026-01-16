@@ -21,18 +21,6 @@ def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition_old(phi, dt, f_b, w_b, R_nb, I3x3):
-    """
-    Update state transition matrix, phi.
-
-    Assuming first order approximation:
-        phi = I + dt * dfdx
-    """
-    phi[0:3, 0:3] = I3x3 - dt * S(w_b)
-    phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
-
-
-@njit  # type: ignore[misc]
 def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     """
     Update state transition matrix, phi.
