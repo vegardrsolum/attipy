@@ -29,7 +29,7 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Unit quaternion (Hamilton) product:
-    
+
         q = q_a ⊗ q_b
 
     Defined as:
@@ -55,4 +55,28 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
     qy = qw_a * qy_b + qw_b * qy_a + qz_a * qx_b - qx_a * qz_b
     qz = qw_a * qz_b + qw_b * qz_a + qx_a * qy_b - qy_a * qx_b
 
+    return np.array([qw, qx, qy, qz])
+
+
+@njit  # type: ignore[misc]
+def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    L2-normalize a quaternion.
+
+    Parameters
+    ----------
+    q : numpy.ndarray, shape (4,)
+        Quaternion to be normalized
+
+    Returns
+    -------
+    numpy.ndarray, shape (4,)
+        Normalized (unit) quaternion.
+    """
+    qw, qx, qy, qz = q
+    norm_inv = 1.0 / np.sqrt(qw**2 + qx**2 + qy**2 + qz**2)
+    qw *= norm_inv
+    qx *= norm_inv
+    qy *= norm_inv
+    qz *= norm_inv
     return np.array([qw, qx, qy, qz])
