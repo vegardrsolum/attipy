@@ -27,6 +27,23 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
 
     Assuming first order approximation:
         phi = I + dt * dfdx
+
+    Updating only the time varying parts:
+        phi[0:3, 0:3] = I - dt * S(w_b)
+        phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+
+    Parameters
+    ----------
+    phi : ndarray, shape (9, 9)
+        State transition matrix to be updated in place.
+    dt : float
+        Time step.
+    f_b : ndarray, shape (3,)
+        Specific force measurement (body frame).
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (body frame).
+    R_nb : ndarray, shape (3, 3)
+        Rotation matrix (from body to navigation frame).
     """
     wx, wy, wz = w_b
     fx, fy, fz = f_b
