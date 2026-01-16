@@ -47,20 +47,7 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # R_nb @ S(f_b)
-    m00 =  fz * r01 - fy * r02
-    m10 =  fz * r11 - fy * r12
-    m20 =  fz * r21 - fy * r22
-
-    m01 = -fz * r00 + fx * r02
-    m11 = -fz * r10 + fx * r12
-    m21 = -fz * r20 + fx * r22
-
-    m02 =  fy * r00 - fx * r01
-    m12 =  fy * r10 - fx * r11
-    m22 =  fy * r20 - fx * r21
-
-    # I3x3 - dt * S(w_b)
+    # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
     phi[0, 0] = 1.0
     phi[0, 1] =  dt * wz
     phi[0, 2] = -dt * wy
@@ -71,16 +58,16 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     phi[2, 1] = -dt * wx
     phi[2, 2] = 1.0
 
-    # -dt * R_nb @ S(f_b)
-    phi[6, 0] = -dt * m00
-    phi[7, 0] = -dt * m10
-    phi[8, 0] = -dt * m20
-    phi[6, 1] = -dt * m01
-    phi[7, 1] = -dt * m11
-    phi[8, 1] = -dt * m21
-    phi[6, 2] = -dt * m02
-    phi[7, 2] = -dt * m12
-    phi[8, 2] = -dt * m22
+    # phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+    phi[6, 0] = -dt * (fz * r01 - fy * r02)
+    phi[7, 0] = -dt * (fz * r11 - fy * r12)
+    phi[8, 0] = -dt * (fz * r21 - fy * r22)
+    phi[6, 1] = -dt * (-fz * r00 + fx * r02)
+    phi[7, 1] = -dt * (-fz * r10 + fx * r12)
+    phi[8, 1] = -dt * (-fz * r20 + fx * r22)
+    phi[6, 2] = -dt * (fy * r00 - fx * r01)
+    phi[7, 2] = -dt * (fy * r10 - fx * r11)
+    phi[8, 2] = -dt * (fy * r20 - fx * r21)
 
 
 def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
