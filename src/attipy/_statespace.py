@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from ._vectorops import _skew_symmetric as S
 
 
-def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+def _state_transition(dt, f_b, w_b, R_nb, gbc) -> NDArray[np.float64]:
     """
     Setup state transition matrix, phi.
 
@@ -13,10 +13,10 @@ def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
         phi = I + dt * dfdx
     """
     phi = np.eye(9)
-    phi[0:3, 0:3] += -dt * S(w_b_corr)
+    phi[0:3, 0:3] += -dt * S(w_b)
     phi[0:3, 3:6] += -dt * np.eye(3)
     phi[3:6, 3:6] += -dt * np.eye(3) / gbc
-    phi[6:9, 0:3] += -dt * R_nb @ S(f_b_corr)
+    phi[6:9, 0:3] += -dt * R_nb @ S(f_b)
     return phi
 
 
@@ -39,9 +39,9 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb):
     dt : float
         Time step.
     f_b : ndarray, shape (3,)
-        Specific force measurement (body frame).
+        Specific force measurement (bias corrected) in body frame.
     w_b : ndarray, shape (3,)
-        Angular rate measurement (body frame).
+        Angular rate measurement (bias corrected) in body frame.
     R_nb : ndarray, shape (3, 3)
         Rotation matrix (from body to navigation frame).
     """
@@ -98,15 +98,15 @@ def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):
     return Q
 
 
-def _state_matrix(f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
+def _state_matrix(f_b, w_b, R_nb, gbc) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
     """
     dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
+    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
     dfdx[0:3, 3:6] = -np.eye(3)
     dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)  # NB! update each time step
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b)  # NB! update each time step
     return dfdx
 
 
