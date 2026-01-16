@@ -191,12 +191,12 @@ def _rts_backward_sweep(
     v_n: list[NDArray],
     w_b: list[NDArray],
     f_b: list[NDArray],
-    dx: list[NDArray],
     P: list[NDArray],
-    cov_smoothing: bool,
+    dx_k: NDArray,
     phi_k: NDArray,
     Q_k: NDArray,
     dt: float,
+    cov_smoothing: bool,
 ) -> tuple[list[NDArray], list[NDArray]]:
     """
     Perform a backward sweep with the RTS algorithm [1].
@@ -233,26 +233,25 @@ def _rts_backward_sweep(
     bg_b = bg_b.copy()
     v_n = v_n.copy()
     P = P.copy()
-    P_prior_kp1 = np.empty_like(P[0])
 
     # Backward sweep
     n = len(q_nb)
     for k in range(n - 2, -1, -1):
 
-        # Update step k state space
+        # Update step k state space and calculate a priori covariance for step k + 1 
         R_nb_k = _matrix_from_quat(q_nb[k])
         _update_state_transition(phi_k, dt, f_b[k], w_b[k], R_nb_k)
-        P_prior_kp1[:] = phi_k @ P[k] @ phi_k.T + Q_k
+        P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q_k
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
-        dx = A @ dx
+        dx_k = A @ dx_k
         if cov_smoothing:
             P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Reset
-        q_nb[k][:] = _normalize(_quatprod(q_nb[k], _quat_from_gibbs2(dx[0:3])))
-        bg_b[k][:] = bg_b[k] + dx[3:6]
-        v_n[k][:] = v_n[k] + dx[6:9]
+        q_nb[k][:] = _normalize(_quatprod(q_nb[k], _quat_from_gibbs2(dx_k[0:3])))
+        bg_b[k][:] = bg_b[k] + dx_k[3:6]
+        v_n[k][:] = v_n[k] + dx_k[6:9]
 
     return q_nb, bg_b, v_n, P
