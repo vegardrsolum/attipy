@@ -15,6 +15,18 @@ from ._transforms import _quat_from_gibbs2, _yaw_from_quat
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
     Gravity vector in the navigation frame ('NED' or 'ENU').
+
+    Parameters
+    ----------
+    g : float
+        Gravitational acceleration in m/s^2.
+    nav_frame : {'NED', 'ENU'}
+        Navigation frame.
+
+    Returns
+    -------
+    NDArray[np.float64], shape (3,)
+        Gravity vector expressed in the navigation frame.
     """
     if nav_frame.lower() == "ned":
         g_n = np.array([0.0, 0.0, g])
