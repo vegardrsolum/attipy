@@ -5,10 +5,13 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
-from ._statespace import _dyawda, _measurement_matrix
-from ._statespace import _process_noise_cov as _setup_Q
-from ._statespace import _state_transition as _setup_phi
-from ._statespace import _update_state_transition as _update_phi
+from ._statespace import (
+    _dyawda,
+    _measurement_matrix,
+    _process_noise_cov,
+    _state_transition,
+    _update_state_transition,
+)
 from ._transforms import _quat_from_gibbs2, _yaw_from_quat
 
 
@@ -106,7 +109,6 @@ class AHRS:
     """
 
     _I9x9 = np.eye(9)
-    # _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
 
     def __init__(
@@ -148,8 +150,12 @@ class AHRS:
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Discretized state space model (updated each time step)
-        self._phi = _setup_phi(self._dt, self._f_b, self._w_b, self._R_nb, self._gbc)
-        self._Q = _setup_Q(self._dt, self._vrw, self._arw, self._gbs, self._gbc)
+        self._phi = _state_transition(
+            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+        )
+        self._Q = _process_noise_cov(
+            self._dt, self._vrw, self._arw, self._gbs, self._gbc
+        )
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
@@ -301,7 +307,7 @@ class AHRS:
         self._f_b[:] = f_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
-        _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
+        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
     def update(
         self,
