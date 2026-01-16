@@ -31,6 +31,11 @@ def _state_transition(
         Rotation matrix (from body to navigation frame).
     gbc : float
         Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    phi : ndarray, shape (9, 9)
+        State transition matrix.
     """
     phi = np.eye(9)
     phi[0:3, 0:3] += -dt * S(w_b)
@@ -49,7 +54,7 @@ def _update_state_transition(
     R_nb: NDArray[np.float64],
 ):
     """
-    Update state transition matrix, phi:
+    Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - dt * S(w_b)
         phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
@@ -126,6 +131,11 @@ def _process_noise_cov(
     gbc : float
         Gyro bias correlation time in seconds.
 
+    Returns
+    -------
+    Q : ndarray, shape (9, 9)
+        Process noise covariance matrix.
+
     Notes
     -----
     In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
@@ -161,6 +171,11 @@ def _state_matrix(
         Rotation matrix (from body to navigation frame).
     gbc : float
         Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    dfdx : ndarray, shape (9, 9)
+        Linearized state matrix.
     """
     dfdx = np.zeros((9, 9))
     dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
@@ -178,6 +193,11 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     R_nb : ndarray, shape (3, 3)
         Rotation matrix (from body to navigation frame).
+
+    Returns
+    -------
+    dfdw : ndarray, shape (9, 9)
+        Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
@@ -202,6 +222,11 @@ def _process_noise_psd(
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
         Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    W : ndarray, shape (9, 9)
+        Process noise power spectral density matrix.
     """
     W = np.eye(9)
     W[0:3, 0:3] *= arw**2
@@ -257,6 +282,11 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     q_nb : ndarray, shape (4,)
         Unit quaternion.
+
+    Returns
+    -------
+    dhdx : ndarray, shape (4, 9)
+        Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 9))
     dhdx[0:3, 6:9] = np.eye(3)  # velocity
