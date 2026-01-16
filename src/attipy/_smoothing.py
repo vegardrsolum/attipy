@@ -123,13 +123,13 @@ class FixedIntervalSmoother:
             self._v_n = np.asarray(self._v_buf)
             self._P = np.asarray(self._P_buf)
         elif n_samples != len(self._q_nb):
-            q_nb, bg_b, v_n, dx, P = _rts_backward_sweep(
+            q_nb, bg_b, v_n, P = _rts_backward_sweep(
                 self._q_buf,
                 self._bg_buf,
                 self._v_buf,
                 self._w_buf,
                 self._f_buf,
-                self._dx_buf,
+                self._ahrs._dx,
                 self._P_buf,
                 self._cov_smoothing,
                 self._ahrs._phi,
@@ -195,7 +195,7 @@ def _rts_backward_sweep(
     v_n: list[NDArray],
     w_b: list[NDArray],
     f_b: list[NDArray],
-    dx: list[NDArray],
+    dx_k: list[NDArray],
     P: list[NDArray],
     cov_smoothing: bool,
     phi_k: NDArray,
@@ -236,7 +236,7 @@ def _rts_backward_sweep(
     q_nb = q_nb.copy()
     bg_b = bg_b.copy()
     v_n = v_n.copy()
-    dx = dx.copy()
+    dx_k = dx_k.copy()
     P = P.copy()
 
     q_prealloc = np.array([2.0, 0.0, 0.0, 0.0])  # Preallocation
@@ -252,17 +252,16 @@ def _rts_backward_sweep(
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
-        ddx = A @ dx[k + 1]
-        dx[k] += ddx
+        dx_k = A @ dx_k
         if cov_smoothing:
             P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Reset
-        dda = ddx[0:3]
+        dda = dx_k[0:3]
         q_prealloc[1:] = dda
         ddq = (1.0 / np.sqrt(4.0 + dda.T @ dda)) * q_prealloc
         q_nb[k][:] = _normalize(_quatprod(q_nb[k], ddq))
-        bg_b[k][:] = bg_b[k] + ddx[3:6]
-        v_n[k][:] = v_n[k] + ddx[6:9]
+        bg_b[k][:] = bg_b[k] + dx_k[3:6]
+        v_n[k][:] = v_n[k] + dx_k[6:9]
 
-    return q_nb, bg_b, v_n, dx, P
+    return q_nb, bg_b, v_n, P
