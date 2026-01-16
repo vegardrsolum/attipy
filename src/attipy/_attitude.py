@@ -43,14 +43,14 @@ def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
     return R
 
 
-def _asarray_check_euler(theta: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_euler(euler: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid set of Euler angles.
     """
-    theta = np.asarray_chkfinite(theta, dtype=float)
-    if theta.shape != (3,):
+    euler = np.asarray_chkfinite(euler, dtype=float)
+    if euler.shape != (3,):
         raise ValueError("Euler angles must be a 3-element array.")
-    return theta
+    return euler
 
 
 def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
