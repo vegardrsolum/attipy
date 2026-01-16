@@ -6,7 +6,7 @@ from ._quatops import _canonical, _normalize
 
 
 @njit  # type: ignore[misc]
-def _quat_from_matrix(dcm: np.ndarray) -> np.ndarray:
+def _quat_from_matrix(dcm: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from a rotation matrix (see ref [1]_).
 
@@ -368,7 +368,7 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
 
 
 @njit  # type: ignore[misc]
-def _quat_from_gibbs2(g2):
+def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute unit quaternion from 2 x Gibbs vector (scaled Gibbs vector).
 
