@@ -28,7 +28,11 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Unit quaternion (Hamilton) product: q_a ⊗ q_b:
+    Unit quaternion (Hamilton) product:
+    
+        q = q_a ⊗ q_b
+
+    Defined as:
 
         qw = qw_a * qw_b - np.dot(qxyz_a, qxyz_b)
         qxyz = qw_a * qxyz_b + qw_b * qxyz_a + np.cross(qxyz_a, qxyz_b)
@@ -36,7 +40,7 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
     Parameters
     ----------
     qa, qb : numpy.ndarray, shape (4,)
-        Unit quaternions.
+        Unit quaternions (qw, qx, qy, qz).
 
     Returns
     -------
