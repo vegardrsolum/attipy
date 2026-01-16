@@ -56,8 +56,8 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
     """
     Unit quaternion (Hamilton) product: q_a ⊗ q_b:
 
-        qw = qw_a * qw_b - qxyz_a.T @ qxyz_b
-        qxyz = qw_a * qxyz_b + qw_b * qxyz_a + cross(qxyz_a, qxyz_b)
+        qw = qw_a * qw_b - np.dot(qxyz_a, qxyz_b)
+        qxyz = qw_a * qxyz_b + qw_b * qxyz_a + np.cross(qxyz_a, qxyz_b)
 
     Parameters
     ----------
