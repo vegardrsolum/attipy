@@ -21,7 +21,7 @@ def _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(phi, dt, f_b, w_b, R_nb, I3x3):
+def _update_state_transition_old(phi, dt, f_b, w_b, R_nb, I3x3):
     """
     Update state transition matrix, phi.
 
@@ -30,6 +30,57 @@ def _update_state_transition(phi, dt, f_b, w_b, R_nb, I3x3):
     """
     phi[0:3, 0:3] = I3x3 - dt * S(w_b)
     phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+
+
+@njit
+def _update_state_transition(phi, dt, f_b, w_b, R_nb):
+    """
+    Update state transition matrix, phi.
+
+    Assuming first order approximation:
+        phi = I + dt * dfdx
+    """
+    wx, wy, wz = w_b
+    fx, fy, fz = f_b
+
+    r00, r01, r02 = R_nb[0]
+    r10, r11, r12 = R_nb[1]
+    r20, r21, r22 = R_nb[2]
+
+    # R_nb @ S(f_b)
+    m00 =  fz * r01 - fy * r02
+    m10 =  fz * r11 - fy * r12
+    m20 =  fz * r21 - fy * r22
+
+    m01 = -fz * r00 + fx * r02
+    m11 = -fz * r10 + fx * r12
+    m21 = -fz * r20 + fx * r22
+
+    m02 =  fy * r00 - fx * r01
+    m12 =  fy * r10 - fx * r11
+    m22 =  fy * r20 - fx * r21
+
+    # I3x3 - dt * S(w_b)
+    phi[0, 0] = 1.0
+    phi[0, 1] =  dt * wz
+    phi[0, 2] = -dt * wy
+    phi[1, 0] = -dt * wz
+    phi[1, 1] = 1.0
+    phi[1, 2] =  dt * wx
+    phi[2, 0] =  dt * wy
+    phi[2, 1] = -dt * wx
+    phi[2, 2] = 1.0
+
+    # -dt * R_nb @ S(f_b)
+    phi[6, 0] = -dt * m00
+    phi[7, 0] = -dt * m10
+    phi[8, 0] = -dt * m20
+    phi[6, 1] = -dt * m01
+    phi[7, 1] = -dt * m11
+    phi[8, 1] = -dt * m21
+    phi[6, 2] = -dt * m02
+    phi[7, 2] = -dt * m12
+    phi[8, 2] = -dt * m22
 
 
 def _process_noise_cov(dt, vrw: float, arw: float, gbs: float, gbc: float):

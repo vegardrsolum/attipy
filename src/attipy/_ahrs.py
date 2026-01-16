@@ -106,7 +106,7 @@ class AHRS:
     """
 
     _I9x9 = np.eye(9)
-    _I3x3 = np.eye(3)
+    # _I3x3 = np.eye(3)
     _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
 
     def __init__(
@@ -301,7 +301,7 @@ class AHRS:
         self._f_b[:] = f_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
-        _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb, self._I3x3)
+        _update_phi(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
     def update(
         self,
