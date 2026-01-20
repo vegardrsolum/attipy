@@ -115,8 +115,9 @@ class AHRS:
         self,
         fs: float,
         q_nb: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
-        bg_b: ArrayLike = (0.0, 0.0, 0.0),
         v_n: ArrayLike = (0.0, 0.0, 0.0),
+        bg_b: ArrayLike = (0.0, 0.0, 0.0),
+        ba_b: ArrayLike = (0.0, 0.0, 0.0),
         w_b: ArrayLike = (0.0, 0.0, 0.0),
         a_n: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
@@ -142,8 +143,9 @@ class AHRS:
         # State and covariance estimates
         self._att_nb = q_nb if isinstance(q_nb, Attitude) else Attitude(q_nb)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba_b).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
