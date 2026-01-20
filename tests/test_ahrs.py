@@ -139,6 +139,12 @@ class Test_AHRS:
         np.testing.assert_allclose(ahrs.bg_b, bg_b_expected)
         assert ahrs.bg_b is not ahrs._bg_b  # ensure it is a copy
 
+    def test_ba_b(self):
+        ahrs = ap.AHRS(10.0, ba_b=np.array([1.0, -2.3, 3.4]))
+        ba_b_expected = np.array([1.0, -2.3, 3.4])
+        np.testing.assert_allclose(ahrs.ba_b, ba_b_expected)
+        assert ahrs.ba_b is not ahrs._ba_b  # ensure it is a copy
+
     def test_w_b(self):
         w_b = np.array([0.1, -0.2, 0.3])
         ahrs = ap.AHRS(10.0, w_b=w_b)
