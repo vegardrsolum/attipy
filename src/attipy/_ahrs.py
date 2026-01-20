@@ -247,8 +247,8 @@ class AHRS:
             return
 
         self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
-        self._bg_b[:] = self._bg_b + dx[3:6]
-        self._v_n[:] = self._v_n + dx[6:9]
+        self._v_n[:] = self._v_n + dx[3:6]
+        self._bg_b[:] = self._bg_b + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_vel(self, v_meas, v_var):
