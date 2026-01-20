@@ -371,10 +371,10 @@ class AHRS:
         if degrees:
             w_b = (np.pi / 180.0) * w_b
 
-        # Project state and covariance estimates ahead (a priori)
+        # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
 
-        # Update state and covariance estimates with aiding measurements (a posteriori)
+        # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
