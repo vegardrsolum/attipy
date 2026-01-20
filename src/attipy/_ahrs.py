@@ -109,7 +109,7 @@ class AHRS:
     """
 
     _I9x9 = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
+    _dx = np.zeros(9)  # error state estimate (da, dv, dbg) (always zero after reset)
 
     def __init__(
         self,
