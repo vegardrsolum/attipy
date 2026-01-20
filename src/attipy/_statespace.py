@@ -39,9 +39,9 @@ def _state_transition(
     """
     phi = np.eye(9)
     phi[0:3, 0:3] += -dt * S(w_b)
-    phi[0:3, 3:6] += -dt * np.eye(3)
-    phi[3:6, 3:6] += -dt * np.eye(3) / gbc
-    phi[6:9, 0:3] += -dt * R_nb @ S(f_b)
+    phi[0:3, 6:9] += -dt * np.eye(3)
+    phi[3:6, 0:3] += -dt * R_nb @ S(f_b)
+    phi[6:9, 6:9] += -dt * np.eye(3) / gbc
     return phi
 
 
@@ -57,7 +57,7 @@ def _update_state_transition(
     Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - dt * S(w_b)
-        phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+        phi[3:6, 0:3] = -dt * R_nb @ S(f_b)
 
     Parameters
     ----------
@@ -98,16 +98,16 @@ def _update_state_transition(
     phi[2, 1] = -dt * wx
     phi[2, 2] = 1.0
 
-    # phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
-    phi[6, 0] = -dt * (fz * r01 - fy * r02)
-    phi[7, 0] = -dt * (fz * r11 - fy * r12)
-    phi[8, 0] = -dt * (fz * r21 - fy * r22)
-    phi[6, 1] = -dt * (-fz * r00 + fx * r02)
-    phi[7, 1] = -dt * (-fz * r10 + fx * r12)
-    phi[8, 1] = -dt * (-fz * r20 + fx * r22)
-    phi[6, 2] = -dt * (fy * r00 - fx * r01)
-    phi[7, 2] = -dt * (fy * r10 - fx * r11)
-    phi[8, 2] = -dt * (fy * r20 - fx * r21)
+    # phi[3:6, 0:3] = -dt * R_nb @ S(f_b)
+    phi[3, 0] = -dt * (fz * r01 - fy * r02)
+    phi[4, 0] = -dt * (fz * r11 - fy * r12)
+    phi[5, 0] = -dt * (fz * r21 - fy * r22)
+    phi[3, 1] = -dt * (-fz * r00 + fx * r02)
+    phi[4, 1] = -dt * (-fz * r10 + fx * r12)
+    phi[5, 1] = -dt * (-fz * r20 + fx * r22)
+    phi[3, 2] = -dt * (fy * r00 - fx * r01)
+    phi[4, 2] = -dt * (fy * r10 - fx * r11)
+    phi[5, 2] = -dt * (fy * r20 - fx * r21)
 
 
 def _process_noise_cov(
@@ -125,7 +125,7 @@ def _process_noise_cov(
     vrw : float
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
-        Attitude random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in rad/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -138,17 +138,17 @@ def _process_noise_cov(
 
     Notes
     -----
-    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
 
-        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.eye(9)
     Q[0:3, 0:3] *= dt * arw**2
-    Q[3:6, 3:6] *= dt * (2.0 * gbs**2 / gbc)
-    Q[6:9, 6:9] *= dt * vrw**2
+    Q[3:6, 3:6] *= dt * vrw**2
+    Q[6:9, 6:9] *= dt * (2.0 * gbs**2 / gbc)
     return Q
 
 
@@ -179,9 +179,9 @@ def _state_matrix(
     """
     dfdx = np.zeros((9, 9))
     dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[0:3, 6:9] = -np.eye(3)
+    dfdx[6:9, 6:9] = -np.eye(3) / gbc
+    dfdx[3:6, 0:3] = -R_nb @ S(f_b)  # NB! update each time step
     return dfdx
 
 
@@ -201,8 +201,8 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
+    dfdw[3:6, 3:6] = -R_nb  # NB! update each time step
+    dfdw[6:9, 6:9] = np.eye(3)
     return dfdw
 
 
@@ -217,7 +217,7 @@ def _process_noise_psd(
     vrw : float
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
-        Attitude random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in rad/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -230,8 +230,8 @@ def _process_noise_psd(
     """
     W = np.eye(9)
     W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
+    W[3:6, 3:6] *= vrw**2
+    W[6:9, 6:9] *= 2.0 * gbs**2 / gbc
     return W
 
 
@@ -289,6 +289,6 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 9))
-    dhdx[0:3, 6:9] = np.eye(3)  # velocity
+    dhdx[0:3, 3:6] = np.eye(3)  # velocity
     dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
     return dhdx

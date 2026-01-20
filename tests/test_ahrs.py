@@ -94,7 +94,7 @@ class Test_AHRS:
     def test_dhdx_vel(self, ahrs):
         dhdx_vel = ahrs._dhdx_vel()
         dhdx_vel_expected = np.zeros((3, 9))
-        dhdx_vel_expected[:, 6:9] = np.eye(3)
+        dhdx_vel_expected[:, 3:6] = np.eye(3)
         np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
         assert dhdx_vel.flags.c_contiguous
 
@@ -138,6 +138,12 @@ class Test_AHRS:
         bg_b_expected = np.array([0.01, -0.02, 0.03])
         np.testing.assert_allclose(ahrs.bg_b, bg_b_expected)
         assert ahrs.bg_b is not ahrs._bg_b  # ensure it is a copy
+
+    def test_ba_b(self):
+        ahrs = ap.AHRS(10.0, ba_b=np.array([1.0, -2.3, 3.4]))
+        ba_b_expected = np.array([1.0, -2.3, 3.4])
+        np.testing.assert_allclose(ahrs.ba_b, ba_b_expected)
+        assert ahrs.ba_b is not ahrs._ba_b  # ensure it is a copy
 
     def test_w_b(self):
         w_b = np.array([0.1, -0.2, 0.3])
