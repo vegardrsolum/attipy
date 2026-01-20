@@ -74,11 +74,13 @@ class AHRS:
     q_nb : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
-    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
+    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    ba_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
     w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
