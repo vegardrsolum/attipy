@@ -125,7 +125,7 @@ def _process_noise_cov(
     vrw : float
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
-        Attitude random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in rad/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -217,7 +217,7 @@ def _process_noise_psd(
     vrw : float
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
-        Attitude random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in rad/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
