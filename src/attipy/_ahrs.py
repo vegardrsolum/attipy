@@ -74,11 +74,13 @@ class AHRS:
     q_nb : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
         or an Attitude object. Defaults to no rotation (identity quaternion).
-    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
+    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    ba_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
     w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
@@ -87,9 +89,9 @@ class AHRS:
         the navigation frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
-        where da is the attitude error (3-parameter 2xGibbs vector), dbg is the
-        gyroscope bias error, and dv is the velocity error.
+        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dv, dbg),
+        where da is the attitude error (3-parameter 2xGibbs vector), dv is the velocity
+        error, and dbg is the gyroscope bias error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -109,14 +111,15 @@ class AHRS:
     """
 
     _I9x9 = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
+    _dx = np.zeros(9)  # error state estimate (da, dv, dbg) (always zero after reset)
 
     def __init__(
         self,
         fs: float,
         q_nb: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
-        bg_b: ArrayLike = (0.0, 0.0, 0.0),
         v_n: ArrayLike = (0.0, 0.0, 0.0),
+        bg_b: ArrayLike = (0.0, 0.0, 0.0),
+        ba_b: ArrayLike = (0.0, 0.0, 0.0),
         w_b: ArrayLike = (0.0, 0.0, 0.0),
         a_n: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
@@ -142,8 +145,9 @@ class AHRS:
         # State and covariance estimates
         self._att_nb = q_nb if isinstance(q_nb, Attitude) else Attitude(q_nb)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba_b).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
@@ -173,6 +177,13 @@ class AHRS:
         return self._att_nb._q.copy()
 
     @property
+    def v_n(self) -> NDArray[np.float64]:
+        """
+        Copy of the velocity estimate (m/s) expressed in the navigation frame.
+        """
+        return self._v_n.copy()
+
+    @property
     def bg_b(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
@@ -180,11 +191,11 @@ class AHRS:
         return self._bg_b.copy()
 
     @property
-    def v_n(self) -> NDArray[np.float64]:
+    def ba_b(self) -> NDArray[np.float64]:
         """
-        Copy of the velocity estimate (m/s) expressed in the navigation frame.
+        Copy of the accelerometer bias estimate (m/s^2) expressed in the body frame.
         """
-        return self._v_n.copy()
+        return self._ba_b.copy()
 
     @property
     def w_b(self) -> NDArray[np.float64]:
@@ -238,9 +249,9 @@ class AHRS:
             return
 
         self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
-        self._bg_b[:] = self._bg_b + dx[3:6]
-        self._v_n[:] = self._v_n + dx[6:9]
-        # self._dx[:] = np.zeros(dx.size)
+        self._v_n[:] = self._v_n + dx[3:6]
+        self._bg_b[:] = self._bg_b + dx[6:9]
+        self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -304,9 +315,9 @@ class AHRS:
         Update state vectors and state space matrices.
         """
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._f_b[:] = f_b
-        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         self._w_b[:] = w_b - self._bg_b
+        self._f_b[:] = f_b - self._ba_b
+        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
     def update(
@@ -362,11 +373,10 @@ class AHRS:
         if degrees:
             w_b = (np.pi / 180.0) * w_b
 
-        # Project state and covariance estimates ahead (a priori)
+        # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
 
-        # Update state and covariance estimates with aiding measurements (a posteriori)
-        self._dx[:] = np.zeros(self._dx.size)  # reset error state estimate
+        # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
