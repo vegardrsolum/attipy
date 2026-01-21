@@ -251,7 +251,7 @@ def _rts_backward_sweep(
 
         # Reset
         q_nb[k][:] = _normalize(_quatprod(q_nb[k], _quat_from_gibbs2(dx_k[0:3])))
-        bg_b[k][:] = bg_b[k] + dx_k[3:6]
-        v_n[k][:] = v_n[k] + dx_k[6:9]
+        v_n[k][:] = v_n[k] + dx_k[3:6]
+        bg_b[k][:] = bg_b[k] + dx_k[6:9]
 
     return q_nb, bg_b, v_n, P
