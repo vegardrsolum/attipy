@@ -103,8 +103,10 @@ def _correct_with_gibbs2(q, da):
 
     where da = [dax, day, daz] and ||da|| is the Euclidean norm of da.
 
-    This correction can accomplished in two steps (see ref_ [1], but note that a
-    different representation of the attitude error is used).
+    Since we have to normalize the quaternion after applying the correction, we can
+    simplify the computation by omitting the normalization factor in dq, and accomplish
+    the correction in two steps (see ref_ [1], but note that a different representation
+    of the attitude error is used).
 
     First,
 
@@ -114,9 +116,9 @@ def _correct_with_gibbs2(q, da):
 
         M(q) = [-qxyz^T, qw * I + S(qxyz)]^T
 
-    Then,
+    Then normalize the quaternion,
 
-        q = normalize(q)
+        q /= ||q||
 
     Parameters
     ----------
