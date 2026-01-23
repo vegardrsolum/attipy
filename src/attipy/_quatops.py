@@ -93,16 +93,30 @@ def _correct_with_gibbs2(q, da):
     Corrects a unit quaternion, q, with a small attitude error represented as a
     scaled (2x) Gibbs vector, da.
 
-    The unit quaternion is updated as:
+    The unit quaternion is updated according to:
 
         q = q ⊗ dq
 
-    where dq is the small rotation quaternion defined from the scaled Gibbs vector
-    as:
+    where dq is the small rotation quaternion defined from the scaled Gibbs vector:
 
         dq = (1 / sqrt(4 + ||da||^2)) * [2, dax, day, daz]
 
     where da = [dax, day, daz] and ||da|| is the Euclidean norm of da.
+
+    This correction can accomplished in two steps (see ref_ [1], but note that a
+    different representation of the attitude error is used).
+
+    First,
+
+        q += M(q) @ da
+
+    where M(q) is defined as:
+
+        M(q) = [-qxyz^T, qw * I + S(qxyz)]^T
+
+    Then,
+
+        q = normalize(q)
 
     Parameters
     ----------
@@ -115,6 +129,11 @@ def _correct_with_gibbs2(q, da):
     -------
     numpy.ndarray, shape (4,)
         Corrected unit quaternion.
+
+    References
+    ----------
+    .. [1] F. Landis Markley and John L. Crassidis, "Fundamentals of Spacecraft
+    Attitude Determination and Control", Springer, 2014, Equation (6.27) and (6.28).
     """
 
     qw, qx, qy, qz = q
