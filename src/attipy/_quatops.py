@@ -93,26 +93,26 @@ def _correct_with_gibbs2(q, da):
     Apply a small attitude correction to a unit quaternion using a scaled (2x) Gibbs
     vector.
 
-    The correction is applied as a first-order quaternion update (equivalent to
-    q ⊗ dq for small errors), followed by renormalization:
+    The correction is applied as:
+
+        q = q ⊗ dq
+
+    where ⊗ denotes the quaternion product (Hamilton product), and dq is the quaternion
+    corresponding to the scaled (2x) Gibbs vector da.
+
+    As described in ref_ [1], the correction can be accomplished in two steps; a
+    first-order update followed by renormalization:
 
         q = q + 0.5 * G(q) * da
         q = q / ||q||
 
-    where da = [dax, day, daz] is the scaled Gibbs vector, and the 4x3 matrix G(q)
-    is defined as:
+    where da = [dax, day, daz] is the scaled Gibbs vector, and the 4x3 matrix G(q) is
+    defined as:
 
         G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
 
-             = [ -qx  -qy  -qz ]
-               [  qw  -qz   qy ]
-               [  qz   qw  -qx ]
-               [ -qy   qx   qw ]
-
-    The exact (2x)Gibbs-to-quaternion mapping includes a normalization factor
-    1 / sqrt(4 + daᵀ da). This factor is omitted here because the quaternion is
-    explicitly renormalized after applying the correction, yielding an equivalent
-    result to first order.
+    with S(qxyz) being the skew symmetric matrix of the vector part, qxyz, of the
+    unit quaternion.
 
     Parameters
     ----------
