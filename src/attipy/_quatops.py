@@ -90,29 +90,17 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _correct_quat_with_gibbs2(q, da):
     """
-    Apply a small attitude correction to a unit quaternion using a scaled (2x) Gibbs
-    vector.
+    Corrects a unit, q, with a small attitude error, da, parameterized as a scaled
+    (2x) Gibbs vector.
 
     The correction is applied as:
 
         q = q ⊗ dq
 
     where ⊗ denotes the quaternion product (Hamilton product), and dq is the quaternion
-    corresponding to the scaled (2x) Gibbs vector da.
+    corresponding to the scaled (2x) Gibbs vector da:
 
-    As described in ref_ [1], the correction can be accomplished in two steps; a
-    first-order update followed by renormalization:
-
-        q = q + 0.5 * G(q) * da
-        q = q / ||q||
-
-    where da = [dax, day, daz] is the scaled Gibbs vector, and the 4x3 matrix G(q) is
-    defined as:
-
-        G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
-
-    with S(qxyz) being the skew symmetric matrix of the vector part, qxyz, of the
-    unit quaternion.
+        dq = 1 / sqrt(4 + ||da||^2) * [2, dax, day, daz]
 
     Parameters
     ----------
@@ -125,6 +113,20 @@ def _correct_quat_with_gibbs2(q, da):
     -------
     ndarray, shape (4,)
         Corrected (renormalized) unit quaternion.
+
+    Notes
+    -----
+    As described in ref_ [1], the correction can be accomplished in two steps.
+
+        q = q + 0.5 * G(q) * da
+        q = q / ||q||
+
+    where G(q) is a 4x3 matrix defined as:
+
+        G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
+
+    with S(qxyz) being the skew symmetric matrix of the vector part, qxyz, of the
+    unit quaternion.
 
     References
     ----------
