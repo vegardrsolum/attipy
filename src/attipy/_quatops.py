@@ -90,52 +90,40 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _correct_with_gibbs2(q, da):
     """
-    Corrects a unit quaternion, q, with a small attitude error represented as a
-    scaled (2x) Gibbs vector, da.
+    Apply a small attitude correction to a unit quaternion using a scaled (2x) Gibbs
+    vector.
 
-    The unit quaternion is updated according to:
+    The correction is applied as a first-order quaternion update (equivalent to
+    q ⊗ dq for small errors), followed by renormalization:
 
-        q = q ⊗ dq
+        q = q + 0.5 * G(q) * da
+        q = q / ||q||
 
-    where dq is the small rotation quaternion defined from the scaled Gibbs vector:
+    where da = [dax, day, daz] is the scaled Gibbs vector, and G(q) is defined as:
 
-        dq = (1 / sqrt(4 + ||da||^2)) * [2, dax, day, daz]
+        G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
 
-    where da = [dax, day, daz] and ||da|| is the Euclidean norm of da.
-
-    Since we have to normalize the quaternion after applying the correction, we can
-    simplify the computation by omitting the normalization factor in dq, and accomplish
-    the correction in two steps (see ref_ [1], but note that a different representation
-    of the attitude error is used).
-
-    First,
-
-        q += M(q) @ da
-
-    where M(q) is defined as:
-
-        M(q) = [-qxyz^T, qw * I + S(qxyz)]^T
-
-    Then normalize the quaternion,
-
-        q /= ||q||
+             = [ -qx  -qy  -qz ]
+               [  qw  -qz   qy ]
+               [  qz   qw  -qx ]
+               [ -qy   qx   qw ]
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion to be corrected.
-    da : numpy.ndarray, shape (3,)
-        Attitude error represented as a scaled (2x) Gibbs vector.
+    q : ndarray, shape (4,)
+        Unit quaternion [qw, qx, qy, qz] (modified in place).
+    da : ndarray, shape (3,)
+        Small attitude error as a scaled (2x) Gibbs vector.
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
-        Corrected unit quaternion.
+    ndarray, shape (4,)
+        Corrected (renormalized) unit quaternion.
 
     References
     ----------
-    .. [1] F. Landis Markley and John L. Crassidis, "Fundamentals of Spacecraft
-    Attitude Determination and Control", Springer, 2014, Equation (6.27) and (6.28).
+    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
+    and Control, Eq. (6.27)-(6.28).
     """
 
     qw, qx, qy, qz = q
