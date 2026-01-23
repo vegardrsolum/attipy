@@ -1,6 +1,7 @@
 from typing import Self
 
 import numpy as np
+from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._quatops import _canonical, _normalize, _quatprod

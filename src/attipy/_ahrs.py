@@ -5,6 +5,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
+from ._quatops import _correct_with_gibbs2
 from ._statespace import (
     _dyawda,
     _measurement_matrix,
@@ -12,7 +13,7 @@ from ._statespace import (
     _state_transition,
     _update_state_transition,
 )
-from ._transforms import _quat_from_gibbs2, _yaw_from_quat
+from ._transforms import _yaw_from_quat
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
@@ -248,7 +249,7 @@ class AHRS:
         if not dx.any():
             return
 
-        self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
+        self._att_nb._q[:] = _correct_with_gibbs2(self._att_nb._q, dx[0:3])
         self._v_n[:] = self._v_n + dx[3:6]
         self._bg_b[:] = self._bg_b + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
