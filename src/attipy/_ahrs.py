@@ -5,7 +5,6 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
-from ._quatops import _correct_quat_with_gibbs2
 from ._statespace import (
     _dyawda,
     _measurement_matrix,
@@ -249,7 +248,7 @@ class AHRS:
         if not dx.any():
             return
 
-        _correct_quat_with_gibbs2(self._att_nb._q, dx[0:3])
+        self._att_nb._correct_da(dx[0:3])
         self._v_n[:] = self._v_n + dx[3:6]
         self._bg_b[:] = self._bg_b + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
