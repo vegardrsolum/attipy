@@ -116,7 +116,7 @@ def _correct_quat_with_gibbs2(q, da):
 
     Notes
     -----
-    As described in ref_ [1], the correction can be accomplished in two steps.
+    As described in ref_ [1], the correction can be simplified to two steps:
 
         q = q + 0.5 * G(q) * da
         q = q / ||q||
