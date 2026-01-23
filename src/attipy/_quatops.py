@@ -137,7 +137,7 @@ def _correct_quat_with_gibbs2(q, da):
     qw, qx, qy, qz = q
     dax, day, daz = da
 
-    q[0] += -0.5 * (qx * dax + qy * day + qz * daz)
+    q[0] -= 0.5 * (qx * dax + qy * day + qz * daz)
     q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
     q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
