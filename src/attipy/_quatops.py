@@ -99,7 +99,8 @@ def _correct_with_gibbs2(q, da):
         q = q + 0.5 * G(q) * da
         q = q / ||q||
 
-    where da = [dax, day, daz] is the scaled Gibbs vector, and G(q) is defined as:
+    where da = [dax, day, daz] is the scaled Gibbs vector, and the 4x3 matrix G(q)
+    is defined as:
 
         G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
 
@@ -107,6 +108,11 @@ def _correct_with_gibbs2(q, da):
                [  qw  -qz   qy ]
                [  qz   qw  -qx ]
                [ -qy   qx   qw ]
+
+    The exact (2x)Gibbs-to-quaternion mapping includes a normalization factor
+    1 / sqrt(4 + daᵀ da). This factor is omitted here because the quaternion is
+    explicitly renormalized after applying the correction, yielding an equivalent
+    result to first order.
 
     Parameters
     ----------
@@ -134,5 +140,3 @@ def _correct_with_gibbs2(q, da):
     q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
     q[:] = _normalize(q)
-
-    return q
