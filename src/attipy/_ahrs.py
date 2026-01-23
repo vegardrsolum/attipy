@@ -40,7 +40,7 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _ssa(angle: float, degrees: bool = False) -> float:
+def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
@@ -290,7 +290,7 @@ class AHRS:
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
         var = yaw_var
-        dz = _ssa(yaw_meas - yaw, degrees=False)
+        dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
 
         _kalman_update_scalar(dx, P, dz, var, dhdx, self._I9x9)
