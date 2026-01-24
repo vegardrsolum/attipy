@@ -257,10 +257,9 @@ class AHRS:
         """
         Update with velocity vector aiding measurement.
         """
-        dx, P = self._dx, self._P
 
         if v_meas is None:
-            return dx, P
+            return None
 
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
@@ -268,6 +267,8 @@ class AHRS:
         dz = v_meas - self._v_n
         var = v_var
         dhdx = self._dhdx_vel()
+        dx = self._dx
+        P = self._P
 
         _kalman_update_sequential(dx, P, dz, var, dhdx, self._I9x9)
 
@@ -275,11 +276,9 @@ class AHRS:
         """
         Update with heading aiding measurement.
         """
-        dx, P = self._dx, self._P
 
         if yaw_meas is None:
-            return dx, P
-
+            return None
         if yaw_var is None:
             raise ValueError("'yaw_var' not provided.")
 
@@ -292,6 +291,8 @@ class AHRS:
         var = yaw_var
         dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
+        dx = self._dx
+        P = self._P
 
         _kalman_update_scalar(dx, P, dz, var, dhdx, self._I9x9)
 
