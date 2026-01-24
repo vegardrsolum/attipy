@@ -80,11 +80,7 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     qw, qx, qy, qz = q
     norm_inv = 1.0 / np.sqrt(qw**2 + qx**2 + qy**2 + qz**2)
-    qw *= norm_inv
-    qx *= norm_inv
-    qy *= norm_inv
-    qz *= norm_inv
-    return np.array([qw, qx, qy, qz])
+    return q * norm_inv
 
 
 @njit  # type: ignore[misc]
