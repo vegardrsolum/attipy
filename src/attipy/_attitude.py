@@ -4,7 +4,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical, _normalize, _quatprod, _correct_quat_with_gibbs2
+from ._quatops import _canonical, _correct_quat_with_gibbs2, _normalize, _quatprod
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
