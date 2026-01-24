@@ -107,7 +107,7 @@ def _correct_quat_with_gibbs2(q, da):
     q : ndarray, shape (4,)
         Unit quaternion [qw, qx, qy, qz] (modified in place).
     da : ndarray, shape (3,)
-        Small attitude error as a scaled (2x) Gibbs vector.
+        Small attitude error parameterized as a scaled (2x) Gibbs vector.
 
     Returns
     -------
@@ -116,17 +116,9 @@ def _correct_quat_with_gibbs2(q, da):
 
     Notes
     -----
-    As described in ref_ [1], the correction can be simplified to two steps:
-
-        q = q + 0.5 * G(q) * da
-        q = q / ||q||
-
-    where G(q) is a 4x3 matrix defined as:
-
-        G(q) = [-qxyz^T, qw * I + S(qxyz)]^T
-
-    with S(qxyz) being the skew symmetric matrix of the vector part, qxyz, of the
-    unit quaternion.
+    As described in ref [1]_, this correction can be simplified by doing it in two
+    steps: first a first-order correction, followed by renormalization. The scaling
+    factor becomes obsolete due to the renormalization step.
 
     References
     ----------
