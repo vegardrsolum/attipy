@@ -279,6 +279,7 @@ class AHRS:
 
         if yaw_meas is None:
             return None
+
         if yaw_var is None:
             raise ValueError("'yaw_var' not provided.")
 
@@ -311,9 +312,9 @@ class AHRS:
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
-    def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
+    def _update_model(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
         """
-        Update state vectors and state space matrices.
+        Update states and state space matrices.
         """
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._w_b[:] = w_b - self._bg_b
@@ -381,8 +382,8 @@ class AHRS:
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset state estimates (regulating error state estimate to zero)
+        # Reset state estimates and update state space model
         self._reset()
-        self._update_state(f_b, w_b)
+        self._update_model(f_b, w_b)
 
         return self
