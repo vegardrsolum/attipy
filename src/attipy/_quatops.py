@@ -90,15 +90,15 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _correct_quat_with_gibbs2(q, da):
     """
-    Corrects a unit, q, with a small attitude error, da, parameterized as a scaled
-    (2x) Gibbs vector.
+    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    as a scaled (2x) Gibbs vector.
 
     The correction is applied as:
 
         q = q ⊗ dq
 
-    where ⊗ denotes the quaternion product (Hamilton product), and dq is the quaternion
-    corresponding to the scaled (2x) Gibbs vector da:
+    where ⊗ denotes the quaternion product (Hamilton product), and dq is the unit
+    quaternion corresponding to the scaled (2x) Gibbs vector da:
 
         dq = 1 / sqrt(4 + ||da||^2) * [2, dax, day, daz]
 
