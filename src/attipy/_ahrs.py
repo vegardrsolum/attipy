@@ -241,7 +241,7 @@ class AHRS:
 
     def _reset(self) -> None:
         """
-        Reset state (regulating error state to zero).
+        Reset state (regulating error-state to zero).
         """
         dx = self._dx
 
