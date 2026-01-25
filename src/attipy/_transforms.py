@@ -372,6 +372,12 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute unit quaternion from 2 x Gibbs vector (scaled Gibbs vector).
 
+    The quaternion is computed as:
+
+        q = 1 / sqrt(4 + ||a||^2) * [2, dax, day, daz]
+
+    where a = [ax, ay, az] is the scaled (2x) Gibbs vector.
+
     Parameters
     ----------
     g2 : numpy.ndarray, shape (3,)
