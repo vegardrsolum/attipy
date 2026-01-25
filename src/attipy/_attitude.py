@@ -1,9 +1,10 @@
 from typing import Self
 
 import numpy as np
+from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical, _normalize, _quatprod
+from ._quatops import _canonical, _correct_quat_with_gibbs2, _normalize, _quatprod
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -408,7 +409,22 @@ class Attitude:
         self._correct_dtheta(dtheta)
 
     def _correct_dtheta(self, dtheta):
+        """
+        Correct the attitude quaternion with an incremental rotation given by a
+        rotation vector, dtheta.
+        """
         self._correct_dq(_quat_from_rotvec(dtheta))
 
     def _correct_dq(self, dq):
+        """
+        Correct the attitude quaternion with an incremental rotation given by a
+        unit quaternion, dq.
+        """
         self._q[:] = _normalize(_quatprod(self._q, dq))
+
+    def _correct_da(self, da):
+        """
+        Correct the attitude quaternion with a small attitude correction given by
+        a scaled (2x) Gibbs vector, da.
+        """
+        _correct_quat_with_gibbs2(self._q, da)

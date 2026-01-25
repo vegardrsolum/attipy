@@ -12,7 +12,7 @@ from ._statespace import (
     _state_transition,
     _update_state_transition,
 )
-from ._transforms import _quat_from_gibbs2, _yaw_from_quat
+from ._transforms import _yaw_from_quat
 
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
@@ -40,7 +40,7 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _ssa(angle: float, degrees: bool = False) -> float:
+def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
@@ -241,14 +241,14 @@ class AHRS:
 
     def _reset(self) -> None:
         """
-        Reset state (regulating error state to zero).
+        Reset state (regulating error-state to zero).
         """
         dx = self._dx
 
         if not dx.any():
             return
 
-        self._att_nb._correct_dq(_quat_from_gibbs2(dx[0:3]))
+        self._att_nb._correct_da(dx[0:3])
         self._v_n[:] = self._v_n + dx[3:6]
         self._bg_b[:] = self._bg_b + dx[6:9]
         self._dx[:] = np.zeros(dx.size)
@@ -257,10 +257,9 @@ class AHRS:
         """
         Update with velocity vector aiding measurement.
         """
-        dx, P = self._dx, self._P
 
         if v_meas is None:
-            return dx, P
+            return None
 
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
@@ -268,6 +267,8 @@ class AHRS:
         dz = v_meas - self._v_n
         var = v_var
         dhdx = self._dhdx_vel()
+        dx = self._dx
+        P = self._P
 
         _kalman_update_sequential(dx, P, dz, var, dhdx, self._I9x9)
 
@@ -275,10 +276,9 @@ class AHRS:
         """
         Update with heading aiding measurement.
         """
-        dx, P = self._dx, self._P
 
         if yaw_meas is None:
-            return dx, P
+            return None
 
         if yaw_var is None:
             raise ValueError("'yaw_var' not provided.")
@@ -290,8 +290,10 @@ class AHRS:
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
         var = yaw_var
-        dz = _ssa(yaw_meas - yaw, degrees=False)
+        dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
+        dx = self._dx
+        P = self._P
 
         _kalman_update_scalar(dx, P, dz, var, dhdx, self._I9x9)
 
@@ -310,9 +312,9 @@ class AHRS:
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
-    def _update_state(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
+    def _update_model(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
         """
-        Update state vectors and state space matrices.
+        Update states and state space matrices.
         """
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._w_b[:] = w_b - self._bg_b
@@ -380,8 +382,8 @@ class AHRS:
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset state estimates (regulating error state estimate to zero)
+        # Reset state estimates and update state space model
         self._reset()
-        self._update_state(f_b, w_b)
+        self._update_model(f_b, w_b)
 
         return self

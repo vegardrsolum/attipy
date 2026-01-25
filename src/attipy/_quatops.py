@@ -80,8 +80,53 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     qw, qx, qy, qz = q
     norm_inv = 1.0 / np.sqrt(qw**2 + qx**2 + qy**2 + qz**2)
-    qw *= norm_inv
-    qx *= norm_inv
-    qy *= norm_inv
-    qz *= norm_inv
-    return np.array([qw, qx, qy, qz])
+    return q * norm_inv
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_gibbs2(q, da):
+    """
+    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    as a scaled (2x) Gibbs vector.
+
+    The correction is applied as:
+
+        q = q ⊗ dq
+
+    where ⊗ denotes the quaternion product (Hamilton product), and dq is the unit
+    quaternion corresponding to the scaled (2x) Gibbs vector da:
+
+        dq = 1 / sqrt(4 + ||da||^2) * [2, dax, day, daz]
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion [qw, qx, qy, qz] (modified in place).
+    da : ndarray, shape (3,)
+        Small attitude error parameterized as a scaled (2x) Gibbs vector.
+
+    Returns
+    -------
+    ndarray, shape (4,)
+        Corrected (renormalized) unit quaternion.
+
+    Notes
+    -----
+    As described in ref [1]_, this correction can be simplified by doing it in two
+    steps: first a correction, followed by renormalization. The scaling factor obsolete
+    due to the renormalization step.
+
+    References
+    ----------
+    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
+    and Control, Eq. (6.27)-(6.28).
+    """
+
+    qw, qx, qy, qz = q
+    dax, day, daz = da
+
+    q[0] -= 0.5 * (qx * dax + qy * day + qz * daz)
+    q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
+    q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
+    q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
+    q[:] = _normalize(q)
