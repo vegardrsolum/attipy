@@ -33,11 +33,9 @@ path = "src/attipy/__about__.py"
 [tool.hatch.envs.test]
 dependencies = [
   "black",
-  "coverage[toml]",
   "isort",
   "mypy",
   "pytest",
-  "pytest-cov",
   "scipy"  # used as reference implementation for rotations
 ]
 
