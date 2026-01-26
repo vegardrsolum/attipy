@@ -21,7 +21,6 @@ classifiers = [
 dependencies = [
   "numba",
   "numpy",
-  "scipy",  # required by numba
 ]
 
 [project.urls]
