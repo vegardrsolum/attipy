@@ -12,4 +12,4 @@ rotation conventions.
    :hidden:
    :maxdepth: 2
 
-   usage
+   installation
