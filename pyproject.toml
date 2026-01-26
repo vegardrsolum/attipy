@@ -10,10 +10,11 @@ authors = [
 description = "A Python library for attitude estimation using inertial measurement units (IMUs)"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -33,11 +34,9 @@ path = "src/attipy/__about__.py"
 [tool.hatch.envs.test]
 dependencies = [
   "black",
-  "coverage[toml]",
   "isort",
   "mypy",
   "pytest",
-  "pytest-cov",
   "scipy"  # used as reference implementation for rotations
 ]
 
@@ -46,7 +45,7 @@ style = [
   "black --check .",
   "isort --check . --profile black"
 ]
-unit = "pytest --cov-config=pyproject.toml --cov --cov-report html"
+unit = "pytest"
 type = "mypy"
 complete = [
   "style",
@@ -57,30 +56,6 @@ complete = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-
-[tool.coverage.run]
-branch = true
-source = ["src/attipy"]
-
-[tool.coverage.report]
-ignore_errors = false
-show_missing = true
-omit = ["src/attipy/__about__.py"]
-exclude_lines = [
-  # Have to re-enable the standard pragma
-  "pragma: no cover",
-  # Don't complain if tests don't hit defensive assertion code:
-  "raise AssertionError",
-  "raise NotImplementedError",
-  "AbstractMethodError",
-  # Don't complain if non-runnable code isn't run:
-  "if 0:",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
-
-[tool.coverage.html]
-directory = "coverage_html_report"
 
 [tool.mypy]
 files = ["src/attipy"]
