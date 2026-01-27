@@ -306,8 +306,7 @@ class AHRS:
         self._v_n[:] += self._a_n * self._dt
 
         # Attitude (dead reckoning)
-        dtheta = self._w_b * self._dt
-        self._att_nb._correct_dtheta(dtheta)
+        self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q

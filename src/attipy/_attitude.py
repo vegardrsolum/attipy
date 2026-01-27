@@ -428,3 +428,9 @@ class Attitude:
         a scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
+
+    def _project_ahead(self, w_b, dt):
+        """
+        Project ahead using angular rate (dead reckoning).
+        """
+        self._correct_dtheta(w_b * dt)
