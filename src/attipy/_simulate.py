@@ -475,6 +475,7 @@ def pva_sim(
     phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
     phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
 
+    # DOF signals
     px_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0])
     py_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1])
     pz_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2])
@@ -486,7 +487,7 @@ def pva_sim(
     dt = 1.0 / fs
     t = dt * np.arange(n)
 
-    # DOFs and corresponding rates and accelerations
+    # DOF timeseries and corresponding accelerations and rotation rates
     px, px_dot, px_ddot = px_sig(t)
     py, py_dot, py_ddot = py_sig(t)
     pz, pz_dot, pz_ddot = pz_sig(t)
