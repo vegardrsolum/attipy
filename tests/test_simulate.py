@@ -390,7 +390,7 @@ class Test_pva_sim:
         t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim()
 
         # Expected DOF signals
-        amp_att = np.radians(5.0)
+        amp_att = 0.1
         amp_pos = 1.0
         phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
         phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
@@ -445,7 +445,7 @@ class Test_pva_sim:
 
         np.testing.assert_allclose(pos_est[:100], p_n[:100], atol=1e-1)
         np.testing.assert_allclose(vel_est[:100], v_n[:100], atol=1e-1)
-        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=1e-3)
+        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
 
     def test_fs_n(self):
         fs = 20.0

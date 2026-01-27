@@ -424,6 +424,8 @@ def pva_sim(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,
+    pos_amp: float = 1.0,
+    att_amp: float = 0.1,
     g: float = 9.80665,
     nav_frame: str = "NED",
 ):
@@ -470,18 +472,16 @@ def pva_sim(
 
     f_main, f_beat = 0.1, 0.01
 
-    amp_att = np.radians(5.0)
-    amp_pos = 1.0
     phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
     phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
 
     # DOF signals
-    px_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0])
-    py_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1])
-    pz_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2])
-    roll_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0])
-    pitch_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1])
-    yaw_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2])
+    px_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases_pos[0])
+    py_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases_pos[1])
+    pz_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases_pos[2])
+    roll_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases_att[0])
+    pitch_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases_att[1])
+    yaw_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases_att[2])
 
     # Time
     dt = 1.0 / fs
