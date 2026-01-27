@@ -424,8 +424,6 @@ def pva_sim(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,
-    pos_amp: float = 1.0,
-    att_amp: float = 0.1,
     g: float = 9.80665,
     nav_frame: str = "NED",
 ):
@@ -473,12 +471,15 @@ def pva_sim(
     f_main, f_beat = 0.1, 0.01
 
     # DOF signals
+    pos_amp = 1.0
+    att_amp = 0.1
     px_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=(0 / 3) * np.pi)
     py_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=(1 / 3) * np.pi)
     pz_sig = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=(2 / 3) * np.pi)
     roll_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=(3 / 3) * np.pi)
     pitch_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=(4 / 3) * np.pi)
     yaw_sig = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=(5 / 3) * np.pi)
+
     # Time
     dt = 1.0 / fs
     t = dt * np.arange(n)
