@@ -137,13 +137,13 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the direction cosine matrix (rotation matrix) from Euler angles.
 
     Parameters
     ----------
-    euler : numpy.ndarray, shape (3,)
+    theta : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -157,7 +157,7 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     # TODO: add reference
 
-    roll, pitch, yaw = euler
+    roll, pitch, yaw = theta
 
     cy = np.cos(yaw)
     sy = np.sin(yaw)
@@ -183,13 +183,13 @@ def _matrix_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
 
     Parameters
     ----------
-    euler : numpy.ndarray, shape (3,)
+    theta : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -206,7 +206,7 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     """
 
-    roll_half, pitch_half, yaw_half = euler / 2.0
+    roll_half, pitch_half, yaw_half = theta / 2.0
 
     cr_half = np.cos(roll_half)
     sr_half = np.sin(roll_half)
@@ -295,13 +295,13 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
+def _matrix_from_euler(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the direction cosine matrix (rotation matrix) from Euler angles.
 
     Parameters
     ----------
-    euler : numpy.ndarray, shape (3,)
+    theta : numpy.ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -315,7 +315,7 @@ def _matrix_from_euler(euler: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     # TODO: add reference
 
-    roll, pitch, yaw = euler
+    roll, pitch, yaw = theta
 
     cy = np.cos(yaw)
     sy = np.sin(yaw)
