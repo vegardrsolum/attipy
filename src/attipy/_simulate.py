@@ -431,9 +431,11 @@ def pva_sim(
     Generate position, velocity and attitude (PVA) signals, and corresponding IMU
     signals (specific force and angular rate).
 
-    The PVA signals are characterized by a beating motion (0.1 Hz main frequency and
-    0.01 Hz beat frequency). Attitude is +/- 0.1 radians and position is +/- 1 meters.
-    Phases are assigned to provide variation across all axes.
+    The PVA signals are characterized as:
+    - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
+    - Position amplitude is +/- 1 meter.
+    - Attitude (Euler angle) amplitude is +/- 0.1 radians.
+    - Phases are assigned to provide variation across all axes.
 
     Parameters
     ----------
