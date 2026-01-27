@@ -583,7 +583,6 @@ def pva_sim(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-    type_: str = "beat",
 ):
     """
     Generate position, velocity and attitude (PVA) data, and corresponding IMU data
@@ -625,12 +624,46 @@ def pva_sim(
     w_b : ndarray
         Angular rate array of shape (n, 3).
     """
-    if type_.lower() == "standstill":
-        sim = PVASimulator(g=g, nav_frame=nav_frame)
-    elif type_.lower() == "beat":
-        sim = _beat_sim(g, nav_frame)
-    elif type_.lower() == "chirp":
-        sim = _chirp_sim(g, nav_frame)
-    else:
-        raise ValueError(f"Unknown simulation type: {type_}")
-    return sim(fs, n, degrees=degrees)
+
+    f_main, f_beat = 0.1, 0.01
+
+    amp_att = np.radians(5.0)
+    amp_pos = 1.0
+    phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
+    phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
+
+    px_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[0])
+    py_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[1])
+    pz_sig = BeatDOF(amp_pos, f_main, f_beat, freq_hz=True, phase=phases_pos[2])
+    roll_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[0])
+    pitch_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[1])
+    yaw_sig = BeatDOF(amp_att, f_main, f_beat, freq_hz=True, phase=phases_att[2])
+
+    # Time
+    dt = 1.0 / fs
+    t = dt * np.arange(n)
+
+    # DOFs and corresponding rates and accelerations
+    px, px_dot, px_ddot = px_sig(t)
+    py, py_dot, py_ddot = py_sig(t)
+    pz, pz_dot, pz_ddot = pz_sig(t)
+    roll, roll_dot, _ = roll_sig(t)
+    pitch, pitch_dot, _ = pitch_sig(t)
+    yaw, yaw_dot, _ = yaw_sig(t)
+
+    pos = np.column_stack([px, py, pz])
+    vel = np.column_stack([px_dot, py_dot, pz_dot])
+    acc = np.column_stack([px_ddot, py_ddot, pz_ddot])
+    euler = np.column_stack([roll, pitch, yaw])
+    euler_dot = np.column_stack([roll_dot, pitch_dot, yaw_dot])
+
+    # IMU measurements (i.e., specific force and angular velocity in body frame)
+    g_n = _gravity_nav(g, nav_frame.lower())
+    f_b = _specific_force_body(pos, acc, euler, g_n)
+    w_b = _angular_velocity_body(euler, euler_dot)
+
+    if degrees:
+        euler = np.degrees(euler)
+        w_b = np.degrees(w_b)
+
+    return t, pos, vel, euler, f_b, w_b
