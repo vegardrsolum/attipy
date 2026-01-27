@@ -466,23 +466,23 @@ class Test_pva_sim:
 
         np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
 
-    # def test_nav_frame(self):
+    def test_nav_frame(self):
 
-    #     # NED
-    #     *_, f_ned, _ = ap.pva_sim(nav_frame="NED", type_="standstill")
-    #     f_expect = np.full(f_ned.shape, np.array([0.0, 0.0, -9.80665]))
-    #     np.testing.assert_allclose(f_ned, f_expect)
+        # NED
+        *_, f_ned, _ = ap.pva_sim(nav_frame="NED", pos_amp=0.0, att_amp=0.0)
+        f_expect = np.full(f_ned.shape, np.array([0.0, 0.0, -9.80665]))
+        np.testing.assert_allclose(f_ned, f_expect)
 
-    #     # ENU
-    #     *_, f_enu, _ = ap.pva_sim(nav_frame="ENU", type_="standstill")
-    #     f_expect = np.full(f_enu.shape, np.array([0.0, 0.0, 9.80665]))
-    #     np.testing.assert_allclose(f_enu, f_expect)
+        # ENU
+        *_, f_enu, _ = ap.pva_sim(nav_frame="ENU", pos_amp=0.0, att_amp=0.0)
+        f_expect = np.full(f_enu.shape, np.array([0.0, 0.0, 9.80665]))
+        np.testing.assert_allclose(f_enu, f_expect)
 
-    #     with pytest.raises(ValueError):
-    #         ap.pva_sim(type_="invalid")
+        with pytest.raises(ValueError):
+            ap.pva_sim(nav_frame="invalid")
 
-    # def test_g(self):
-    #     g = 9.81
-    #     *_, f, _ = ap.pva_sim(g=g, type_="standstill")
-    #     f_expect = np.full(f.shape, np.array([0.0, 0.0, -g]))
-    #     np.testing.assert_allclose(f, f_expect)
+    def test_g(self):
+        g = 9.81
+        *_, f, _ = ap.pva_sim(g=g, pos_amp=0.0, att_amp=0.0)
+        f_expect = np.full(f.shape, np.array([0.0, 0.0, -g]))
+        np.testing.assert_allclose(f, f_expect)
