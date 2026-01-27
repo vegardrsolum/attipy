@@ -98,9 +98,6 @@ class Attitude:
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
 
-    The attitude can be updated with incremental rotations, making it useful for
-    attitude propagation in inertial navigation systems (strapdown algorithm).
-
     Parameters
     ----------
     q : ArrayLike
