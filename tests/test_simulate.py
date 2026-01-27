@@ -392,8 +392,8 @@ class Test_pva_sim:
         # Expected DOF signals
         amp_att = 0.1
         amp_pos = 1.0
-        phases_att = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
-        phases_pos = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
+        phases_pos = (0.0, 1 * np.pi / 3, 2 * np.pi / 3)
+        phases_att = (3 * np.pi / 3, 4 * np.pi / 3, 5 * np.pi / 3)
         px, vx, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[0])(t)
         py, vy, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[1])(t)
         pz, vz, _ = BeatDOF(amp_pos, 0.1, 0.01, freq_hz=True, phase=phases_pos[2])(t)
