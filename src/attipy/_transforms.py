@@ -224,14 +224,14 @@ def _quat_from_euler_zyx(euler: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from a rotation vector.
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (3,)
-        Rotation vector (thetax, thetay, thetaz).
+    r : numpy.ndarray, shape (3,)
+        Rotation vector (rx, ry, rz).
 
     Returns
     -------
@@ -240,7 +240,7 @@ def _quat_from_rotvec(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     # TODO: add reference
 
-    rx, ry, rz = theta
+    rx, ry, rz = r
 
     angle2 = rx**2 + ry**2 + rz**2
 
