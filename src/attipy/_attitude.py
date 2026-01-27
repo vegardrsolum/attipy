@@ -373,41 +373,6 @@ class Attitude:
             theta = np.degrees(theta)
         return theta
 
-    def update(self, dtheta, degrees=False):
-        """
-        Update the attitude with an incremental rotation given by a rotation vector.
-
-        The attitude is updated according to:
-
-            q[k+1] = q[k] ⊗ h(dtheta[k])
-
-        where,
-
-        - q[k] is the current (time step k) attitude (as unit quaternion).
-        - q[k+1] is the updated (time step k+1) attitude (as unit quaternion).
-        - dtheta[k] is the attitude increment from time step k to k+1, expressed
-          as a rotation vector.
-        - h(dtheta[k]) is the unit quaternion corresponding to the attitude increment.
-
-        and ⊗ denotes quaternion multiplication (Hamilton product).
-
-        Parameters
-        ----------
-        dtheta : ArrayLike
-            Rotation vector (drx, dry, drz) representing the incremental rotation
-            to be applied. The direction of the vector indicates the axis of rotation,
-            and the magnitude (norm) of the vector indicates the angle of rotation.
-        degrees : bool, default False
-            Specifies whether the rotation vector, dtheta, is given in degrees or
-            radians (default).
-        """
-        dtheta = _asarray_check_rotvec(dtheta)
-
-        if degrees:
-            dtheta = np.radians(dtheta)
-
-        self._correct_dtheta(dtheta)
-
     def _correct_dtheta(self, dtheta):
         """
         Correct the attitude quaternion with an incremental rotation given by a
@@ -424,8 +389,8 @@ class Attitude:
 
     def _correct_da(self, da):
         """
-        Correct the attitude quaternion with a small attitude correction given by
-        a scaled (2x) Gibbs vector, da.
+        Correct the attitude quaternion with an incremental rotation given by a
+        scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
 
