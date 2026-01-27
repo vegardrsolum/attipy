@@ -428,8 +428,12 @@ def pva_sim(
     nav_frame: str = "NED",
 ):
     """
-    Generate position, velocity and attitude (PVA) data, and corresponding IMU data
-    (specific force and angular rate).
+    Generate position, velocity and attitude (PVA) signals, and corresponding IMU
+    signals (specific force and angular rate).
+
+    The PVA signals are characterized by a beating motion (0.1 Hz main frequency and
+    0.01 Hz beat frequency). Attitude is +/- 0.1 radians and position is +/- 1 meters.
+    Phases are assigned to provide variation across all axes.
 
     Parameters
     ----------
@@ -444,13 +448,6 @@ def pva_sim(
         The gravitational acceleration. Default is 'standard gravity' of 9.80665.
     nav_frame : str, default "NED"
         Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
-    type_ : {'standstill', 'beat', 'chirp'}, default 'beat'
-        Type of motion to simulate:
-        - 'standstill': no motion (stationary).
-        - 'beat': beating motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
-        - 'chirp': chirp motion (oscillates between 0 and 0.25 Hz at a rate of 0.01 Hz).
-        Attitude is +/- 5 degrees and position is +/- 1 meters. Phases are assigned
-        to provide variation across all axes.
 
     Returns
     -------
