@@ -318,28 +318,28 @@ class Attitude:
         return theta
 
     @classmethod
-    def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
+    def from_rotvec(cls, r: ArrayLike, degrees: bool = False) -> Self:
         """
-        Initialize from a rotation vector, theta, defined such that it is co-directional
+        Initialize from a rotation vector, r, defined such that it is co-directional
         to the axis of rotation and has a norm equal to the angle of rotation [1]_.
         The rotation is assumed to be passive and from {n} to {b}.
 
         Parameters
         ----------
-        theta : ArrayLike
+        r : ArrayLike
             Rotation vector, (rx, ry, rz).
         degrees : bool, default False
-            Specifies whether the input rotation vector, theta, is given in degrees
+            Specifies whether the input rotation vector, r, is given in degrees
             or radians (default).
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
-        theta = _asarray_check_rotvec(theta)
+        r = _asarray_check_rotvec(r)
         if degrees:
-            theta = np.radians(theta)
-        q = _quat_from_rotvec(theta)
+            r = np.radians(r)
+        q = _quat_from_rotvec(r)
         return cls(q)
 
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
@@ -365,17 +365,17 @@ class Attitude:
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
 
-        theta = _rotvec_from_quat(self._q)
+        r = _rotvec_from_quat(self._q)
         if degrees:
-            theta = np.degrees(theta)
-        return theta
+            r = np.degrees(r)
+        return r
 
-    def _correct_dtheta(self, dtheta):
+    def _correct_dr(self, dr):
         """
         Correct the attitude quaternion with an incremental rotation given by a
-        rotation vector, dtheta.
+        rotation vector, dr.
         """
-        self._correct_dq(_quat_from_rotvec(dtheta))
+        self._correct_dq(_quat_from_rotvec(dr))
 
     def _correct_dq(self, dq):
         """
@@ -395,4 +395,4 @@ class Attitude:
         """
         Project ahead using angular rate (dead reckoning).
         """
-        self._correct_dtheta(w_b * dt)
+        self._correct_dr(w_b * dt)
