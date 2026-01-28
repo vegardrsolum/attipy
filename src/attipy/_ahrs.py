@@ -371,7 +371,7 @@ class AHRS:
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset state estimates and update state space model
+        # Reset state estimates (regulating error-state to zero)
         self._reset()
 
         # Update model
