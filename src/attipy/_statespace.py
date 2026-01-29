@@ -109,6 +109,7 @@ def _update_state_transition(
     phi[7, 2] = -dt * (fy * r10 - fx * r11)
     phi[8, 2] = -dt * (fy * r20 - fx * r21)
 
+
 def _process_noise_cov(
     dt: float, vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
