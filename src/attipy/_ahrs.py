@@ -306,21 +306,10 @@ class AHRS:
         self._v_n[:] += self._a_n * self._dt
 
         # Attitude (dead reckoning)
-        dtheta = self._w_b * self._dt
-        self._att_nb._correct_dtheta(dtheta)
+        self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
-
-    def _update_model(self, f_b: NDArray[np.float64], w_b: NDArray[np.float64]) -> None:
-        """
-        Update states and state space matrices.
-        """
-        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._bg_b
-        self._f_b[:] = f_b - self._ba_b
-        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
     def update(
         self,
@@ -382,8 +371,14 @@ class AHRS:
         self._aiding_update_vel(v_n, v_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset state estimates and update state space model
+        # Reset state estimates (regulating error-state to zero)
         self._reset()
-        self._update_model(f_b, w_b)
+
+        # Update model
+        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._w_b[:] = w_b - self._bg_b
+        self._f_b[:] = f_b - self._ba_b
+        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
+        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
         return self

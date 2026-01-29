@@ -98,9 +98,6 @@ class Attitude:
     - Euler angles (ZYX convention) (3 parameters).
     - Rotation vector (3 parameters).
 
-    The attitude can be updated with incremental rotations, making it useful for
-    attitude propagation in inertial navigation systems (strapdown algorithm).
-
     Parameters
     ----------
     q : ArrayLike
@@ -321,28 +318,28 @@ class Attitude:
         return theta
 
     @classmethod
-    def from_rotvec(cls, theta: ArrayLike, degrees: bool = False) -> Self:
+    def from_rotvec(cls, r: ArrayLike, degrees: bool = False) -> Self:
         """
-        Initialize from a rotation vector, theta, defined such that it is co-directional
+        Initialize from a rotation vector, r, defined such that it is co-directional
         to the axis of rotation and has a norm equal to the angle of rotation [1]_.
         The rotation is assumed to be passive and from {n} to {b}.
 
         Parameters
         ----------
-        theta : ArrayLike
+        r : ArrayLike
             Rotation vector, (rx, ry, rz).
         degrees : bool, default False
-            Specifies whether the input rotation vector, theta, is given in degrees
+            Specifies whether the input rotation vector, r, is given in degrees
             or radians (default).
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
-        theta = _asarray_check_rotvec(theta)
+        r = _asarray_check_rotvec(r)
         if degrees:
-            theta = np.radians(theta)
-        q = _quat_from_rotvec(theta)
+            r = np.radians(r)
+        q = _quat_from_rotvec(r)
         return cls(q)
 
     def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
@@ -368,52 +365,17 @@ class Attitude:
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
         """
 
-        theta = _rotvec_from_quat(self._q)
+        r = _rotvec_from_quat(self._q)
         if degrees:
-            theta = np.degrees(theta)
-        return theta
+            r = np.degrees(r)
+        return r
 
-    def update(self, dtheta, degrees=False):
-        """
-        Update the attitude with an incremental rotation given by a rotation vector.
-
-        The attitude is updated according to:
-
-            q[k+1] = q[k] ⊗ h(dtheta[k])
-
-        where,
-
-        - q[k] is the current (time step k) attitude (as unit quaternion).
-        - q[k+1] is the updated (time step k+1) attitude (as unit quaternion).
-        - dtheta[k] is the attitude increment from time step k to k+1, expressed
-          as a rotation vector.
-        - h(dtheta[k]) is the unit quaternion corresponding to the attitude increment.
-
-        and ⊗ denotes quaternion multiplication (Hamilton product).
-
-        Parameters
-        ----------
-        dtheta : ArrayLike
-            Rotation vector (drx, dry, drz) representing the incremental rotation
-            to be applied. The direction of the vector indicates the axis of rotation,
-            and the magnitude (norm) of the vector indicates the angle of rotation.
-        degrees : bool, default False
-            Specifies whether the rotation vector, dtheta, is given in degrees or
-            radians (default).
-        """
-        dtheta = _asarray_check_rotvec(dtheta)
-
-        if degrees:
-            dtheta = np.radians(dtheta)
-
-        self._correct_dtheta(dtheta)
-
-    def _correct_dtheta(self, dtheta):
+    def _correct_dr(self, dr):
         """
         Correct the attitude quaternion with an incremental rotation given by a
-        rotation vector, dtheta.
+        rotation vector, dr.
         """
-        self._correct_dq(_quat_from_rotvec(dtheta))
+        self._correct_dq(_quat_from_rotvec(dr))
 
     def _correct_dq(self, dq):
         """
@@ -424,7 +386,13 @@ class Attitude:
 
     def _correct_da(self, da):
         """
-        Correct the attitude quaternion with a small attitude correction given by
-        a scaled (2x) Gibbs vector, da.
+        Correct the attitude quaternion with an incremental rotation given by a
+        scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
+
+    def _project_ahead(self, w_b, dt):
+        """
+        Project ahead using angular rate (dead reckoning).
+        """
+        self._correct_dr(w_b * dt)
