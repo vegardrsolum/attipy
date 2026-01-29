@@ -87,10 +87,9 @@ class MEKF:
         the navigation frame. Defaults to zero linear acceleration (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dv, dbg),
-        where da is the attitude error (3-parameter 2xGibbs vector), dv is the velocity
-        error, and dbg is the gyroscope bias error.
-    g : float, default 9.80665
+        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
+        where da is the attitude error (3-parameter 2xGibbs vector), dbg is the
+        gyroscope bias error, and dv is the velocity error.
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
@@ -109,7 +108,7 @@ class MEKF:
     """
 
     _I9x9 = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate (da, dv, dbg) (always zero after reset)
+    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
 
     def __init__(
         self,
