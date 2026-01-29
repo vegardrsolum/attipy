@@ -1,10 +1,9 @@
 # AttiPy
 AttiPy is a lightweight Python library for representing and estimating the attitude
-(orientation) of a moving body using IMU measurements and optional external aiding.
-It provides a practical Attitude and Heading Reference System (AHRS) implementation
-based on a multiplicative extended Kalman filter (MEKF), along with a clean, explicit
-abstraction for attitude representation, with clearly defined reference frames and
-rotation conventions.
+(orientation) and linear motion of a moving body using IMU measurements with optional
+external aiding. It includes a multiplicative extended Kalman filter (MEKF) for position,
+velocity, and attitude (PVA) estimation, and a clean, explicit attitude abstraction
+with well-defined reference frames and rotation conventions.
 
 ## Installation
 ```bash
@@ -27,7 +26,7 @@ q = att.as_quaternion()
 
 
 Estimate attitude using IMU (accelerometer and gyroscope) measurements with the
-``AHRS`` class:
+``MEKF`` class:
 
 ```python
 import attipy as ap
@@ -48,15 +47,15 @@ w_meas = w_b + bg_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b
 
 # Estimate attitude using AHRS
 att0 = ap.Attitude.from_euler(euler[0])
-ahrs = ap.AHRS(fs, att0)
+mekf = ap.MEKF(fs, att0)
 euler_est = []
 for f_i, w_i in zip(f_meas, w_meas):
-    ahrs.update(f_i, w_i)
-    euler_est.append(ahrs.attitude.as_euler())
+    mekf.update(f_i, w_i)
+    euler_est.append(mekf.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
 
-To limit integration drift, the AHRS state estimates must be corrected using long-term
+To limit integration drift, the MEKF state estimates must be corrected using long-term
 stable aiding measurements. When no aiding is available (as in the example above),
 stationarity is assumed to ensure convergence. By default, zero-velocity aiding
 with a 10 m/s standard deviation is used; this constrains roll and pitch only, as
@@ -94,11 +93,11 @@ yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
 # Estimate attitude using AHRS
 att0 = ap.Attitude.from_euler(euler[0])
-ahrs = ap.AHRS(fs, att0)
+mekf = ap.MEKF(fs, att0)
 euler_est = []
 for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
-    ahrs.update(f_i, w_i, v_n=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
-    euler_est.append(ahrs.attitude.as_euler())
+    mekf.update(f_i, w_i, v_n=v_i, v_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
+    euler_est.append(mekf.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
 
