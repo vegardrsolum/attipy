@@ -321,7 +321,7 @@ class MEKF:
         yaw_degrees: bool = False,
     ) -> Self:
         """
-        Update the AHRS state estimates with IMU and aiding measurements.
+        Update the MEKF state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
@@ -352,7 +352,7 @@ class MEKF:
 
         Returns
         -------
-        AHRS
+        MEKF
             A reference to the instance itself after the update.
         """
 

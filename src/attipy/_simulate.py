@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._ahrs import _gravity_nav
+from ._mekf import _gravity_nav
 from ._transforms import _matrix_from_euler
 
 
