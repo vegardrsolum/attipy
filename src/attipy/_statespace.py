@@ -40,8 +40,8 @@ def _state_transition(
     phi = np.eye(9)
     phi[0:3, 0:3] += -dt * S(w_b)
     phi[0:3, 3:6] += -dt * np.eye(3)
-    phi[6:9, 0:3] += -dt * R_nb @ S(f_b)
     phi[3:6, 3:6] += -dt * np.eye(3) / gbc
+    phi[6:9, 0:3] += -dt * R_nb @ S(f_b)
     return phi
 
 
@@ -201,8 +201,8 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
     dfdw[3:6, 3:6] = np.eye(3)
+    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
     return dfdw
 
 
@@ -230,8 +230,8 @@ def _process_noise_psd(
     """
     W = np.eye(9)
     W[0:3, 0:3] *= arw**2
-    W[6:9, 6:9] *= vrw**2
     W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
     return W
 
 
@@ -245,7 +245,7 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (3,)
+    q : numpy.ndarray, shape (4,)
         Unit quaternion.
 
     Returns
