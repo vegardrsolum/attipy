@@ -60,12 +60,10 @@ def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
     return (angle + base) % (2.0 * base) - base
 
 
-class AHRS:
+class MEKF:
     """
-    Attitude and Heading Reference System (AHRS).
-
-    The internal fusion filter is an (error-state) multiplicative extended Kalman
-    filter (MEKF).
+    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
+    (PVA) estimation.
 
     Parameters
     ----------
