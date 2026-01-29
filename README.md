@@ -1,10 +1,8 @@
 # AttiPy
 AttiPy is a lightweight Python library for representing and estimating the attitude
-(orientation) of a moving body using IMU measurements and optional external aiding.
-It provides a minimal multiplicative extended Kalman filter (MEKF) implementation
-for position, velocity and attitude (PVA) estimation, along with a clean, explicit
-abstraction for attitude representation, with clearly defined reference frames and
-rotation conventions.
+and linear motion of a moving body using IMU measurements with optional external aiding.
+It includes a multiplicative extended Kalman filter (MEKF) for position, velocity,
+and attitude (PVA) estimation, and a clean, explicit attitude abstraction with well-defined reference frames and rotation conventions.
 
 ## Installation
 ```bash
