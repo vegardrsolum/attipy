@@ -94,7 +94,7 @@ class Test_MEKF:
     def test_dhdx_vel(self, mekf):
         dhdx_vel = mekf._dhdx_vel()
         dhdx_vel_expected = np.zeros((3, 9))
-        dhdx_vel_expected[:, 3:6] = np.eye(3)
+        dhdx_vel_expected[:, 6:9] = np.eye(3)
         np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
         assert dhdx_vel.flags.c_contiguous
 
