@@ -113,6 +113,7 @@ class MEKF:
         self,
         fs: float,
         att: Attitude,
+        pos: ArrayLike = (0.0, 0.0, 0.0),
         vel: ArrayLike = (0.0, 0.0, 0.0),
         acc: ArrayLike = (0.0, 0.0, 0.0),
         ba: ArrayLike = (0.0, 0.0, 0.0),
@@ -141,6 +142,7 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
@@ -164,6 +166,13 @@ class MEKF:
         Attitude estimate (no copy).
         """
         return self._att_nb
+
+    @property
+    def pos(self) -> NDArray[np.float64]:
+        """
+        Copy of the position estimate (m) expressed in the navigation frame.
+        """
+        return self._p_n.copy()
 
     @property
     def vel(self) -> NDArray[np.float64]:
