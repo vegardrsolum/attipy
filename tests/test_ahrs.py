@@ -280,12 +280,13 @@ class Test_MEKF:
         v_meas = v_n + np.sqrt(v_var) * rng.standard_normal(v_n.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i, v_i in zip(f_meas, w_meas, v_meas):
-            mekf.update(f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3))
+            mekf.update(f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3))
             euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
+            bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -323,12 +324,13 @@ class Test_MEKF:
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(f_i, w_i, yaw=y_i, yaw_var=yaw_var)
             euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
+            bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -359,11 +361,12 @@ class Test_MEKF:
         for f_i, w_i in zip(f_b, w_b):
             mekf_b = ap.MEKF(
                 fs,
-                q_nb=mekf_a.q_nb,
-                bg_b=mekf_a.bg_b,
-                v_n=mekf_a.v_n,
-                w_b=mekf_a.w_b,
-                a_n=mekf_a.a_n,
+                att=mekf_a.attitude,
+                bg=mekf_a.bg,
+                ba=mekf_a.ba,
+                vel=mekf_a.vel,
+                w=mekf_a.w,
+                acc=mekf_a.acc,
                 P=mekf_a.P,
                 g=mekf_a._g,
                 nav_frame=mekf_a._nav_frame,
@@ -376,16 +379,16 @@ class Test_MEKF:
             mekf_a.update(f_i, w_i, degrees=False)
             mekf_b.update(f_i, w_i, degrees=False)
 
-            q_a.append(mekf_a.q_nb)
-            q_b.append(mekf_b.q_nb)
-            bg_a.append(mekf_a.bg_b)
-            bg_b.append(mekf_b.bg_b)
-            v_a.append(mekf_a.v_n)
-            v_b.append(mekf_b.v_n)
-            w_a.append(mekf_a.w_b)
-            w_b.append(mekf_b.w_b)
-            a_a.append(mekf_a.a_n)
-            a_b.append(mekf_b.a_n)
+            q_a.append(mekf_a.attitude.as_quaternion())
+            q_b.append(mekf_b.attitude.as_quaternion())
+            bg_a.append(mekf_a.bg)
+            bg_b.append(mekf_b.bg)
+            v_a.append(mekf_a.vel)
+            v_b.append(mekf_b.vel)
+            w_a.append(mekf_a.w)
+            w_b.append(mekf_b.w)
+            a_a.append(mekf_a.acc)
+            a_b.append(mekf_b.acc)
             P_a.append(mekf_a.P)
             P_b.append(mekf_b.P)
 
