@@ -203,11 +203,11 @@ class Test_pva_sim:
 
         # Validate f and w by strapdown integration using MEKF (no aiding)
         att0 = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs_expect, att0, v_n=v_n[0])
+        mekf = ap.MEKF(fs_expect, att0, vel=v_n[0])
         vel_est, euler_est = [v_n[0]], [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i, w_i, v_n=None)
-            vel_est.append(mekf.v_n)
+            mekf.update(f_i, w_i, vel=None)
+            vel_est.append(mekf.vel)
             euler_est.append(mekf.attitude.as_euler(degrees=False))
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
