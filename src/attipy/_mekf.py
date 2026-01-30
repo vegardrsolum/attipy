@@ -177,9 +177,16 @@ class MEKF:
     @property
     def vel(self) -> NDArray[np.float64]:
         """
-        Copy of the velocity estimate (m/s) expressed in the navigation frame.
+        Copy of the linear velocity estimate (m/s) expressed in the navigation frame.
         """
         return self._v_n.copy()
+
+    @property
+    def acc(self) -> NDArray[np.float64]:
+        """
+        Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
+        """
+        return self._a_n.copy()
 
     @property
     def bg(self) -> NDArray[np.float64]:
@@ -209,13 +216,6 @@ class MEKF:
         Copy of the specific force measurement (m/s^2) expressed in the body frame.
         """
         return self._f_b.copy()
-
-    @property
-    def acc(self) -> NDArray[np.float64]:
-        """
-        Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
-        """
-        return self._a_n.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
