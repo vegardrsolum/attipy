@@ -69,19 +69,19 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att_nb : Attitude
+    att : Attitude
         Initial attitude estimate.
-    v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
-    a_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    acc : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
         the navigation frame. Defaults to zero linear acceleration (stationary).
-    ba_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
-    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
@@ -112,12 +112,12 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        att_nb: Attitude,
-        v_n: ArrayLike = (0.0, 0.0, 0.0),
-        a_n: ArrayLike = (0.0, 0.0, 0.0),
-        ba_b: ArrayLike = (0.0, 0.0, 0.0),
-        bg_b: ArrayLike = (0.0, 0.0, 0.0),
-        w_b: ArrayLike = (0.0, 0.0, 0.0),
+        att: Attitude,
+        vel: ArrayLike = (0.0, 0.0, 0.0),
+        acc: ArrayLike = (0.0, 0.0, 0.0),
+        ba: ArrayLike = (0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -139,14 +139,14 @@ class MEKF:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = att_nb
+        self._att_nb = att
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
-        self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba_b).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
+        self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
-        self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Discretized state space model (updated each time step)
@@ -159,35 +159,35 @@ class MEKF:
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
-    def attitude(self) -> Attitude:
+    def att(self) -> Attitude:
         """
         Attitude estimate (no copy).
         """
         return self._att_nb
 
     @property
-    def v_n(self) -> NDArray[np.float64]:
+    def vel(self) -> NDArray[np.float64]:
         """
         Copy of the velocity estimate (m/s) expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
-    def bg_b(self) -> NDArray[np.float64]:
+    def bg(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
-    def ba_b(self) -> NDArray[np.float64]:
+    def ba(self) -> NDArray[np.float64]:
         """
         Copy of the accelerometer bias estimate (m/s^2) expressed in the body frame.
         """
         return self._ba_b.copy()
 
     @property
-    def w_b(self) -> NDArray[np.float64]:
+    def w(self) -> NDArray[np.float64]:
         """
         Copy of the bias corrected angular rate measurement (rad/s) expressed in
         the body frame.
@@ -195,14 +195,14 @@ class MEKF:
         return self._w_b.copy()
 
     @property
-    def f_b(self) -> NDArray[np.float64]:
+    def f(self) -> NDArray[np.float64]:
         """
         Copy of the specific force measurement (m/s^2) expressed in the body frame.
         """
         return self._f_b.copy()
 
     @property
-    def a_n(self) -> NDArray[np.float64]:
+    def acc(self) -> NDArray[np.float64]:
         """
         Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
         """
@@ -302,11 +302,11 @@ class MEKF:
 
     def update(
         self,
-        f_b: ArrayLike,
-        w_b: ArrayLike,
+        f: ArrayLike,
+        w: ArrayLike,
         degrees: bool = False,
-        v_n: ArrayLike | None = (0.0, 0.0, 0.0),
-        v_var: ArrayLike | None = (100.0, 100.0, 100.0),
+        vel: ArrayLike | None = (0.0, 0.0, 0.0),
+        vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -316,20 +316,20 @@ class MEKF:
 
         Parameters
         ----------
-        f_b : array_like, shape (3,)
+        f : array_like, shape (3,)
             Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
             in m/s^2.
-        w_b : array_like, shape (3,)
+        w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
             ``degrees`` parameter for units.
         degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w_b``, are deg/s
+            Specifies whether the unit of the rotation rate, ``w``, are deg/s
             or rad/s (default).
-        v_n : array_like, shape (3,), optional
+        vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
             is not used.
-        v_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise in (m/s)^2. Required for ``v_n``.
+        vel_var : array_like, shape (3,), optional
+            Variance of the velocity measurement noise in (m/s)^2. Required for ``vel``.
         yaw : float, optional
             Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
             for units. If ``None``, heading aiding is not used.
@@ -347,8 +347,8 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        f_b = np.asarray(f_b, dtype=float)
-        w_b = np.asarray(w_b, dtype=float)
+        f_b = np.asarray(f, dtype=float)
+        w_b = np.asarray(w, dtype=float)
 
         if degrees:
             w_b = (np.pi / 180.0) * w_b
@@ -357,7 +357,7 @@ class MEKF:
         self._project_ahead()
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_vel(v_n, v_var)
+        self._aiding_update_vel(vel, vel_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state estimates (regulating error-state to zero)
