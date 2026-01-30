@@ -10,8 +10,12 @@ from attipy._transforms import _quat_from_euler_zyx
 class Test_MEKF:
 
     @fixture
+    def att(self):
+        return ap.Attitude((1.0, 0.0, 0.0, 0.0))
+
+    @fixture
     def mekf(self):
-        return ap.MEKF(10.0)
+        return ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
 
     def test__init__(self):
         fs = 1024.0
@@ -30,11 +34,11 @@ class Test_MEKF:
 
         mekf = ap.MEKF(
             fs,
-            q_nb=q_nb,
-            bg_b=bg_b,
-            v_n=v_n,
-            w_b=w_b,
-            a_n=a_n,
+            ap.Attitude(q_nb),
+            bg=bg_b,
+            vel=v_n,
+            w=w_b,
+            acc=a_n,
             P=P,
             g=g,
             nav_frame=nav_frame,
@@ -70,7 +74,7 @@ class Test_MEKF:
 
     def test__init__default(self):
         fs = 10.0
-        mekf = ap.MEKF(fs)
+        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
 
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
@@ -107,64 +111,60 @@ class Test_MEKF:
         assert dhdx_yaw.flags.c_contiguous
 
     def test__init__nav_frame(self):
-        mekf_ned = ap.MEKF(10.0, nav_frame="NED")
+        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
+
+        mekf_ned = ap.MEKF(10.0, att, nav_frame="NED")
         np.testing.assert_allclose(mekf_ned._g_n, np.array([0.0, 0.0, 9.80665]))
 
-        mekf_enu = ap.MEKF(10.0, nav_frame="ENU")
+        mekf_enu = ap.MEKF(10.0, att, nav_frame="ENU")
         np.testing.assert_allclose(mekf_enu._g_n, np.array([0.0, 0.0, -9.80665]))
 
         with pytest.raises(ValueError):
-            ap.MEKF(10.0, nav_frame="invalid")
+            ap.MEKF(10.0, att, nav_frame="invalid")
 
-    def test_attitude(self, mekf):
+    def test_att(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
-        assert isinstance(mekf.attitude, ap.Attitude)
-        np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
+        assert isinstance(mekf.att, ap.Attitude)
+        np.testing.assert_allclose(mekf.att.as_quaternion(), q_expected)
 
-    def test_q_nb(self):
-        q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
-        mekf = ap.MEKF(10.0, q_nb=q_nb)
-        np.testing.assert_allclose(mekf.q_nb, q_nb)
-        assert mekf.q_nb is not mekf._att_nb._q  # ensure it is a copy
-
-    def test_v_n(self):
+    def test_vel(self, att):
         v_n = np.array([1.0, 2.0, 3.0])
-        mekf = ap.MEKF(10.0, v_n=v_n)
-        np.testing.assert_allclose(mekf.v_n, v_n)
-        assert mekf.v_n is not mekf._v_n  # ensure it is a copy
+        mekf = ap.MEKF(10.0, att, vel=v_n)
+        np.testing.assert_allclose(mekf.vel, v_n)
+        assert mekf.vel is not mekf._v_n  # ensure it is a copy
 
-    def test_bg_b(self):
-        mekf = ap.MEKF(10.0, bg_b=np.array([0.01, -0.02, 0.03]))
-        bg_b_expected = np.array([0.01, -0.02, 0.03])
-        np.testing.assert_allclose(mekf.bg_b, bg_b_expected)
-        assert mekf.bg_b is not mekf._bg_b  # ensure it is a copy
+    def test_bg(self, att):
+        mekf = ap.MEKF(10.0, att, bg=np.array([0.01, -0.02, 0.03]))
+        bg_expected = np.array([0.01, -0.02, 0.03])
+        np.testing.assert_allclose(mekf.bg, bg_expected)
+        assert mekf.bg is not mekf._bg_b  # ensure it is a copy
 
-    def test_ba_b(self):
-        mekf = ap.MEKF(10.0, ba_b=np.array([1.0, -2.3, 3.4]))
-        ba_b_expected = np.array([1.0, -2.3, 3.4])
-        np.testing.assert_allclose(mekf.ba_b, ba_b_expected)
-        assert mekf.ba_b is not mekf._ba_b  # ensure it is a copy
+    def test_ba(self, att):
+        mekf = ap.MEKF(10.0, att, ba=np.array([1.0, -2.3, 3.4]))
+        ba_expected = np.array([1.0, -2.3, 3.4])
+        np.testing.assert_allclose(mekf.ba, ba_expected)
+        assert mekf.ba is not mekf._ba_b  # ensure it is a copy
 
-    def test_w_b(self):
-        w_b = np.array([0.1, -0.2, 0.3])
-        mekf = ap.MEKF(10.0, w_b=w_b)
-        np.testing.assert_allclose(mekf.w_b, w_b)
-        assert mekf.w_b is not mekf._w_b  # ensure it is a copy
+    def test_w(self, att):
+        w = np.array([0.1, -0.2, 0.3])
+        mekf = ap.MEKF(10.0, att, w=w)
+        np.testing.assert_allclose(mekf.w, w)
+        assert mekf.w is not mekf._w_b  # ensure it is a copy
 
-    def test_f_b(self):
-        q_nb = (1.0, 0.0, 0.0, 0.0)  # no rotation
-        mekf = ap.MEKF(10.0, q_nb=q_nb, a_n=np.zeros(3), g=9.80665, nav_frame="ned")
-        np.testing.assert_allclose(mekf.f_b, np.array([0.0, 0.0, -9.80665]))
-        assert mekf.f_b is not mekf._f_b  # ensure it is a copy
+    def test_f(self):
+        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))  # no rotation
+        mekf = ap.MEKF(10.0, att, acc=np.zeros(3), g=9.80665, nav_frame="ned")
+        np.testing.assert_allclose(mekf.f, np.array([0.0, 0.0, -9.80665]))
+        assert mekf.f is not mekf._f_b  # ensure it is a copy
 
-    def test_a_n(self):
+    def test_acc(self, att):
         a_n = np.array([1.0, 2.0, 3.0])
-        mekf = ap.MEKF(10.0, a_n=a_n)
-        np.testing.assert_allclose(mekf.a_n, a_n)
-        assert mekf.a_n is not mekf._a_n  # ensure it is a copy
+        mekf = ap.MEKF(10.0, att, acc=a_n)
+        np.testing.assert_allclose(mekf.acc, a_n)
+        assert mekf.acc is not mekf._a_n  # ensure it is a copy
 
     def test_P(self, mekf):
-        mekf = ap.MEKF(10.0, P=np.eye(9))
+        mekf = ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)), P=np.eye(9))
         np.testing.assert_allclose(mekf.P, np.eye(9))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
@@ -185,12 +185,13 @@ class Test_MEKF:
         )
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs)
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i, w_i)
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
+            euler_est.append(mekf.att.as_euler())
+            bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -230,15 +231,16 @@ class Test_MEKF:
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs)
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est, v_est = [], [], []
         for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, v_meas, yaw_meas):
             mekf.update(
-                f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
+                f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
-            v_est.append(mekf.v_n)
+            euler_est.append(mekf.att.as_euler())
+            bg_est.append(mekf.bg)
+            v_est.append(mekf.vel)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
         v_est = np.asarray(v_est)
@@ -278,12 +280,13 @@ class Test_MEKF:
         v_meas = v_n + np.sqrt(v_var) * rng.standard_normal(v_n.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs)
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i, v_i in zip(f_meas, w_meas, v_meas):
-            mekf.update(f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3))
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
+            mekf.update(f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3))
+            euler_est.append(mekf.att.as_euler())
+            bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -321,12 +324,13 @@ class Test_MEKF:
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs)
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(f_i, w_i, yaw=y_i, yaw_var=yaw_var)
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
+            euler_est.append(mekf.att.as_euler())
+            bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -346,7 +350,7 @@ class Test_MEKF:
 
         fs = 10.24
         q0 = _quat_from_euler_zyx(euler_nb[0])
-        mekf_a = ap.MEKF(fs, q0)
+        mekf_a = ap.MEKF(fs, ap.Attitude(q0))
 
         q_a, q_b = [], []
         bg_a, bg_b = [], []
@@ -357,11 +361,12 @@ class Test_MEKF:
         for f_i, w_i in zip(f_b, w_b):
             mekf_b = ap.MEKF(
                 fs,
-                q_nb=mekf_a.q_nb,
-                bg_b=mekf_a.bg_b,
-                v_n=mekf_a.v_n,
-                w_b=mekf_a.w_b,
-                a_n=mekf_a.a_n,
+                att=mekf_a.attitude,
+                bg=mekf_a.bg,
+                ba=mekf_a.ba,
+                vel=mekf_a.vel,
+                w=mekf_a.w,
+                acc=mekf_a.acc,
                 P=mekf_a.P,
                 g=mekf_a._g,
                 nav_frame=mekf_a._nav_frame,
@@ -374,16 +379,16 @@ class Test_MEKF:
             mekf_a.update(f_i, w_i, degrees=False)
             mekf_b.update(f_i, w_i, degrees=False)
 
-            q_a.append(mekf_a.q_nb)
-            q_b.append(mekf_b.q_nb)
-            bg_a.append(mekf_a.bg_b)
-            bg_b.append(mekf_b.bg_b)
-            v_a.append(mekf_a.v_n)
-            v_b.append(mekf_b.v_n)
-            w_a.append(mekf_a.w_b)
-            w_b.append(mekf_b.w_b)
-            a_a.append(mekf_a.a_n)
-            a_b.append(mekf_b.a_n)
+            q_a.append(mekf_a.att.as_quaternion())
+            q_b.append(mekf_b.att.as_quaternion())
+            bg_a.append(mekf_a.bg)
+            bg_b.append(mekf_b.bg)
+            v_a.append(mekf_a.vel)
+            v_b.append(mekf_b.vel)
+            w_a.append(mekf_a.w)
+            w_b.append(mekf_b.w)
+            a_a.append(mekf_a.acc)
+            a_b.append(mekf_b.acc)
             P_a.append(mekf_a.P)
             P_b.append(mekf_b.P)
 
