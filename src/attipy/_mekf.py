@@ -69,9 +69,8 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    q_nb : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
-        Initial attitude estimate represented as a unit quaternion (qw, qx, qy, qz)
-        or an Attitude object. Defaults to no rotation (identity quaternion).
+    att_nb : Attitude
+        Initial attitude estimate.
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
@@ -113,7 +112,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q_nb: ArrayLike | Attitude = (1.0, 0.0, 0.0, 0.0),
+        att_nb: Attitude,
         v_n: ArrayLike = (0.0, 0.0, 0.0),
         bg_b: ArrayLike = (0.0, 0.0, 0.0),
         ba_b: ArrayLike = (0.0, 0.0, 0.0),
@@ -140,7 +139,7 @@ class MEKF:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = q_nb if isinstance(q_nb, Attitude) else Attitude(q_nb)
+        self._att_nb = att_nb
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
         self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
@@ -165,13 +164,6 @@ class MEKF:
         Attitude estimate (no copy).
         """
         return self._att_nb
-
-    @property
-    def q_nb(self) -> NDArray[np.float64]:
-        """
-        Copy of the attitude estimate (represented as a unit quaternion).
-        """
-        return self._att_nb._q.copy()
 
     @property
     def v_n(self) -> NDArray[np.float64]:
