@@ -122,10 +122,10 @@ class Test_MEKF:
         with pytest.raises(ValueError):
             ap.MEKF(10.0, att, nav_frame="invalid")
 
-    def test_attitude(self, mekf):
+    def test_att(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
-        assert isinstance(mekf.attitude, ap.Attitude)
-        np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
+        assert isinstance(mekf.att, ap.Attitude)
+        np.testing.assert_allclose(mekf.att.as_quaternion(), q_expected)
 
     def test_vel(self, att):
         v_n = np.array([1.0, 2.0, 3.0])
@@ -190,7 +190,7 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i, w_i)
-            euler_est.append(mekf.attitude.as_euler())
+            euler_est.append(mekf.att.as_euler())
             bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
@@ -238,7 +238,7 @@ class Test_MEKF:
             mekf.update(
                 f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
-            euler_est.append(mekf.attitude.as_euler())
+            euler_est.append(mekf.att.as_euler())
             bg_est.append(mekf.bg)
             v_est.append(mekf.vel)
         euler_est = np.asarray(euler_est)
@@ -285,7 +285,7 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i, v_i in zip(f_meas, w_meas, v_meas):
             mekf.update(f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3))
-            euler_est.append(mekf.attitude.as_euler())
+            euler_est.append(mekf.att.as_euler())
             bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
@@ -329,7 +329,7 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(f_i, w_i, yaw=y_i, yaw_var=yaw_var)
-            euler_est.append(mekf.attitude.as_euler())
+            euler_est.append(mekf.att.as_euler())
             bg_est.append(mekf.bg)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
@@ -379,8 +379,8 @@ class Test_MEKF:
             mekf_a.update(f_i, w_i, degrees=False)
             mekf_b.update(f_i, w_i, degrees=False)
 
-            q_a.append(mekf_a.attitude.as_quaternion())
-            q_b.append(mekf_b.attitude.as_quaternion())
+            q_a.append(mekf_a.att.as_quaternion())
+            q_b.append(mekf_b.att.as_quaternion())
             bg_a.append(mekf_a.bg)
             bg_b.append(mekf_b.bg)
             v_a.append(mekf_a.vel)

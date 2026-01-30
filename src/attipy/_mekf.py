@@ -159,7 +159,7 @@ class MEKF:
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
-    def attitude(self) -> Attitude:
+    def att(self) -> Attitude:
         """
         Attitude estimate (no copy).
         """
