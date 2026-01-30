@@ -74,16 +74,16 @@ class MEKF:
     v_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
-    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    ba_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
-    w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
-        Defaults to zero angular rate (stationary).
     a_n : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
         the navigation frame. Defaults to zero linear acceleration (stationary).
+    ba_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
+    bg_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    w_b : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
+        Defaults to zero angular rate (stationary).
     P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
@@ -114,10 +114,10 @@ class MEKF:
         fs: float,
         att_nb: Attitude,
         v_n: ArrayLike = (0.0, 0.0, 0.0),
-        bg_b: ArrayLike = (0.0, 0.0, 0.0),
-        ba_b: ArrayLike = (0.0, 0.0, 0.0),
-        w_b: ArrayLike = (0.0, 0.0, 0.0),
         a_n: ArrayLike = (0.0, 0.0, 0.0),
+        ba_b: ArrayLike = (0.0, 0.0, 0.0),
+        bg_b: ArrayLike = (0.0, 0.0, 0.0),
+        w_b: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(9),
         g: float = 9.80665,
         nav_frame: str = "NED",
@@ -142,11 +142,11 @@ class MEKF:
         self._att_nb = att_nb
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._v_n = np.asarray_chkfinite(v_n).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba_b).reshape(3).copy()
-        self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(a_n).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba_b).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg_b).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
+        self._w_b = np.asarray_chkfinite(w_b).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
 
         # Discretized state space model (updated each time step)
