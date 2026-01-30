@@ -231,15 +231,16 @@ class Test_MEKF:
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using MEKF
-        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
+        mekf = ap.MEKF(fs, att)
         euler_est, bg_est, v_est = [], [], []
         for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, v_meas, yaw_meas):
             mekf.update(
-                f_i, w_i, v_n=v_i, v_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
+                f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
             euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bg_b)
-            v_est.append(mekf.v_n)
+            bg_est.append(mekf.bg)
+            v_est.append(mekf.vel)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
         v_est = np.asarray(v_est)
