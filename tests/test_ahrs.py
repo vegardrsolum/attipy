@@ -164,8 +164,8 @@ class Test_MEKF:
         assert mekf.acc is not mekf._a_n  # ensure it is a copy
 
     def test_P(self, mekf):
-        mekf = ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)), P=np.eye(9))
-        np.testing.assert_allclose(mekf.P, np.eye(9))
+        mekf = ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)), P=np.eye(12))
+        np.testing.assert_allclose(mekf.P, np.eye(12))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
     def test_update(self, pva_sim):
