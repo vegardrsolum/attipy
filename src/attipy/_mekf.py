@@ -241,7 +241,7 @@ class MEKF:
         Heading (yaw angle) part of the measurement matrix, shape (9,).
         """
         self._dhdx[6:7, 6:9] = _dyawda(q_nb)
-        return self._dhdx[7]
+        return self._dhdx[6]
 
     def _reset(self) -> None:
         """
