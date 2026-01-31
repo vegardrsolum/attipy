@@ -38,7 +38,7 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(12)
-    phi[0:3, 3:6] += -dt * np.eye(3)
+    phi[0:3, 3:6] += dt * np.eye(3)
     phi[3:6, 6:9] += -dt * R_nb @ S(f_b)  # NB! update each time step
     phi[6:9, 6:9] += -dt * S(w_b)  # NB! update each time step
     phi[6:9, 9:12] += -dt * np.eye(3)
