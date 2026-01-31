@@ -224,18 +224,24 @@ class MEKF:
         """
         return self._P.copy()
 
+    def _dhdx_pos(self):
+        """
+        Position part of the measurement matrix, shape (3, 9).
+        """
+        return self._dhdx[0:3]
+
     def _dhdx_vel(self):
         """
         Velocity part of the measurement matrix, shape (3, 9).
         """
-        return self._dhdx[0:3]
+        return self._dhdx[3:6]
 
     def _dhdx_yaw(self, q_nb):
         """
         Heading (yaw angle) part of the measurement matrix, shape (9,).
         """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
-        return self._dhdx[3]
+        self._dhdx[6:7, 6:9] = _dyawda(q_nb)
+        return self._dhdx[7]
 
     def _reset(self) -> None:
         """
@@ -246,9 +252,10 @@ class MEKF:
         if not dx.any():
             return
 
-        self._att_nb._correct_da(dx[0:3])
-        self._bg_b[:] = self._bg_b + dx[3:6]
-        self._v_n[:] = self._v_n + dx[6:9]
+        self._p_n[:] += dx[0:3]
+        self._v_n[:] += dx[3:6]
+        self._att_nb._correct_da(dx[6:9])
+        self._bg_b[:] += dx[9:12]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_vel(self, v_meas, v_var):
