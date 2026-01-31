@@ -24,7 +24,7 @@ class Test_MEKF:
         v_n = (1.0, -2.0, 3.0)
         a_n = (1.0, 2.0, 3.0)
         w_b = (0.01, -0.02, 0.03)
-        P = 42.0 * np.eye(9)
+        P = 42.0 * np.eye(12)
         g = 9.83
         nav_frame = "enu"
         acc_noise_density = 0.00123
@@ -90,15 +90,15 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._v_n, np.zeros(3))
-        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(9))
+        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(12))
 
         np.testing.assert_allclose(mekf._f_b, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(mekf._w_b, np.zeros(3))
 
     def test_dhdx_vel(self, mekf):
         dhdx_vel = mekf._dhdx_vel()
-        dhdx_vel_expected = np.zeros((3, 9))
-        dhdx_vel_expected[:, 6:9] = np.eye(3)
+        dhdx_vel_expected = np.zeros((3, 12))
+        dhdx_vel_expected[:, 3:6] = np.eye(3)
         np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
         assert dhdx_vel.flags.c_contiguous
 
