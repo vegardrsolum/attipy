@@ -106,8 +106,8 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I9x9 = np.eye(9)
-    _dx = np.zeros(9)  # error state estimate (da, dbg, dv) (always zero after reset)
+    _I12x12 = np.eye(12)
+    _dx = np.zeros(12)  # (dp, dv, da, dbg) (always zero after reset)
 
     def __init__(
         self,
