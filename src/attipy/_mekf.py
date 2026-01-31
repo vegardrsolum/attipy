@@ -149,7 +149,7 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(9, 9).copy()
+        self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition(
