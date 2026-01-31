@@ -145,10 +145,10 @@ def _process_noise_cov(
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
-    Q = np.zeros((12, 9))
-    Q[3:6, 0:3] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 3:6] = dt * arw**2 * np.eye(3)
-    Q[9:12, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q = np.zeros((12, 12))
+    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
+    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
+    Q[9:12, 9:12] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
