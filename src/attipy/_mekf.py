@@ -258,6 +258,25 @@ class MEKF:
         self._bg_b[:] += dx[9:12]
         self._dx[:] = np.zeros(dx.size)
 
+    def _aiding_update_pos(self, p_meas, p_var):
+        """
+        Update with position vector aiding measurement.
+        """
+
+        if p_meas is None:
+            return None
+
+        if p_var is None:
+            raise ValueError("'pos_var' not provided.")
+
+        dz = p_meas - self._p_n
+        var = p_var
+        dhdx = self._dhdx_pos()
+        dx = self._dx
+        P = self._P
+
+        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12x12)
+
     def _aiding_update_vel(self, v_meas, v_var):
         """
         Update with velocity vector aiding measurement.
@@ -275,7 +294,7 @@ class MEKF:
         dx = self._dx
         P = self._P
 
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I9x9)
+        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12x12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -300,12 +319,15 @@ class MEKF:
         dx = self._dx
         P = self._P
 
-        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I9x9)
+        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I12x12)
 
     def _project_ahead(self):
         """
         Project state and covariance estimates ahead.
         """
+
+        # Position (dead reckoning)
+        self._p_n[:] += self._v_n * self._dt
 
         # Velocity (dead reckoning)
         self._v_n[:] += self._a_n * self._dt
@@ -321,6 +343,8 @@ class MEKF:
         f: ArrayLike,
         w: ArrayLike,
         degrees: bool = False,
+        pos: ArrayLike | None = (0.0, 0.0, 0.0),
+        pos_var: ArrayLike | None = (1000.0, 1000.0, 1000.0),
         vel: ArrayLike | None = (0.0, 0.0, 0.0),
         vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         yaw: float | None = None,
@@ -341,6 +365,10 @@ class MEKF:
         degrees : bool, default False
             Specifies whether the unit of the rotation rate, ``w``, are deg/s
             or rad/s (default).
+        pos : array_like, shape (3,), optional
+            Position measurement (px, py, pz) in m. If ``None``, position aiding is not used.
+        pos_var : array_like, shape (3,), optional
+            Variance of the position measurement noise in m^2. Required for ``pos``.
         vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
             is not used.
@@ -373,6 +401,7 @@ class MEKF:
         self._project_ahead()
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
+        self._aiding_update_pos(pos, pos_var)
         self._aiding_update_vel(vel, vel_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
