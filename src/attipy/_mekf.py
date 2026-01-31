@@ -119,7 +119,7 @@ class MEKF:
         ba: ArrayLike = (0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(9),
+        P: ArrayLike = 1e-6 * np.eye(12),
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
