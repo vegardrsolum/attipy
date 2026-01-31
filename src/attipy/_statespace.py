@@ -133,22 +133,22 @@ def _process_noise_cov(
 
     Returns
     -------
-    Q : ndarray, shape (9, 9)
+    Q : ndarray, shape (12, 9)
         Process noise covariance matrix.
 
     Notes
     -----
     In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
-        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[3:6, 0:3] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
-    Q = np.eye(9)
-    Q[0:3, 0:3] *= dt * arw**2
-    Q[3:6, 3:6] *= dt * (2.0 * gbs**2 / gbc)
-    Q[6:9, 6:9] *= dt * vrw**2
+    Q = np.zeros((12, 9))
+    Q[3:6, 0:3] = dt * vrw**2 * np.eye(3)
+    Q[6:9, 3:6] = dt * arw**2 * np.eye(3)
+    Q[9:12, 6:9] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
