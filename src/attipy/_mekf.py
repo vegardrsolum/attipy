@@ -71,7 +71,7 @@ class MEKF:
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
         Initial attitude estimate as an Attitude instance or a unit quaternion,
-        (q0, q1, q2, q3).
+        (qw, qx, qy, qz).
     vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
