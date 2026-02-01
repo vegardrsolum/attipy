@@ -25,8 +25,8 @@ q = att.as_quaternion()
 ```
 
 
-Estimate attitude using IMU (accelerometer and gyroscope) measurements with the
-``MEKF`` class:
+Estimate roll and pitch from IMU measurements (accelerometer and gyroscope) using
+the ``MEKF`` class:
 
 ```python
 import attipy as ap
