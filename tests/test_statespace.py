@@ -82,7 +82,7 @@ def test_state_transition(noise_params):
     phi_out = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
-    phi = np.eye(9) + dt * dfdx  # first order approximation
+    phi = np.eye(12) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
 

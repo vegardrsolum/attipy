@@ -175,14 +175,15 @@ def _state_matrix(
 
     Returns
     -------
-    dfdx : ndarray, shape (9, 9)
+    dfdx : ndarray, shape (12, 12)
         Linearized state matrix.
     """
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx = np.zeros((12, 12))
+    dfdx[0:3, 3:6] = np.eye(3)
+    dfdx[3:6, 6:9] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[6:9, 6:9] = -S(w_b)  # NB! update each time step
+    dfdx[6:9, 9:12] = -np.eye(3)
+    dfdx[9:12, 9:12] = -np.eye(3) / gbc
     return dfdx
 
 
@@ -200,6 +201,12 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     dfdw : ndarray, shape (9, 9)
         Linearized (white noise) input matrix.
     """
+    dfdw = np.zeros((12, 9))
+    dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
+    dfdw[6:9, 3:6] = -np.eye(3)
+    dfdw[9:12, 6:9] = np.eye(3)
+
+
     dfdw = np.zeros((9, 9))
     dfdw[0:3, 0:3] = -np.eye(3)
     dfdw[3:6, 3:6] = np.eye(3)
