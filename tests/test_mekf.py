@@ -15,7 +15,7 @@ class Test_MEKF:
 
     @fixture
     def mekf(self):
-        return ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        return ap.MEKF(10.0, (1.0, 0.0, 0.0, 0.0))
 
     def test__init__(self):
         fs = 1024.0
@@ -24,17 +24,17 @@ class Test_MEKF:
         v_n = (1.0, -2.0, 3.0)
         a_n = (1.0, 2.0, 3.0)
         w_b = (0.01, -0.02, 0.03)
-        P = 42.0 * np.eye(9)
+        P = 42.0 * np.eye(12)
         g = 9.83
         nav_frame = "enu"
         acc_noise_density = 0.00123
         gyro_noise_density = 0.000456
         gyro_bias_stability = 0.0000789
-        bias_corr_time = 123.0
+        gyro_bias_corr_time = 123.0
 
         mekf = ap.MEKF(
             fs,
-            ap.Attitude(q_nb),
+            q_nb,
             bg=bg_b,
             vel=v_n,
             w=w_b,
@@ -45,7 +45,7 @@ class Test_MEKF:
             acc_noise_density=acc_noise_density,
             gyro_noise_density=gyro_noise_density,
             gyro_bias_stability=gyro_bias_stability,
-            bias_corr_time=bias_corr_time,
+            gyro_bias_corr_time=gyro_bias_corr_time,
         )
 
         assert mekf._fs == fs
@@ -57,7 +57,7 @@ class Test_MEKF:
         assert mekf._vrw == acc_noise_density
         assert mekf._arw == gyro_noise_density
         assert mekf._gbs == gyro_bias_stability
-        assert mekf._gbc == bias_corr_time
+        assert mekf._gbc == gyro_bias_corr_time
 
         np.testing.assert_allclose(mekf._att_nb._q, q_nb)
         np.testing.assert_allclose(mekf._bg_b, bg_b)
@@ -74,7 +74,7 @@ class Test_MEKF:
 
     def test__init__default(self):
         fs = 10.0
-        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        mekf = ap.MEKF(fs, (1.0, 0.0, 0.0, 0.0))
 
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
@@ -90,23 +90,23 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._v_n, np.zeros(3))
-        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(9))
+        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(12))
 
         np.testing.assert_allclose(mekf._f_b, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(mekf._w_b, np.zeros(3))
 
     def test_dhdx_vel(self, mekf):
         dhdx_vel = mekf._dhdx_vel()
-        dhdx_vel_expected = np.zeros((3, 9))
-        dhdx_vel_expected[:, 6:9] = np.eye(3)
+        dhdx_vel_expected = np.zeros((3, 12))
+        dhdx_vel_expected[:, 3:6] = np.eye(3)
         np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
         assert dhdx_vel.flags.c_contiguous
 
     def test_dhdx_yaw(self, mekf):
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         dhdx_yaw = mekf._dhdx_yaw(q_nb)
-        dhdx_yaw_expected = np.zeros((9,))
-        dhdx_yaw_expected[0:3] = _dyawda(q_nb)
+        dhdx_yaw_expected = np.zeros((12,))
+        dhdx_yaw_expected[6:9] = _dyawda(q_nb)
         np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
         assert dhdx_yaw.flags.c_contiguous
 
@@ -122,50 +122,50 @@ class Test_MEKF:
         with pytest.raises(ValueError):
             ap.MEKF(10.0, att, nav_frame="invalid")
 
-    def test_att(self, mekf):
+    def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
-        assert isinstance(mekf.att, ap.Attitude)
-        np.testing.assert_allclose(mekf.att.as_quaternion(), q_expected)
+        assert isinstance(mekf.attitude, ap.Attitude)
+        np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
 
-    def test_vel(self, att):
+    def test_position(self, att):
+        p_n = np.array([1.0, 2.0, 3.0])
+        mekf = ap.MEKF(10.0, att, pos=p_n)
+        np.testing.assert_allclose(mekf.position, p_n)
+        assert mekf.position is not mekf._p_n  # ensure it is a copy
+
+    def test_velocity(self, att):
         v_n = np.array([1.0, 2.0, 3.0])
         mekf = ap.MEKF(10.0, att, vel=v_n)
-        np.testing.assert_allclose(mekf.vel, v_n)
-        assert mekf.vel is not mekf._v_n  # ensure it is a copy
+        np.testing.assert_allclose(mekf.velocity, v_n)
+        assert mekf.velocity is not mekf._v_n  # ensure it is a copy
 
-    def test_bg(self, att):
-        mekf = ap.MEKF(10.0, att, bg=np.array([0.01, -0.02, 0.03]))
-        bg_expected = np.array([0.01, -0.02, 0.03])
-        np.testing.assert_allclose(mekf.bg, bg_expected)
-        assert mekf.bg is not mekf._bg_b  # ensure it is a copy
-
-    def test_ba(self, att):
-        mekf = ap.MEKF(10.0, att, ba=np.array([1.0, -2.3, 3.4]))
-        ba_expected = np.array([1.0, -2.3, 3.4])
-        np.testing.assert_allclose(mekf.ba, ba_expected)
-        assert mekf.ba is not mekf._ba_b  # ensure it is a copy
-
-    def test_w(self, att):
-        w = np.array([0.1, -0.2, 0.3])
-        mekf = ap.MEKF(10.0, att, w=w)
-        np.testing.assert_allclose(mekf.w, w)
-        assert mekf.w is not mekf._w_b  # ensure it is a copy
-
-    def test_f(self):
-        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))  # no rotation
-        mekf = ap.MEKF(10.0, att, acc=np.zeros(3), g=9.80665, nav_frame="ned")
-        np.testing.assert_allclose(mekf.f, np.array([0.0, 0.0, -9.80665]))
-        assert mekf.f is not mekf._f_b  # ensure it is a copy
-
-    def test_acc(self, att):
+    def test_acceleration(self, att):
         a_n = np.array([1.0, 2.0, 3.0])
         mekf = ap.MEKF(10.0, att, acc=a_n)
-        np.testing.assert_allclose(mekf.acc, a_n)
-        assert mekf.acc is not mekf._a_n  # ensure it is a copy
+        np.testing.assert_allclose(mekf.acceleration, a_n)
+        assert mekf.acceleration is not mekf._a_n  # ensure it is a copy
 
-    def test_P(self, mekf):
-        mekf = ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)), P=np.eye(9))
-        np.testing.assert_allclose(mekf.P, np.eye(9))
+    def test_bias_gyro(self, att):
+        mekf = ap.MEKF(10.0, att, bg=np.array([0.01, -0.02, 0.03]))
+        bg_expected = np.array([0.01, -0.02, 0.03])
+        np.testing.assert_allclose(mekf.bias_gyro, bg_expected)
+        assert mekf.bias_gyro is not mekf._bg_b  # ensure it is a copy
+
+    def test_bias_acc(self, att):
+        mekf = ap.MEKF(10.0, att, ba=np.array([1.0, -2.3, 3.4]))
+        ba_expected = np.array([1.0, -2.3, 3.4])
+        np.testing.assert_allclose(mekf.bias_acc, ba_expected)
+        assert mekf.bias_acc is not mekf._ba_b  # ensure it is a copy
+
+    def test_angular_rate(self, att):
+        w = np.array([0.1, -0.2, 0.3])
+        mekf = ap.MEKF(10.0, att, w=w)
+        np.testing.assert_allclose(mekf.angular_rate, w)
+        assert mekf.angular_rate is not mekf._w_b  # ensure it is a copy
+
+    def test_P(self, mekf, att):
+        mekf = ap.MEKF(10.0, att, P=np.eye(12))
+        np.testing.assert_allclose(mekf.P, np.eye(12))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
     def test_update(self, pva_sim):
@@ -190,8 +190,8 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i, w_i)
-            euler_est.append(mekf.att.as_euler())
-            bg_est.append(mekf.bg)
+            euler_est.append(mekf.attitude.as_euler())
+            bg_est.append(mekf.bias_gyro)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -238,9 +238,9 @@ class Test_MEKF:
             mekf.update(
                 f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3), yaw=y_i, yaw_var=yaw_var
             )
-            euler_est.append(mekf.att.as_euler())
-            bg_est.append(mekf.bg)
-            v_est.append(mekf.vel)
+            euler_est.append(mekf.attitude.as_euler())
+            bg_est.append(mekf.bias_gyro)
+            v_est.append(mekf.velocity)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
         v_est = np.asarray(v_est)
@@ -285,8 +285,8 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i, v_i in zip(f_meas, w_meas, v_meas):
             mekf.update(f_i, w_i, vel=v_i, vel_var=v_var * np.ones(3))
-            euler_est.append(mekf.att.as_euler())
-            bg_est.append(mekf.bg)
+            euler_est.append(mekf.attitude.as_euler())
+            bg_est.append(mekf.bias_gyro)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -329,8 +329,8 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(f_i, w_i, yaw=y_i, yaw_var=yaw_var)
-            euler_est.append(mekf.att.as_euler())
-            bg_est.append(mekf.bg)
+            euler_est.append(mekf.attitude.as_euler())
+            bg_est.append(mekf.bias_gyro)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -362,11 +362,11 @@ class Test_MEKF:
             mekf_b = ap.MEKF(
                 fs,
                 att=mekf_a.attitude,
-                bg=mekf_a.bg,
-                ba=mekf_a.ba,
-                vel=mekf_a.vel,
-                w=mekf_a.w,
-                acc=mekf_a.acc,
+                bg=mekf_a.bias_gyro,
+                ba=mekf_a.bias_acc,
+                vel=mekf_a.velocity,
+                w=mekf_a.angular_rate,
+                acc=mekf_a.acceleration,
                 P=mekf_a.P,
                 g=mekf_a._g,
                 nav_frame=mekf_a._nav_frame,
@@ -379,16 +379,16 @@ class Test_MEKF:
             mekf_a.update(f_i, w_i, degrees=False)
             mekf_b.update(f_i, w_i, degrees=False)
 
-            q_a.append(mekf_a.att.as_quaternion())
-            q_b.append(mekf_b.att.as_quaternion())
-            bg_a.append(mekf_a.bg)
-            bg_b.append(mekf_b.bg)
-            v_a.append(mekf_a.vel)
-            v_b.append(mekf_b.vel)
-            w_a.append(mekf_a.w)
-            w_b.append(mekf_b.w)
-            a_a.append(mekf_a.acc)
-            a_b.append(mekf_b.acc)
+            q_a.append(mekf_a.attitude.as_quaternion())
+            q_b.append(mekf_b.attitude.as_quaternion())
+            bg_a.append(mekf_a.bias_gyro)
+            bg_b.append(mekf_b.bias_gyro)
+            v_a.append(mekf_a.velocity)
+            v_b.append(mekf_b.velocity)
+            w_a.append(mekf_a.angular_rate)
+            w_b.append(mekf_b.angular_rate)
+            a_a.append(mekf_a.acceleration)
+            a_b.append(mekf_b.acceleration)
             P_a.append(mekf_a.P)
             P_b.append(mekf_b.P)
 

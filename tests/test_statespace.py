@@ -34,11 +34,12 @@ def test_state_matrix(noise_params):
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # Linearized state matrix
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b_corr)
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)
+    dfdx = np.zeros((12, 12))
+    dfdx[0:3, 3:6] = np.eye(3)
+    dfdx[3:6, 6:9] = -R_nb @ S(f_b_corr)
+    dfdx[6:9, 6:9] = -S(w_b_corr)
+    dfdx[6:9, 9:12] = -np.eye(3)
+    dfdx[9:12, 9:12] = -np.eye(3) / gbc
 
     np.testing.assert_allclose(dfdx_out, dfdx)
 
@@ -49,10 +50,10 @@ def test_wn_input_matrix():
     dfdw_out = _wn_input_matrix(R_nb)
 
     # Input (white noise) matrix
-    dfdw = np.zeros((9, 9))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb
+    dfdw = np.zeros((12, 9))
+    dfdw[3:6, 0:3] = -R_nb
+    dfdw[6:9, 3:6] = -np.eye(3)
+    dfdw[9:12, 6:9] = np.eye(3)
 
     np.testing.assert_allclose(dfdw_out, dfdw)
 
@@ -64,9 +65,9 @@ def test_process_noise_psd(noise_params):
 
     # White noise power spectral density matrix
     W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
+    W[0:3, 0:3] *= vrw**2
+    W[3:6, 3:6] *= arw**2
+    W[6:9, 6:9] *= 2.0 * gbs**2 / gbc
 
     np.testing.assert_allclose(W_out, W)
 
@@ -82,7 +83,7 @@ def test_state_transition(noise_params):
     phi_out = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
 
     dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
-    phi = np.eye(9) + dt * dfdx  # first order approximation
+    phi = np.eye(12) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
 

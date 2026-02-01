@@ -13,7 +13,7 @@ def _state_transition(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first order approximation:
+    Setup state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
@@ -34,14 +34,15 @@ def _state_transition(
 
     Returns
     -------
-    phi : ndarray, shape (9, 9)
+    phi : ndarray, shape (12, 12)
         State transition matrix.
     """
-    phi = np.eye(9)
-    phi[0:3, 0:3] += -dt * S(w_b)
-    phi[0:3, 3:6] += -dt * np.eye(3)
-    phi[3:6, 3:6] += -dt * np.eye(3) / gbc
-    phi[6:9, 0:3] += -dt * R_nb @ S(f_b)
+    phi = np.eye(12)
+    phi[0:3, 3:6] += dt * np.eye(3)
+    phi[3:6, 6:9] += -dt * R_nb @ S(f_b)  # NB! update each time step
+    phi[6:9, 6:9] += -dt * S(w_b)  # NB! update each time step
+    phi[6:9, 9:12] += -dt * np.eye(3)
+    phi[9:12, 9:12] += -dt * np.eye(3) / gbc
     return phi
 
 
@@ -56,12 +57,12 @@ def _update_state_transition(
     """
     Update the state transition matrix, phi, in place:
 
-        phi[0:3, 0:3] = I - dt * S(w_b)
-        phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+        phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
+        phi[6:9, 6:9] = I - dt * S(w_b)
 
     Parameters
     ----------
-    phi : ndarray, shape (9, 9)
+    phi : ndarray, shape (12, 12)
         State transition matrix to be updated in place.
     dt : float
         Time step.
@@ -87,34 +88,31 @@ def _update_state_transition(
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
-    phi[0, 0] = 1.0
-    phi[0, 1] = dt * wz
-    phi[0, 2] = -dt * wy
-    phi[1, 0] = -dt * wz
-    phi[1, 1] = 1.0
-    phi[1, 2] = dt * wx
-    phi[2, 0] = dt * wy
-    phi[2, 1] = -dt * wx
-    phi[2, 2] = 1.0
+    # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
+    phi[6, 7] = dt * wz
+    phi[6, 8] = -dt * wy
+    phi[7, 6] = -dt * wz
+    phi[7, 8] = dt * wx
+    phi[8, 6] = dt * wy
+    phi[8, 7] = -dt * wx
 
-    # phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
-    phi[6, 0] = -dt * (fz * r01 - fy * r02)
-    phi[7, 0] = -dt * (fz * r11 - fy * r12)
-    phi[8, 0] = -dt * (fz * r21 - fy * r22)
-    phi[6, 1] = -dt * (-fz * r00 + fx * r02)
-    phi[7, 1] = -dt * (-fz * r10 + fx * r12)
-    phi[8, 1] = -dt * (-fz * r20 + fx * r22)
-    phi[6, 2] = -dt * (fy * r00 - fx * r01)
-    phi[7, 2] = -dt * (fy * r10 - fx * r11)
-    phi[8, 2] = -dt * (fy * r20 - fx * r21)
+    # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
+    phi[3, 6] = -dt * (fz * r01 - fy * r02)
+    phi[4, 6] = -dt * (fz * r11 - fy * r12)
+    phi[5, 6] = -dt * (fz * r21 - fy * r22)
+    phi[3, 7] = -dt * (-fz * r00 + fx * r02)
+    phi[4, 7] = -dt * (-fz * r10 + fx * r12)
+    phi[5, 7] = -dt * (-fz * r20 + fx * r22)
+    phi[3, 8] = -dt * (fy * r00 - fx * r01)
+    phi[4, 8] = -dt * (fy * r10 - fx * r11)
+    phi[5, 8] = -dt * (fy * r20 - fx * r21)
 
 
 def _process_noise_cov(
     dt: float, vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first order approximation:
+    Setup process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
@@ -133,22 +131,22 @@ def _process_noise_cov(
 
     Returns
     -------
-    Q : ndarray, shape (9, 9)
+    Q : ndarray, shape (12, 12)
         Process noise covariance matrix.
 
     Notes
     -----
-    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
 
-        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
-    Q = np.eye(9)
-    Q[0:3, 0:3] *= dt * arw**2
-    Q[3:6, 3:6] *= dt * (2.0 * gbs**2 / gbc)
-    Q[6:9, 6:9] *= dt * vrw**2
+    Q = np.zeros((12, 12))
+    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
+    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
+    Q[9:12, 9:12] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
@@ -174,14 +172,15 @@ def _state_matrix(
 
     Returns
     -------
-    dfdx : ndarray, shape (9, 9)
+    dfdx : ndarray, shape (12, 12)
         Linearized state matrix.
     """
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx = np.zeros((12, 12))
+    dfdx[0:3, 3:6] = np.eye(3)
+    dfdx[3:6, 6:9] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[6:9, 6:9] = -S(w_b)  # NB! update each time step
+    dfdx[6:9, 9:12] = -np.eye(3)
+    dfdx[9:12, 9:12] = -np.eye(3) / gbc
     return dfdx
 
 
@@ -196,13 +195,13 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dfdw : ndarray, shape (9, 9)
+    dfdw : ndarray, shape (12, 9)
         Linearized (white noise) input matrix.
     """
-    dfdw = np.zeros((9, 9))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
+    dfdw = np.zeros((12, 9))
+    dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
+    dfdw[6:9, 3:6] = -np.eye(3)
+    dfdw[9:12, 6:9] = np.eye(3)
     return dfdw
 
 
@@ -229,9 +228,9 @@ def _process_noise_psd(
         Process noise power spectral density matrix.
     """
     W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
+    W[0:3, 0:3] *= vrw**2
+    W[3:6, 3:6] *= arw**2
+    W[6:9, 6:9] *= 2.0 * gbs**2 / gbc
     return W
 
 
@@ -285,10 +284,11 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dhdx : ndarray, shape (4, 9)
+    dhdx : ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((4, 9))
-    dhdx[0:3, 6:9] = np.eye(3)  # velocity
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx = np.zeros((7, 12))
+    dhdx[0:3, 0:3] = np.eye(3)  # position
+    dhdx[3:6, 3:6] = np.eye(3)  # velocity
+    dhdx[6:7, 6:9] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
     return dhdx

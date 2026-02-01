@@ -207,8 +207,8 @@ class Test_pva_sim:
         vel_est, euler_est = [v_n[0]], [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i, w_i, vel=None)
-            vel_est.append(mekf.vel)
-            euler_est.append(mekf.att.as_euler(degrees=False))
+            vel_est.append(mekf.velocity)
+            euler_est.append(mekf.attitude.as_euler(degrees=False))
         vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
         pos_est = np.cumsum(vel_est, axis=0) / fs_expect
