@@ -51,7 +51,7 @@ mekf = ap.MEKF(fs, att)
 euler_est = []
 for f_i, w_i in zip(f_meas, w_meas):
     mekf.update(f_i, w_i)
-    euler_est.append(mekf.att.as_euler())
+    euler_est.append(mekf.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
 
@@ -97,7 +97,7 @@ mekf = ap.MEKF(fs, att)
 euler_est = []
 for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
     mekf.update(f_i, w_i, vel=v_i, vel_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
-    euler_est.append(mekf.att.as_euler())
+    euler_est.append(mekf.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
 
