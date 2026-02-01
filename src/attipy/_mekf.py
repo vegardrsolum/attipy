@@ -84,11 +84,12 @@ class MEKF:
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    P : array_like, shape (9, 9), default 1e-6 * np.eye(9)
+    P : array_like, shape (12, 12), default 1e-6 * np.eye(12)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(9)). The order of the (error) states is: dx = (da, dbg, dv),
-        where da is the attitude error (3-parameter 2xGibbs vector), dbg is the
-        gyroscope bias error, and dv is the velocity error.
+        (1e-6 * np.eye(12)). The order of the (error) states is: dx = (dp, dv, da, dbg),
+        where dp is the position error, dv is the velocity error, da is the attitude
+        error (3-parameter 2xGibbs vector), and dbg is the gyroscope bias error.
+    g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
