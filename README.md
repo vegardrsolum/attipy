@@ -55,16 +55,17 @@ for f_i, w_i in zip(f_meas, w_meas):
 euler_est = np.asarray(euler_est)
 ```
 
-To limit integration drift, the MEKF state estimates must be corrected using long-term
+To limit integration drift, the MEKF corrects its state estimates using long-term
 stable aiding measurements. When no aiding is available (as in the example above),
 stationarity is assumed to ensure convergence. By default, zero-velocity aiding
-with a 10 m/s standard deviation is used; this constrains roll and pitch only, as
-these are the only degrees of freedom observable from specific force and the known
-direction of gravity.
+with a 10 m/s standard deviation is applied; this constrains roll and pitch only,
+as these are the only degrees of freedom observable from specific force measurements
+and the known direction of gravity.
 
-Under sustained linear acceleration, velocity aiding is recommended to maintain
-accurate attitude estimates. Heading (yaw) aiding should also be applied to correct
-yaw drift. The following example shows how to incorporate both.
+Under sustained linear acceleration, velocity and/or position aiding is recommended
+to maintain accurate attitude estimates. This aiding will also correct the position
+and velocity drift. Heading (yaw) aiding should also be applied to correct the yaw
+angle drift. The following example shows how to incorporate all.
 
 ```python
 import attipy as ap
