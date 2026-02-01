@@ -15,7 +15,7 @@ class Test_MEKF:
 
     @fixture
     def mekf(self):
-        return ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        return ap.MEKF(10.0, (1.0, 0.0, 0.0, 0.0))
 
     def test__init__(self):
         fs = 1024.0
@@ -34,7 +34,7 @@ class Test_MEKF:
 
         mekf = ap.MEKF(
             fs,
-            ap.Attitude(q_nb),
+            q_nb,
             bg=bg_b,
             vel=v_n,
             w=w_b,
@@ -74,7 +74,7 @@ class Test_MEKF:
 
     def test__init__default(self):
         fs = 10.0
-        mekf = ap.MEKF(fs, ap.Attitude((1.0, 0.0, 0.0, 0.0)))
+        mekf = ap.MEKF(fs, (1.0, 0.0, 0.0, 0.0))
 
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
@@ -152,8 +152,8 @@ class Test_MEKF:
         assert mekf.w is not mekf._w_b  # ensure it is a copy
 
     def test_f(self):
-        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))  # no rotation
-        mekf = ap.MEKF(10.0, att, acc=np.zeros(3), g=9.80665, nav_frame="ned")
+        q = (1.0, 0.0, 0.0, 0.0)  # no rotation
+        mekf = ap.MEKF(10.0, q, acc=np.zeros(3), g=9.80665, nav_frame="ned")
         np.testing.assert_allclose(mekf.f, np.array([0.0, 0.0, -9.80665]))
         assert mekf.f is not mekf._f_b  # ensure it is a copy
 
@@ -163,8 +163,8 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf.acc, a_n)
         assert mekf.acc is not mekf._a_n  # ensure it is a copy
 
-    def test_P(self, mekf):
-        mekf = ap.MEKF(10.0, ap.Attitude((1.0, 0.0, 0.0, 0.0)), P=np.eye(12))
+    def test_P(self, mekf, att):
+        mekf = ap.MEKF(10.0, att, P=np.eye(12))
         np.testing.assert_allclose(mekf.P, np.eye(12))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
