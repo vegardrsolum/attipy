@@ -69,8 +69,9 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att : Attitude
-        Initial attitude estimate.
+    att : Attitude or array_like, shape (4,)
+        Initial attitude estimate as an Attitude instance or a unit quaternion,
+        (q0, q1, q2, q3).
     vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
@@ -113,7 +114,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        att: Attitude,
+        att: Attitude | ArrayLike,
         pos: ArrayLike = (0.0, 0.0, 0.0),
         vel: ArrayLike = (0.0, 0.0, 0.0),
         acc: ArrayLike = (0.0, 0.0, 0.0),
@@ -141,7 +142,7 @@ class MEKF:
         self._gbc = bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = att
+        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
