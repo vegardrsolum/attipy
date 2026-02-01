@@ -127,6 +127,12 @@ class Test_MEKF:
         assert isinstance(mekf.attitude, ap.Attitude)
         np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
 
+    def test_position(self, att):
+        p_n = np.array([1.0, 2.0, 3.0])
+        mekf = ap.MEKF(10.0, att, pos=p_n)
+        np.testing.assert_allclose(mekf.position, p_n)
+        assert mekf.position is not mekf._p_n  # ensure it is a copy
+
     def test_vel(self, att):
         v_n = np.array([1.0, 2.0, 3.0])
         mekf = ap.MEKF(10.0, att, vel=v_n)

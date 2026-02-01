@@ -170,7 +170,7 @@ class MEKF:
         return self._att_nb
 
     @property
-    def pos(self) -> NDArray[np.float64]:
+    def position(self) -> NDArray[np.float64]:
         """
         Copy of the position estimate (m) expressed in the navigation frame.
         """
