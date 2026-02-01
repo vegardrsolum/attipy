@@ -72,6 +72,9 @@ class MEKF:
     att : Attitude or array_like, shape (4,)
         Initial attitude estimate as an Attitude instance or a unit quaternion,
         (qw, qx, qy, qz).
+    pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial position estimate (px, py, pz) in m expressed in the navigation frame.
+        Defaults to zero position.
     vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
