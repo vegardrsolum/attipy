@@ -30,7 +30,7 @@ class Test_MEKF:
         acc_noise_density = 0.00123
         gyro_noise_density = 0.000456
         gyro_bias_stability = 0.0000789
-        bias_corr_time = 123.0
+        gyro_bias_corr_time = 123.0
 
         mekf = ap.MEKF(
             fs,
@@ -45,7 +45,7 @@ class Test_MEKF:
             acc_noise_density=acc_noise_density,
             gyro_noise_density=gyro_noise_density,
             gyro_bias_stability=gyro_bias_stability,
-            bias_corr_time=bias_corr_time,
+            gyro_bias_corr_time=gyro_bias_corr_time,
         )
 
         assert mekf._fs == fs
@@ -57,7 +57,7 @@ class Test_MEKF:
         assert mekf._vrw == acc_noise_density
         assert mekf._arw == gyro_noise_density
         assert mekf._gbs == gyro_bias_stability
-        assert mekf._gbc == bias_corr_time
+        assert mekf._gbc == gyro_bias_corr_time
 
         np.testing.assert_allclose(mekf._att_nb._q, q_nb)
         np.testing.assert_allclose(mekf._bg_b, bg_b)

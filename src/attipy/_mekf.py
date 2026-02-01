@@ -107,7 +107,7 @@ class MEKF:
     gyro_bias_stability : float, default 0.00005
         Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
         value for low-cost MEMS IMUs).
-    bias_corr_time : float, default 50.0
+    gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
@@ -130,7 +130,7 @@ class MEKF:
         acc_noise_density: float = 0.001,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
-        bias_corr_time: float = 50.0,
+        gyro_bias_corr_time: float = 50.0,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
@@ -142,7 +142,7 @@ class MEKF:
         self._vrw = acc_noise_density  # velocity random walk
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
-        self._gbc = bias_corr_time  # gyro bias correlation time
+        self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
