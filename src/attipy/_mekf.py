@@ -191,21 +191,21 @@ class MEKF:
         return self._a_n.copy()
 
     @property
-    def bg(self) -> NDArray[np.float64]:
+    def bias_gyro(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
         return self._bg_b.copy()
 
     @property
-    def ba(self) -> NDArray[np.float64]:
+    def bias_acc(self) -> NDArray[np.float64]:
         """
         Copy of the accelerometer bias estimate (m/s^2) expressed in the body frame.
         """
         return self._ba_b.copy()
 
     @property
-    def w(self) -> NDArray[np.float64]:
+    def angular_rate(self) -> NDArray[np.float64]:
         """
         Copy of the bias corrected angular rate measurement (rad/s) expressed in
         the body frame.
@@ -213,7 +213,7 @@ class MEKF:
         return self._w_b.copy()
 
     @property
-    def f(self) -> NDArray[np.float64]:
+    def specific_force(self) -> NDArray[np.float64]:
         """
         Copy of the specific force measurement (m/s^2) expressed in the body frame.
         """
