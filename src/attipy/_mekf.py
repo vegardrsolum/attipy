@@ -215,7 +215,8 @@ class MEKF:
     @property
     def specific_force(self) -> NDArray[np.float64]:
         """
-        Copy of the specific force measurement (m/s^2) expressed in the body frame.
+        Copy of the bias corrected specific force measurement (m/s^2) expressed in
+        the body frame.
         """
         return self._f_b.copy()
 
