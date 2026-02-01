@@ -34,11 +34,12 @@ def test_state_matrix(noise_params):
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # Linearized state matrix
-    dfdx = np.zeros((9, 9))
-    dfdx[0:3, 0:3] = -S(w_b_corr)
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
-    dfdx[6:9, 0:3] = -R_nb @ S(f_b_corr)
+    dfdx = np.zeros((12, 12))
+    dfdx[0:3, 3:6] = np.eye(3)
+    dfdx[3:6, 6:9] = -R_nb @ S(f_b_corr)
+    dfdx[6:9, 6:9] = -S(w_b_corr)
+    dfdx[6:9, 9:12] = -np.eye(3)
+    dfdx[9:12, 9:12] = -np.eye(3) / gbc
 
     np.testing.assert_allclose(dfdx_out, dfdx)
 
