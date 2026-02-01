@@ -163,12 +163,6 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf.angular_rate, w)
         assert mekf.angular_rate is not mekf._w_b  # ensure it is a copy
 
-    def test_specific_force(self):
-        q = (1.0, 0.0, 0.0, 0.0)  # no rotation
-        mekf = ap.MEKF(10.0, q, acc=np.zeros(3), g=9.80665, nav_frame="ned")
-        np.testing.assert_allclose(mekf.specific_force, np.array([0.0, 0.0, -9.80665]))
-        assert mekf.specific_force is not mekf._f_b  # ensure it is a copy
-
     def test_P(self, mekf, att):
         mekf = ap.MEKF(10.0, att, P=np.eye(12))
         np.testing.assert_allclose(mekf.P, np.eye(12))

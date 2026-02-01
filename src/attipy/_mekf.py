@@ -216,14 +216,6 @@ class MEKF:
         return self._w_b.copy()
 
     @property
-    def specific_force(self) -> NDArray[np.float64]:
-        """
-        Copy of the bias corrected specific force measurement (m/s^2) expressed in
-        the body frame.
-        """
-        return self._f_b.copy()
-
-    @property
     def P(self) -> NDArray[np.float64]:
         """
         Copy of the error covariance matrix estimate.
