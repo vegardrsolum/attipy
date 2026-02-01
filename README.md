@@ -45,7 +45,7 @@ rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
-# Estimate attitude using AHRS
+# Estimate attitude using MEKF
 att = ap.Attitude.from_euler(euler[0])
 mekf = ap.MEKF(fs, att)
 euler_est = []
@@ -86,19 +86,34 @@ f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
 # Add velocity and heading measurement noise
+pos_var = 0.1  # m
 vel_var = 0.01  # (m/s)^2
 yaw_var = 0.0001  # rad^2
 rng = np.random.default_rng(42)
+pos_meas = pos + np.sqrt(pos_var) * rng.standard_normal(pos.shape)
 vel_meas = vel + np.sqrt(vel_var) * rng.standard_normal(vel.shape)
 yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
-# Estimate attitude using AHRS
+# Estimate position, velocity and attitude using MEKF
 att = ap.Attitude.from_euler(euler[0])
 mekf = ap.MEKF(fs, att)
-euler_est = []
-for f_i, w_i, v_i, y_i in zip(f_meas, w_meas, vel_meas, yaw_meas):
-    mekf.update(f_i, w_i, vel=v_i, vel_var=vel_var*np.ones(3), yaw=y_i, yaw_var=yaw_var)
+pos_est, vel_est, euler_est = [], [], []
+for f_i, w_i, p_i, v_i, y_i in zip(f_meas, w_meas, pos_meas, vel_meas, yaw_meas):
+    mekf.update(
+        f_i,
+        w_i,
+        pos=p_i,
+        pos_var=pos_var*np.ones(3),
+        vel=v_i,
+        vel_var=vel_var*np.ones(3),
+        yaw=y_i,
+        yaw_var=yaw_var
+    )
+    pos_est.append(mekf.position)
+    vel_est.append(mekf.velocity)
     euler_est.append(mekf.attitude.as_euler())
+pos_est = np.asarray(pos_est)
+vel_est = np.asarray(vel_est)
 euler_est = np.asarray(euler_est)
 ```
 
