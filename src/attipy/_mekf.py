@@ -107,7 +107,7 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I12x12 = np.eye(12)
+    _I12 = np.eye(12)
     _dx = np.zeros(12)  # (dp, dv, da, dbg) (always zero after reset)
 
     def __init__(
@@ -276,7 +276,7 @@ class MEKF:
         dx = self._dx
         P = self._P
 
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12x12)
+        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -295,7 +295,7 @@ class MEKF:
         dx = self._dx
         P = self._P
 
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12x12)
+        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -320,7 +320,7 @@ class MEKF:
         dx = self._dx
         P = self._P
 
-        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I12x12)
+        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I12)
 
     def _project_ahead(self):
         """
