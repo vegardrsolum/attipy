@@ -63,9 +63,9 @@ as these are the only degrees of freedom observable from specific force measurem
 and the known direction of gravity.
 
 Under sustained linear acceleration, velocity and/or position aiding is recommended
-to maintain accurate attitude estimates. This aiding will also correct the position
-and velocity drift. Heading (yaw) aiding should also be applied to correct the yaw
-angle drift. The following example shows how to incorporate all.
+to maintain accurate attitude estimates and correct accumulated position and velocity
+drift. Heading (yaw) aiding should also be applied to correct yaw drift. The following
+example demonstrates how to incorporate all aiding sources.
 
 ```python
 import attipy as ap
