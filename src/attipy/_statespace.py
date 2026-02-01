@@ -205,12 +205,6 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
     dfdw[6:9, 3:6] = -np.eye(3)
     dfdw[9:12, 6:9] = np.eye(3)
-
-
-    dfdw = np.zeros((9, 9))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
-    dfdw[6:9, 6:9] = -R_nb  # NB! update each time step
     return dfdw
 
 
@@ -237,9 +231,9 @@ def _process_noise_psd(
         Process noise power spectral density matrix.
     """
     W = np.eye(9)
-    W[0:3, 0:3] *= arw**2
-    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
-    W[6:9, 6:9] *= vrw**2
+    W[0:3, 0:3] *= vrw**2
+    W[3:6, 3:6] *= arw**2
+    W[6:9, 6:9] *= 2.0 * gbs**2 / gbc
     return W
 
 
