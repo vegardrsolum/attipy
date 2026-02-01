@@ -227,19 +227,19 @@ class MEKF:
 
     def _dhdx_pos(self):
         """
-        Position part of the measurement matrix, shape (3, 9).
+        Position part of the measurement matrix, shape (3, 12).
         """
         return self._dhdx[0:3]
 
     def _dhdx_vel(self):
         """
-        Velocity part of the measurement matrix, shape (3, 9).
+        Velocity part of the measurement matrix, shape (3, 12).
         """
         return self._dhdx[3:6]
 
     def _dhdx_yaw(self, q_nb):
         """
-        Heading (yaw angle) part of the measurement matrix, shape (9,).
+        Heading (yaw angle) part of the measurement matrix, shape (12,).
         """
         self._dhdx[6:7, 6:9] = _dyawda(q_nb)
         return self._dhdx[6]
