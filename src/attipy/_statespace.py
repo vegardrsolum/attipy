@@ -89,15 +89,12 @@ def _update_state_transition(
     r20, r21, r22 = R_nb[2]
 
     # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
-    phi[6, 6] = 1.0
     phi[6, 7] = dt * wz
     phi[6, 8] = -dt * wy
     phi[7, 6] = -dt * wz
-    phi[7, 7] = 1.0
     phi[7, 8] = dt * wx
     phi[8, 6] = dt * wy
     phi[8, 7] = -dt * wx
-    phi[8, 8] = 1.0
 
     # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
     phi[3, 6] = -dt * (fz * r01 - fy * r02)
