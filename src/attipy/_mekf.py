@@ -177,14 +177,14 @@ class MEKF:
         return self._p_n.copy()
 
     @property
-    def vel(self) -> NDArray[np.float64]:
+    def velocity(self) -> NDArray[np.float64]:
         """
         Copy of the linear velocity estimate (m/s) expressed in the navigation frame.
         """
         return self._v_n.copy()
 
     @property
-    def acc(self) -> NDArray[np.float64]:
+    def acceleration(self) -> NDArray[np.float64]:
         """
         Copy of the linear acceleration estimate (m/s^2) expressed in the navigation frame.
         """

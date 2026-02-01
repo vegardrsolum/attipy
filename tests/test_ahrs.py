@@ -133,11 +133,17 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf.position, p_n)
         assert mekf.position is not mekf._p_n  # ensure it is a copy
 
-    def test_vel(self, att):
+    def test_velocity(self, att):
         v_n = np.array([1.0, 2.0, 3.0])
         mekf = ap.MEKF(10.0, att, vel=v_n)
-        np.testing.assert_allclose(mekf.vel, v_n)
-        assert mekf.vel is not mekf._v_n  # ensure it is a copy
+        np.testing.assert_allclose(mekf.velocity, v_n)
+        assert mekf.velocity is not mekf._v_n  # ensure it is a copy
+
+    def test_acceleration(self, att):
+        a_n = np.array([1.0, 2.0, 3.0])
+        mekf = ap.MEKF(10.0, att, acc=a_n)
+        np.testing.assert_allclose(mekf.acceleration, a_n)
+        assert mekf.acceleration is not mekf._a_n  # ensure it is a copy
 
     def test_bg(self, att):
         mekf = ap.MEKF(10.0, att, bg=np.array([0.01, -0.02, 0.03]))
@@ -162,12 +168,6 @@ class Test_MEKF:
         mekf = ap.MEKF(10.0, q, acc=np.zeros(3), g=9.80665, nav_frame="ned")
         np.testing.assert_allclose(mekf.f, np.array([0.0, 0.0, -9.80665]))
         assert mekf.f is not mekf._f_b  # ensure it is a copy
-
-    def test_acc(self, att):
-        a_n = np.array([1.0, 2.0, 3.0])
-        mekf = ap.MEKF(10.0, att, acc=a_n)
-        np.testing.assert_allclose(mekf.acc, a_n)
-        assert mekf.acc is not mekf._a_n  # ensure it is a copy
 
     def test_P(self, mekf, att):
         mekf = ap.MEKF(10.0, att, P=np.eye(12))
@@ -246,7 +246,7 @@ class Test_MEKF:
             )
             euler_est.append(mekf.attitude.as_euler())
             bg_est.append(mekf.bg)
-            v_est.append(mekf.vel)
+            v_est.append(mekf.velocity)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
         v_est = np.asarray(v_est)
