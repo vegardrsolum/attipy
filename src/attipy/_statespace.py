@@ -34,7 +34,7 @@ def _state_transition(
 
     Returns
     -------
-    phi : ndarray, shape (9, 9)
+    phi : ndarray, shape (12, 12)
         State transition matrix.
     """
     phi = np.eye(12)
@@ -62,7 +62,7 @@ def _update_state_transition(
 
     Parameters
     ----------
-    phi : ndarray, shape (9, 9)
+    phi : ndarray, shape (12, 12)
         State transition matrix to be updated in place.
     dt : float
         Time step.
@@ -134,14 +134,14 @@ def _process_noise_cov(
 
     Returns
     -------
-    Q : ndarray, shape (12, 9)
+    Q : ndarray, shape (12, 12)
         Process noise covariance matrix.
 
     Notes
     -----
-    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
+    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
 
-        Q[3:6, 0:3] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
@@ -198,7 +198,7 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dfdw : ndarray, shape (9, 9)
+    dfdw : ndarray, shape (12, 9)
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((12, 9))
@@ -287,7 +287,7 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dhdx : ndarray, shape (4, 9)
+    dhdx : ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
     dhdx = np.zeros((7, 12))
