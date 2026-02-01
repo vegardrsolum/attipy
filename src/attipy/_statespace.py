@@ -13,7 +13,7 @@ def _state_transition(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first order approximation:
+    Setup state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
@@ -115,7 +115,7 @@ def _process_noise_cov(
     dt: float, vrw: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first order approximation:
+    Setup process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
