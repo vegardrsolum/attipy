@@ -254,7 +254,7 @@ class MEKF:
         self._v_n[:] += dx[3:6]
         self._att_nb._correct_da(dx[6:9])
         self._bg_b[:] += dx[9:12]
-        self._dx[:] = np.zeros(dx.size)
+        self._dx[:] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
         """
