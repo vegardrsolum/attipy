@@ -63,7 +63,7 @@ as these are the only degrees of freedom observable from specific force measurem
 and the known direction of gravity.
 
 Under sustained linear acceleration, velocity and/or position aiding is recommended
-to maintain accurate attitude estimates. The following examples demonstrates how
+to maintain accurate attitude estimates. The following example demonstrates how
 to estimate position, velocity and attitude (including yaw) from IMU and aiding
 measurements.
 
