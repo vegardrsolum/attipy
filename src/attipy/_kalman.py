@@ -103,7 +103,7 @@ def _kalman_update_sequential(
     var : ndarray, shape (m,)
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
-        Measurement matrix; each row corresponds to a scalar measurement model.
+        Measurement matrix where each row corresponds to a scalar measurement model.
     I_ : ndarray, shape (n, n)
         Identity matrix.
     """
