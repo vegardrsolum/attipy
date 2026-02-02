@@ -254,38 +254,38 @@ class MEKF:
         self._bg_b[:] += self._dx[9:12]
         self._dx[:] = 0.0
 
-    def _aiding_update_pos(self, p_meas, p_var):
+    def _aiding_update_pos(self, pos_meas, pos_var):
         """
         Update with position vector aiding measurement.
         """
 
-        if p_meas is None:
+        if pos_meas is None:
             return None
 
-        if p_var is None:
+        if pos_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._p_n
-        var = p_var
+        dz = pos_meas - self._p_n
+        var = pos_var
         dhdx = self._dhdx_pos()
         dx = self._dx
         P = self._P
 
         _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
 
-    def _aiding_update_vel(self, v_meas, v_var):
+    def _aiding_update_vel(self, vel_meas, vel_var):
         """
         Update with velocity vector aiding measurement.
         """
 
-        if v_meas is None:
+        if vel_meas is None:
             return None
 
-        if v_var is None:
+        if vel_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v_n
-        var = v_var
+        dz = vel_meas - self._v_n
+        var = vel_var
         dhdx = self._dhdx_vel()
         dx = self._dx
         P = self._P
