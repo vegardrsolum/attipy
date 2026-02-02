@@ -245,15 +245,13 @@ class MEKF:
         """
         Reset state (regulating error-state to zero).
         """
-        dx = self._dx
-
-        if not dx.any():
+        if not self._dx.any():
             return
 
-        self._p_n[:] += dx[0:3]
-        self._v_n[:] += dx[3:6]
-        self._att_nb._correct_da(dx[6:9])
-        self._bg_b[:] += dx[9:12]
+        self._p_n[:] += self._dx[0:3]
+        self._v_n[:] += self._dx[3:6]
+        self._att_nb._correct_da(self._dx[6:9])
+        self._bg_b[:] += self._dx[9:12]
         self._dx[:] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
