@@ -348,7 +348,7 @@ class MEKF:
         yaw_degrees: bool = False,
     ) -> Self:
         """
-        Update the MEKF state estimates with IMU and aiding measurements.
+        Update state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
