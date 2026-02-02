@@ -106,14 +106,7 @@ def _kalman_update_sequential(
         Measurement matrix; each row corresponds to a scalar measurement model.
     I_ : ndarray, shape (n, n)
         Identity matrix.
-
-    Returns
-    -------
-    x : ndarray, shape (n,)
-        Updated state estimate.
-    P : ndarray, shape (n, n)
-        Updated state covariance matrix.
     """
-
-    for i in range(z.shape[0]):
+    m = z.shape[0]
+    for i in range(m):
         _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
