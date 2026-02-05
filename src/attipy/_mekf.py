@@ -148,6 +148,7 @@ class MEKF:
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._epsilon = np.concatenate([pos, vel, bg]).reshape(9)
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3)
         self._a_n = np.asarray_chkfinite(acc).reshape(3)
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
@@ -248,7 +249,6 @@ class MEKF:
             return
 
         self._att_nb._correct_da(dx[0:3])
-        self._epsilon[:] += dx[3:12]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_pos(self, p_meas, p_var):
@@ -262,13 +262,14 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._p_n
+        dz = p_meas - self._epsilon[0:3]
         var = p_var
         dhdx = self._dhdx_pos()
         dx = self._dx
+        epsilon = self._epsilon
         P = self._P
 
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(dx, epsilon, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -281,13 +282,14 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v_n
+        dz = v_meas - self._epsilon[3:6]
         var = v_var
         dhdx = self._dhdx_vel()
         dx = self._dx
+        epsilon = self._epsilon
         P = self._P
 
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(dx, epsilon, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -310,9 +312,10 @@ class MEKF:
         dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
         dx = self._dx
+        epsilon = self._epsilon
         P = self._P
 
-        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_scalar(dx, epsilon, P, dz, var, dhdx, self._I12)
 
     def _project_ahead(self):
         """
@@ -403,7 +406,7 @@ class MEKF:
 
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._bg_b
+        self._w_b[:] = w_b - self._epsilon[6:9]
         self._f_b[:] = f_b - self._ba_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)

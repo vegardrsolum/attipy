@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_scalar(x, P, z, r, h, I_):
+def _kalman_update_scalar(dx, epsilon, P, z, r, h, I_):
     """
     Scalar Kalman filter measurement update.
 
@@ -65,7 +65,8 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     k = Ph * s_inv
 
     # Updated (a posteriori) state estimate
-    x += k * (z - np.dot(h, x))
+    dx[:] += k[:3] * (z - np.dot(h[:3], dx[:3]))
+    epsilon[:] += k[3:] * (z - np.dot(h[3:], epsilon))
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     A = I_ - np.outer(k, h)
@@ -74,7 +75,8 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential(
-    x: NDArray[np.float64],
+    dx: NDArray[np.float64],
+    epsilon: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -116,4 +118,4 @@ def _kalman_update_sequential(
     """
 
     for i in range(z.shape[0]):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+        _kalman_update_scalar(dx, epsilon, P, z[i], var[i], H[i], I_)
