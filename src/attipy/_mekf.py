@@ -112,7 +112,7 @@ class MEKF:
     """
 
     _I12 = np.eye(12)
-    _da = np.zeros(3)  # attitude error state (always zero after reset)
+    _da = np.zeros(3)  # attitude error (always zero after reset)
 
     def __init__(
         self,
