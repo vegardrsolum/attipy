@@ -147,9 +147,11 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._epsilon = np.concatenate([pos, vel, bg]).reshape(9).copy()
-        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
@@ -175,14 +177,14 @@ class MEKF:
         """
         Copy of the position estimate (m) expressed in the navigation frame.
         """
-        return self._epsilon[0:3].copy()
+        return self._p_n.copy()
 
     @property
     def velocity(self) -> NDArray[np.float64]:
         """
         Copy of the linear velocity estimate (m/s) expressed in the navigation frame.
         """
-        return self._epsilon[3:6].copy()
+        return self._v_n.copy()
 
     @property
     def acceleration(self) -> NDArray[np.float64]:
@@ -196,7 +198,7 @@ class MEKF:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
-        return self._epsilon[6:9].copy()
+        return self._bg_b.copy()
 
     @property
     def bias_acc(self) -> NDArray[np.float64]:
@@ -261,14 +263,16 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._epsilon[0:3]
+        dz = p_meas - self._p_n
         var = p_var
         dhdx = self._dhdx_pos()
         da = self._da
-        epsilon = self._epsilon
+        p = self._p_n
+        v = self._v_n
+        bg = self._bg_b
         P = self._P
 
-        _kalman_update_sequential(da, epsilon, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(da, p, v, bg, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -281,14 +285,16 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._epsilon[3:6]
+        dz = v_meas - self._v_n
         var = v_var
         dhdx = self._dhdx_vel()
         da = self._da
-        epsilon = self._epsilon
+        p = self._p_n
+        v = self._v_n
+        bg = self._bg_b
         P = self._P
 
-        _kalman_update_sequential(da, epsilon, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(da, p, v, bg, P, dz, var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -311,10 +317,12 @@ class MEKF:
         dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
         da = self._da
-        epsilon = self._epsilon
+        p = self._p_n
+        v = self._v_n
+        bg = self._bg_b
         P = self._P
 
-        _kalman_update_scalar(da, epsilon, P, dz, var, dhdx, self._I12)
+        _kalman_update_scalar(da, p, v, bg, P, dz, var, dhdx, self._I12)
 
     def _project_ahead(self):
         """
@@ -322,10 +330,10 @@ class MEKF:
         """
 
         # Position (dead reckoning)
-        self._epsilon[0:3] += self._epsilon[3:6] * self._dt
+        self._p_n += self._v_n * self._dt
 
         # Velocity (dead reckoning)
-        self._epsilon[3:6] += self._a_n * self._dt
+        self._v_n += self._a_n * self._dt
 
         # Attitude (dead reckoning)
         self._att_nb._project_ahead(self._w_b, self._dt)
@@ -405,7 +413,7 @@ class MEKF:
 
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._epsilon[6:9]
+        self._w_b[:] = w_b - self._bg_b
         self._f_b[:] = f_b - self._ba_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
