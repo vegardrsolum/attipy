@@ -168,9 +168,7 @@ class MEKF:
 
     @property
     def _p_n(self) -> NDArray[np.float64]:
-        """
-        Position estimate expressed in the navigation frame (no copy).
-        """
+        """Position estimate expressed in the navigation frame (no copy)."""
         return self._x[POS_IDX]
 
     @_p_n.setter
@@ -179,9 +177,7 @@ class MEKF:
 
     @property
     def _v_n(self) -> NDArray[np.float64]:
-        """
-        Velocity estimate expressed in the navigation frame (no copy).
-        """
+        """Velocity estimate expressed in the navigation frame (no copy)."""
         return self._x[VEL_IDX]
 
     @_v_n.setter
@@ -190,9 +186,7 @@ class MEKF:
 
     @property
     def _da(self) -> NDArray[np.float64]:
-        """
-        Attitude error estimate (3-parameter 2xGibbs vector) (no copy).
-        """
+        """Attitude error estimate (3-parameter 2xGibbs vector) (no copy)."""
         return self._x[ATT_IDX]
 
     @_da.setter
@@ -201,9 +195,7 @@ class MEKF:
 
     @property
     def _bg_b(self) -> NDArray[np.float64]:
-        """
-        Gyroscope bias estimate expressed in the body frame (no copy).
-        """
+        """Gyroscope bias estimate expressed in the body frame (no copy)."""
         return self._x[BG_IDX]
 
     @_bg_b.setter
@@ -212,9 +204,7 @@ class MEKF:
 
     @property
     def attitude(self) -> Attitude:
-        """
-        Attitude estimate (no copy).
-        """
+        """Attitude estimate (no copy)."""
         return self._att_nb
 
     @property
