@@ -65,10 +65,10 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
     k = Ph * s_inv
 
     # Updated (a posteriori) state estimate
-    y = z - np.dot(h[:3], da)
-    da[:] += k[0:3] * y
-    p[:] += k[3:6] * y
-    v[:] += k[6:9] * y
+    y = z - np.dot(h[6:9], da)
+    p[:] += k[0:3] * y
+    v[:] += k[3:6] * y
+    da[:] += k[6:9] * y
     bg[:] += k[9:12] * y
 
     # Updated (a posteriori) covariance estimate (Joseph form)
