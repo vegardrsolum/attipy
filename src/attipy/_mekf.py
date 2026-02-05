@@ -366,10 +366,10 @@ class MEKF:
         """
 
         # Position (dead reckoning)
-        self._p_n += self._v_n * self._dt
+        self._p_n[:] += self._v_n * self._dt
 
         # Velocity (dead reckoning)
-        self._v_n += self._a_n * self._dt
+        self._v_n[:] += self._a_n * self._dt
 
         # Attitude (dead reckoning)
         self._att_nb._project_ahead(self._w_b, self._dt)
