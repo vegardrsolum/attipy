@@ -4,6 +4,11 @@ from numpy.typing import NDArray
 
 from ._vectorops import _skew_symmetric as S
 
+POS_IDX = slice(0, 3)
+VEL_IDX = slice(3, 6)
+ATT_IDX = slice(6, 9)
+BG_IDX = slice(9, 12)
+
 
 def _state_transition(
     dt: float,

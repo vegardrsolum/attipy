@@ -6,6 +6,10 @@ from numpy.typing import ArrayLike, NDArray
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import (
+    ATT_IDX,
+    BG_IDX,
+    POS_IDX,
+    VEL_IDX,
     _dyawda,
     _measurement_matrix,
     _process_noise_cov,
@@ -167,44 +171,44 @@ class MEKF:
         """
         Position estimate expressed in the navigation frame (no copy).
         """
-        return self._x[0:3]
+        return self._x[POS_IDX]
 
     @_p_n.setter
     def _p_n(self, value: ArrayLike) -> None:
-        self._x[0:3] = value
+        self._x[POS_IDX] = value
 
     @property
     def _v_n(self) -> NDArray[np.float64]:
         """
         Velocity estimate expressed in the navigation frame (no copy).
         """
-        return self._x[3:6]
+        return self._x[VEL_IDX]
 
     @_v_n.setter
     def _v_n(self, value: ArrayLike) -> None:
-        self._x[3:6] = value
+        self._x[VEL_IDX] = value
 
     @property
     def _da(self) -> NDArray[np.float64]:
         """
         Attitude error estimate (3-parameter 2xGibbs vector) (no copy).
         """
-        return self._x[6:9]
+        return self._x[ATT_IDX]
 
     @_da.setter
     def _da(self, value: ArrayLike) -> None:
-        self._x[6:9] = value
+        self._x[ATT_IDX] = value
 
     @property
     def _bg_b(self) -> NDArray[np.float64]:
         """
         Gyroscope bias estimate expressed in the body frame (no copy).
         """
-        return self._x[9:12]
+        return self._x[BG_IDX]
 
     @_bg_b.setter
     def _bg_b(self, value: ArrayLike) -> None:
-        self._x[9:12] = value
+        self._x[BG_IDX] = value
 
     @property
     def attitude(self) -> Attitude:
@@ -279,7 +283,7 @@ class MEKF:
         """
         Heading (yaw angle) part of the measurement matrix, shape (12,).
         """
-        self._dhdx[6:7, 6:9] = _dyawda(q_nb)
+        self._dhdx[6:7, ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[6]
 
     def _reset(self) -> None:
@@ -352,7 +356,7 @@ class MEKF:
         P = self._P
         r = yaw_var
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._da)
+        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[ATT_IDX] @ self._da)
 
         _kalman_update_scalar(x, P, z, r, dhdx, self._I12)
 
