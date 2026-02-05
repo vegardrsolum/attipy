@@ -4,6 +4,51 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
+def _kalman_gain(P, h, r):
+    """
+    Compute the Kalman gain for a scalar measurement.
+    """
+
+    # Innovation covariance (inverse)
+    Ph = np.dot(P, h)
+    s_inv = 1.0 / (np.dot(h, Ph) + r)
+
+    # Kalman gain
+    k = Ph * s_inv
+
+    return k
+
+
+@njit  # type: ignore[misc]
+def _state_update(p, v, da, bg, k, z):
+    """
+    Update state estimates:
+        x = x + k * z
+    """
+    p[0] += k[0] * z
+    p[1] += k[1] * z
+    p[2] += k[2] * z
+    v[0] += k[3] * z
+    v[1] += k[4] * z
+    v[2] += k[5] * z
+    da[0] += k[6] * z
+    da[1] += k[7] * z
+    da[2] += k[8] * z
+    bg[0] += k[9] * z
+    bg[1] += k[10] * z
+    bg[2] += k[11] * z
+
+
+@njit  # type: ignore[misc]
+def _covariance_update(P, k, h, r, I_):
+    """
+    Update covariance estimate (Joseph form).
+    """
+    A = I_ - np.outer(k, h)
+    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
+
+
+@njit  # type: ignore[misc]
 def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
     """
     Scalar Kalman filter measurement update.
@@ -34,7 +79,7 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
 
     Updated (a posteriori) state estimate
 
-        x = x + k @ (z - h @ x)
+        x = x + k * z
 
     Updated (a posteriori) covariance estimate (Joseph form)
 
@@ -55,25 +100,15 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
     I_ : ndarray, shape (n, n)
         Identity matrix.
     """
-    # TODO: speed up by writing out the operations explicitly
-
-    # Innovation covariance (inverse)
-    Ph = np.dot(P, h)
-    s_inv = 1.0 / (np.dot(h, Ph) + r)
 
     # Kalman gain
-    k = Ph * s_inv
+    k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    y = z - np.dot(h[6:9], da)
-    p[:] += k[0:3] * y
-    v[:] += k[3:6] * y
-    da[:] += k[6:9] * y
-    bg[:] += k[9:12] * y
+    _state_update(p, v, da, bg, k, z)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    A = I_ - np.outer(k, h)
-    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
+    _covariance_update(P, k, h, r, I_)
 
 
 @njit  # type: ignore[misc]

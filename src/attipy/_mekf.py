@@ -314,8 +314,10 @@ class MEKF:
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
         var = yaw_var
-        dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
         dhdx = self._dhdx_yaw(self._att_nb._q)
+        dz = _signed_smallest_angle(
+            yaw_meas - yaw - dhdx[6:9] @ self._da, degrees=False
+        )
         da = self._da
         p = self._p_n
         v = self._v_n
