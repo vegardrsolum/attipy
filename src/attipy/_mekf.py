@@ -40,24 +40,21 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
+def _signed_smallest_angle(angle: float) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
     Parameters
     ----------
     angle : float
-        Angle value.
-    degrees : bool, default False
-        Specifies whether ``angle`` is given degrees or radians (default).
+        Angle in radians.
 
     Returns
     -------
     float
-        The smallest angle between [-pi, pi] radians (or [-180., 180) degrees).
+        The smallest angle between [-pi, pi] radians.
     """
-    base = 180.0 if degrees else np.pi
-    return (angle + base) % (2.0 * base) - base
+    return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
 
 class MEKF:
@@ -315,9 +312,7 @@ class MEKF:
 
         var = yaw_var
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dz = _signed_smallest_angle(
-            yaw_meas - yaw - dhdx[6:9] @ self._da, degrees=False
-        )
+        dz = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._da)
         da = self._da
         p = self._p_n
         v = self._v_n
