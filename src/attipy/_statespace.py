@@ -287,7 +287,7 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized measurement matrix.
     """
     dhdx = np.zeros((7, 12))
-    dhdx[0:3, 0:3] = np.eye(3)  # position
-    dhdx[3:6, 3:6] = np.eye(3)  # velocity
-    dhdx[6:7, 6:9] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx[0:3, 3:6] = np.eye(3)  # position
+    dhdx[3:6, 6:9] = np.eye(3)  # velocity
+    dhdx[6:7, 0:3] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
     return dhdx
