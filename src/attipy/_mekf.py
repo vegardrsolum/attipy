@@ -114,10 +114,10 @@ class MEKF:
 
     _I12 = np.eye(12)
     _x = np.zeros(12)  # state vector (p, v, da, bg)
-    _p_n = _x[POS_IDX]  # position estimate in navigation frame
-    _v_n = _x[VEL_IDX]  # velocity estimate in navigation frame
-    _da = _x[ATT_IDX]  # attitude error estimate (3-parameter 2xGibbs vector)
-    _bg_b = _x[BG_IDX]  # gyroscope bias estimate in body frame
+    _p_n = _x[POS_IDX]  # position state view
+    _v_n = _x[VEL_IDX]  # velocity state view
+    _da = _x[ATT_IDX]  # attitude error state view
+    _bg_b = _x[BG_IDX]  # gyroscope bias state view
 
     def __init__(
         self,
