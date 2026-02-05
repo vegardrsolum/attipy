@@ -43,11 +43,11 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(12)
-    phi[0:3, 3:6] += dt * np.eye(3)
-    phi[3:6, 6:9] += -dt * R_nb @ S(f_b)  # NB! update each time step
-    phi[6:9, 6:9] += -dt * S(w_b)  # NB! update each time step
-    phi[6:9, 9:12] += -dt * np.eye(3)
-    phi[9:12, 9:12] += -dt * np.eye(3) / gbc
+    phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
+    phi[VEL_IDX, ATT_IDX] += -dt * R_nb @ S(f_b)  # NB! update each time step
+    phi[ATT_IDX, ATT_IDX] += -dt * S(w_b)  # NB! update each time step
+    phi[ATT_IDX, BG_IDX] += -dt * np.eye(3)
+    phi[BG_IDX, BG_IDX] += -dt * np.eye(3) / gbc
     return phi
 
 
@@ -149,9 +149,9 @@ def _process_noise_cov(
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.zeros((12, 12))
-    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
-    Q[9:12, 9:12] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
+    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
@@ -181,11 +181,11 @@ def _state_matrix(
         Linearized state matrix.
     """
     dfdx = np.zeros((12, 12))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b)  # NB! update each time step
-    dfdx[6:9, 6:9] = -S(w_b)  # NB! update each time step
-    dfdx[6:9, 9:12] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / gbc
+    dfdx[POS_IDX, VEL_IDX] = np.eye(3)
+    dfdx[VEL_IDX, ATT_IDX] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
 
@@ -204,9 +204,9 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((12, 9))
-    dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
-    dfdw[6:9, 3:6] = -np.eye(3)
-    dfdw[9:12, 6:9] = np.eye(3)
+    dfdw[VEL_IDX, 0:3] = -R_nb  # NB! update each time step
+    dfdw[ATT_IDX, 3:6] = -np.eye(3)
+    dfdw[BG_IDX, 6:9] = np.eye(3)
     return dfdw
 
 
@@ -293,7 +293,7 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized measurement matrix.
     """
     dhdx = np.zeros((7, 12))
-    dhdx[0:3, 0:3] = np.eye(3)  # position
-    dhdx[3:6, 3:6] = np.eye(3)  # velocity
-    dhdx[6:7, 6:9] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx[0:3, POS_IDX] = np.eye(3)  # position
+    dhdx[3:6, VEL_IDX] = np.eye(3)  # velocity
+    dhdx[6:7, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
     return dhdx
