@@ -112,7 +112,7 @@ class MEKF:
     """
 
     _I12 = np.eye(12)
-    _dx = np.zeros(12)  # (dp, dv, da, dbg) (always zero after reset)
+    _dx = np.zeros(3)
 
     def __init__(
         self,
@@ -147,11 +147,8 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
-        self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._epsilon = np.concatenate([pos, vel, bg]).reshape(9)
+        self._a_n = np.asarray_chkfinite(acc).reshape(3)
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
