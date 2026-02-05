@@ -20,23 +20,23 @@ def _kalman_gain(P, h, r):
 
 
 @njit  # type: ignore[misc]
-def _state_update(da, p, v, bg, k, z):
+def _state_update(x, k, z):
     """
     Update state estimates:
         x = x + k * z
     """
-    p[0] += k[0] * z
-    p[1] += k[1] * z
-    p[2] += k[2] * z
-    v[0] += k[3] * z
-    v[1] += k[4] * z
-    v[2] += k[5] * z
-    da[0] += k[6] * z
-    da[1] += k[7] * z
-    da[2] += k[8] * z
-    bg[0] += k[9] * z
-    bg[1] += k[10] * z
-    bg[2] += k[11] * z
+    x[0] += k[0] * z
+    x[1] += k[1] * z
+    x[2] += k[2] * z
+    x[3] += k[3] * z
+    x[4] += k[4] * z
+    x[5] += k[5] * z
+    x[6] += k[6] * z
+    x[7] += k[7] * z
+    x[8] += k[8] * z
+    x[9] += k[9] * z
+    x[10] += k[10] * z
+    x[11] += k[11] * z
 
 
 @njit  # type: ignore[misc]
@@ -49,7 +49,7 @@ def _covariance_update(P, k, h, r, I_):
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
+def _kalman_update_scalar(x, P, z, r, h, I_):
     """
     Scalar Kalman filter measurement update.
 
@@ -105,7 +105,7 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    _state_update(da, p, v, bg, k, z)
+    _state_update(x, k, z)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update(P, k, h, r, I_)
@@ -113,10 +113,7 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential(
-    da: NDArray[np.float64],
-    p: NDArray[np.float64],
-    v: NDArray[np.float64],
-    bg: NDArray[np.float64],
+    x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -158,4 +155,4 @@ def _kalman_update_sequential(
     """
 
     for i in range(z.shape[0]):
-        _kalman_update_scalar(da, p, v, bg, P, z[i], var[i], H[i], I_)
+        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)

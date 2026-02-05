@@ -109,7 +109,7 @@ class MEKF:
     """
 
     _I12 = np.eye(12)
-    _da = np.zeros(3)  # attitude error (always zero after reset)
+    _x = np.empty(12)  # state vector (p, v, da, bg)
 
     def __init__(
         self,
@@ -144,10 +144,11 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
+        self._x[0:3] = np.asarray_chkfinite(pos).reshape(3).copy()
+        self._x[3:6] = np.asarray_chkfinite(vel).reshape(3).copy()
+        self._x[6:9] = np.zeros(3)  # attitude error (always zero after reset)
+        self._x[9:12] = np.asarray_chkfinite(bg).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
@@ -174,14 +175,14 @@ class MEKF:
         """
         Copy of the position estimate (m) expressed in the navigation frame.
         """
-        return self._p_n.copy()
+        return self._x[0:3].copy()
 
     @property
     def velocity(self) -> NDArray[np.float64]:
         """
         Copy of the linear velocity estimate (m/s) expressed in the navigation frame.
         """
-        return self._v_n.copy()
+        return self._x[3:6].copy()
 
     @property
     def acceleration(self) -> NDArray[np.float64]:
@@ -195,7 +196,7 @@ class MEKF:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
-        return self._bg_b.copy()
+        return self._x[9:12].copy()
 
     @property
     def bias_acc(self) -> NDArray[np.float64]:
@@ -243,11 +244,11 @@ class MEKF:
         Reset state (regulating error-state to zero).
         """
 
-        if not self._da.any():
+        if not self._x[6:9].any():
             return
 
-        self._att_nb._correct_da(self._da)
-        self._da[:] = 0.0
+        self._att_nb._correct_da(self._x[6:9])
+        self._x[6:9] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
         """
@@ -260,16 +261,13 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        da = self._da
-        p = self._p_n
-        v = self._v_n
-        bg = self._bg_b
+        x = self._x
         P = self._P
         r = p_var
         dhdx = self._dhdx_pos()
-        z = p_meas - self._p_n
+        z = p_meas - self._x[0:3]
 
-        _kalman_update_sequential(da, p, v, bg, P, z, r, dhdx, self._I12)
+        _kalman_update_sequential(x, P, z, r, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -282,16 +280,13 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        da = self._da
-        p = self._p_n
-        v = self._v_n
-        bg = self._bg_b
+        x = self._x
         P = self._P
         r = v_var
         dhdx = self._dhdx_vel()
-        z = v_meas - self._v_n
+        z = v_meas - self._x[3:6]
 
-        _kalman_update_sequential(da, p, v, bg, P, z, r, dhdx, self._I12)
+        _kalman_update_sequential(x, P, z, r, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -310,16 +305,13 @@ class MEKF:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        da = self._da
-        p = self._p_n
-        v = self._v_n
-        bg = self._bg_b
+        x = self._x
         P = self._P
         r = yaw_var
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._da)
+        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._x[6:9])
 
-        _kalman_update_scalar(da, p, v, bg, P, z, r, dhdx, self._I12)
+        _kalman_update_scalar(x, P, z, r, dhdx, self._I12)
 
     def _project_ahead(self):
         """
@@ -327,10 +319,10 @@ class MEKF:
         """
 
         # Position (dead reckoning)
-        self._p_n += self._v_n * self._dt
+        self._x[0:3] += self._x[3:6] * self._dt
 
         # Velocity (dead reckoning)
-        self._v_n += self._a_n * self._dt
+        self._x[3:6] += self._a_n * self._dt
 
         # Attitude (dead reckoning)
         self._att_nb._project_ahead(self._w_b, self._dt)
@@ -410,7 +402,7 @@ class MEKF:
 
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._bg_b
+        self._w_b[:] = w_b - self._x[9:12]
         self._f_b[:] = f_b - self._ba_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
