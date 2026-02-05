@@ -135,16 +135,16 @@ def _process_noise_cov(
 
     Notes
     -----
-    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
+    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
-        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.zeros((12, 12))
-    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
+    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+    Q[6:9, 6:9] = dt * vrw**2 * np.eye(3)
     Q[9:12, 9:12] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
