@@ -260,16 +260,16 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._p_n
-        var = p_var
-        dhdx = self._dhdx_pos()
         da = self._da
         p = self._p_n
         v = self._v_n
         bg = self._bg_b
         P = self._P
+        r = p_var
+        dhdx = self._dhdx_pos()
+        z = p_meas - self._p_n
 
-        _kalman_update_sequential(da, p, v, bg, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(da, p, v, bg, P, z, r, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -282,16 +282,16 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v_n
-        var = v_var
-        dhdx = self._dhdx_vel()
         da = self._da
         p = self._p_n
         v = self._v_n
         bg = self._bg_b
         P = self._P
+        r = v_var
+        dhdx = self._dhdx_vel()
+        z = v_meas - self._v_n
 
-        _kalman_update_sequential(da, p, v, bg, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(da, p, v, bg, P, z, r, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -310,16 +310,16 @@ class MEKF:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        var = yaw_var
-        dhdx = self._dhdx_yaw(self._att_nb._q)
-        dz = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._da)
         da = self._da
         p = self._p_n
         v = self._v_n
         bg = self._bg_b
         P = self._P
+        r = yaw_var
+        dhdx = self._dhdx_yaw(self._att_nb._q)
+        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[6:9] @ self._da)
 
-        _kalman_update_scalar(da, p, v, bg, P, dz, var, dhdx, self._I12)
+        _kalman_update_scalar(da, p, v, bg, P, z, r, dhdx, self._I12)
 
     def _project_ahead(self):
         """
