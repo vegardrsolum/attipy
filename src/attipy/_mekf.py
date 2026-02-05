@@ -114,6 +114,10 @@ class MEKF:
 
     _I12 = np.eye(12)
     _x = np.zeros(12)  # state vector (p, v, da, bg)
+    _p_n = _x[POS_IDX]  # position estimate in navigation frame
+    _v_n = _x[VEL_IDX]  # velocity estimate in navigation frame
+    _da = _x[ATT_IDX]  # attitude error estimate (3-parameter 2xGibbs vector)
+    _bg_b = _x[BG_IDX]  # gyroscope bias estimate in body frame
 
     def __init__(
         self,
@@ -148,10 +152,10 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
-        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
+        self._p_n[:] = np.asarray_chkfinite(pos).reshape(3).copy()
+        self._v_n[:] = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._bg_b[:] = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
@@ -165,42 +169,6 @@ class MEKF:
             self._dt, self._vrw, self._arw, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._att_nb._q)
-
-    @property
-    def _p_n(self) -> NDArray[np.float64]:
-        """Position estimate expressed in the navigation frame (no copy)."""
-        return self._x[POS_IDX]
-
-    @_p_n.setter
-    def _p_n(self, value: ArrayLike) -> None:
-        self._x[POS_IDX] = value
-
-    @property
-    def _v_n(self) -> NDArray[np.float64]:
-        """Velocity estimate expressed in the navigation frame (no copy)."""
-        return self._x[VEL_IDX]
-
-    @_v_n.setter
-    def _v_n(self, value: ArrayLike) -> None:
-        self._x[VEL_IDX] = value
-
-    @property
-    def _da(self) -> NDArray[np.float64]:
-        """Attitude error estimate (3-parameter 2xGibbs vector) (no copy)."""
-        return self._x[ATT_IDX]
-
-    @_da.setter
-    def _da(self, value: ArrayLike) -> None:
-        self._x[ATT_IDX] = value
-
-    @property
-    def _bg_b(self) -> NDArray[np.float64]:
-        """Gyroscope bias estimate expressed in the body frame (no copy)."""
-        return self._x[BG_IDX]
-
-    @_bg_b.setter
-    def _bg_b(self, value: ArrayLike) -> None:
-        self._x[BG_IDX] = value
 
     @property
     def attitude(self) -> Attitude:
@@ -285,7 +253,7 @@ class MEKF:
             return
 
         self._att_nb._correct_da(self._da)
-        self._da = 0.0
+        self._da[:] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
         """
@@ -420,11 +388,8 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        f_b = np.asarray(f, dtype=float)
-        w_b = np.asarray(w, dtype=float)
-
         if degrees:
-            w_b = (np.pi / 180.0) * w_b
+            w = (np.pi / 180.0) * np.asarray(w)
 
         # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
@@ -439,8 +404,8 @@ class MEKF:
 
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._bg_b
-        self._f_b[:] = f_b - self._ba_b
+        self._w_b[:] = w - self._bg_b
+        self._f_b[:] = f - self._ba_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
