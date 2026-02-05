@@ -174,14 +174,14 @@ class MEKF:
         """
         Copy of the position estimate (m) expressed in the navigation frame.
         """
-        return self._p_n.copy()
+        return self._epsilon[0:3].copy()
 
     @property
     def velocity(self) -> NDArray[np.float64]:
         """
         Copy of the linear velocity estimate (m/s) expressed in the navigation frame.
         """
-        return self._v_n.copy()
+        return self._epsilon[3:6].copy()
 
     @property
     def acceleration(self) -> NDArray[np.float64]:
@@ -195,7 +195,7 @@ class MEKF:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
-        return self._bg_b.copy()
+        return self._epsilon[6:9].copy()
 
     @property
     def bias_acc(self) -> NDArray[np.float64]:
