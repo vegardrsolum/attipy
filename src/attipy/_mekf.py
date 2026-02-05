@@ -247,10 +247,8 @@ class MEKF:
         if not dx.any():
             return
 
-        self._p_n[:] += dx[0:3]
-        self._v_n[:] += dx[3:6]
-        self._att_nb._correct_da(dx[6:9])
-        self._bg_b[:] += dx[9:12]
+        self._att_nb._correct_da(dx[0:3])
+        self._epsilon[:] += dx[3:12]
         self._dx[:] = np.zeros(dx.size)
 
     def _aiding_update_pos(self, p_meas, p_var):
