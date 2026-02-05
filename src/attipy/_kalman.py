@@ -20,7 +20,7 @@ def _kalman_gain(P, h, r):
 
 
 @njit  # type: ignore[misc]
-def _state_update(p, v, da, bg, k, z):
+def _state_update(da, p, v, bg, k, z):
     """
     Update state estimates:
         x = x + k * z
@@ -105,7 +105,7 @@ def _kalman_update_scalar(da, p, v, bg, P, z, r, h, I_):
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    _state_update(p, v, da, bg, k, z)
+    _state_update(da, p, v, bg, k, z)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update(P, k, h, r, I_)
