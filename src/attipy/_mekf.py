@@ -112,12 +112,12 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I12 = np.eye(12)
-    _x = np.zeros(12)  # state vector (p, v, da, bg)
-    _p_n = _x[POS_IDX]  # position state view
-    _v_n = _x[VEL_IDX]  # velocity state view
-    _da = _x[ATT_IDX]  # attitude error state view
-    _bg_b = _x[BG_IDX]  # gyroscope bias state view
+    _I12: NDArray[np.float64] = np.eye(12)
+    _x: NDArray[np.float64] = np.zeros(12)  # state vector (p, v, da, bg)
+    _p_n: NDArray[np.float64] = _x[POS_IDX]  # position (navigation frame)
+    _v_n: NDArray[np.float64] = _x[VEL_IDX]  # velocity (navigation frame)
+    _da: NDArray[np.float64] = _x[ATT_IDX]  # attitude error (2xGibbs vector)
+    _bg_b: NDArray[np.float64] = _x[BG_IDX]  # gyroscope bias (body frame)
 
     def __init__(
         self,
