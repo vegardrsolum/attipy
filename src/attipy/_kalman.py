@@ -25,6 +25,7 @@ def _state_update(x, k, z):
     Update state estimates:
         x = x + k * z
     """
+
     x[0] += k[0] * z
     x[1] += k[1] * z
     x[2] += k[2] * z

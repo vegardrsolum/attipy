@@ -113,11 +113,6 @@ class MEKF:
     """
 
     _I12: NDArray[np.float64] = np.eye(12)
-    _x: NDArray[np.float64] = np.zeros(12)  # state vector (p, v, da, bg)
-    _p_n: NDArray[np.float64] = _x[POS_IDX]  # position (navigation frame)
-    _v_n: NDArray[np.float64] = _x[VEL_IDX]  # velocity (navigation frame)
-    _da: NDArray[np.float64] = _x[ATT_IDX]  # attitude error (2xGibbs vector)
-    _bg_b: NDArray[np.float64] = _x[BG_IDX]  # gyroscope bias (body frame)
 
     def __init__(
         self,
@@ -149,16 +144,40 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # State and covariance estimates
+        # State vector
+        self._x = np.empty(12, dtype=np.float64)
+
+        # Position estimate expressed in navigation frame
+        self._p_n = self._x[POS_IDX]
+        self._p_n[:] = np.asarray_chkfinite(pos)
+
+        # Velocity estimate expressed in navigation frame
+        self._v_n = self._x[VEL_IDX]
+        self._v_n[:] = np.asarray_chkfinite(vel)
+
+        # Acceleration estimate expressed in navigation frame
+        self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
+
+        # Attitude error estimate (2xGibbs vector)
+        self._da = self._x[ATT_IDX]
+        self._da[:] = 0.0
+
+        # Gyroscope bias estimate expressed in body frame
+        self._bg_b = self._x[BG_IDX]
+        self._bg_b[:] = np.asarray_chkfinite(bg)
+
+        # Accelerometer bias estimate expressed in body frame
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+
+        # Attitude estimate
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._p_n[:] = np.asarray_chkfinite(pos).reshape(3).copy()
-        self._v_n[:] = np.asarray_chkfinite(vel).reshape(3).copy()
-        self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._bg_b[:] = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+
+        # IMU measurements expressed in body frame (specific force and angular rate)
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+
+        # Error covariance matrix
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
 
         # Discretized state space model (updated each time step)
