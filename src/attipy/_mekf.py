@@ -146,10 +146,10 @@ class MEKF:
 
         # State vector
         self._x = np.empty(12, dtype=np.float64)
-        self._p_n = self._x[POS_IDX]  # view
-        self._v_n = self._x[VEL_IDX]  # view
-        self._da = self._x[ATT_IDX]  # view
-        self._bg_b = self._x[BG_IDX]  # view
+        self._p_n = self._x[POS_IDX]  # postition total state estimate (view)
+        self._v_n = self._x[VEL_IDX]  # velocity total state estimate (view)
+        self._da = self._x[ATT_IDX]  # attitude error state estimate (view)
+        self._bg_b = self._x[BG_IDX]  # gyroscope bias total state estimate (view)
 
         # Linear position, velocity and acceleration estimates (navigation frame)
         self._p_n[:] = np.asarray_chkfinite(pos)
