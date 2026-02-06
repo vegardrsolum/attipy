@@ -144,25 +144,20 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # State vector
-        self._x = np.empty(12, dtype=np.float64)
-        self._p_n = self._x[POS_IDX]  # postition total state estimate (view)
-        self._v_n = self._x[VEL_IDX]  # velocity total state estimate (view)
-        self._da = self._x[ATT_IDX]  # attitude error state estimate (view)
-        self._bg_b = self._x[BG_IDX]  # gyroscope bias total state estimate (view)
+        # Error-state vector estimate (dp, dv, da, dbg)
+        self._dx = np.zeros(12, dtype=np.float64)
 
         # Linear position, velocity and acceleration estimates (navigation frame)
-        self._p_n[:] = np.asarray_chkfinite(pos)
-        self._v_n[:] = np.asarray_chkfinite(vel)
+        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
 
         # Attitude estimate
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._da[:] = 0.0  # attitude error (always zero after reset)
 
         # Accelerometer and gyroscope bias estimates (body frame)
-        self._bg_b[:] = np.asarray_chkfinite(bg)
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
 
         # Specific force and angular rate estimates (bias corrected, body frame)
@@ -260,11 +255,14 @@ class MEKF:
         Reset state (regulating error-state to zero).
         """
 
-        if not self._da.any():
+        if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._da)
-        self._da[:] = 0.0
+        self._p_n[:] += self._dx[POS_IDX]
+        self._v_n[:] += self._dx[VEL_IDX]
+        self._att_nb._correct_da(self._dx[ATT_IDX])
+        self._bg_b[:] += self._dx[BG_IDX]
+        self._dx[:] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
         """
@@ -277,7 +275,7 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        x = self._x
+        x = self._dx
         P = self._P
         r = p_var
         dhdx = self._dhdx_pos()
@@ -296,7 +294,7 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        x = self._x
+        x = self._dx
         P = self._P
         r = v_var
         dhdx = self._dhdx_vel()
@@ -321,11 +319,11 @@ class MEKF:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
 
-        x = self._x
+        x = self._dx
         P = self._P
         r = yaw_var
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        z = _signed_smallest_angle(yaw_meas - yaw - dhdx[ATT_IDX] @ self._da)
+        z = _signed_smallest_angle(yaw_meas - yaw)
 
         _kalman_update_scalar(x, P, z, r, dhdx, self._I12)
 
