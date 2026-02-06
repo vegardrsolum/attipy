@@ -144,27 +144,19 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # Error-state vector estimate (dp, dv, da, dbg)
-        self._dx = np.zeros(12, dtype=np.float64)
-
-        # Linear position, velocity and acceleration estimates (navigation frame)
+        # State estimates
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-
-        # Attitude estimate
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
-
-        # Accelerometer and gyroscope bias estimates (body frame)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
-
-        # Specific force and angular rate estimates (bias corrected, body frame)
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._dx = np.zeros(12, dtype=np.float64)
 
-        # Error covariance matrix
+        # Error covariance matrix estimate
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
 
         # Discretized state space model (updated each time step)
