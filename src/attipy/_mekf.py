@@ -173,7 +173,7 @@ class MEKF:
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
 
-        # IMU measurements expressed in body frame (specific force and angular rate)
+        # Specific force and angular rate expressed in body frame
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
 
