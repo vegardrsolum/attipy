@@ -185,26 +185,26 @@ class MEKF:
         if not self._estimate_bias_acc:
             self._disable_state(BA_IDX)
 
-    def _disable_state(self, idx):
+    def _disable_state(self, sl: slice) -> None:
         """
-        Disable a state by zeroing out the corresponding row and column in the
-        covariance matrix and setting the corresponding column in the state
-        transition matrix to zero.
+        Disable states by zeroing out corresponding rows and columns in the error
+        covariance matrix, state transition matrix, process noise covariance matrix,
+        and measurement matrix.
 
         Parameters
         ----------
-        idx : int
-            Index of the state to disable.
+        sl : slice
+            Slice of the state to disable.
         """
-        self._P[idx, :] = 0.0
-        self._P[:, idx] = 0.0
-        self._P[idx, idx] = 1e-12  # to avoid singularity
-        self._phi[idx, :] = 1.0
-        self._phi[:, idx] = 0.0
-        self._phi[idx, idx] = 1.0
-        self._Q[idx, :] = 0.0
-        self._Q[:, idx] = 0.0
-        self._dhdx[:, idx] = 0.0
+        n = sl.stop - sl.start
+        self._P[sl, :] = 0.0
+        self._P[:, sl] = 0.0
+        self._phi[sl, :] = 0.0
+        self._phi[:, sl] = 0.0
+        self._phi[sl, sl] = np.eye(n)
+        self._Q[sl, :] = 0.0
+        self._Q[:, sl] = 0.0
+        self._dhdx[:, sl] = 0.0
 
     @property
     def attitude(self) -> Attitude:
