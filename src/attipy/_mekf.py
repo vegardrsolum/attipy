@@ -128,6 +128,8 @@ class MEKF:
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
+        acc_bias_stability: float = 0.0005,
+        acc_bias_corr_time: float = 50.0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -141,6 +143,8 @@ class MEKF:
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
         self._arw = gyro_noise_density  # angular random walk
+        self._abs = acc_bias_stability  # accelerometer bias stability
+        self._abc = acc_bias_corr_time  # accelerometer bias correlation time
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
@@ -150,19 +154,19 @@ class MEKF:
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
-        self._dx = np.zeros(12, dtype=np.float64)
+        self._P = np.asarray_chkfinite(P).reshape(15, 15).copy()
+        self._dx = np.zeros(15, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition(
-            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+            self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
         )
         self._Q = _process_noise_cov(
-            self._dt, self._vrw, self._arw, self._gbs, self._gbc
+            self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
