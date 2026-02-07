@@ -43,10 +43,10 @@ def _state_transition(
 
     Returns
     -------
-    phi : ndarray, shape (12, 12)
+    phi : ndarray, shape (15, 15)
         State transition matrix.
     """
-    phi = np.eye(12)
+    phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
     phi[VEL_IDX, ATT_IDX] += -dt * R_nb @ S(f_b)  # NB! update each time step
     phi[VEL_IDX, BA_IDX] += -dt * R_nb  # NB! update each time step
@@ -74,7 +74,7 @@ def _update_state_transition(
 
     Parameters
     ----------
-    phi : ndarray, shape (12, 12)
+    phi : ndarray, shape (15, 15)
         State transition matrix to be updated in place.
     dt : float
         Time step.
