@@ -54,10 +54,11 @@ def test_wn_input_matrix():
     dfdw_out = _wn_input_matrix(R_nb)
 
     # Input (white noise) matrix
-    dfdw = np.zeros((12, 9))
+    dfdw = np.zeros((15, 12))
     dfdw[3:6, 0:3] = -R_nb
     dfdw[6:9, 3:6] = -np.eye(3)
     dfdw[9:12, 6:9] = np.eye(3)
+    dfdw[12:15, 9:12] = np.eye(3)
 
     np.testing.assert_allclose(dfdw_out, dfdw)
 
