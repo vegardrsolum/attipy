@@ -118,8 +118,8 @@ class MEKF:
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     estimate_bias_acc : bool, default True
-        Specifies whether to estimate accelerometer bias. Defaults to True (estimate
-        accelerometer bias).
+        Specifies whether to estimate and update accelerometer bias. Defaults to
+        True (estimate accelerometer bias).
     """
 
     _I15: NDArray[np.float64] = np.eye(15)
