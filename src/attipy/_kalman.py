@@ -52,7 +52,7 @@ def _covariance_update(P, k, h, r, I_):
         Identity matrix.
     """
     A = I_ - np.outer(k, h)
-    P[:] = A @ P @ A.T + r * np.outer(k, k)
+    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
 
 
 @njit  # type: ignore[misc]
