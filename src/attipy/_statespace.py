@@ -16,6 +16,7 @@ def _state_transition(
     f_b: NDArray[np.float64],
     w_b: NDArray[np.float64],
     R_nb: NDArray[np.float64],
+    abc: float,
     gbc: float,
 ) -> NDArray[np.float64]:
     """
@@ -35,6 +36,8 @@ def _state_transition(
         Angular rate measurement (bias corrected) in body frame.
     R_nb : ndarray, shape (3, 3)
         Rotation matrix (from body to navigation frame).
+    abc : float
+        Accelerometer bias correlation time in seconds.
     gbc : float
         Gyro bias correlation time in seconds.
 
@@ -46,8 +49,10 @@ def _state_transition(
     phi = np.eye(12)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
     phi[VEL_IDX, ATT_IDX] += -dt * R_nb @ S(f_b)  # NB! update each time step
+    phi[VEL_IDX, BA_IDX] += -dt * R_nb  # NB! update each time step
     phi[ATT_IDX, ATT_IDX] += -dt * S(w_b)  # NB! update each time step
     phi[ATT_IDX, BG_IDX] += -dt * np.eye(3)
+    phi[BA_IDX, BA_IDX] += -dt * np.eye(3) / abc
     phi[BG_IDX, BG_IDX] += -dt * np.eye(3) / gbc
     return phi
 
@@ -174,6 +179,8 @@ def _state_matrix(
         Angular rate measurement (bias corrected) in body frame.
     R_nb : ndarray, shape (3, 3)
         Rotation matrix (from body to navigation frame).
+    abc : float
+        Accelerometer bias correlation time in seconds.
     gbc : float
         Gyro bias correlation time in seconds.
 
