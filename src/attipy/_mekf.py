@@ -195,7 +195,7 @@ class MEKF:
         Parameters
         ----------
         sl : slice
-            Slice of the state to disable.
+            Slice object specifying the indices of the states to disable.
         """
         n = sl.stop - sl.start
         self._P[sl, :] = 0.0
