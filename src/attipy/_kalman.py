@@ -123,11 +123,24 @@ def _kalman_update_sequential(
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Sequential Kalman filter measurement update.
+    Sequential Kalman filter measurement update. Updates (in place) the state, x,
+    and covariance matrix, P, using the Kalman filter update equations given below.
 
-    Performs a series of scalar measurement updates of the state vector `x` and
-    covariance matrix `P` using the corresponding measurement matrix rows in `H`,
-    measurements `z`, and measurement variances `var`.
+    Innovation covariance:
+
+        S = H @ P @ H.T + R
+
+    Kalman gain:
+
+        K = P @ H.T @ inv(S)
+
+    Updated (a posteriori) state estimate:
+
+        x = x + K @ (z - H @ x)
+
+    Updated (a posteriori) covariance estimate (Joseph form):
+
+        P = (I - K @ H) @ P @ (I - K @ H).T + K @ R @ K.T
 
     The update is applied sequentially (one measurement at a time) and uses the
     Joseph stabilized form for the covariance update to preserve symmetry and positive
