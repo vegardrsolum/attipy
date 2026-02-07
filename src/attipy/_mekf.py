@@ -265,9 +265,9 @@ class MEKF:
         if pos_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._p_n
+        dz = pos_meas - self._p_n
         dhdx = self._dhdx_pos()
-        _kalman_update_sequential(self._dx, self._P, dz, p_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I12)
 
     def _aiding_update_vel(self, vel_meas, vel_var):
         """
@@ -280,9 +280,9 @@ class MEKF:
         if vel_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v_n
+        dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, v_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
