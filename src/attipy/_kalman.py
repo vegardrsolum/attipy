@@ -16,6 +16,11 @@ def _kalman_gain(P, h, r):
         Measurement sensitivity matrix (row vector).
     r : float
         Scalar measurement noise variance.
+
+    Returns
+    -------
+    k : ndarray, shape (n,)
+        Kalman gain vector.
     """
 
     # Innovation covariance (inverse)
@@ -160,13 +165,6 @@ def _kalman_update_sequential(
         Measurement matrix; each row corresponds to a scalar measurement model.
     I_ : ndarray, shape (n, n)
         Identity matrix.
-
-    Returns
-    -------
-    x : ndarray, shape (n,)
-        Updated state estimate.
-    P : ndarray, shape (n, n)
-        Updated state covariance matrix.
     """
 
     for i in range(z.shape[0]):
