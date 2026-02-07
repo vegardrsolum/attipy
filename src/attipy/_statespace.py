@@ -69,6 +69,7 @@ def _update_state_transition(
     Update the state transition matrix, phi, in place:
 
         phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
+        phi[3:9, 9:12] = -dt * R_nb
         phi[6:9, 6:9] = I - dt * S(w_b)
 
     Parameters
@@ -107,6 +108,17 @@ def _update_state_transition(
     phi[8, 6] = dt * wy
     phi[8, 7] = -dt * wx
 
+    # phi[3:9, 9:12] = -dt * R_nb
+    phi[3, 9] = -dt * r00
+    phi[3, 10] = -dt * r01
+    phi[3, 11] = -dt * r02
+    phi[4, 9] = -dt * r10
+    phi[4, 10] = -dt * r11
+    phi[4, 11] = -dt * r12
+    phi[5, 9] = -dt * r20
+    phi[5, 10] = -dt * r21
+    phi[5, 11] = -dt * r22
+
     # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
     phi[3, 6] = -dt * (fz * r01 - fy * r02)
     phi[4, 6] = -dt * (fz * r11 - fy * r12)
@@ -117,8 +129,6 @@ def _update_state_transition(
     phi[3, 8] = -dt * (fy * r00 - fx * r01)
     phi[4, 8] = -dt * (fy * r10 - fx * r11)
     phi[5, 8] = -dt * (fy * r20 - fx * r21)
-
-    # 
 
 
 def _process_noise_cov(
