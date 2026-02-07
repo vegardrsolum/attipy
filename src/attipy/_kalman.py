@@ -11,7 +11,7 @@ def _kalman_gain(P, h, r):
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State covariance matrix.
+        State error covariance matrix.
     h : ndarray, shape (n,)
         Measurement sensitivity matrix (row vector).
     r : float
@@ -61,7 +61,7 @@ def _covariance_update(P, k, h, r, I_):
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State covariance matrix to be updated in place.
+        State error covariance matrix to be updated in place.
     k : ndarray, shape (n,)
         Kalman gain vector.
     h : ndarray, shape (n,)
@@ -117,13 +117,13 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     x : ndarray, shape (n,)
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
-        State covariance matrix to be updated in place.
+        State error covariance matrix to be updated in place.
     z : float
-        Measurement.
+        Scalar measurement.
     r : float
-        Measurement noise variance.
+        Scalar measurement noise variance.
     h : ndarray, shape (n,)
-        Measurement matrix.
+        Measurement sensitivity matrix (row vector).
     I_ : ndarray, shape (n, n)
         Identity matrix.
     """
@@ -163,7 +163,7 @@ def _kalman_update_sequential(
     x : ndarray, shape (n,)
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
-        State covariance matrix to be updated in place.
+        State error covariance matrix to be updated in place.
     z : ndarray, shape (m,)
         Measurement vector.
     var : ndarray, shape (m,)
