@@ -222,7 +222,7 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def _process_noise_psd(
-    vrw: float, arw: float, gbs: float, gbc: float
+    vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup white noise (process noise) power spectral density matrix, W.
@@ -233,6 +233,10 @@ def _process_noise_psd(
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
         Angular random walk (gyroscope noise density) in rad/√Hz.
+    abs : float
+        Accelerometer bias stability (bias instability) in m/s^2.
+    abc : float
+        Accelerometer bias correlation time in seconds.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -240,13 +244,14 @@ def _process_noise_psd(
 
     Returns
     -------
-    W : ndarray, shape (9, 9)
+    W : ndarray, shape (12, 12)
         Process noise power spectral density matrix.
     """
-    W = np.eye(9)
+    W = np.eye(12)
     W[0:3, 0:3] *= vrw**2
     W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= 2.0 * abs**2 / abc
+    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
     return W
 
 
