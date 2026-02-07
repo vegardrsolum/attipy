@@ -24,7 +24,7 @@ class Test_MEKF:
         v_n = (1.0, -2.0, 3.0)
         a_n = (1.0, 2.0, 3.0)
         w_b = (0.01, -0.02, 0.03)
-        P = 42.0 * np.eye(12)
+        P = 42.0 * np.eye(15)
         g = 9.83
         nav_frame = "enu"
         acc_noise_density = 0.00123
@@ -90,14 +90,14 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._v_n, np.zeros(3))
-        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(12))
+        np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(15))
 
         np.testing.assert_allclose(mekf._f_b, np.array([0.0, 0.0, -9.80665]))
         np.testing.assert_allclose(mekf._w_b, np.zeros(3))
 
     def test_dhdx_vel(self, mekf):
         dhdx_vel = mekf._dhdx_vel()
-        dhdx_vel_expected = np.zeros((3, 12))
+        dhdx_vel_expected = np.zeros((3, 15))
         dhdx_vel_expected[:, 3:6] = np.eye(3)
         np.testing.assert_allclose(dhdx_vel, dhdx_vel_expected)
         assert dhdx_vel.flags.c_contiguous
@@ -105,7 +105,7 @@ class Test_MEKF:
     def test_dhdx_yaw(self, mekf):
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         dhdx_yaw = mekf._dhdx_yaw(q_nb)
-        dhdx_yaw_expected = np.zeros((12,))
+        dhdx_yaw_expected = np.zeros((15,))
         dhdx_yaw_expected[6:9] = _dyawda(q_nb)
         np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
         assert dhdx_yaw.flags.c_contiguous
@@ -164,8 +164,8 @@ class Test_MEKF:
         assert mekf.angular_rate is not mekf._w_b  # ensure it is a copy
 
     def test_P(self, mekf, att):
-        mekf = ap.MEKF(10.0, att, P=np.eye(12))
-        np.testing.assert_allclose(mekf.P, np.eye(12))
+        mekf = ap.MEKF(10.0, att, P=np.eye(15))
+        np.testing.assert_allclose(mekf.P, np.eye(15))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
     def test_update(self, pva_sim):
