@@ -6,6 +6,10 @@ from numpy.typing import ArrayLike, NDArray
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import (
+    ATT_IDX,
+    BG_IDX,
+    POS_IDX,
+    VEL_IDX,
     _dyawda,
     _measurement_matrix,
     _process_noise_cov,
@@ -40,24 +44,21 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     return g_n
 
 
-def _signed_smallest_angle(angle: float, degrees: bool = False) -> float:
+def _signed_smallest_angle(angle: float) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
 
     Parameters
     ----------
     angle : float
-        Angle value.
-    degrees : bool, default False
-        Specifies whether ``angle`` is given degrees or radians (default).
+        Angle in radians.
 
     Returns
     -------
     float
-        The smallest angle between [-pi, pi] radians (or [-180., 180) degrees).
+        The smallest angle between [-pi, pi] radians.
     """
-    base = 180.0 if degrees else np.pi
-    return (angle + base) % (2.0 * base) - base
+    return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
 
 class MEKF:
@@ -111,8 +112,7 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I12 = np.eye(12)
-    _dx = np.zeros(12)  # (dp, dv, da, dbg) (always zero after reset)
+    _I12: NDArray[np.float64] = np.eye(12)
 
     def __init__(
         self,
@@ -150,11 +150,12 @@ class MEKF:
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
+        self._dx = np.zeros(12, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition(
@@ -167,9 +168,7 @@ class MEKF:
 
     @property
     def attitude(self) -> Attitude:
-        """
-        Attitude estimate (no copy).
-        """
+        """Attitude estimate (no copy)."""
         return self._att_nb
 
     @property
@@ -238,23 +237,22 @@ class MEKF:
         """
         Heading (yaw angle) part of the measurement matrix, shape (12,).
         """
-        self._dhdx[6:7, 6:9] = _dyawda(q_nb)
+        self._dhdx[6:7, ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[6]
 
     def _reset(self) -> None:
         """
         Reset state (regulating error-state to zero).
         """
-        dx = self._dx
 
-        if not dx.any():
+        if not self._dx.any():
             return
 
-        self._p_n[:] += dx[0:3]
-        self._v_n[:] += dx[3:6]
-        self._att_nb._correct_da(dx[6:9])
-        self._bg_b[:] += dx[9:12]
-        self._dx[:] = np.zeros(dx.size)
+        self._p_n[:] += self._dx[POS_IDX]
+        self._v_n[:] += self._dx[VEL_IDX]
+        self._att_nb._correct_da(self._dx[ATT_IDX])
+        self._bg_b[:] += self._dx[BG_IDX]
+        self._dx[:] = 0.0
 
     def _aiding_update_pos(self, p_meas, p_var):
         """
@@ -268,12 +266,8 @@ class MEKF:
             raise ValueError("'pos_var' not provided.")
 
         dz = p_meas - self._p_n
-        var = p_var
         dhdx = self._dhdx_pos()
-        dx = self._dx
-        P = self._P
-
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, p_var, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -287,12 +281,8 @@ class MEKF:
             raise ValueError("'vel_var' not provided.")
 
         dz = v_meas - self._v_n
-        var = v_var
         dhdx = self._dhdx_vel()
-        dx = self._dx
-        P = self._P
-
-        _kalman_update_sequential(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, v_var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -310,14 +300,9 @@ class MEKF:
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
-
-        var = yaw_var
-        dz = _signed_smallest_angle(yaw_meas - yaw, degrees=False)
+        dz = _signed_smallest_angle(yaw_meas - yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        dx = self._dx
-        P = self._P
-
-        _kalman_update_scalar(dx, P, dz, var, dhdx, self._I12)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I12)
 
     def _project_ahead(self):
         """
@@ -389,11 +374,8 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        f_b = np.asarray(f, dtype=float)
-        w_b = np.asarray(w, dtype=float)
-
         if degrees:
-            w_b = (np.pi / 180.0) * w_b
+            w = (np.pi / 180.0) * np.asarray(w)
 
         # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
@@ -408,8 +390,8 @@ class MEKF:
 
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
-        self._w_b[:] = w_b - self._bg_b
-        self._f_b[:] = f_b - self._ba_b
+        self._w_b[:] = w - self._bg_b
+        self._f_b[:] = f - self._ba_b
         self._a_n[:] = self._R_nb @ self._f_b + self._g_n
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
