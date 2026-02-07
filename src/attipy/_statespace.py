@@ -48,12 +48,12 @@ def _state_transition(
     """
     phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
-    phi[VEL_IDX, ATT_IDX] += -dt * R_nb @ S(f_b)  # NB! update each time step
-    phi[VEL_IDX, BA_IDX] += -dt * R_nb  # NB! update each time step
-    phi[ATT_IDX, ATT_IDX] += -dt * S(w_b)  # NB! update each time step
-    phi[ATT_IDX, BG_IDX] += -dt * np.eye(3)
-    phi[BA_IDX, BA_IDX] += -dt * np.eye(3) / abc
-    phi[BG_IDX, BG_IDX] += -dt * np.eye(3) / gbc
+    phi[VEL_IDX, ATT_IDX] -= dt * R_nb @ S(f_b)  # NB! update each time step
+    phi[VEL_IDX, BA_IDX] -= dt * R_nb  # NB! update each time step
+    phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update each time step
+    phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+    phi[BA_IDX, BA_IDX] -= dt * np.eye(3) / abc
+    phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
     return phi
 
 
