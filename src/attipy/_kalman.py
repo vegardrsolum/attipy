@@ -7,6 +7,15 @@ from numpy.typing import NDArray
 def _kalman_gain(P, h, r):
     """
     Compute the Kalman gain for a scalar measurement.
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State covariance matrix.
+    h : ndarray, shape (n,)
+        Measurement sensitivity matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
     """
 
     # Innovation covariance (inverse)
@@ -22,29 +31,45 @@ def _kalman_gain(P, h, r):
 @njit  # type: ignore[misc]
 def _state_update(x, k, z, h):
     """
-    Update state estimates:
+    Update state estimates with measurements:
+
         x = x + k * (z - h @ x)
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    z : float
+        Scalar measurement.
+    h : ndarray, shape (n,)
+        Measurement sensitivity matrix (row vector).
     """
 
+    n = x.shape[0]
     dz = z - np.dot(h, x)
-    x[0] += k[0] * dz
-    x[1] += k[1] * dz
-    x[2] += k[2] * dz
-    x[3] += k[3] * dz
-    x[4] += k[4] * dz
-    x[5] += k[5] * dz
-    x[6] += k[6] * dz
-    x[7] += k[7] * dz
-    x[8] += k[8] * dz
-    x[9] += k[9] * dz
-    x[10] += k[10] * dz
-    x[11] += k[11] * dz
+    for i in range(n):
+        x[i] += k[i] * dz
 
 
 @njit  # type: ignore[misc]
 def _covariance_update(P, k, h, r, I_):
     """
     Update covariance estimate (Joseph form).
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State covariance matrix to be updated in place.
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    h : ndarray, shape (n,)
+        Measurement sensitivity matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+    I_ : ndarray, shape (n, n)
+        Identity matrix.
     """
     A = I_ - np.outer(k, h)
     P[:, :] = A @ P @ A.T + r * np.outer(k, k)
