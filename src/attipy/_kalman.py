@@ -29,31 +29,6 @@ def _kalman_gain(P, h, r):
 
 
 @njit  # type: ignore[misc]
-def _state_update(x, k, z, h):
-    """
-    Update state estimates with measurements:
-
-        x = x + k * (z - h @ x)
-
-    Parameters
-    ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    z : float
-        Scalar measurement.
-    h : ndarray, shape (n,)
-        Measurement sensitivity matrix (row vector).
-    """
-
-    n = x.shape[0]
-    dz = z - np.dot(h, x)
-    for i in range(n):
-        x[i] += k[i] * dz
-
-
-@njit  # type: ignore[misc]
 def _covariance_update(P, k, h, r, I_):
     """
     Update covariance estimate (Joseph form).
@@ -72,7 +47,7 @@ def _covariance_update(P, k, h, r, I_):
         Identity matrix.
     """
     A = I_ - np.outer(k, h)
-    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
+    P[:] = A @ P @ A.T + r * np.outer(k, k)
 
 
 @njit  # type: ignore[misc]
@@ -132,7 +107,7 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    _state_update(x, k, z, h)
+    x[:] += k * (z - np.dot(h, x))
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update(P, k, h, r, I_)
