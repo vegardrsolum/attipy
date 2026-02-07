@@ -254,35 +254,35 @@ class MEKF:
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
 
-    def _aiding_update_pos(self, p_meas, p_var):
+    def _aiding_update_pos(self, pos_meas, pos_var):
         """
         Update with position vector aiding measurement.
         """
 
-        if p_meas is None:
+        if pos_meas is None:
             return None
 
-        if p_var is None:
+        if pos_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        dz = p_meas - self._p_n
+        dz = pos_meas - self._p_n
         dhdx = self._dhdx_pos()
-        _kalman_update_sequential(self._dx, self._P, dz, p_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I12)
 
-    def _aiding_update_vel(self, v_meas, v_var):
+    def _aiding_update_vel(self, vel_meas, vel_var):
         """
         Update with velocity vector aiding measurement.
         """
 
-        if v_meas is None:
+        if vel_meas is None:
             return None
 
-        if v_var is None:
+        if vel_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = v_meas - self._v_n
+        dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, v_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -335,7 +335,7 @@ class MEKF:
         yaw_degrees: bool = False,
     ) -> Self:
         """
-        Update the MEKF state estimates with IMU and aiding measurements.
+        Update state estimates with IMU and aiding measurements.
 
         Parameters
         ----------
