@@ -144,20 +144,18 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # State estimates
+        # State and covariance estimates
+        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
+        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
-        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._dx = np.zeros(12, dtype=np.float64)
-
-        # Error covariance matrix estimate
         self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
+        self._dx = np.zeros(12, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition(
@@ -267,13 +265,9 @@ class MEKF:
         if p_var is None:
             raise ValueError("'pos_var' not provided.")
 
-        x = self._dx
-        P = self._P
-        r = p_var
+        dz = p_meas - self._p_n
         dhdx = self._dhdx_pos()
-        z = p_meas - self._p_n
-
-        _kalman_update_sequential(x, P, z, r, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, p_var, dhdx, self._I12)
 
     def _aiding_update_vel(self, v_meas, v_var):
         """
@@ -286,13 +280,9 @@ class MEKF:
         if v_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        x = self._dx
-        P = self._P
-        r = v_var
+        dz = v_meas - self._v_n
         dhdx = self._dhdx_vel()
-        z = v_meas - self._v_n
-
-        _kalman_update_sequential(x, P, z, r, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, v_var, dhdx, self._I12)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -310,14 +300,9 @@ class MEKF:
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
-
-        x = self._dx
-        P = self._P
-        r = yaw_var
+        dz = _signed_smallest_angle(yaw_meas - yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        z = _signed_smallest_angle(yaw_meas - yaw)
-
-        _kalman_update_scalar(x, P, z, r, dhdx, self._I12)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I12)
 
     def _project_ahead(self):
         """
