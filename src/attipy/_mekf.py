@@ -7,6 +7,7 @@ from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import (
     ATT_IDX,
+    BA_IDX,
     BG_IDX,
     POS_IDX,
     VEL_IDX,
@@ -256,6 +257,7 @@ class MEKF:
         self._p_n[:] += self._dx[POS_IDX]
         self._v_n[:] += self._dx[VEL_IDX]
         self._att_nb._correct_da(self._dx[ATT_IDX])
+        self._ba_b[:] += self._dx[BA_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
 
