@@ -360,8 +360,6 @@ class MEKF:
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
-        ba: ArrayLike | None = None,
-        ba_var: ArrayLike | None = None,
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -396,12 +394,6 @@ class MEKF:
         yaw_degrees : bool, default False
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
-        ba : array_like, shape (3,), optional
-            Accelerometer bias measurement (bax, bay, baz) in m/s^2. If ``None``,
-            accelerometer bias aiding is not used.
-        ba_var : array_like, shape (3,), optional
-            Variance of the accelerometer bias measurement noise in (m/s^2)^2.
-            Required for ``ba``.
 
         Returns
         -------
@@ -419,7 +411,6 @@ class MEKF:
         self._aiding_update_pos(pos, pos_var)
         self._aiding_update_vel(vel, vel_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
-        self._aiding_update_ba(ba, ba_var)
 
         # Reset state estimates (regulating error-state to zero)
         self._reset()
