@@ -94,21 +94,21 @@ def test_state_transition(noise_params):
 
 
 def test_update_state_transition(noise_params):
-    *_, gbc = noise_params
+    *_, abc, _, gbc = noise_params
 
     dt = 0.1
 
     f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
+    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
 
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
     R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
     _update_state_transition(phi, dt, f_b_corr, w_b_corr, R_nb)
 
-    phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, gbc)
+    phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
 
     np.testing.assert_allclose(phi, phi_expected)
 
