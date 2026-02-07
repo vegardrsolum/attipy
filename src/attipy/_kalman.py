@@ -13,7 +13,7 @@ def _kalman_gain(P, h, r):
     P : ndarray, shape (n, n)
         State error covariance matrix.
     h : ndarray, shape (n,)
-        Measurement sensitivity matrix (row vector).
+        Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
 
@@ -45,7 +45,7 @@ def _covariance_update(P, k, h, r, I_):
     k : ndarray, shape (n,)
         Kalman gain vector.
     h : ndarray, shape (n,)
-        Measurement sensitivity matrix (row vector).
+        Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
     I_ : ndarray, shape (n, n)
@@ -67,7 +67,7 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     where:
     - x is the state vector,
     - z is the scalar measurement,
-    - h is the measurement (row) vector,
+    - h is the measurement matrix (row vector),
     - v is zero-mean Gaussian measurement noise,
     - r is the measurement noise variance.
 
@@ -103,7 +103,7 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     r : float
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
-        Measurement sensitivity matrix (row vector).
+        Measurement matrix (row vector).
     I_ : ndarray, shape (n, n)
         Identity matrix.
     """
