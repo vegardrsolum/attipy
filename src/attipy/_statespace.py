@@ -7,7 +7,8 @@ from ._vectorops import _skew_symmetric as S
 POS_IDX = slice(0, 3)
 VEL_IDX = slice(3, 6)
 ATT_IDX = slice(6, 9)
-BG_IDX = slice(9, 12)
+BA_IDX = slice(9, 12)
+BG_IDX = slice(12, 15)
 
 
 def _state_transition(
@@ -159,6 +160,7 @@ def _state_matrix(
     f_b: NDArray[np.float64],
     w_b: NDArray[np.float64],
     R_nb: NDArray[np.float64],
+    abc: float,
     gbc: float,
 ) -> NDArray[np.float64]:
     """
@@ -177,14 +179,16 @@ def _state_matrix(
 
     Returns
     -------
-    dfdx : ndarray, shape (12, 12)
+    dfdx : ndarray, shape (15, 15)
         Linearized state matrix.
     """
-    dfdx = np.zeros((12, 12))
+    dfdx = np.zeros((15, 15))
     dfdx[POS_IDX, VEL_IDX] = np.eye(3)
     dfdx[VEL_IDX, ATT_IDX] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[VEL_IDX, BA_IDX] = -R_nb  # NB! update each time step
     dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
     dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BA_IDX, BA_IDX] = -np.eye(3) / abc
     dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
