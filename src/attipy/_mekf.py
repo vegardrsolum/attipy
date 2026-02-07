@@ -187,9 +187,9 @@ class MEKF:
 
     def _disable_state(self, sl: slice) -> None:
         """
-        Disable states by zeroing out corresponding rows and columns in the error
-        covariance matrix, state transition matrix, process noise covariance matrix,
-        and measurement matrix.
+        Disable states by zeroing out corresponding rows/columns in the covariance,
+        state transition and measurement matrices, while setting the transition
+        of the disabled states to identity (i.e., no change).
 
         Parameters
         ----------
@@ -199,6 +199,7 @@ class MEKF:
         n = sl.stop - sl.start
         self._P[sl, :] = 0.0
         self._P[:, sl] = 0.0
+        self._P[sl, sl] = 1e-12 * np.eye(n)  # avoid singularity
         self._phi[sl, :] = 0.0
         self._phi[:, sl] = 0.0
         self._phi[sl, sl] = np.eye(n)
