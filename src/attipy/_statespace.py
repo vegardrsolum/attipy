@@ -120,7 +120,7 @@ def _update_state_transition(
 
 
 def _process_noise_cov(
-    dt: float, vrw: float, arw: float, gbs: float, gbc: float
+    dt: float, vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup process noise covariance matrix, Q, using the first-order approximation:
@@ -135,6 +135,10 @@ def _process_noise_cov(
         Velocity random walk (accelerometer noise density) in (m/s)/√Hz.
     arw : float
         Angular random walk (gyroscope noise density) in rad/√Hz.
+    abs : float
+        Accelerometer bias stability (bias instability) in m/s^2.
+    abc : float
+        Accelerometer bias correlation time in seconds.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -147,9 +151,9 @@ def _process_noise_cov(
 
     Notes
     -----
-    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
+    In general, Q[VEL_IDX, VEL_IDX] should be updated each time step if R_nb changes:
 
-        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[VEL_IDX, VEL_IDX] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
@@ -157,6 +161,7 @@ def _process_noise_cov(
     Q = np.zeros((12, 12))
     Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
     Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BA_IDX, BA_IDX] = dt * (2.0 * abs**2 / abc) * np.eye(3)
     Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
