@@ -326,8 +326,9 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     dhdx : ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((7, 15))
+    dhdx = np.zeros((10, 15))
     dhdx[0:3, POS_IDX] = np.eye(3)  # position
     dhdx[3:6, VEL_IDX] = np.eye(3)  # velocity
     dhdx[6:7, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx[7:10, BA_IDX] = np.eye(3)  # accelerometer bias
     return dhdx
