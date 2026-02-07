@@ -389,6 +389,12 @@ class MEKF:
         yaw_degrees : bool, default False
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
+        ba : array_like, shape (3,), optional
+            Accelerometer bias measurement (bax, bay, baz) in m/s^2. If ``None``,
+            accelerometer bias aiding is not used.
+        ba_var : array_like, shape (3,), optional
+            Variance of the accelerometer bias measurement noise in (m/s^2)^2.
+            Required for ``ba``.
 
         Returns
         -------
