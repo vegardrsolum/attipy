@@ -17,29 +17,33 @@ from attipy._vectorops import _skew_symmetric
 def noise_params():
     vrw = 0.001
     arw = 0.0001
+    abs = 0.0005
+    abc = 100.0
     gbs = 0.00005
     gbc = 50.0
-    return vrw, arw, gbs, gbc
+    return vrw, arw, abs, abc, gbs, gbc
 
 
 def test_state_matrix(noise_params):
-    *_, gbc = noise_params
+    *_, abc, _, gbc = noise_params
 
     f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    dfdx_out = _state_matrix(f_b_corr, w_b_corr, R_nb, gbc)
+    dfdx_out = _state_matrix(f_b_corr, w_b_corr, R_nb, abc, gbc)
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # Linearized state matrix
-    dfdx = np.zeros((12, 12))
+    dfdx = np.zeros((15, 15))
     dfdx[0:3, 3:6] = np.eye(3)
     dfdx[3:6, 6:9] = -R_nb @ S(f_b_corr)
+    dfdx[3:6, 9:12] = -R_nb
     dfdx[6:9, 6:9] = -S(w_b_corr)
-    dfdx[6:9, 9:12] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / gbc
+    dfdx[6:9, 12:15] = -np.eye(3)
+    dfdx[9:12, 9:12] = -np.eye(3) / abc
+    dfdx[12:15, 12:15] = -np.eye(3) / gbc
 
     np.testing.assert_allclose(dfdx_out, dfdx)
 
