@@ -89,11 +89,12 @@ class MEKF:
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    P : array_like, shape (12, 12), default 1e-6 * np.eye(12)
+    P : array_like, shape (15, 15), default 1e-6 * np.eye(15)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(12)). The order of the (error) states is: dx = (dp, dv, da, dbg),
+        (1e-6 * np.eye(15)). The order of the (error) states is: dx = (dp, dv, da, dba, dbg),
         where dp is the position error, dv is the velocity error, da is the attitude
-        error (3-parameter 2xGibbs vector), and dbg is the gyroscope bias error.
+        error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
+        and dbg is the gyroscope bias error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -112,7 +113,7 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I12: NDArray[np.float64] = np.eye(12)
+    _I15: NDArray[np.float64] = np.eye(15)
 
     def __init__(
         self,
@@ -124,7 +125,7 @@ class MEKF:
         ba: ArrayLike = (0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(12),
+        P: ArrayLike = 1e-6 * np.eye(15),
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
@@ -271,7 +272,7 @@ class MEKF:
 
         dz = pos_meas - self._p_n
         dhdx = self._dhdx_pos()
-        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I15)
 
     def _aiding_update_vel(self, vel_meas, vel_var):
         """
@@ -286,7 +287,7 @@ class MEKF:
 
         dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I15)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -306,7 +307,7 @@ class MEKF:
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         dz = _signed_smallest_angle(yaw_meas - yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I12)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
     def _project_ahead(self):
         """
