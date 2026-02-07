@@ -214,10 +214,11 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     dfdw : ndarray, shape (12, 9)
         Linearized (white noise) input matrix.
     """
-    dfdw = np.zeros((12, 9))
+    dfdw = np.zeros((15, 12))
     dfdw[VEL_IDX, 0:3] = -R_nb  # NB! update each time step
     dfdw[ATT_IDX, 3:6] = -np.eye(3)
-    dfdw[BG_IDX, 6:9] = np.eye(3)
+    dfdw[BA_IDX, 6:9] = np.eye(3)
+    dfdw[BG_IDX, 9:12] = np.eye(3)
     return dfdw
 
 
