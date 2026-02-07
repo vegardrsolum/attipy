@@ -115,12 +115,12 @@ def test_update_state_transition(noise_params):
 
 def test_process_noise_cov(noise_params):
     dt = 0.1
-    vrw, arw, gbs, gbc = noise_params
+    vrw, arw, abs, abc, gbs, gbc = noise_params
 
-    Q_out = _process_noise_cov(dt, vrw, arw, gbs, gbc)
+    Q_out = _process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
 
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    W = _process_noise_psd(vrw, arw, gbs, gbc)
+    W = _process_noise_psd(vrw, arw, abs, abc, gbs, gbc)
     dfdw = _wn_input_matrix(R_nb)
 
     Q = dt * dfdw @ W @ dfdw.T

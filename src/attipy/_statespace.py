@@ -158,7 +158,7 @@ def _process_noise_cov(
 
     Returns
     -------
-    Q : ndarray, shape (12, 12)
+    Q : ndarray, shape (15, 15)
         Process noise covariance matrix.
 
     Notes
@@ -170,7 +170,7 @@ def _process_noise_cov(
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
-    Q = np.zeros((12, 12))
+    Q = np.zeros((15, 15))
     Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
     Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
     Q[BA_IDX, BA_IDX] = dt * (2.0 * abs**2 / abc) * np.eye(3)
@@ -228,7 +228,7 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dfdw : ndarray, shape (12, 9)
+    dfdw : ndarray, shape (15, 12)
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((15, 12))
