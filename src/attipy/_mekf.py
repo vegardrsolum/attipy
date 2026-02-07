@@ -104,6 +104,11 @@ class MEKF:
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
+    acc_bias_stability : float, default 0.0005
+        Accelerometer bias stability (1-sigma) in m/s^2. Defaults to 0.0005 (typical
+        value for low-cost MEMS IMUs).
+    acc_bias_corr_time : float, default 50.0
+        Accelerometer bias correlation time in seconds. Defaults to 50.0 s.
     gyro_noise_density : float, default 0.0001
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
