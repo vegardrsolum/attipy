@@ -7,6 +7,7 @@ from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import (
     ATT_IDX,
+    BA_IDX,
     BG_IDX,
     POS_IDX,
     VEL_IDX,
@@ -83,17 +84,18 @@ class MEKF:
         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
         the navigation frame. Defaults to zero linear acceleration (stationary).
     ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
+        Initial accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    P : array_like, shape (12, 12), default 1e-6 * np.eye(12)
+    P : array_like, shape (15, 15), default 1e-6 * np.eye(15)
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(12)). The order of the (error) states is: dx = (dp, dv, da, dbg),
+        (1e-6 * np.eye(15)). The order of the (error) states is: dx = (dp, dv, da, dba, dbg),
         where dp is the position error, dv is the velocity error, da is the attitude
-        error (3-parameter 2xGibbs vector), and dbg is the gyroscope bias error.
+        error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
+        and dbg is the gyroscope bias error.
     g : float, default 9.80665
         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
@@ -102,6 +104,11 @@ class MEKF:
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
+    acc_bias_stability : float, default 0.0005
+        Accelerometer bias stability (1-sigma) in m/s^2. Defaults to 0.0005 (typical
+        value for low-cost MEMS IMUs).
+    acc_bias_corr_time : float, default 50.0
+        Accelerometer bias correlation time in seconds. Defaults to 50.0 s.
     gyro_noise_density : float, default 0.0001
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -112,7 +119,7 @@ class MEKF:
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
     """
 
-    _I12: NDArray[np.float64] = np.eye(12)
+    _I15: NDArray[np.float64] = np.eye(15)
 
     def __init__(
         self,
@@ -124,10 +131,12 @@ class MEKF:
         ba: ArrayLike = (0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(12),
+        P: ArrayLike = 1e-6 * np.eye(15),
         g: float = 9.80665,
         nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
+        acc_bias_stability: float = 0.0005,
+        acc_bias_corr_time: float = 50.0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -140,6 +149,8 @@ class MEKF:
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
+        self._abs = acc_bias_stability  # accelerometer bias stability
+        self._abc = acc_bias_corr_time  # accelerometer bias correlation time
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
@@ -150,19 +161,19 @@ class MEKF:
         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(12, 12).copy()
-        self._dx = np.zeros(12, dtype=np.float64)
+        self._P = np.asarray_chkfinite(P).reshape(15, 15).copy()
+        self._dx = np.zeros(15, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition(
-            self._dt, self._f_b, self._w_b, self._R_nb, self._gbc
+            self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
         )
         self._Q = _process_noise_cov(
-            self._dt, self._vrw, self._arw, self._gbs, self._gbc
+            self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
@@ -251,6 +262,7 @@ class MEKF:
         self._p_n[:] += self._dx[POS_IDX]
         self._v_n[:] += self._dx[VEL_IDX]
         self._att_nb._correct_da(self._dx[ATT_IDX])
+        self._ba_b[:] += self._dx[BA_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
 
@@ -267,7 +279,7 @@ class MEKF:
 
         dz = pos_meas - self._p_n
         dhdx = self._dhdx_pos()
-        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I15)
 
     def _aiding_update_vel(self, vel_meas, vel_var):
         """
@@ -282,7 +294,7 @@ class MEKF:
 
         dz = vel_meas - self._v_n
         dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I12)
+        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I15)
 
     def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
         """
@@ -302,7 +314,7 @@ class MEKF:
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         dz = _signed_smallest_angle(yaw_meas - yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I12)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
     def _project_ahead(self):
         """
