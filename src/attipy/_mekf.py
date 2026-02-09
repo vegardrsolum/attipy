@@ -84,7 +84,7 @@ class MEKF:
         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
         the navigation frame. Defaults to zero linear acceleration (stationary).
     ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
+        Initial accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
