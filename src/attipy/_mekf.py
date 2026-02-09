@@ -117,10 +117,6 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    estimate_bias_acc : bool, default False
-        Whether to estimate and update the accelerometer bias. If False (default),
-        estimation is disabled, and corresponding rows/columns are zeroed out in
-        the covariance matrix.
     """
 
     _I15: NDArray[np.float64] = np.eye(15)
@@ -144,14 +140,12 @@ class MEKF:
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
-        estimate_bias_acc: bool = False,
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._g = g
         self._g_n = _gravity_nav(self._g, self._nav_frame)
-        self._estimate_bias_acc = estimate_bias_acc
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
@@ -182,31 +176,6 @@ class MEKF:
             self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._att_nb._q)
-
-        if not self._estimate_bias_acc:
-            self._disable_state(BA_IDX)
-
-    def _disable_state(self, sl: slice) -> None:
-        """
-        Disable states by zeroing out corresponding rows/columns in the covariance,
-        state transition and measurement matrices, while setting the transition
-        of the disabled states to identity (i.e., no change).
-
-        Parameters
-        ----------
-        sl : slice
-            Slice object specifying the indices of the states to disable.
-        """
-        n = sl.stop - sl.start
-        self._P[sl, :] = 0.0
-        self._P[:, sl] = 0.0
-        self._P[sl, sl] = 1e-12 * np.eye(n)  # avoid singularity
-        self._phi[sl, :] = 0.0
-        self._phi[:, sl] = 0.0
-        self._phi[sl, sl] = np.eye(n)
-        self._Q[sl, :] = 0.0
-        self._Q[:, sl] = 0.0
-        self._dhdx[:, sl] = 0.0
 
     @property
     def attitude(self) -> Attitude:
@@ -293,9 +262,8 @@ class MEKF:
         self._p_n[:] += self._dx[POS_IDX]
         self._v_n[:] += self._dx[VEL_IDX]
         self._att_nb._correct_da(self._dx[ATT_IDX])
+        self._ba_b[:] += self._dx[BA_IDX]
         self._bg_b[:] += self._dx[BG_IDX]
-        if self._estimate_bias_acc:
-            self._ba_b[:] += self._dx[BA_IDX]
         self._dx[:] = 0.0
 
     def _aiding_update_pos(self, pos_meas, pos_var):
