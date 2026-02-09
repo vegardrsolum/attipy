@@ -149,9 +149,9 @@ class MEKF:
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
-        self._arw = gyro_noise_density  # angular random walk
         self._abs = acc_bias_stability  # accelerometer bias stability
         self._abc = acc_bias_corr_time  # accelerometer bias correlation time
+        self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
