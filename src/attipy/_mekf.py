@@ -316,21 +316,6 @@ class MEKF:
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
-    def _aiding_update_ba(self, ba_meas, ba_var):
-        """
-        Update with accelerometer bias aiding measurement.
-        """
-
-        if ba_meas is None:
-            return None
-
-        if ba_var is None:
-            raise ValueError("'ba_var' not provided.")
-
-        dz = ba_meas - self._ba_b
-        dhdx = self._dhdx[7:10]
-        _kalman_update_sequential(self._dx, self._P, dz, ba_var, dhdx, self._I15)
-
     def _project_ahead(self):
         """
         Project state and covariance estimates ahead.
