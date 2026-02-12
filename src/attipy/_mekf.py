@@ -603,11 +603,13 @@ class MiniMEKF:
             return None
 
         if gref_var is None:
-            raise ValueError("'vel_var' not provided.")
+            raise ValueError("'gref_var' not provided.")
+
+        R_nb = self._att_nb.as_matrix()
 
         gref_meas = -f_b / np.linalg.norm(f_b)
-        dz = gref_meas - self._R_nb.T @ self._gref_n
-        dhdx = self._dhdx_gref(self._R_nb)
+        dz = gref_meas - R_nb.T @ self._gref_n
+        dhdx = self._dhdx_gref(R_nb)
         _kalman_update_sequential(self._dx, self._P, dz, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
