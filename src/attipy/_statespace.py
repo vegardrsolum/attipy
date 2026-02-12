@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
+from ._transforms import _matrix_from_quat
 from ._vectorops import _skew_symmetric as S
 
 POS_IDX = slice(0, 3)
@@ -312,7 +313,7 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _measurement_matrix(q_nb: NDArray[np.float64], gref_n: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Setup linearized measurement matrix, dhdx.
 
@@ -323,11 +324,14 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    dhdx : ndarray, shape (7, 12)
+    dhdx : ndarray, shape (10, 15)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((7, 15))
+    R_nb = _matrix_from_quat(q_nb)
+
+    dhdx = np.zeros((10, 15))
     dhdx[0:3, POS_IDX] = np.eye(3)  # position
     dhdx[3:6, VEL_IDX] = np.eye(3)  # velocity
     dhdx[6:7, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx[7:10, ATT_IDX] = S(R_nb.T @ gref_n)
     return dhdx

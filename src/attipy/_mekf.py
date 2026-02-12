@@ -3,6 +3,7 @@ from typing import Self
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from numba import njit
 
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
@@ -19,6 +20,7 @@ from ._statespace import (
     _update_state_transition,
 )
 from ._transforms import _yaw_from_quat
+from ._vectorops import _skew_symmetric as S
 
 
 def _gref_nav(nav_frame) -> NDArray[np.float64]:
@@ -547,10 +549,11 @@ class MiniMEKF:
         self._dhdx[6:7, ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[6]
 
-    def _dhdx_gref(self):
+    def _dhdx_gref(self, R_nb):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
+        self._dhdx[7:10, ATT_IDX] = S(R_nb.T @ self._gref_n)
         return self._dhdx[7:10]
 
     def _reset(self) -> None:
@@ -585,20 +588,21 @@ class MiniMEKF:
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I6)
 
-    def _aiding_update_gref(self, gref, gref_var):
+    def _aiding_update_gref(self, f_b, gref_var):
         """
         Update with velocity vector aiding measurement.
         """
 
-        if not gref:
+        if f_b is None:
             return None
 
         if gref_var is None:
             raise ValueError("'vel_var' not provided.")
 
-        dz = vel_meas - self._v_n
-        dhdx = self._dhdx_vel()
-        _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I15)
+        gref_meas = -f_b / np.linalg.norm(f_b)
+        dz = gref_meas - self._gref_n
+        dhdx = self._dhdx_gref(self._R_nb)
+        _kalman_update_sequential(self._dx, self._P, dz, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
         """
@@ -611,6 +615,45 @@ class MiniMEKF:
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
+    @njit  # type: ignore[misc]
+    @staticmethod
+    def _update_state_transition(
+        phi: NDArray[np.float64],
+        dt: float,
+        w_b: NDArray[np.float64],
+    ):
+        """
+        Update the state transition matrix, phi, in place:
+
+            phi[0:3, 0:3] = I - dt * S(w_b)
+
+        Parameters
+        ----------
+        phi : ndarray, shape (6, 6)
+            State transition matrix to be updated in place.
+        dt : float
+            Time step.
+        w_b : ndarray, shape (3,)
+            Angular rate measurement (bias corrected) in body frame.
+
+        Notes
+        -----
+        Assuming the first order approximation:
+
+            phi = I + dt * dfdx
+
+        where dfdx denotes the linearized state matrix.
+        """
+        wx, wy, wz = w_b
+
+        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
+        phi[0, 1] = dt * wz
+        phi[0, 2] = -dt * wy
+        phi[1, 0] = -dt * wz
+        phi[1, 2] = dt * wx
+        phi[2, 0] = dt * wy
+        phi[2, 1] = -dt * wx
+
     def update(
         self,
         f: ArrayLike,
@@ -619,6 +662,8 @@ class MiniMEKF:
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
+        gref: bool = True,
+        gref_var: ArrayLike | None = (0.01, 0.01, 0.01),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -667,8 +712,7 @@ class MiniMEKF:
         self._project_ahead()
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_pos(pos, pos_var)
-        self._aiding_update_vel(vel, vel_var)
+        self._aiding_update_gref(f if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state estimates (regulating error-state to zero)
@@ -677,8 +721,6 @@ class MiniMEKF:
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._w_b[:] = w - self._bg_b
-        self._f_b[:] = f - self._ba_b
-        self._a_n[:] = self._R_nb @ self._f_b + self._g_n
-        _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
+        self._update_state_transition(self._phi, self._dt, self._w_b)
 
         return self
