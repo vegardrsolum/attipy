@@ -513,10 +513,10 @@ class MiniMEKF:
         abc = 50.0
         self._phi = _state_transition(
             self._dt, f_b, self._w_b, self._R_nb, abc, self._gbc
-        )[self._state_idx, self._state_idx]
+        )[np.ix_(self._state_idx, self._state_idx)]
         self._Q = _process_noise_cov(
             self._dt, vrw, self._arw, abs, abc, self._gbs, self._gbc
-        )[self._state_idx, self._wn_idx]
+        )[np.ix_(self._state_idx, self._state_idx)]
         self._dhdx = _measurement_matrix(self._att_nb._q, self._gref_n)[
             :, self._state_idx
         ]
