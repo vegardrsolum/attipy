@@ -474,7 +474,6 @@ class MiniMEKF:
     _I6: NDArray[np.float64] = np.eye(6)
 
     _state_idx = np.r_[ATT_IDX, BG_IDX]
-    _wn_idx = np.r_[slice(3, 6), slice(9, 12)]
 
     def __init__(
         self,
