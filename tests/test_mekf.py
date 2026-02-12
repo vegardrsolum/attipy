@@ -430,7 +430,12 @@ class Test_MiniMEKF:
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(
-                f_i, w_i, yaw=y_i, yaw_var=yaw_var, gref=True, gref_var=0.001 * np.ones(3),
+                f_i,
+                w_i,
+                yaw=y_i,
+                yaw_var=yaw_var,
+                gref=True,
+                gref_var=0.001 * np.ones(3),
             )
             euler_est.append(mekf.attitude.as_euler())
             bg_est.append(mekf.bias_gyro)

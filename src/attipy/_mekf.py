@@ -517,9 +517,10 @@ class MiniMEKF:
         self._Q = _process_noise_cov(
             self._dt, vrw, self._arw, abs, abc, self._gbs, self._gbc
         )[np.ix_(self._state_idx, self._state_idx)]
-        self._dhdx = _measurement_matrix(self._att_nb._q, self._gref_n)[
-            :, self._state_idx
-        ]
+
+        self._dhdx = np.zeros((4, 6))
+        self._dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
+        self._dhdx[1:4, 0:3] = S(self._R_nb.T @ self._gref_n)
 
     @property
     def attitude(self) -> Attitude:
@@ -552,15 +553,15 @@ class MiniMEKF:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[6:7, 0:3] = _dyawda(q_nb)
-        return self._dhdx[6]
+        self._dhdx[0:1, 0:3] = _dyawda(q_nb)
+        return self._dhdx[0]
 
     def _dhdx_gref(self, R_nb):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[7:10, 0:3] = S(R_nb.T @ self._gref_n)
-        return self._dhdx[7:10]
+        self._dhdx[1:4, 0:3] = S(R_nb.T @ self._gref_n)
+        return self._dhdx[1:4]
 
     def _reset(self) -> None:
         """
