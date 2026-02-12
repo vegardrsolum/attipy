@@ -434,7 +434,7 @@ class MEKF:
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
         return self
-    
+
 
 class MiniMEKF:
     """

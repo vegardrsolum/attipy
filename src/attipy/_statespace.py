@@ -313,7 +313,9 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nb: NDArray[np.float64], gref_n: NDArray[np.float64]) -> NDArray[np.float64]:
+def _measurement_matrix(
+    q_nb: NDArray[np.float64], gref_n: NDArray[np.float64]
+) -> NDArray[np.float64]:
     """
     Setup linearized measurement matrix, dhdx.
 
