@@ -2,8 +2,8 @@ from turtle import pos
 from typing import Self
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from numba import njit
+from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import _kalman_update_scalar, _kalman_update_sequential
@@ -517,7 +517,9 @@ class MiniMEKF:
         self._Q = _process_noise_cov(
             self._dt, vrw, self._arw, abs, abc, self._gbs, self._gbc
         )[self._state_idx, self._wn_idx]
-        self._dhdx = _measurement_matrix(self._att_nb._q)[:, self._state_idx]
+        self._dhdx = _measurement_matrix(self._att_nb._q, self._gref_n)[
+            :, self._state_idx
+        ]
 
     @property
     def attitude(self) -> Attitude:
