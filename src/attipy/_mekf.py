@@ -552,14 +552,14 @@ class MiniMEKF:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[6:7, ATT_IDX] = _dyawda(q_nb)
+        self._dhdx[6:7, 0:3] = _dyawda(q_nb)
         return self._dhdx[6]
 
     def _dhdx_gref(self, R_nb):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[7:10, ATT_IDX] = S(R_nb.T @ self._gref_n)
+        self._dhdx[7:10, 0:3] = S(R_nb.T @ self._gref_n)
         return self._dhdx[7:10]
 
     def _reset(self) -> None:
