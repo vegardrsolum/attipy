@@ -507,11 +507,15 @@ class MiniMEKF:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
+        f_b = np.zeros(3)
+        vrw = 0.0
+        abs = 0.0
+        abc = 50.0
         self._phi = _state_transition(
-            self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
+            self._dt, f_b, self._w_b, self._R_nb, abc, self._gbc
         )[self._state_idx, self._state_idx]
         self._Q = _process_noise_cov(
-            self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
+            self._dt, vrw, self._arw, abs, abc, self._gbs, self._gbc
         )[self._state_idx, self._wn_idx]
         self._dhdx = _measurement_matrix(self._att_nb._q)[:, self._state_idx]
 
@@ -615,8 +619,8 @@ class MiniMEKF:
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
 
-    @njit  # type: ignore[misc]
     @staticmethod
+    @njit  # type: ignore[misc]
     def _update_state_transition(
         phi: NDArray[np.float64],
         dt: float,
