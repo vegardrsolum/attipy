@@ -596,7 +596,7 @@ class MiniMEKF:
 
     def _aiding_update_gref(self, f_b, gref_var):
         """
-        Update with velocity vector aiding measurement.
+        Update with gravity reference vector aiding measurement.
         """
 
         if f_b is None:
@@ -606,7 +606,7 @@ class MiniMEKF:
             raise ValueError("'vel_var' not provided.")
 
         gref_meas = -f_b / np.linalg.norm(f_b)
-        dz = gref_meas - self._gref_n
+        dz = gref_meas - self._R_nb.T @ self._gref_n
         dhdx = self._dhdx_gref(self._R_nb)
         _kalman_update_sequential(self._dx, self._P, dz, gref_var, dhdx, self._I6)
 
