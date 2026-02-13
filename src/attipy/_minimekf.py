@@ -36,7 +36,7 @@ def _gref_nav(nav_frame) -> NDArray[np.float64]:
     return vg_n
 
 
-def _g_sign(nav_frame) -> NDArray[np.float64]:
+def _vg_sign(nav_frame) -> NDArray[np.float64]:
     if nav_frame.lower() == "ned":
         return 1
     elif nav_frame.lower() == "enu":
@@ -119,7 +119,7 @@ class MEKF_:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._g_sign = _g_sign(self._nav_frame)
+        self._vg_sign = _vg_sign(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -133,7 +133,7 @@ class MEKF_:
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._da = np.zeros(3)  # attitude error state (2xGibbs vector)
-        self._g_b = self._g_sign * self._R_nb[2, :]
+        self._vg_b = self._vg_sign * self._R_nb[2, :]
 
         # Discretized state space model (updated each time step)
         self._phi = self._state_transition_matrix()
@@ -183,7 +183,7 @@ class MEKF_:
     def _measurement_matrix(self):
         dhdx = np.zeros((4, 6))
         dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
-        dhdx[1:4, 0:3] = S(self._g_b)
+        dhdx[1:4, 0:3] = S(self._vg_b)
         return dhdx
 
     @staticmethod
@@ -224,11 +224,11 @@ class MEKF_:
 
     @staticmethod
     @njit  # type: ignore[misc]
-    def _dhdx_gref(dhdx, g_b):
+    def _dhdx_gref(dhdx, vg_b):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        dhdx[1:4, 0:3] = S(g_b)
+        dhdx[1:4, 0:3] = S(vg_b)
         return dhdx[1:4]
 
     def _reset(self) -> None:
@@ -275,9 +275,9 @@ class MEKF_:
 
         R_nb = self._att_nb.as_matrix()
 
-        self._g_b = self._g_sign * R_nb[2, :]
-        dhdx = self._dhdx_gref(self._dhdx, self._g_b)
-        z = -_normalize_vec(f_b) - self._g_b
+        self._vg_b = self._vg_sign * R_nb[2, :]
+        dhdx = self._dhdx_gref(self._dhdx, self._vg_b)
+        z = -_normalize_vec(f_b) - self._vg_b
         _kalman_update_sequential(
             self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6
         )
