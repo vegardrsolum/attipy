@@ -1,0 +1,381 @@
+from typing import Self
+
+import numpy as np
+from numba import njit
+from numpy.typing import ArrayLike, NDArray
+
+from ._attitude import Attitude
+from ._kalman import _kalman_gain, _covariance_update
+from ._statespace import _dyawda
+
+from ._transforms import _yaw_from_quat
+from ._vectorops import _skew_symmetric as S
+from ._vectorops import _normalize_vec
+from ._mekf import _signed_smallest_angle
+
+
+def _gref_nav(nav_frame) -> NDArray[np.float64]:
+    """
+    Gravity reference unity vector in the navigation frame ('NED' or 'ENU').
+
+    Parameters
+    ----------
+    nav_frame : {'NED', 'ENU'}
+        Navigation frame.
+
+    Returns
+    -------
+    NDArray[np.float64], shape (3,)
+        Gravity reference vector expressed in the navigation frame.
+    """
+    if nav_frame.lower() == "ned":
+        gref_n = np.array([0.0, 0.0, 1.0])
+    elif nav_frame.lower() == "enu":
+        gref_n = np.array([0.0, 0.0, -1.0])
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+    return gref_n
+
+
+class MEKF_:
+    """
+    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
+    (PVA) estimation.
+
+    Parameters
+    ----------
+    fs : float
+        Sampling rate in Hz.
+    att : Attitude or array_like, shape (4,)
+        Initial attitude estimate as an Attitude instance or a unit quaternion,
+        (qw, qx, qy, qz).
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
+        Defaults to zero angular rate (stationary).
+    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
+        where da is the attitude error (3-parameter 2xGibbs vector), and dbg is
+        the gyroscope bias error.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
+    gyro_noise_density : float, default 0.0001
+        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
+        0.0001 (typical value for low-cost MEMS IMUs).
+    gyro_bias_stability : float, default 0.00005
+        Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
+        value for low-cost MEMS IMUs).
+    gyro_bias_corr_time : float, default 50.0
+        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    """
+
+    _I6: NDArray[np.float64] = np.eye(6)
+
+    def __init__(
+        self,
+        fs: float,
+        att: Attitude | ArrayLike,
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = 1e-6 * np.eye(6),
+        nav_frame: str = "NED",
+        gyro_noise_density: float = 0.0001,
+        gyro_bias_stability: float = 0.00005,
+        gyro_bias_corr_time: float = 50.0,
+    ) -> None:
+        self._fs = fs
+        self._dt = 1.0 / fs
+        self._nav_frame = nav_frame.lower()
+        self._vg_n = _gref_nav(self._nav_frame)
+
+        # IMU noise parameters
+        self._arw = gyro_noise_density  # angular random walk
+        self._gbs = gyro_bias_stability  # gyro bias stability
+        self._gbc = gyro_bias_corr_time  # gyro bias correlation time
+
+        # State and covariance estimates
+        self._x = np.zeros(6, dtype=np.float64)
+        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
+        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+
+        # Discretized state space model (updated each time step)
+        self._phi = self._state_transition_matrix()
+        self._Q = self._process_noise_cov_matrix()
+        self._dhdx = self._measurement_matrix()
+
+    @property
+    def _da(self) -> NDArray[np.float64]:
+        """
+        Copy of the attitude error-state (3-parameter 2xGibbs vector).
+        """
+        return self._x[0:3]
+
+    @_da.setter
+    def _da(self, value: ArrayLike) -> None:
+        self._x[0:3] = value
+
+    @property
+    def _bg_b(self) -> NDArray[np.float64]:
+        """
+        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
+        """
+        return self._x[3:6]
+
+    @_bg_b.setter
+    def _bg_b(self, value: ArrayLike) -> None:
+        self._x[3:6] = value
+
+    @property
+    def attitude(self) -> Attitude:
+        """Attitude estimate (no copy)."""
+        return self._att_nb
+
+    @property
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
+        """
+        return self._x[3:6].copy()
+
+    @property
+    def angular_rate(self) -> NDArray[np.float64]:
+        """
+        Copy of the bias corrected angular rate measurement (rad/s) expressed in
+        the body frame.
+        """
+        return self._w_b.copy()
+
+    @property
+    def P(self) -> NDArray[np.float64]:
+        """
+        Copy of the error covariance matrix estimate.
+        """
+        return self._P.copy()
+
+    def _state_transition_matrix(self):
+        phi = np.eye(6)
+        phi[0:3, 0:3] -= self._dt * S(self._w_b)  # NB! update each time step
+        phi[0:3, 3:6] -= self._dt * np.eye(3)
+        phi[3:6, 3:6] -= self._dt * np.eye(3) / self._gbc
+        return phi
+
+    def _process_noise_cov_matrix(self):
+        Q = np.zeros((6, 6))
+        Q[0:3, 0:3] = self._dt * self._arw**2 * np.eye(3)
+        Q[3:6, 3:6] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+        return Q
+
+    def _measurement_matrix(self):
+        dhdx = np.zeros((4, 6))
+        dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
+        dhdx[1:4, 0:3] = S(self._R_nb.T @ self._vg_n)
+        return dhdx
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _update_phi(
+        phi: NDArray[np.float64],
+        dt: float,
+        w_b: NDArray[np.float64],
+    ):
+        """
+        Update the state transition matrix in place.
+
+        Parameters
+        ----------
+        phi : ndarray, shape (6, 6)
+            State transition matrix to be updated in place.
+        dt : float
+            Time step.
+        w_b : ndarray, shape (3,)
+            Angular rate measurement (bias corrected) in body frame.
+        """
+        wx, wy, wz = w_b
+        phi[0, 1] = dt * wz
+        phi[0, 2] = -dt * wy
+        phi[1, 0] = -dt * wz
+        phi[1, 2] = dt * wx
+        phi[2, 0] = dt * wy
+        phi[2, 1] = -dt * wx
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _dhdx_yaw(dhdx, q_nb):
+        """
+        Heading (yaw angle) part of the measurement matrix, shape (6,).
+        """
+        dhdx[0:1, 0:3] = _dyawda(q_nb)
+        return dhdx[0]
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _dhdx_gref(dhdx, R_nb, vg_n):
+        """
+        Gravity reference vector part of the measurement matrix, shape (3, 6).
+        """
+        dhdx[1:4, 0:3] = S(R_nb.T @ vg_n)
+        return dhdx[1:4]
+
+    def _reset(self) -> None:
+        """
+        Reset state (regulating error-state to zero).
+        """
+
+        if not self._da.any():
+            return
+
+        self._att_nb._correct_da(self._da)
+        self._da[:] = 0.0
+
+    def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
+        """
+        Update with heading aiding measurement.
+        """
+
+        if yaw_meas is None:
+            return None
+
+        if yaw_var is None:
+            raise ValueError("'yaw_var' not provided.")
+
+        if yaw_degrees:
+            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
+
+        dhdx = self._dhdx_yaw(self._dhdx, self._att_nb._q)
+        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
+        z = _signed_smallest_angle(yaw_meas - yaw)
+        self._kalman_update_scalar(self._x, self._P, z, yaw_var, dhdx, self._I6)
+
+    def _aiding_update_gref(self, f_b, gref_var):
+        """
+        Update with gravity reference vector aiding measurement.
+        """
+
+        if f_b is None:
+            return None
+
+        if gref_var is None:
+            raise ValueError("'gref_var' not provided.")
+
+        R_nb = self._att_nb.as_matrix()
+
+        dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
+        z = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
+        self._kalman_update_sequential(self._x, self._P, z, gref_var, dhdx, self._I6)
+
+    def _project_ahead(self):
+        """
+        Project state and covariance estimates ahead.
+        """
+
+        # Attitude (dead reckoning)
+        self._att_nb._project_ahead(self._w_b, self._dt)
+
+        # Covariance
+        self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _kalman_update_scalar(x, P, z, r, h, I_):
+
+        # Kalman gain
+        k = _kalman_gain(P, h, r)
+
+        # Updated (a posteriori) state estimate
+        x[:] += k * (z - np.dot(h[0:3], x[0:3]))
+
+        # Updated (a posteriori) covariance estimate (Joseph form)
+        _covariance_update(P, k, h, r, I_)
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _kalman_update_sequential(x, P, z, var, H, I_):
+        m = z.shape[0]
+        for i in range(m):
+
+            # Kalman gain
+            k = _kalman_gain(P, H[i], var[i])
+
+            # Updated (a posteriori) state estimate
+            x[:] += k * (z[i] - np.dot(H[i, 0:3], x[0:3]))
+
+            # Updated (a posteriori) covariance estimate (Joseph form)
+            _covariance_update(P, k, H[i], var[i], I_)
+
+    def update(
+        self,
+        f: ArrayLike,
+        w: ArrayLike,
+        degrees: bool = False,
+        yaw: float | None = None,
+        yaw_var: float | None = None,
+        yaw_degrees: bool = False,
+        gref: bool = True,
+        gref_var: ArrayLike | None = (0.01, 0.01, 0.01),
+    ) -> Self:
+        """
+        Update state estimates with IMU and aiding measurements.
+
+        Parameters
+        ----------
+        f : array_like, shape (3,)
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
+            in m/s^2.
+        w : array_like, shape (3,)
+            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
+            ``degrees`` parameter for units.
+        degrees : bool, default False
+            Specifies whether the unit of the rotation rate, ``w``, are deg/s
+            or rad/s (default).
+        pos : array_like, shape (3,), optional
+            Position measurement (px, py, pz) in m. If ``None``, position aiding is not used.
+        pos_var : array_like, shape (3,), optional
+            Variance of the position measurement noise in m^2. Required for ``pos``.
+        vel : array_like, shape (3,), optional
+            Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
+            is not used.
+        vel_var : array_like, shape (3,), optional
+            Variance of the velocity measurement noise in (m/s)^2. Required for ``vel``.
+        yaw : float, optional
+            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
+            for units. If ``None``, heading aiding is not used.
+        yaw_var : float, optional
+            Variance of heading (yaw angle) measurement noise in rad^2 (default)
+            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
+            for units. Required for ``yaw``.
+        yaw_degrees : bool, default False
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
+            or rad and rad^2 (default).
+
+        Returns
+        -------
+        MEKF
+            A reference to the instance itself after the update.
+        """
+
+        if degrees:
+            w = (np.pi / 180.0) * np.asarray(w)
+
+        # Project (a priori) state and covariance estimates ahead
+        self._project_ahead()
+
+        # Update (a posteriori) state and covariance estimates with aiding measurements
+        self._aiding_update_gref(f if gref else None, gref_var)
+        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
+
+        # Reset state estimates (regulating error-state to zero)
+        self._reset()
+
+        # Update model
+        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._w_b[:] = w - self._bg_b
+        self._update_phi(self._phi, self._dt, self._w_b)
+
+        return self
