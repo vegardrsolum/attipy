@@ -25,15 +25,15 @@ def _gref_nav(nav_frame) -> NDArray[np.float64]:
     Returns
     -------
     NDArray[np.float64], shape (3,)
-        Gravity reference vector expressed in the navigation frame.
+        Gravity reference (unity) vector expressed in the navigation frame.
     """
     if nav_frame.lower() == "ned":
-        gref_n = np.array([0.0, 0.0, 1.0])
+        vg_n = np.array([0.0, 0.0, 1.0])
     elif nav_frame.lower() == "enu":
-        gref_n = np.array([0.0, 0.0, -1.0])
+        vg_n = np.array([0.0, 0.0, -1.0])
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
-    return gref_n
+    return vg_n
 
 
 @njit  # type: ignore[misc]
