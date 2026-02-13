@@ -79,7 +79,7 @@ def _update_measurement_matrix_gref(dhdx, vg_b):
     return dhdx[1:4]
 
 
-def _vg_sign(nav_frame) -> NDArray[np.float64]:
+def _z_down(nav_frame) -> NDArray[np.float64]:
     if nav_frame.lower() == "ned":
         return 1
     elif nav_frame.lower() == "enu":
@@ -167,7 +167,7 @@ class MEKF_:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._vg_sign = _vg_sign(self._nav_frame)
+        self._z_down = _z_down(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -176,7 +176,7 @@ class MEKF_:
 
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
-        self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
+        self._vg_b = self._z_down * self._att_nb.as_matrix()[2, :]
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
@@ -256,7 +256,7 @@ class MEKF_:
         if gref_var is None:
             raise ValueError("'gref_var' not provided.")
 
-        self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
+        self._vg_b = self._z_down * self._att_nb.as_matrix()[2, :]
         z = -_normalize_vec(f_b) - self._vg_b
         dhdx = _update_measurement_matrix_gref(self._dhdx, self._vg_b)
         _kalman_update_sequential(
