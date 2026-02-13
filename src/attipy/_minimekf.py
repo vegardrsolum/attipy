@@ -13,6 +13,72 @@ from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
 
 
+def _state_transition_matrix(dt, w_b, gbc):
+    phi = np.eye(6)
+    phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
+    phi[0:3, 3:6] -= dt * np.eye(3)
+    phi[3:6, 3:6] -= dt * np.eye(3) / gbc
+    return phi
+
+
+@njit  # type: ignore[misc]
+def _update_state_transition_matrix(
+    phi: NDArray[np.float64],
+    dt: float,
+    w_b: NDArray[np.float64],
+):
+    """
+    Update the state transition matrix in place.
+
+    Parameters
+    ----------
+    phi : ndarray, shape (6, 6)
+        State transition matrix to be updated in place.
+    dt : float
+        Time step.
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (bias corrected) in body frame.
+    """
+    wx, wy, wz = w_b
+    phi[0, 1] = dt * wz
+    phi[0, 2] = -dt * wy
+    phi[1, 0] = -dt * wz
+    phi[1, 2] = dt * wx
+    phi[2, 0] = dt * wy
+    phi[2, 1] = -dt * wx
+
+
+def _process_noise_cov_matrix(dt, arw, gbs, gbc):
+    Q = np.zeros((6, 6))
+    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    return Q
+
+
+def _measurement_matrix(q_nb, vg_b):
+    dhdx = np.zeros((4, 6))
+    dhdx[0:1, 0:3] = _dyawda(q_nb)  # NB! update each time step
+    dhdx[1:4, 0:3] = S(vg_b)  # NB! update each time step
+    return dhdx
+
+
+@njit  # type: ignore[misc]
+def _update_measurement_matrix_yaw(dhdx, q_nb):
+    """
+    Heading (yaw angle) part of the measurement matrix, shape (6,).
+    """
+    dhdx[0:1, 0:3] = _dyawda(q_nb)
+    return dhdx[0]
+
+@njit  # type: ignore[misc]
+def _update_measurement_matrix_gref(dhdx, vg_b):
+    """
+    Gravity reference vector part of the measurement matrix, shape (3, 6).
+    """
+    dhdx[1:4, 0:3] = S(vg_b)
+    return dhdx[1:4]
+
+
 def _vg_sign(nav_frame) -> NDArray[np.float64]:
     if nav_frame.lower() == "ned":
         return 1
@@ -112,9 +178,9 @@ class MEKF_:
         self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
 
         # Discretized state space model (updated each time step)
-        self._phi = self._state_transition_matrix()
-        self._Q = self._process_noise_cov_matrix()
-        self._dhdx = self._measurement_matrix()
+        self._phi = _state_transition_matrix(self._dt, self._w_b, self._gbc)
+        self._Q = _process_noise_cov_matrix(self._dt, self._arw, self._gbs, self._gbc)
+        self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
 
     @property
     def attitude(self) -> Attitude:
@@ -143,70 +209,6 @@ class MEKF_:
         """
         return self._P.copy()
 
-    def _state_transition_matrix(self):
-        phi = np.eye(6)
-        phi[0:3, 0:3] -= self._dt * S(self._w_b)  # NB! update each time step
-        phi[0:3, 3:6] -= self._dt * np.eye(3)
-        phi[3:6, 3:6] -= self._dt * np.eye(3) / self._gbc
-        return phi
-
-    def _process_noise_cov_matrix(self):
-        Q = np.zeros((6, 6))
-        Q[0:3, 0:3] = self._dt * self._arw**2 * np.eye(3)
-        Q[3:6, 3:6] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
-        return Q
-
-    def _measurement_matrix(self):
-        dhdx = np.zeros((4, 6))
-        dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
-        dhdx[1:4, 0:3] = S(self._vg_b)
-        return dhdx
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _update_phi(
-        phi: NDArray[np.float64],
-        dt: float,
-        w_b: NDArray[np.float64],
-    ):
-        """
-        Update the state transition matrix in place.
-
-        Parameters
-        ----------
-        phi : ndarray, shape (6, 6)
-            State transition matrix to be updated in place.
-        dt : float
-            Time step.
-        w_b : ndarray, shape (3,)
-            Angular rate measurement (bias corrected) in body frame.
-        """
-        wx, wy, wz = w_b
-        phi[0, 1] = dt * wz
-        phi[0, 2] = -dt * wy
-        phi[1, 0] = -dt * wz
-        phi[1, 2] = dt * wx
-        phi[2, 0] = dt * wy
-        phi[2, 1] = -dt * wx
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _dhdx_yaw(dhdx, q_nb):
-        """
-        Heading (yaw angle) part of the measurement matrix, shape (6,).
-        """
-        dhdx[0:1, 0:3] = _dyawda(q_nb)
-        return dhdx[0]
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _dhdx_gref(dhdx, vg_b):
-        """
-        Gravity reference vector part of the measurement matrix, shape (3, 6).
-        """
-        dhdx[1:4, 0:3] = S(vg_b)
-        return dhdx[1:4]
-
     def _reset(self) -> None:
         """
         Reset state (regulating error-state to zero).
@@ -233,9 +235,9 @@ class MEKF_:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        dhdx = self._dhdx_yaw(self._dhdx, self._att_nb._q)
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         z = _signed_smallest_angle(yaw_meas - yaw)
+        dhdx = _update_measurement_matrix_yaw(self._dhdx, self._att_nb._q)
         _kalman_update_scalar(self._da, self._bg_b, self._P, z, yaw_var, dhdx, self._I6)
 
     def _aiding_update_gref(self, f_b, gref_var):
@@ -250,8 +252,8 @@ class MEKF_:
             raise ValueError("'gref_var' not provided.")
 
         self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
-        dhdx = self._dhdx_gref(self._dhdx, self._vg_b)
         z = -_normalize_vec(f_b) - self._vg_b
+        dhdx = _update_measurement_matrix_gref(self._dhdx, self._vg_b)
         _kalman_update_sequential(
             self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6
         )
@@ -333,6 +335,6 @@ class MEKF_:
 
         # Update model
         self._w_b[:] = w - self._bg_b
-        self._update_phi(self._phi, self._dt, self._w_b)
+        _update_state_transition_matrix(self._phi, self._dt, self._w_b)
 
         return self
