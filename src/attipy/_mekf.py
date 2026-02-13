@@ -473,8 +473,6 @@ class MiniMEKF:
 
     _I6: NDArray[np.float64] = np.eye(6)
 
-    _state_idx = np.r_[ATT_IDX, BG_IDX]
-
     def __init__(
         self,
         fs: float,
@@ -564,9 +562,7 @@ class MiniMEKF:
         w_b: NDArray[np.float64],
     ):
         """
-        Update the state transition matrix, phi, in place:
-
-            phi[0:3, 0:3] = I - dt * S(w_b)
+        Update the state transition matrix in place.
 
         Parameters
         ----------
@@ -576,18 +572,8 @@ class MiniMEKF:
             Time step.
         w_b : ndarray, shape (3,)
             Angular rate measurement (bias corrected) in body frame.
-
-        Notes
-        -----
-        Assuming the first order approximation:
-
-            phi = I + dt * dfdx
-
-        where dfdx denotes the linearized state matrix.
         """
         wx, wy, wz = w_b
-
-        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
         phi[0, 1] = dt * wz
         phi[0, 2] = -dt * wy
         phi[1, 0] = -dt * wz
@@ -595,19 +581,23 @@ class MiniMEKF:
         phi[2, 0] = dt * wy
         phi[2, 1] = -dt * wx
 
-    def _dhdx_yaw(self, q_nb):
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _dhdx_yaw(dhdx, q_nb):
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[0:1, 0:3] = _dyawda(q_nb)
-        return self._dhdx[0]
+        dhdx[0:1, 0:3] = _dyawda(q_nb)
+        return dhdx[0]
 
-    def _dhdx_gref(self, R_nb):
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _dhdx_gref(dhdx, R_nb, vg_n):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[1:4, 0:3] = S(R_nb.T @ self._gref_n)
-        return self._dhdx[1:4]
+        dhdx[1:4, 0:3] = S(R_nb.T @ vg_n)
+        return dhdx[1:4]
 
     def _reset(self) -> None:
         """
@@ -638,7 +628,7 @@ class MiniMEKF:
 
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         dz = _signed_smallest_angle(yaw_meas - yaw)
-        dhdx = self._dhdx_yaw(self._att_nb._q)
+        dhdx = self._dhdx_yaw(self._dhdx, self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I6)
 
     def _aiding_update_gref(self, f_b, gref_var):
@@ -656,7 +646,7 @@ class MiniMEKF:
 
         gref_meas = -f_b / np.linalg.norm(f_b)
         dz = gref_meas - R_nb.T @ self._gref_n
-        dhdx = self._dhdx_gref(R_nb)
+        dhdx = self._dhdx_gref(self._dhdx, R_nb, self._gref_n)
         _kalman_update_sequential(self._dx, self._P, dz, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
