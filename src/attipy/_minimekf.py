@@ -222,8 +222,7 @@ def _project_cov_ahead(P, phi, Q):
 
 class MEKF_:
     """
-    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
-    (PVA) estimation.
+    Multiplicative extended Kalman filter (MEKF) for attitude estimation.
 
     Parameters
     ----------
