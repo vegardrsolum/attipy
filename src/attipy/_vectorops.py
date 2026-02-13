@@ -37,5 +37,5 @@ def _normalize_vec(v: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         Normalized vector.
     """
-    norm_inv = 1.0 / np.sqrt(v[0]**2 + v[1]**2 + v[2]**2)
+    norm_inv = 1.0 / np.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
     return v * norm_inv
