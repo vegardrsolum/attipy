@@ -37,6 +37,26 @@ def _gref_nav(nav_frame) -> NDArray[np.float64]:
     return gref_n
 
 
+@njit  # type: ignore[misc]
+def _kalman_update_scalar(x, P, z, r, h, I_):
+
+    # Kalman gain
+    k = _kalman_gain(P, h, r)
+
+    # Updated (a posteriori) state estimate
+    x[:] += k * (z - np.dot(h[0:3], x[0:3]))
+
+    # Updated (a posteriori) covariance estimate (Joseph form)
+    _covariance_update(P, k, h, r, I_)
+
+
+@njit  # type: ignore[misc]
+def _kalman_update_sequential(x, P, z, var, H, I_):
+    m = z.shape[0]
+    for i in range(m):
+        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+
+
 class MEKF_:
     """
     Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
@@ -251,7 +271,7 @@ class MEKF_:
         dhdx = self._dhdx_yaw(self._dhdx, self._att_nb._q)
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         z = _signed_smallest_angle(yaw_meas - yaw)
-        self._kalman_update_scalar(self._x, self._P, z, yaw_var, dhdx, self._I6)
+        _kalman_update_scalar(self._x, self._P, z, yaw_var, dhdx, self._I6)
 
     def _aiding_update_gref(self, f_b, gref_var):
         """
@@ -268,7 +288,7 @@ class MEKF_:
 
         dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
         z = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
-        self._kalman_update_sequential(self._x, self._P, z, gref_var, dhdx, self._I6)
+        _kalman_update_sequential(self._x, self._P, z, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
         """
@@ -280,34 +300,6 @@ class MEKF_:
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _kalman_update_scalar(x, P, z, r, h, I_):
-
-        # Kalman gain
-        k = _kalman_gain(P, h, r)
-
-        # Updated (a posteriori) state estimate
-        x[:] += k * (z - np.dot(h[0:3], x[0:3]))
-
-        # Updated (a posteriori) covariance estimate (Joseph form)
-        _covariance_update(P, k, h, r, I_)
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _kalman_update_sequential(x, P, z, var, H, I_):
-        m = z.shape[0]
-        for i in range(m):
-
-            # Kalman gain
-            k = _kalman_gain(P, H[i], var[i])
-
-            # Updated (a posteriori) state estimate
-            x[:] += k * (z[i] - np.dot(H[i, 0:3], x[0:3]))
-
-            # Updated (a posteriori) covariance estimate (Joseph form)
-            _covariance_update(P, k, H[i], var[i], I_)
 
     def update(
         self,
