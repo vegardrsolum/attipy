@@ -36,6 +36,15 @@ def _gref_nav(nav_frame) -> NDArray[np.float64]:
     return vg_n
 
 
+def _g_sign(nav_frame) -> NDArray[np.float64]:
+    if nav_frame.lower() == "ned":
+        return 1
+    elif nav_frame.lower() == "enu":
+        return -1
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+
+
 @njit  # type: ignore[misc]
 def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
 
@@ -110,7 +119,7 @@ class MEKF_:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._vg_n = _gref_nav(self._nav_frame)
+        self._g_sign = _g_sign(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -173,7 +182,7 @@ class MEKF_:
     def _measurement_matrix(self):
         dhdx = np.zeros((4, 6))
         dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
-        dhdx[1:4, 0:3] = S(self._R_nb.T @ self._vg_n)
+        dhdx[1:4, 0:3] = S(self._g_sign * self._R_nb[2, :])
         return dhdx
 
     @staticmethod
@@ -214,11 +223,11 @@ class MEKF_:
 
     @staticmethod
     @njit  # type: ignore[misc]
-    def _dhdx_gref(dhdx, R_nb, vg_n):
+    def _dhdx_gref(dhdx, R_nb, g_b):
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        dhdx[1:4, 0:3] = S(R_nb.T @ vg_n)
+        dhdx[1:4, 0:3] = S(g_b)
         return dhdx[1:4]
 
     def _reset(self) -> None:
@@ -265,8 +274,9 @@ class MEKF_:
 
         R_nb = self._att_nb.as_matrix()
 
-        dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
-        z = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
+        g_b = self._g_sign * R_nb[2, :]
+        dhdx = self._dhdx_gref(self._dhdx, R_nb, g_b)
+        z = -_normalize_vec(f_b) - g_b
         _kalman_update_sequential(
             self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6
         )
