@@ -37,23 +37,25 @@ def _gref_nav(nav_frame) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_scalar(x, P, z, r, h, I_):
+def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
 
     # Kalman gain
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    x[:] += k * (z - np.dot(h[0:3], x[0:3]))
+    y = z - np.dot(h[0:3], da)
+    da[:] += k[0:3] * y
+    bg_b[:] += k[3:6] * y
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update(P, k, h, r, I_)
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_sequential(x, P, z, var, H, I_):
+def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+        _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
 
 
 class MEKF_:
@@ -116,39 +118,17 @@ class MEKF_:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._x = np.zeros(6)
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._da = np.zeros(3)  # attitude error state (2xGibbs vector)
 
         # Discretized state space model (updated each time step)
         self._phi = self._state_transition_matrix()
         self._Q = self._process_noise_cov_matrix()
         self._dhdx = self._measurement_matrix()
-
-    @property
-    def _da(self) -> NDArray[np.float64]:
-        """
-        Copy of the attitude error-state (3-parameter 2xGibbs vector).
-        """
-        return self._x[0:3]
-
-    @_da.setter
-    def _da(self, value: ArrayLike) -> None:
-        self._x[0:3] = value
-
-    @property
-    def _bg_b(self) -> NDArray[np.float64]:
-        """
-        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
-        """
-        return self._x[3:6]
-
-    @_bg_b.setter
-    def _bg_b(self, value: ArrayLike) -> None:
-        self._x[3:6] = value
 
     @property
     def attitude(self) -> Attitude:
@@ -160,7 +140,7 @@ class MEKF_:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
         """
-        return self._x[3:6].copy()
+        return self._bg_b.copy()
 
     @property
     def angular_rate(self) -> NDArray[np.float64]:
@@ -270,7 +250,7 @@ class MEKF_:
         dhdx = self._dhdx_yaw(self._dhdx, self._att_nb._q)
         yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
         z = _signed_smallest_angle(yaw_meas - yaw)
-        _kalman_update_scalar(self._x, self._P, z, yaw_var, dhdx, self._I6)
+        _kalman_update_scalar(self._da, self._bg_b, self._P, z, yaw_var, dhdx, self._I6)
 
     def _aiding_update_gref(self, f_b, gref_var):
         """
@@ -287,7 +267,7 @@ class MEKF_:
 
         dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
         z = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
-        _kalman_update_sequential(self._x, self._P, z, gref_var, dhdx, self._I6)
+        _kalman_update_sequential(self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
         """
