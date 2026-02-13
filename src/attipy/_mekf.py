@@ -21,6 +21,7 @@ from ._statespace import (
 )
 from ._transforms import _yaw_from_quat
 from ._vectorops import _skew_symmetric as S
+from ._vectorops import _normalize_vec
 
 
 def _gref_nav(nav_frame) -> NDArray[np.float64]:
@@ -488,7 +489,7 @@ class MiniMEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._gref_n = _gref_nav(self._nav_frame)
+        self._vg_n = _gref_nav(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -551,12 +552,12 @@ class MiniMEKF:
     def _measurement_matrix(self):
         dhdx = np.zeros((4, 6))
         dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
-        dhdx[1:4, 0:3] = S(self._R_nb.T @ self._gref_n)
+        dhdx[1:4, 0:3] = S(self._R_nb.T @ self._vg_n)
         return dhdx
 
     @staticmethod
     @njit  # type: ignore[misc]
-    def _update_state_transition(
+    def _update_phi(
         phi: NDArray[np.float64],
         dt: float,
         w_b: NDArray[np.float64],
@@ -644,9 +645,8 @@ class MiniMEKF:
 
         R_nb = self._att_nb.as_matrix()
 
-        gref_meas = -f_b / np.linalg.norm(f_b)
-        dz = gref_meas - R_nb.T @ self._gref_n
-        dhdx = self._dhdx_gref(self._dhdx, R_nb, self._gref_n)
+        dz = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
+        dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
         _kalman_update_sequential(self._dx, self._P, dz, gref_var, dhdx, self._I6)
 
     def _project_ahead(self):
@@ -727,6 +727,6 @@ class MiniMEKF:
         # Update model
         self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._w_b[:] = w - self._bg_b
-        self._update_state_transition(self._phi, self._dt, self._w_b)
+        self._update_phi(self._phi, self._dt, self._w_b)
 
         return self
