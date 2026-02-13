@@ -180,7 +180,6 @@ class MEKF_:
 
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
-        self._vg_b = self._z_down * self._att_nb.as_matrix()[2, :]  # preallocation
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
@@ -190,6 +189,10 @@ class MEKF_:
         self._phi = _state_transition_matrix(self._dt, self._w_b, self._gbc)
         self._Q = _process_noise_cov_matrix(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
+
+    @property
+    def _vg_b(self):
+        return self._z_down * self._att_nb.as_matrix()[2, :]
 
     @property
     def attitude(self) -> Attitude:
@@ -260,7 +263,6 @@ class MEKF_:
         if gref_var is None:
             raise ValueError("'gref_var' not provided.")
 
-        self._vg_b[:] = self._z_down * self._att_nb.as_matrix()[2, :]
         z = -_normalize_vec(f_b) - self._vg_b
         dhdx = _update_measurement_matrix_gref(self._dhdx, self._vg_b)
         _kalman_update_sequential(
