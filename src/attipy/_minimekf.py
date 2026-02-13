@@ -116,7 +116,7 @@ class MEKF_:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._x = np.zeros(6, dtype=np.float64)
+        self._x = np.zeros(6)
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
