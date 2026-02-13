@@ -13,29 +13,6 @@ from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
 
 
-def _gref_nav(nav_frame) -> NDArray[np.float64]:
-    """
-    Gravity reference unity vector in the navigation frame ('NED' or 'ENU').
-
-    Parameters
-    ----------
-    nav_frame : {'NED', 'ENU'}
-        Navigation frame.
-
-    Returns
-    -------
-    NDArray[np.float64], shape (3,)
-        Gravity reference (unity) vector expressed in the navigation frame.
-    """
-    if nav_frame.lower() == "ned":
-        vg_n = np.array([0.0, 0.0, 1.0])
-    elif nav_frame.lower() == "enu":
-        vg_n = np.array([0.0, 0.0, -1.0])
-    else:
-        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
-    return vg_n
-
-
 def _vg_sign(nav_frame) -> NDArray[np.float64]:
     if nav_frame.lower() == "ned":
         return 1
@@ -128,12 +105,11 @@ class MEKF_:
 
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
-        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._da = np.zeros(3)  # attitude error state (2xGibbs vector)
-        self._vg_b = self._vg_sign * self._R_nb[2, :]
+        self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
 
         # Discretized state space model (updated each time step)
         self._phi = self._state_transition_matrix()
@@ -273,9 +249,7 @@ class MEKF_:
         if gref_var is None:
             raise ValueError("'gref_var' not provided.")
 
-        R_nb = self._att_nb.as_matrix()
-
-        self._vg_b = self._vg_sign * R_nb[2, :]
+        self._vg_b = self._vg_sign * self._att_nb.as_matrix()[2, :]
         dhdx = self._dhdx_gref(self._dhdx, self._vg_b)
         z = -_normalize_vec(f_b) - self._vg_b
         _kalman_update_sequential(
@@ -354,11 +328,10 @@ class MEKF_:
         self._aiding_update_gref(f if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset state estimates (regulating error-state to zero)
+        # Reset attitude
         self._reset()
 
         # Update model
-        self._R_nb[:] = self._att_nb.as_matrix()  # avoiding repeated calls
         self._w_b[:] = w - self._bg_b
         self._update_phi(self._phi, self._dt, self._w_b)
 
