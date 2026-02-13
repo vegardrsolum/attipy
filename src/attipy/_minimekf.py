@@ -267,7 +267,9 @@ class MEKF_:
 
         dhdx = self._dhdx_gref(self._dhdx, R_nb, self._vg_n)
         z = -_normalize_vec(f_b) - R_nb.T @ self._vg_n
-        _kalman_update_sequential(self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6)
+        _kalman_update_sequential(
+            self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6
+        )
 
     def _project_ahead(self):
         """
