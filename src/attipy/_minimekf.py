@@ -5,13 +5,12 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_gain, _covariance_update
-from ._statespace import _dyawda
-
-from ._transforms import _yaw_from_quat
-from ._vectorops import _skew_symmetric as S
-from ._vectorops import _normalize_vec
+from ._kalman import _covariance_update, _kalman_gain
 from ._mekf import _signed_smallest_angle
+from ._statespace import _dyawda
+from ._transforms import _yaw_from_quat
+from ._vectorops import _normalize_vec
+from ._vectorops import _skew_symmetric as S
 
 
 def _gref_nav(nav_frame) -> NDArray[np.float64]:
