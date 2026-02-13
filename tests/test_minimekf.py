@@ -3,7 +3,7 @@ import numpy as np
 import attipy as ap
 
 
-class Test_MiniMEKF:
+class Test_MEKF_:
 
     def test_update_full_aiding(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim

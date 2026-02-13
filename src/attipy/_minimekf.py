@@ -57,8 +57,8 @@ def _process_noise_cov_matrix(dt, arw, gbs, gbc):
 
 def _measurement_matrix(q_nb, vg_b):
     dhdx = np.zeros((4, 6))
-    dhdx[0:1, 0:3] = _dyawda(q_nb)  # NB! update each time step
-    dhdx[1:4, 0:3] = S(vg_b)  # NB! update each time step
+    dhdx[0:1, 0:3] = _dyawda(q_nb)  # yaw, NB! update each time step
+    dhdx[1:4, 0:3] = S(vg_b)  # gravity ref vector, NB! update each time step
     return dhdx
 
 
@@ -81,6 +81,9 @@ def _update_measurement_matrix_gref(dhdx, vg_b):
 
 
 def _z_down(nav_frame) -> NDArray[np.float64]:
+    """
+    Whether the z-axis of the navigation frame points down (NED) or up (ENU).
+    """
     if nav_frame.lower() == "ned":
         return 1
     elif nav_frame.lower() == "enu":
