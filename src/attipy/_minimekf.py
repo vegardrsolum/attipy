@@ -110,6 +110,11 @@ def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
         _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
 
 
+@njit  # type: ignore[misc]
+def _project_cov_ahead(P, phi, Q):
+    P[:] = phi @ P @ phi.T + Q
+
+
 class MEKF_:
     """
     Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
@@ -235,7 +240,7 @@ class MEKF_:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
+        yaw = _yaw_from_quat(self._att_nb._q)
         z = _signed_smallest_angle(yaw_meas - yaw)
         dhdx = _update_measurement_matrix_yaw(self._dhdx, self._att_nb._q)
         _kalman_update_scalar(self._da, self._bg_b, self._P, z, yaw_var, dhdx, self._I6)
@@ -267,7 +272,7 @@ class MEKF_:
         self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
-        self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
+        _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
@@ -294,15 +299,6 @@ class MEKF_:
         degrees : bool, default False
             Specifies whether the unit of the rotation rate, ``w``, are deg/s
             or rad/s (default).
-        pos : array_like, shape (3,), optional
-            Position measurement (px, py, pz) in m. If ``None``, position aiding is not used.
-        pos_var : array_like, shape (3,), optional
-            Variance of the position measurement noise in m^2. Required for ``pos``.
-        vel : array_like, shape (3,), optional
-            Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
-            is not used.
-        vel_var : array_like, shape (3,), optional
-            Variance of the velocity measurement noise in (m/s)^2. Required for ``vel``.
         yaw : float, optional
             Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
             for units. If ``None``, heading aiding is not used.
@@ -313,6 +309,11 @@ class MEKF_:
         yaw_degrees : bool, default False
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
+        gref : bool, default True
+            Specifies whether to use the gravity reference vector aiding measurement.
+            If ``False``, gravity reference aiding is not used.
+        gref_var : array_like, shape (3,), default (0.01, 0.01, 0.01)
+            Variance of gravity reference vector measurement noise.
 
         Returns
         -------
