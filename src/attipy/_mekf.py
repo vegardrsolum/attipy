@@ -506,20 +506,9 @@ class MiniMEKF:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discretized state space model (updated each time step)
-        f_b = np.zeros(3)
-        vrw = 0.0
-        abs = 0.0
-        abc = 50.0
-        self._phi = _state_transition(
-            self._dt, f_b, self._w_b, self._R_nb, abc, self._gbc
-        )[np.ix_(self._state_idx, self._state_idx)]
-        self._Q = _process_noise_cov(
-            self._dt, vrw, self._arw, abs, abc, self._gbs, self._gbc
-        )[np.ix_(self._state_idx, self._state_idx)]
-
-        self._dhdx = np.zeros((4, 6))
-        self._dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
-        self._dhdx[1:4, 0:3] = S(self._R_nb.T @ self._gref_n)
+        self._phi = self._state_transition_matrix()
+        self._Q = self._process_noise_cov_matrix()
+        self._dhdx = self._measurement_matrix()
 
     @property
     def attitude(self) -> Attitude:
@@ -547,6 +536,64 @@ class MiniMEKF:
         Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
+
+    def _state_transition_matrix(self):
+        phi = np.eye(6)
+        phi[0:3, 0:3] -= self._dt * S(self._w_b)  # NB! update each time step
+        phi[0:3, 3:6] -= self._dt * np.eye(3)
+        phi[3:6, 3:6] -= self._dt * np.eye(3) / self._gbc
+        return phi
+
+    def _process_noise_cov_matrix(self):
+        Q = np.zeros((6, 6))
+        Q[0:3, 0:3] = self._dt * self._arw**2 * np.eye(3)
+        Q[3:6, 3:6] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+        return Q
+
+    def _measurement_matrix(self):
+        dhdx = np.zeros((4, 6))
+        dhdx[0:1, 0:3] = _dyawda(self._att_nb._q)
+        dhdx[1:4, 0:3] = S(self._R_nb.T @ self._gref_n)
+        return dhdx
+
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _update_state_transition(
+        phi: NDArray[np.float64],
+        dt: float,
+        w_b: NDArray[np.float64],
+    ):
+        """
+        Update the state transition matrix, phi, in place:
+
+            phi[0:3, 0:3] = I - dt * S(w_b)
+
+        Parameters
+        ----------
+        phi : ndarray, shape (6, 6)
+            State transition matrix to be updated in place.
+        dt : float
+            Time step.
+        w_b : ndarray, shape (3,)
+            Angular rate measurement (bias corrected) in body frame.
+
+        Notes
+        -----
+        Assuming the first order approximation:
+
+            phi = I + dt * dfdx
+
+        where dfdx denotes the linearized state matrix.
+        """
+        wx, wy, wz = w_b
+
+        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
+        phi[0, 1] = dt * wz
+        phi[0, 2] = -dt * wy
+        phi[1, 0] = -dt * wz
+        phi[1, 2] = dt * wx
+        phi[2, 0] = dt * wy
+        phi[2, 1] = -dt * wx
 
     def _dhdx_yaw(self, q_nb):
         """
@@ -622,45 +669,6 @@ class MiniMEKF:
 
         # Covariance
         self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _update_state_transition(
-        phi: NDArray[np.float64],
-        dt: float,
-        w_b: NDArray[np.float64],
-    ):
-        """
-        Update the state transition matrix, phi, in place:
-
-            phi[0:3, 0:3] = I - dt * S(w_b)
-
-        Parameters
-        ----------
-        phi : ndarray, shape (6, 6)
-            State transition matrix to be updated in place.
-        dt : float
-            Time step.
-        w_b : ndarray, shape (3,)
-            Angular rate measurement (bias corrected) in body frame.
-
-        Notes
-        -----
-        Assuming the first order approximation:
-
-            phi = I + dt * dfdx
-
-        where dfdx denotes the linearized state matrix.
-        """
-        wx, wy, wz = w_b
-
-        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
-        phi[0, 1] = dt * wz
-        phi[0, 2] = -dt * wy
-        phi[1, 0] = -dt * wz
-        phi[1, 2] = dt * wx
-        phi[2, 0] = dt * wy
-        phi[2, 1] = -dt * wx
 
     def update(
         self,
