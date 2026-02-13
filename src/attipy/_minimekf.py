@@ -112,7 +112,7 @@ def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
 
 @njit  # type: ignore[misc]
 def _project_cov_ahead(P, phi, Q):
-    P[:] = phi @ P @ phi.T + Q
+    P[:, :] = phi @ P @ phi.T + Q
 
 
 class MEKF_:
