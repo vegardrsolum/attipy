@@ -14,6 +14,27 @@ from ._vectorops import _skew_symmetric as S
 
 
 def _state_transition_matrix(dt, w_b, gbc):
+    """
+    Setup state transition matrix, phi, using the first-order approximation:
+
+        phi = I + dt * dfdx
+
+    where dfdx denotes the linearized state matrix.
+
+    Parameters
+    ----------
+    dt : float
+        Time step in seconds.
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (bias corrected) in body frame.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    phi : ndarray, shape (6, 6)
+        State transition matrix.
+    """
     phi = np.eye(6)
     phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
     phi[0:3, 3:6] -= dt * np.eye(3)
@@ -28,7 +49,7 @@ def _update_state_transition_matrix(
     w_b: NDArray[np.float64],
 ):
     """
-    Update the state transition matrix in place.
+    Update the state transition matrix, phi, in place.
 
     Parameters
     ----------
@@ -49,6 +70,27 @@ def _update_state_transition_matrix(
 
 
 def _process_noise_cov_matrix(dt, arw, gbs, gbc):
+    """
+    Setup process noise covariance matrix, Q, using the first-order approximation:
+
+        Q = dt @ dfdw @ W @ dfdw.T
+
+    Parameters
+    ----------
+    dt : float
+        Time step in seconds.
+    arw : float
+        Angular random walk (gyroscope noise density) in rad/√Hz.
+    gbs : float
+        Gyro bias stability (bias instability) in rad/s.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    Q : ndarray, shape (15, 15)
+        Process noise covariance matrix.
+    """
     Q = np.zeros((6, 6))
     Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
     Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
@@ -56,9 +98,24 @@ def _process_noise_cov_matrix(dt, arw, gbs, gbc):
 
 
 def _measurement_matrix(q_nb, vg_b):
+    """
+    Setup linearized measurement matrix, dhdx.
+
+    Parameters
+    ----------
+    q_nb : ndarray, shape (4,)
+        Unit quaternion.
+    vg_b : ndarray, shape (3,)
+        Gravity reference (unit) vector expressed in the body frame.
+
+    Returns
+    -------
+    dhdx : ndarray, shape (4, 6)
+        Linearized measurement matrix.
+    """
     dhdx = np.zeros((4, 6))
-    dhdx[0:1, 0:3] = _dyawda(q_nb)  # yaw, NB! update each time step
-    dhdx[1:4, 0:3] = S(vg_b)  # gravity ref vector, NB! update each time step
+    dhdx[0:1, 0:3] = _dyawda(q_nb)  # NB! update each time step
+    dhdx[1:4, 0:3] = S(vg_b)  # NB! update each time step
     return dhdx
 
 
@@ -82,7 +139,8 @@ def _update_measurement_matrix_gref(dhdx, vg_b):
 
 def _z_down(nav_frame) -> NDArray[np.float64]:
     """
-    Whether the z-axis of the navigation frame points down (NED) or up (ENU).
+    Returns +1 if the z-axis of the navigation frame points down (NED), and -1 if
+    it points up (ENU).
     """
     if nav_frame.lower() == "ned":
         return 1
@@ -94,6 +152,26 @@ def _z_down(nav_frame) -> NDArray[np.float64]:
 
 @njit  # type: ignore[misc]
 def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
+    """
+    Scalar Kalman filter measurement update.
+
+    Parameters
+    ----------
+    da : ndarray, shape (3,)
+        Attitude error estimate to be updated in place.
+    bg_b ndarray, shape (3,)
+        Gyroscope bias estimate to be updated in place.
+    P : ndarray, shape (6, 6)
+        State error covariance matrix to be updated in place.
+    z : float
+        Scalar measurement.
+    r : float
+        Scalar measurement noise variance.
+    h : ndarray, shape (6,)
+        Measurement matrix (row vector).
+    I_ : ndarray, shape (6, 6)
+        Identity matrix.
+    """
 
     # Kalman gain
     k = _kalman_gain(P, h, r)
@@ -109,6 +187,26 @@ def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
+    """
+    Sequential Kalman filter measurement update.
+
+    Parameters
+    ----------
+    da : ndarray, shape (3,)
+        Attitude error estimate to be updated in place.
+    bg_b ndarray, shape (3,)
+        Gyroscope bias estimate to be updated in place.
+    P : ndarray, shape (6, 6)
+        State error covariance matrix to be updated in place.
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement noise variances corresponding to each scalar measurement.
+    H : ndarray, shape (m, 6)
+        Measurement matrix where each row corresponds to a scalar measurement model.
+    I_ : ndarray, shape (6, 6)
+        Identity matrix.
+    """
     m = z.shape[0]
     for i in range(m):
         _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
@@ -116,6 +214,9 @@ def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
 
 @njit  # type: ignore[misc]
 def _project_cov_ahead(P, phi, Q):
+    """
+    Project the error covariance ahead.
+    """
     P[:, :] = phi @ P @ phi.T + Q
 
 
