@@ -403,7 +403,7 @@ class Test_MEKF:
 class Test_MiniMEKF:
 
     def test_update_full_aiding(self, pva_sim):
-        _, _, v_n, euler_nb, f_b, w_b = pva_sim
+        _, _, _, euler_nb, f_b, w_b = pva_sim
         yaw = euler_nb[:, 2]
         fs = 10.24
 
