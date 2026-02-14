@@ -114,8 +114,8 @@ def _measurement_matrix(q_nb, vg_b):
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 6))
-    dhdx[0:1, 0:3] = _dyawda(q_nb)  # NB! update each time step
-    dhdx[1:4, 0:3] = S(vg_b)  # NB! update each time step
+    dhdx[0:3, 0:3] = S(vg_b)  # NB! update each time step
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # NB! update each time step
     return dhdx
 
 
@@ -124,8 +124,8 @@ def _update_measurement_matrix_yaw(dhdx, q_nb):
     """
     Heading (yaw angle) part of the measurement matrix, shape (6,).
     """
-    dhdx[0:1, 0:3] = _dyawda(q_nb)
-    return dhdx[0]
+    dhdx[3:4, 0:3] = _dyawda(q_nb)
+    return dhdx[3]
 
 
 @njit  # type: ignore[misc]
@@ -133,8 +133,8 @@ def _update_measurement_matrix_gref(dhdx, vg_b):
     """
     Gravity reference vector part of the measurement matrix, shape (3, 6).
     """
-    dhdx[1:4, 0:3] = S(vg_b)
-    return dhdx[1:4]
+    dhdx[0:3, 0:3] = S(vg_b)
+    return dhdx[0:3]
 
 
 def _z_down(nav_frame) -> NDArray[np.float64]:
