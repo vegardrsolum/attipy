@@ -389,7 +389,7 @@ class MEKF_:
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | None = (0.01, 0.01, 0.01),
+        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
