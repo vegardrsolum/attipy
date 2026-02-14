@@ -3,11 +3,11 @@ import pytest
 
 import attipy as ap
 from attipy._statespace import (
-    _process_noise_cov,
+    _process_noise_cov_matrix,
     _process_noise_psd,
     _state_matrix,
-    _state_transition,
-    _update_state_transition,
+    _state_transition_matrix,
+    _update_state_transition_matrix,
     _wn_input_matrix,
 )
 from attipy._vectorops import _skew_symmetric
@@ -15,113 +15,89 @@ from attipy._vectorops import _skew_symmetric
 
 @pytest.fixture
 def noise_params():
-    vrw = 0.001
     arw = 0.0001
-    abs = 0.0005
-    abc = 100.0
     gbs = 0.00005
     gbc = 50.0
-    return vrw, arw, abs, abc, gbs, gbc
+    return arw, gbs, gbc
 
 
 def test_state_matrix(noise_params):
-    *_, abc, _, gbc = noise_params
+    *_, gbc = noise_params
 
-    f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-
-    dfdx_out = _state_matrix(f_b_corr, w_b_corr, R_nb, abc, gbc)
+    dfdx_out = _state_matrix(w_b_corr, gbc)
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # Linearized state matrix
-    dfdx = np.zeros((15, 15))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b_corr)
-    dfdx[3:6, 9:12] = -R_nb
-    dfdx[6:9, 6:9] = -S(w_b_corr)
-    dfdx[6:9, 12:15] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / abc
-    dfdx[12:15, 12:15] = -np.eye(3) / gbc
-
+    dfdx = np.zeros((6, 6))
+    dfdx[0:3, 0:3] = -S(w_b_corr)  # NB! update each time step
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -np.eye(3) / gbc
     np.testing.assert_allclose(dfdx_out, dfdx)
 
 
 def test_wn_input_matrix():
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-
-    dfdw_out = _wn_input_matrix(R_nb)
+    dfdw_out = _wn_input_matrix()
 
     # Input (white noise) matrix
-    dfdw = np.zeros((15, 12))
-    dfdw[3:6, 0:3] = -R_nb
-    dfdw[6:9, 3:6] = -np.eye(3)
-    dfdw[9:12, 6:9] = np.eye(3)
-    dfdw[12:15, 9:12] = np.eye(3)
+    dfdw = np.zeros((6, 6))
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
 
     np.testing.assert_allclose(dfdw_out, dfdw)
 
 
 def test_process_noise_psd(noise_params):
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+    arw, gbs, gbc = noise_params
 
-    W_out = _process_noise_psd(vrw, arw, abs, abc, gbs, gbc)
+    W_out = _process_noise_psd(arw, gbs, gbc)
 
     # White noise power spectral density matrix
-    W = np.eye(12)
-    W[0:3, 0:3] *= vrw**2
-    W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * abs**2 / abc
-    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    W = np.eye(6)
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
     np.testing.assert_allclose(W_out, W)
 
 
 def test_state_transition(noise_params):
-    *_, abc, _, gbc = noise_params
+    *_, gbc = noise_params
 
     dt = 0.1
-    f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    phi_out = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
+    phi_out = _state_transition_matrix(dt, w_b_corr, gbc)
 
-    dfdx = _state_matrix(f_b_corr, w_b_corr, R_nb, abc, gbc)
-    phi = np.eye(15) + dt * dfdx  # first order approximation
+    dfdx = _state_matrix(w_b_corr, gbc)
+    phi = np.eye(6) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
 
 
 def test_update_state_transition(noise_params):
-    *_, abc, _, gbc = noise_params
+    *_, gbc = noise_params
 
     dt = 0.1
 
-    f_b_corr = np.array([0.1, 0.2, 9.7])
     w_b_corr = np.array([0.01, 0.02, 0.03])
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    phi = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
+    phi = _state_transition_matrix(dt, w_b_corr, gbc)
 
-    f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
-    R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
-    _update_state_transition(phi, dt, f_b_corr, w_b_corr, R_nb)
+    _update_state_transition_matrix(phi, dt, w_b_corr)
 
-    phi_expected = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
+    phi_expected = _state_transition_matrix(dt, w_b_corr, gbc)
 
     np.testing.assert_allclose(phi, phi_expected)
 
 
 def test_process_noise_cov(noise_params):
     dt = 0.1
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+    arw, gbs, gbc = noise_params
 
-    Q_out = _process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
+    Q_out = _process_noise_cov_matrix(dt, arw, gbs, gbc)
 
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    W = _process_noise_psd(vrw, arw, abs, abc, gbs, gbc)
-    dfdw = _wn_input_matrix(R_nb)
+    W = _process_noise_psd(arw, gbs, gbc)
+    dfdw = _wn_input_matrix()
 
     Q = dt * dfdw @ W @ dfdw.T
 
