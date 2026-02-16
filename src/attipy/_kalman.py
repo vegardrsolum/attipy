@@ -176,3 +176,11 @@ def _kalman_update_sequential(
     m = z.shape[0]
     for i in range(m):
         _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
+
+
+@njit  # type: ignore[misc]
+def _project_cov_ahead(P, phi, Q):
+    """
+    Project the error covariance ahead (in place).
+    """
+    P[:, :] = phi @ P @ phi.T + Q

@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_scalar, _kalman_update_sequential
+from ._kalman import _kalman_update_scalar, _kalman_update_sequential, _project_cov_ahead
 from ._statespace import (
     _measurement_matrix,
     _process_noise_cov_matrix,
@@ -58,14 +58,6 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
     return g_n
-
-
-@njit  # type: ignore[misc]
-def _project_cov_ahead(P, phi, Q):
-    """
-    Project the error covariance ahead (in place).
-    """
-    P[:, :] = phi @ P @ phi.T + Q
 
 
 class MEKF:
