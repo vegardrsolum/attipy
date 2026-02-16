@@ -63,7 +63,7 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _project_cov_ahead(P, phi, Q):
     """
-    Project the error covariance ahead.
+    Project the error covariance ahead (in place).
     """
     P[:, :] = phi @ P @ phi.T + Q
 
@@ -131,7 +131,7 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._da = np.zeros(3)  # attitude error state (2xGibbs vector)
+        self._da = np.zeros(3)  # attitude error state estimate (2xGibbs vector)
 
         # Discretized state space model (updated each time step)
         self._phi = _state_transition_matrix(self._dt, self._w_b, self._gbc)
