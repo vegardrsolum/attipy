@@ -140,15 +140,19 @@ class MEKF:
 
     @property
     def _vg_b(self):
+        """Gravity reference vector (unit vector) expressed in the body frame."""
         return self._z2g * self._att_nb.as_matrix()[2, :]
 
     @property
     def _yaw(self):
+        """Heading (yaw angle) estimate in radians."""
         return _yaw_from_quat(self._att_nb._q)
 
     @property
     def attitude(self) -> Attitude:
-        """Attitude estimate (no copy)."""
+        """
+        Attitude estimate (no copy).
+        """
         return self._att_nb
 
     @property
