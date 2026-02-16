@@ -156,6 +156,10 @@ class MEKF:
         return self._z_down * self._att_nb.as_matrix()[2, :]
 
     @property
+    def _yaw(self):
+        return _yaw_from_quat(self._att_nb._q)
+
+    @property
     def attitude(self) -> Attitude:
         """Attitude estimate (no copy)."""
         return self._att_nb
@@ -208,10 +212,15 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        yaw = _yaw_from_quat(self._att_nb._q)
-        z = _signed_smallest_angle(yaw_meas - yaw)
-        dhdx = _update_measurement_matrix_yaw(self._dhdx, self._att_nb._q)
-        _kalman_update_scalar(self._da, self._bg_b, self._P, z, yaw_var, dhdx, self._I6)
+        _kalman_update_scalar(
+            self._da,
+            self._bg_b,
+            self._P,
+            _signed_smallest_angle(yaw_meas - self._yaw),
+            yaw_var,
+            _update_measurement_matrix_yaw(self._dhdx, self._att_nb._q),
+            self._I6,
+        )
 
     def _aiding_update_gref(self, f_b, gref_var):
         """
@@ -224,10 +233,14 @@ class MEKF:
         if gref_var is None:
             raise ValueError("'gref_var' not provided.")
 
-        z = -_normalize_vec(f_b) - self._vg_b
-        dhdx = _update_measurement_matrix_gref(self._dhdx, self._vg_b)
         _kalman_update_sequential(
-            self._da, self._bg_b, self._P, z, gref_var, dhdx, self._I6
+            self._da,
+            self._bg_b,
+            self._P,
+            -_normalize_vec(f_b) - self._vg_b,
+            gref_var,
+            _update_measurement_matrix_gref(self._dhdx, self._vg_b),
+            self._I6,
         )
 
     def _project_ahead(self):
