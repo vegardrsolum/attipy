@@ -283,7 +283,7 @@ class MEKF:
         gref : bool, default True
             Specifies whether to use the gravity reference vector aiding measurement.
             If ``False``, gravity reference aiding is not used.
-        gref_var : array_like, shape (3,), default (0.01, 0.01, 0.01)
+        gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
             Variance of gravity reference vector measurement noise.
 
         Returns
