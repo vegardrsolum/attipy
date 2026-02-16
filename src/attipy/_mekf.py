@@ -5,7 +5,11 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_scalar, _kalman_update_sequential, _project_cov_ahead
+from ._kalman import (
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+    _project_cov_ahead,
+)
 from ._statespace import (
     _measurement_matrix,
     _process_noise_cov_matrix,
@@ -69,8 +73,7 @@ class MEKF:
     fs : float
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
-        Initial attitude estimate as an Attitude instance or a unit quaternion,
-        (qw, qx, qy, qz).
+        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
@@ -81,9 +84,6 @@ class MEKF:
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error (3-parameter 2xGibbs vector), and dbg is
         the gyroscope bias error.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like navigation frame. Should be 'NED'
-        (North-East-Down) (default) or 'ENU' (East-North-Up).
     gyro_noise_density : float, default 0.0001
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -92,6 +92,9 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
     _I6: NDArray[np.float64] = np.eye(6)
@@ -103,10 +106,10 @@ class MEKF:
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
-        nav_frame: str = "NED",
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
+        nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
