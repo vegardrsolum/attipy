@@ -119,7 +119,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._z_down = _gravity_nav(1.0, self._nav_frame)[2]  # +1 for NED, -1 for ENU
+        self._z2g = _gravity_nav(1.0, self._nav_frame)[2]  # gravity direction
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -140,7 +140,7 @@ class MEKF:
 
     @property
     def _vg_b(self):
-        return self._z_down * self._att_nb.as_matrix()[2, :]
+        return self._z2g * self._att_nb.as_matrix()[2, :]
 
     @property
     def _yaw(self):
