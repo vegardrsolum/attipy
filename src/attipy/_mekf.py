@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _covariance_update, _kalman_gain
+from ._kalman import _kalman_update_scalar, _kalman_update_sequential
 from ._statespace import (
     _measurement_matrix,
     _process_noise_cov_matrix,
@@ -71,68 +71,6 @@ def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     else:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
     return g_n
-
-
-@njit  # type: ignore[misc]
-def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
-    """
-    Scalar Kalman filter measurement update.
-
-    Parameters
-    ----------
-    da : ndarray, shape (3,)
-        Attitude error estimate to be updated in place.
-    bg_b ndarray, shape (3,)
-        Gyroscope bias estimate to be updated in place.
-    P : ndarray, shape (6, 6)
-        State error covariance matrix to be updated in place.
-    z : float
-        Scalar measurement.
-    r : float
-        Scalar measurement noise variance.
-    h : ndarray, shape (6,)
-        Measurement matrix (row vector).
-    I_ : ndarray, shape (6, 6)
-        Identity matrix.
-    """
-
-    # Kalman gain
-    k = _kalman_gain(P, h, r)
-
-    # Updated (a posteriori) state estimate
-    y = z - np.dot(h[0:3], da)
-    da[:] += k[0:3] * y
-    bg_b[:] += k[3:6] * y
-
-    # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update(P, k, h, r, I_)
-
-
-@njit  # type: ignore[misc]
-def _kalman_update_sequential(da, bg_b, P, z, var, H, I_):
-    """
-    Sequential Kalman filter measurement update.
-
-    Parameters
-    ----------
-    da : ndarray, shape (3,)
-        Attitude error estimate to be updated in place.
-    bg_b ndarray, shape (3,)
-        Gyroscope bias estimate to be updated in place.
-    P : ndarray, shape (6, 6)
-        State error covariance matrix to be updated in place.
-    z : ndarray, shape (m,)
-        Measurement vector.
-    var : ndarray, shape (m,)
-        Measurement noise variances corresponding to each scalar measurement.
-    H : ndarray, shape (m, 6)
-        Measurement matrix where each row corresponds to a scalar measurement model.
-    I_ : ndarray, shape (6, 6)
-        Identity matrix.
-    """
-    m = z.shape[0]
-    for i in range(m):
-        _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
 
 
 @njit  # type: ignore[misc]

@@ -56,7 +56,7 @@ def _covariance_update(P, k, h, r, I_):
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_scalar(x, P, z, r, h, I_):
+def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
     """
     Scalar Kalman filter measurement update.
 
@@ -94,8 +94,10 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
+    da : ndarray, shape (3,)
+        Attitude error estimate to be updated in place.
+    bg_b ndarray, shape (3,)
+        Gyroscope bias estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     z : float
@@ -112,7 +114,9 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    x[:] += k * (z - np.dot(h, x))
+    y = z - np.dot(h[0:3], da)
+    da[:] += k[0:3] * y
+    bg_b[:] += k[3:6] * y
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update(P, k, h, r, I_)
@@ -120,7 +124,8 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential(
-    x: NDArray[np.float64],
+    da: NDArray[np.float64],
+    bg_b: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -153,8 +158,10 @@ def _kalman_update_sequential(
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
+    da : ndarray, shape (3,)
+        Attitude error estimate to be updated in place.
+    bg_b ndarray, shape (3,)
+        Gyroscope bias estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     z : ndarray, shape (m,)
@@ -168,4 +175,4 @@ def _kalman_update_sequential(
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i], I_)
+        _kalman_update_scalar(da, bg_b, P, z[i], var[i], H[i], I_)
