@@ -66,9 +66,9 @@ def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
 
     Assumes the following error-state order:
 
-        dx = [da, bg_b]
+        dx = [da, dbg_b]
 
-    where da is the attitude error and bg_b is the gyroscope bias error.
+    where da is the attitude error and dbg_b is the gyroscope bias error.
 
     Only the attitude error (da) is assumed to be non-zero, as the other states
     are updated (reset) directly.
