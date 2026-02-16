@@ -95,7 +95,7 @@ def _kalman_update_scalar(da, bg_b, P, z, r, h, I_):
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    y = z - np.dot(h[0:3], da)
+    y = z - np.dot(h[0:3], da)  # only attitude error is non-zero
     da[:] += k[0:3] * y
     bg_b[:] += k[3:6] * y
 
