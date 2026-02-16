@@ -35,19 +35,6 @@ def _signed_smallest_angle(angle: float) -> float:
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
 
-def _z_down(nav_frame) -> NDArray[np.float64]:
-    """
-    Returns +1 if the z-axis of the navigation frame points down (NED), and -1 if
-    it points up (ENU).
-    """
-    if nav_frame.lower() == "ned":
-        return 1
-    elif nav_frame.lower() == "enu":
-        return -1
-    else:
-        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
-
-
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
     Gravity vector in the navigation frame ('NED' or 'ENU').
@@ -132,7 +119,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._z_down = _z_down(self._nav_frame)
+        self._z_down = _gravity_nav(1.0, self._nav_frame)[2]  # +1 for NED, -1 for ENU
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
