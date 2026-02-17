@@ -349,7 +349,7 @@ class MEKF:
         w: ArrayLike,
         degrees: bool = False,
         pos: ArrayLike | None = (0.0, 0.0, 0.0),
-        pos_var: ArrayLike | None = (1000.0, 1000.0, 1000.0),
+        pos_var: ArrayLike | None = (1000000.0, 1000000.0, 1000000.0),
         vel: ArrayLike | None = (0.0, 0.0, 0.0),
         vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         yaw: float | None = None,
@@ -372,12 +372,12 @@ class MEKF:
             or rad/s (default).
         pos : array_like, shape (3,), optional
             Position measurement (px, py, pz) in m. If ``None``, position aiding is not used.
-        pos_var : array_like, shape (3,), optional
+        pos_var : array_like, shape (3,), default (1000000.0, 1000000.0, 1000000.0)
             Variance of the position measurement noise in m^2. Required for ``pos``.
         vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
             is not used.
-        vel_var : array_like, shape (3,), optional
+        vel_var : array_like, shape (3,), default (100.0, 100.0, 100.0)
             Variance of the velocity measurement noise in (m/s)^2. Required for ``vel``.
         yaw : float, optional
             Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
