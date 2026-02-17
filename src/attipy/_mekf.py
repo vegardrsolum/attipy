@@ -171,7 +171,7 @@ class MEKF:
         self._P = np.asarray_chkfinite(P).reshape(15, 15).copy()
         self._dx = np.zeros(15, dtype=np.float64)
 
-        # Discretized state space model (updated each time step)
+        # Discrete state-space model (phi is updated each time step)
         self._phi = _state_transition(
             self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
         )
