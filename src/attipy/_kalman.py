@@ -6,7 +6,9 @@ from numpy.typing import NDArray
 @njit  # type: ignore[misc]
 def _kalman_gain(P, h, r):
     """
-    Compute the Kalman gain for a scalar measurement.
+    Compute the Kalman gain for a scalar measurement:
+
+        k = P @ h.T / (h @ P @ h.T + r)
 
     Parameters
     ----------
@@ -36,7 +38,9 @@ def _kalman_gain(P, h, r):
 @njit  # type: ignore[misc]
 def _covariance_update(P, k, h, r, I_):
     """
-    Update covariance estimate (Joseph form).
+    Update error covariance estimate (Joseph form):
+
+        P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
     Parameters
     ----------
