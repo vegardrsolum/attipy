@@ -64,38 +64,6 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     """
     Scalar Kalman filter measurement update.
 
-    Assumes the following scalar measurement model:
-
-        z = h x + v,    v ~ N(0, r)
-
-    where:
-    - x is the state vector,
-    - z is the scalar measurement,
-    - h is the measurement matrix (row vector),
-    - v is zero-mean Gaussian measurement noise,
-    - r is the measurement noise variance.
-
-    The Kalman update equations are given below. They are expressed in terms of
-    matrix (2D array) operations, but implemented using 1D array operations for
-    computational efficiency. See the parameter descriptions for expected array
-    shapes.
-
-    Innovation covariance:
-
-        s = h @ P @ h.T + r
-
-    Kalman gain:
-
-        k = P @ h.T / s
-
-    Updated (a posteriori) state estimate
-
-        x = x + k * (z - h @ x)
-
-    Updated (a posteriori) covariance estimate (Joseph form)
-
-        P = (I - k @ h) @ P @ (I - k @ h).T + r @ k @ k.T
-
     Parameters
     ----------
     x : ndarray, shape (n,)
@@ -132,28 +100,7 @@ def _kalman_update_sequential(
     I_: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Sequential Kalman filter measurement update. Updates (in place) the state, x,
-    and covariance matrix, P, using the Kalman filter update equations given below.
-
-    Innovation covariance:
-
-        S = H @ P @ H.T + R
-
-    Kalman gain:
-
-        K = P @ H.T @ inv(S)
-
-    Updated (a posteriori) state estimate:
-
-        x = x + K @ (z - H @ x)
-
-    Updated (a posteriori) covariance estimate (Joseph form):
-
-        P = (I - K @ H) @ P @ (I - K @ H).T + K @ R @ K.T
-
-    The update is applied sequentially (one measurement at a time) and uses the
-    Joseph stabilized form for the covariance update to preserve symmetry and positive
-    semi-definiteness.
+    Sequential (one-at-a-time) Kalman filter measurement update.
 
     Parameters
     ----------
