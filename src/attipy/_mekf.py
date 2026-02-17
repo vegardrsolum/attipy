@@ -146,8 +146,8 @@ class MEKF:
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._nav_frame = nav_frame.lower()
         self._g = g
+        self._nav_frame = nav_frame.lower()
         self._g_n = _gravity_nav(self._g, self._nav_frame)
 
         # IMU noise parameters
