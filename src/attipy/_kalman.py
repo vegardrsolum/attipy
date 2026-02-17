@@ -38,14 +38,14 @@ def _kalman_gain(P, h, r):
 @njit  # type: ignore[misc]
 def _covariance_update(P, k, h, r, I_):
     """
-    Update error covariance estimate (Joseph form):
+    Compute the updated state error covariance matrix estimate (Joseph form):
 
         P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
+        State error covariance matrix.
     k : ndarray, shape (n,)
         Kalman gain vector.
     h : ndarray, shape (n,)
@@ -54,9 +54,15 @@ def _covariance_update(P, k, h, r, I_):
         Scalar measurement noise variance.
     I_ : ndarray, shape (n, n)
         Identity matrix.
+
+    Returns
+    -------
+    P : ndarray, shape (n, n)
+        Updated state error covariance matrix.
     """
     A = I_ - np.outer(k, h)
-    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
+    P = A @ P @ A.T + r * np.outer(k, k)
+    return P
 
 
 @njit  # type: ignore[misc]
@@ -87,7 +93,7 @@ def _kalman_update_scalar(x, P, z, r, h, I_):
     x[:] += k * (z - np.dot(h, x))
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update(P, k, h, r, I_)
+    P[:, :] = _covariance_update(P, k, h, r, I_)
 
 
 @njit  # type: ignore[misc]
@@ -132,10 +138,16 @@ def _project_cov_ahead(P, phi, Q):
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
+        State error covariance matrix.
     phi : ndarray, shape (n, n)
         State transition matrix.
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
+
+    Returns
+    -------
+    P : ndarray, shape (n, n)
+        Projected state error covariance matrix.
     """
-    P[:, :] = phi @ P @ phi.T + Q
+    P = phi @ P @ phi.T + Q
+    return P

@@ -340,7 +340,7 @@ class MEKF:
         self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
-        _project_cov_ahead(self._P, self._phi, self._Q)
+        self._P[:] = _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
