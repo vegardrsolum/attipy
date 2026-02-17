@@ -100,11 +100,6 @@ class MEKF:
         where dp is the position error, dv is the velocity error, da is the attitude
         error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
         and dbg is the gyroscope bias error.
-    g : float, default 9.80665
-        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like navigation frame. Should be 'NED'
-        (North-East-Down) (default) or 'ENU' (East-North-Up).
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
@@ -121,6 +116,11 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
     _I15: NDArray[np.float64] = np.eye(15)
@@ -136,14 +136,14 @@ class MEKF:
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(15),
-        g: float = 9.80665,
-        nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
         acc_bias_stability: float = 0.0005,
         acc_bias_corr_time: float = 50.0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
