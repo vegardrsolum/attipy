@@ -178,6 +178,13 @@ class MEKF:
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
+    def _yaw(self):
+        """
+        Heading (yaw angle) estimate in radians.
+        """
+        return _yaw_from_quat(self._att_nb._q)
+
+    @property
     def attitude(self) -> Attitude:
         """Attitude estimate (no copy)."""
         return self._att_nb
@@ -311,8 +318,7 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
-        dz = _signed_smallest_angle(yaw_meas - yaw)
+        dz = _signed_smallest_angle(yaw_meas - self._yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
