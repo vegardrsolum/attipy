@@ -113,8 +113,8 @@ def _correct_quat_with_gibbs2(q, da):
     Notes
     -----
     As described in ref [1]_, this correction can be simplified by doing it in two
-    steps: first a correction, followed by renormalization. The scaling factor obsolete
-    due to the renormalization step.
+    steps: first a correction, followed by renormalization. The scaling factor becomes
+    obsolete due to the renormalization step.
 
     References
     ----------
