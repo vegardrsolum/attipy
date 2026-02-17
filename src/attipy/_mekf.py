@@ -26,14 +26,14 @@ from ._transforms import _yaw_from_quat
 
 def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
     """
-    Gravity vector in the navigation frame ('NED' or 'ENU').
+    Gravity vector expressed in the navigation frame ('NED' or 'ENU').
 
     Parameters
     ----------
     g : float
         Gravitational acceleration in m/s^2.
     nav_frame : {'NED', 'ENU'}
-        Navigation frame.
+        Navigation frame in which the gravity vector is expressed.
 
     Returns
     -------
@@ -76,8 +76,7 @@ class MEKF:
     fs : float
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
-        Initial attitude estimate as an Attitude instance or a unit quaternion,
-        (qw, qx, qy, qz).
+        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
     pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial position estimate (px, py, pz) in m expressed in the navigation frame.
         Defaults to zero position.
