@@ -4,7 +4,11 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_scalar, _kalman_update_sequential
+from ._kalman import (
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+    _project_cov_ahead,
+)
 from ._statespace import (
     ATT_IDX,
     BA_IDX,
@@ -337,7 +341,7 @@ class MEKF:
         self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
-        self._P[:, :] = self._phi @ self._P @ self._phi.T + self._Q
+        _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
