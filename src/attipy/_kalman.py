@@ -125,7 +125,7 @@ def _kalman_update_sequential(
 @njit  # type: ignore[misc]
 def _project_cov_ahead(P, phi, Q):
     """
-    Project the error covariance ahead (in place):
+    Project the error covariance ahead:
 
         P = phi @ P @ phi.T + Q
 
