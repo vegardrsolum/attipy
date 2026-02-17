@@ -121,4 +121,3 @@ euler_est = np.asarray(euler_est)
 
 - Intended for small-area, low-velocity applications; Earth rotation is neglected,
 and gravitational acceleration is assumed constant.
-- Accelerometer bias is not estimated; a calibrated accelerometer is assumed.
