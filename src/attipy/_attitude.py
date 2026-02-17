@@ -1,7 +1,6 @@
 from typing import Self
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._quatops import _canonical, _correct_quat_with_gibbs2, _normalize, _quatprod
@@ -66,7 +65,7 @@ def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
 
 class Attitude:
     """
-    This class encapsulates the attitude (or rotation) of one orthonormal reference
+    This class encapsulates the attitude (rotation) of one orthonormal reference
     frame {b} relative to another {n}.
 
     Although the {n} and {b} frames can be defined arbitrarily, the main use case
