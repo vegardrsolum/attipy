@@ -84,7 +84,9 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _correct_quat_with_gibbs2(q, da):
+def _correct_quat_with_gibbs2(
+    q: NDArray[np.float64], da: NDArray[np.float64]
+) -> NDArray[np.float64]:
     """
     Corrects a unit quaternion, q, with a small attitude error, da, parameterized
     as a scaled (2x) Gibbs vector.

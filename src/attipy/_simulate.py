@@ -48,7 +48,7 @@ class DOF(ABC):
         t = np.asarray_chkfinite(t)
         return self._dydt(t)
 
-    def d2ydt2(self, t):
+    def d2ydt2(self, t: ArrayLike) -> NDArray[np.float64]:
         """
         Generates d2y(t)/dt2 signal.
 
@@ -80,6 +80,7 @@ class DOF(ABC):
         d2ydt2 : ndarray, shape (n,)
             Second time derivative, d2y(t)/dt2, of DOF signal.
         """
+        t = np.asarray_chkfinite(t)
         y = self._y(t)
         dydt = self._dydt(t)
         d2ydt2 = self._d2ydt2(t)
