@@ -4,7 +4,9 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
-def _kalman_gain(P, h, r):
+def _kalman_gain(
+    P: NDArray[np.float64], h: NDArray[np.float64], r: float
+) -> NDArray[np.float64]:
     """
     Compute the Kalman gain for a scalar measurement:
 
@@ -36,7 +38,13 @@ def _kalman_gain(P, h, r):
 
 
 @njit  # type: ignore[misc]
-def _covariance_update(P, k, h, r, I_):
+def _covariance_update(
+    P: NDArray[np.float64],
+    k: NDArray[np.float64],
+    h: NDArray[np.float64],
+    r: float,
+    I_: NDArray[np.float64],
+) -> None:
     """
     Compute the updated state error covariance matrix estimate (Joseph form):
 
@@ -60,7 +68,14 @@ def _covariance_update(P, k, h, r, I_):
 
 
 @njit  # type: ignore[misc]
-def _kalman_update_scalar(x, P, z, r, h, I_):
+def _kalman_update_scalar(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: float,
+    r: float,
+    h: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
     """
     Scalar Kalman filter measurement update.
 
@@ -123,7 +138,9 @@ def _kalman_update_sequential(
 
 
 @njit  # type: ignore[misc]
-def _project_cov_ahead(P, phi, Q):
+def _project_cov_ahead(
+    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
+) -> None:
     """
     Project the error covariance ahead:
 
