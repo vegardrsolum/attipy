@@ -24,7 +24,7 @@ from ._statespace import (
 from ._transforms import _yaw_from_quat
 
 
-def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
+def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     """
     Gravity vector expressed in the navigation frame ('NED' or 'ENU').
 
@@ -181,7 +181,7 @@ class MEKF:
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @property
-    def _yaw(self):
+    def _yaw(self) -> float:
         """
         Heading (yaw angle) estimate in radians.
         """
@@ -242,19 +242,19 @@ class MEKF:
         """
         return self._P.copy()
 
-    def _dhdx_pos(self):
+    def _dhdx_pos(self) -> NDArray[np.float64]:
         """
         Position part of the measurement matrix, shape (3, 12).
         """
         return self._dhdx[0:3]
 
-    def _dhdx_vel(self):
+    def _dhdx_vel(self) -> NDArray[np.float64]:
         """
         Velocity part of the measurement matrix, shape (3, 12).
         """
         return self._dhdx[3:6]
 
-    def _dhdx_yaw(self, q_nb):
+    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (12,).
         """
@@ -325,7 +325,7 @@ class MEKF:
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
-    def _project_ahead(self):
+    def _project_ahead(self) -> None:
         """
         Project state and covariance estimates ahead.
         """
