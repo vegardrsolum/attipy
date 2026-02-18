@@ -276,7 +276,9 @@ class MEKF:
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
 
-    def _aiding_update_pos(self, pos_meas, pos_var):
+    def _aiding_update_pos(
+        self, pos_meas: ArrayLike | None, pos_var: ArrayLike | None
+    ) -> None:
         """
         Update with position vector aiding measurement.
         """
@@ -291,7 +293,9 @@ class MEKF:
         dhdx = self._dhdx_pos()
         _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I15)
 
-    def _aiding_update_vel(self, vel_meas, vel_var):
+    def _aiding_update_vel(
+        self, vel_meas: ArrayLike | None, vel_var: ArrayLike | None
+    ) -> None:
         """
         Update with velocity vector aiding measurement.
         """
@@ -306,7 +310,9 @@ class MEKF:
         dhdx = self._dhdx_vel()
         _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I15)
 
-    def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
+    def _aiding_update_yaw(
+        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+    ) -> None:
         """
         Update with heading aiding measurement.
         """
