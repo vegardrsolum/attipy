@@ -4,7 +4,11 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import _kalman_update_scalar, _kalman_update_sequential
+from ._kalman import (
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+    _project_cov_ahead,
+)
 from ._statespace import (
     ATT_IDX,
     BA_IDX,
@@ -20,16 +24,16 @@ from ._statespace import (
 from ._transforms import _yaw_from_quat
 
 
-def _gravity_nav(g, nav_frame) -> NDArray[np.float64]:
+def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     """
-    Gravity vector in the navigation frame ('NED' or 'ENU').
+    Gravity vector expressed in the navigation frame ('NED' or 'ENU').
 
     Parameters
     ----------
     g : float
         Gravitational acceleration in m/s^2.
     nav_frame : {'NED', 'ENU'}
-        Navigation frame.
+        Navigation frame in which the gravity vector is expressed.
 
     Returns
     -------
@@ -72,8 +76,7 @@ class MEKF:
     fs : float
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
-        Initial attitude estimate as an Attitude instance or a unit quaternion,
-        (qw, qx, qy, qz).
+        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
     pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial position estimate (px, py, pz) in m expressed in the navigation frame.
         Defaults to zero position.
@@ -96,11 +99,6 @@ class MEKF:
         where dp is the position error, dv is the velocity error, da is the attitude
         error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
         and dbg is the gyroscope bias error.
-    g : float, default 9.80665
-        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
-        Specifies the assumed inertial-like navigation frame. Should be 'NED'
-        (North-East-Down) (default) or 'ENU' (East-North-Up).
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
@@ -117,6 +115,11 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
     _I15: NDArray[np.float64] = np.eye(15)
@@ -132,19 +135,19 @@ class MEKF:
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(15),
-        g: float = 9.80665,
-        nav_frame: str = "NED",
         acc_noise_density: float = 0.001,
         acc_bias_stability: float = 0.0005,
         acc_bias_corr_time: float = 50.0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
         self._dt = 1.0 / fs
-        self._nav_frame = nav_frame.lower()
         self._g = g
+        self._nav_frame = nav_frame.lower()
         self._g_n = _gravity_nav(self._g, self._nav_frame)
 
         # IMU noise parameters
@@ -168,7 +171,7 @@ class MEKF:
         self._P = np.asarray_chkfinite(P).reshape(15, 15).copy()
         self._dx = np.zeros(15, dtype=np.float64)
 
-        # Discretized state space model (updated each time step)
+        # Discrete state-space model (phi is updated each time step)
         self._phi = _state_transition(
             self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
         )
@@ -176,6 +179,13 @@ class MEKF:
             self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
         )
         self._dhdx = _measurement_matrix(self._att_nb._q)
+
+    @property
+    def _yaw(self) -> float:
+        """
+        Heading (yaw angle) estimate in radians.
+        """
+        return _yaw_from_quat(self._att_nb._q)
 
     @property
     def attitude(self) -> Attitude:
@@ -232,21 +242,21 @@ class MEKF:
         """
         return self._P.copy()
 
-    def _dhdx_pos(self):
+    def _dhdx_pos(self) -> NDArray[np.float64]:
         """
-        Position part of the measurement matrix, shape (3, 12).
+        Position part of the measurement matrix, shape (3, 15).
         """
         return self._dhdx[0:3]
 
-    def _dhdx_vel(self):
+    def _dhdx_vel(self) -> NDArray[np.float64]:
         """
-        Velocity part of the measurement matrix, shape (3, 12).
+        Velocity part of the measurement matrix, shape (3, 15).
         """
         return self._dhdx[3:6]
 
-    def _dhdx_yaw(self, q_nb):
+    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
-        Heading (yaw angle) part of the measurement matrix, shape (12,).
+        Heading (yaw angle) part of the measurement matrix, shape (15,).
         """
         self._dhdx[6:7, ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[6]
@@ -266,7 +276,9 @@ class MEKF:
         self._bg_b[:] += self._dx[BG_IDX]
         self._dx[:] = 0.0
 
-    def _aiding_update_pos(self, pos_meas, pos_var):
+    def _aiding_update_pos(
+        self, pos_meas: ArrayLike | None, pos_var: ArrayLike | None
+    ) -> None:
         """
         Update with position vector aiding measurement.
         """
@@ -281,7 +293,9 @@ class MEKF:
         dhdx = self._dhdx_pos()
         _kalman_update_sequential(self._dx, self._P, dz, pos_var, dhdx, self._I15)
 
-    def _aiding_update_vel(self, vel_meas, vel_var):
+    def _aiding_update_vel(
+        self, vel_meas: ArrayLike | None, vel_var: ArrayLike | None
+    ) -> None:
         """
         Update with velocity vector aiding measurement.
         """
@@ -296,7 +310,9 @@ class MEKF:
         dhdx = self._dhdx_vel()
         _kalman_update_sequential(self._dx, self._P, dz, vel_var, dhdx, self._I15)
 
-    def _aiding_update_yaw(self, yaw_meas, yaw_var, yaw_degrees):
+    def _aiding_update_yaw(
+        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+    ) -> None:
         """
         Update with heading aiding measurement.
         """
@@ -311,12 +327,11 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        yaw = _yaw_from_quat(self._att_nb._q)  # heading estimate
-        dz = _signed_smallest_angle(yaw_meas - yaw)
+        dz = _signed_smallest_angle(yaw_meas - self._yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I15)
 
-    def _project_ahead(self):
+    def _project_ahead(self) -> None:
         """
         Project state and covariance estimates ahead.
         """
@@ -331,7 +346,7 @@ class MEKF:
         self._att_nb._project_ahead(self._w_b, self._dt)
 
         # Covariance
-        self._P[:] = self._phi @ self._P @ self._phi.T + self._Q
+        _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
@@ -339,7 +354,7 @@ class MEKF:
         w: ArrayLike,
         degrees: bool = False,
         pos: ArrayLike | None = (0.0, 0.0, 0.0),
-        pos_var: ArrayLike | None = (1000.0, 1000.0, 1000.0),
+        pos_var: ArrayLike | None = (1000000.0, 1000000.0, 1000000.0),
         vel: ArrayLike | None = (0.0, 0.0, 0.0),
         vel_var: ArrayLike | None = (100.0, 100.0, 100.0),
         yaw: float | None = None,
@@ -362,12 +377,12 @@ class MEKF:
             or rad/s (default).
         pos : array_like, shape (3,), optional
             Position measurement (px, py, pz) in m. If ``None``, position aiding is not used.
-        pos_var : array_like, shape (3,), optional
+        pos_var : array_like, shape (3,), default (1000000.0, 1000000.0, 1000000.0)
             Variance of the position measurement noise in m^2. Required for ``pos``.
         vel : array_like, shape (3,), optional
             Velocity measurement (vx, vy, vz) in m/s. If ``None``, velocity aiding
             is not used.
-        vel_var : array_like, shape (3,), optional
+        vel_var : array_like, shape (3,), default (100.0, 100.0, 100.0)
             Variance of the velocity measurement noise in (m/s)^2. Required for ``vel``.
         yaw : float, optional
             Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``

@@ -60,12 +60,11 @@ stable aiding measurements. When no aiding measurements are available (as in the
 example above), stationarity is assumed to ensure convergence. By default, zero-velocity
 aiding with a 10 m/s standard deviation is applied; this constrains roll and pitch only,
 as these are the only degrees of freedom observable from specific force measurements
-and the known direction of gravity.
+and the known direction of gravity. Under sustained linear acceleration, velocity
+and/or position aiding is recommended to maintain accurate attitude estimates.
 
-Under sustained linear acceleration, velocity and/or position aiding is recommended
-to maintain accurate attitude estimates. The following example demonstrates how
-to estimate position, velocity and attitude (including yaw) from IMU and aiding
-measurements.
+The following example demonstrates how to estimate position, velocity and attitude
+(including yaw) from IMU and aiding measurements.
 
 ```python
 import attipy as ap
@@ -121,4 +120,3 @@ euler_est = np.asarray(euler_est)
 
 - Intended for small-area, low-velocity applications; Earth rotation is neglected,
 and gravitational acceleration is assumed constant.
-- Accelerometer bias is not estimated; a calibrated accelerometer is assumed.

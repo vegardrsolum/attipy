@@ -1,7 +1,6 @@
 from typing import Self
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ._quatops import _canonical, _correct_quat_with_gibbs2, _normalize, _quatprod
@@ -66,7 +65,7 @@ def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
 
 class Attitude:
     """
-    This class encapsulates the attitude (or rotation) of one orthonormal reference
+    This class encapsulates the attitude (rotation) of one orthonormal reference
     frame {b} relative to another {n}.
 
     Although the {n} and {b} frames can be defined arbitrarily, the main use case
@@ -370,28 +369,28 @@ class Attitude:
             r = np.degrees(r)
         return r
 
-    def _correct_dr(self, dr):
+    def _correct_dr(self, dr: NDArray[np.float64]) -> None:
         """
         Correct the attitude quaternion with an incremental rotation given by a
         rotation vector, dr.
         """
         self._correct_dq(_quat_from_rotvec(dr))
 
-    def _correct_dq(self, dq):
+    def _correct_dq(self, dq: NDArray[np.float64]) -> None:
         """
         Correct the attitude quaternion with an incremental rotation given by a
         unit quaternion, dq.
         """
         self._q[:] = _normalize(_quatprod(self._q, dq))
 
-    def _correct_da(self, da):
+    def _correct_da(self, da: NDArray[np.float64]) -> None:
         """
         Correct the attitude quaternion with an incremental rotation given by a
         scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
 
-    def _project_ahead(self, w_b, dt):
+    def _project_ahead(self, w_b: NDArray[np.float64], dt: float) -> None:
         """
         Project ahead using angular rate (dead reckoning).
         """

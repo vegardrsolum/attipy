@@ -64,7 +64,7 @@ def _update_state_transition(
     f_b: NDArray[np.float64],
     w_b: NDArray[np.float64],
     R_nb: NDArray[np.float64],
-):
+) -> None:
     """
     Update the state transition matrix, phi, in place:
 
