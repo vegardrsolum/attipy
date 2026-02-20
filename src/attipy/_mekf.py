@@ -506,6 +506,40 @@ class AHRS:
         """Gravity reference vector (unit vector) expressed in the body frame."""
         return self._z2g * self._att_nb.as_matrix()[2, :]
 
+    @property
+    def _yaw(self) -> float:
+        """
+        Heading (yaw angle) estimate in radians.
+        """
+        return _yaw_from_quat(self._att_nb._q)
+
+    @property
+    def attitude(self) -> Attitude:
+        """Attitude estimate (no copy)."""
+        return self._att_nb
+
+    @property
+    def bias_gyro(self) -> NDArray[np.float64]:
+        """
+        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
+        """
+        return self._bg_b.copy()
+
+    @property
+    def angular_rate(self) -> NDArray[np.float64]:
+        """
+        Copy of the bias corrected angular rate measurement (rad/s) expressed in
+        the body frame.
+        """
+        return self._w_b.copy()
+
+    @property
+    def P(self) -> NDArray[np.float64]:
+        """
+        Copy of the error covariance matrix estimate.
+        """
+        return self._P.copy()
+
     @staticmethod
     def _state_transition(
         dt: float,
@@ -627,3 +661,17 @@ class AHRS:
         dhdx[0:3, 0:3] = S(vg_b)  # NB! update each time step
         dhdx[3:4, 0:3] = _dyawda(q_nb)  # NB! update each time step
         return dhdx
+    
+    def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Gravity reference vector part of the measurement matrix, shape (3, 6).
+        """
+        self._dhdx[0:3, 0:3] = S(vg_b)
+        return self._dhdx[0:3]
+
+    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+        """
+        Heading (yaw angle) part of the measurement matrix, shape (6,).
+        """
+        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
+        return self._dhdx[3]
