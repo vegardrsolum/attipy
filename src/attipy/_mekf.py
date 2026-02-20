@@ -217,8 +217,6 @@ class MEKF:
         where dfdx denotes the linearized state matrix.
         """
         wx, wy, wz = w_b
-
-        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
         phi[0, 1] = dt * wz
         phi[0, 2] = -dt * wy
         phi[1, 0] = -dt * wz
