@@ -423,3 +423,127 @@ class MEKF:
         _update_state_transition(self._phi, self._dt, self._f_b, self._w_b, self._R_nb)
 
         return self
+
+
+class AHRS:
+    """
+    Multiplicative extended Kalman filter (MEKF) for attitude estimation.
+
+    Parameters
+    ----------
+    fs : float
+        Sampling rate in Hz.
+    att : Attitude or array_like, shape (4,)
+        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
+        Defaults to zero angular rate (stationary).
+    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
+        where da is the attitude error, and dbg is the gyroscope bias error.
+    gyro_noise_density : float, default 0.0001
+        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
+        0.0001 (typical value for low-cost MEMS IMUs).
+    gyro_bias_stability : float, default 0.00005
+        Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
+        value for low-cost MEMS IMUs).
+    gyro_bias_corr_time : float, default 50.0
+        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
+    """
+
+    _I6: NDArray[np.float64] = np.eye(6)
+
+    def __init__(
+        self,
+        fs: float,
+        att: Attitude | ArrayLike,
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = 1e-6 * np.eye(6),
+        gyro_noise_density: float = 0.0001,
+        gyro_bias_stability: float = 0.00005,
+        gyro_bias_corr_time: float = 50.0,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+    ) -> None:
+        self._fs = fs
+        self._dt = 1.0 / fs
+        self._g = g
+        self._nav_frame = nav_frame.lower()
+        self._g_n = _gravity_nav(self._g, self._nav_frame)
+
+        # IMU noise parameters
+        self._arw = gyro_noise_density  # angular random walk
+        self._gbs = gyro_bias_stability  # gyro bias stability
+        self._gbc = gyro_bias_corr_time  # gyro bias correlation time
+
+        # State and covariance estimates
+        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
+        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._dx = np.zeros(6, dtype=np.float64)
+
+        # Discrete state-space model (phi is updated each time step)
+        f_b = np.zeros(3, dtype=np.float64)
+        vrw = 0.0
+        abs = 0.0
+        abc = 1.0
+        self._phi = self._state_transition(
+            self._dt, f_b, self._w_b, self._R_nb, abc, self._gbc
+        )
+        self._Q = _process_noise_cov(
+            self._dt, self._vrw, self._arw, abs, abc, self._gbs, self._gbc
+        )
+        self._dhdx = _measurement_matrix(self._att_nb._q)
+
+    @staticmethod
+    def _state_transition(
+        dt: float,
+        f_b: NDArray[np.float64],
+        w_b: NDArray[np.float64],
+        R_nb: NDArray[np.float64],
+        abc: float,
+        gbc: float,
+    ) -> NDArray[np.float64]:
+        """
+        Setup state transition matrix, phi, using the first-order approximation:
+
+            phi = I + dt * dfdx
+
+        where dfdx denotes the linearized state matrix.
+
+        Parameters
+        ----------
+        dt : float
+            Time step in seconds.
+        f_b : ndarray, shape (3,)
+            Specific force measurement (bias corrected) in body frame.
+        w_b : ndarray, shape (3,)
+            Angular rate measurement (bias corrected) in body frame.
+        R_nb : ndarray, shape (3, 3)
+            Rotation matrix (from body to navigation frame).
+        abc : float
+            Accelerometer bias correlation time in seconds.
+        gbc : float
+            Gyro bias correlation time in seconds.
+
+        Returns
+        -------
+        phi : ndarray, shape (15, 15)
+            State transition matrix.
+        """
+        phi = np.eye(15)
+        phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update each time step
+        phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+        phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
+        return phi
