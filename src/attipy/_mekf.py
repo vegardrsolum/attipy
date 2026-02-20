@@ -497,9 +497,7 @@ class AHRS:
 
         # Discrete state-space model (phi is updated each time step)
         self._phi = self._state_transition(self._dt, self._w_b, self._gbc)
-        self._Q = _process_noise_cov(
-            self._dt, self._vrw, self._arw, abs, abc, self._gbs, self._gbc
-        )
+        self._Q = self._process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q)
 
     @staticmethod
@@ -573,3 +571,31 @@ class AHRS:
         phi[1, 2] = dt * wx
         phi[2, 0] = dt * wy
         phi[2, 1] = -dt * wx
+
+    @staticmethod
+    def _process_noise_cov(dt: float, arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
+        """
+        Setup process noise covariance matrix, Q, using the first-order approximation:
+
+            Q = dt @ dfdw @ W @ dfdw.T
+
+        Parameters
+        ----------
+        dt : float
+            Time step in seconds.
+        arw : float
+            Angular random walk (gyroscope noise density) in rad/√Hz.
+        gbs : float
+            Gyro bias stability (bias instability) in rad/s.
+        gbc : float
+            Gyro bias correlation time in seconds.
+
+        Returns
+        -------
+        Q : ndarray, shape (6, 6)
+            Process noise covariance matrix.
+        """
+        Q = np.zeros((6, 6))
+        Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+        Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+        return Q
