@@ -134,13 +134,13 @@ class MEKF:
         Setup discrete state-space model.
         """
         dt = self._dt
-        f_b = np.zeros(3)
+        f_b = getattr(self, "_f_b", np.zeros(3))
         w_b = self._w_b
         R_nb = self._R_nb
 
-        vrw = 0.0
-        abs = 0.0
-        abc = 1.0
+        vrw = getattr(self, "_vrw", 0.0)
+        abs = getattr(self, "_abs", 0.0)
+        abc = getattr(self, "_abc", 1.0)
         arw = self._arw
         gbs = self._gbs
         gbc = self._gbc
