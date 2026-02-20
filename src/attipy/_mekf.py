@@ -93,7 +93,6 @@ class MEKF:
 
     _ATT_IDX = slice(0, 3)  # attitude error state indices
     _BG_IDX = slice(3, 6)  # gyro bias error state indices
-    _STATESPACE_SLICE = np.r_[ss.ATT_IDX, ss.BG_IDX]
     _I: NDArray[np.float64] = np.eye(6)
 
     def __init__(
@@ -130,28 +129,27 @@ class MEKF:
         self._prep_statespace()
 
     def _prep_statespace(self) -> None:
-        """
-        Setup discrete state-space model.
-        """
+        """Setup discrete state-space model."""
         dt = self._dt
-        f_b = getattr(self, "_f_b", np.zeros(3))
+        f_b = np.zeros(3)
         w_b = self._w_b
         q_nb = self._att_nb._q
         R_nb = self._R_nb
         vg_b = self._vg_b
 
-        vrw = getattr(self, "_vrw", 0.0)
-        abs = getattr(self, "_abs", 0.0)
-        abc = getattr(self, "_abc", 1.0)
+        vrw = 0.0
+        abs = 0.0
+        abc = 1.0
         arw = self._arw
         gbs = self._gbs
         gbc = self._gbc
 
-        slice_ = np.ix_(self._STATESPACE_SLICE, self._STATESPACE_SLICE)
-        self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[slice_]
-        self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[slice_]
-        self._dhdx = ss._measurement_matrix(q_nb, vg_b)[:, self._STATESPACE_SLICE]
-        self._dhdx = np.ascontiguousarray(self._dhdx)  # for numba compatibility
+        sx = np.r_[ss.ATT_IDX, ss.BG_IDX]  # state slice
+        sxx = np.ix_(sx, sx)
+        self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[sxx]
+        self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
+        self._dhdx = ss._measurement_matrix(q_nb, vg_b)[6:, sx]
+        self._dhdx = np.ascontiguousarray(self._dhdx)  # numba compatibility
 
     @property
     def _vg_b(self):
@@ -233,15 +231,15 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[7:10, self._ATT_IDX] = S(vg_b)
-        return self._dhdx[7:10]
+        self._dhdx[1:4, self._ATT_IDX] = S(vg_b)
+        return self._dhdx[1:4]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[6:7, self._ATT_IDX] = _dyawda(q_nb)
-        return self._dhdx[6]
+        self._dhdx[0:1, self._ATT_IDX] = _dyawda(q_nb)
+        return self._dhdx[0]
 
     def _reset(self) -> None:
         """
