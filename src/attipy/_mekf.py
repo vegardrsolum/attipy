@@ -4,6 +4,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
+from . import _statespace as ss
 from ._attitude import Attitude
 from ._kalman import (
     _kalman_update_scalar,
@@ -90,8 +91,9 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _ATT_IDX: slice = slice(0, 3)  # attitude error state indices
-    _BG_IDX: slice = slice(3, 6)  # gyro bias error state indices
+    _ATT_IDX = slice(0, 3)  # attitude error state indices
+    _BG_IDX = slice(3, 6)  # gyro bias error state indices
+    _STATESPACE_SLICE = np.r_[ss.ATT_IDX, ss.BG_IDX]
     _I: NDArray[np.float64] = np.eye(6)
 
     def __init__(
@@ -124,9 +126,28 @@ class MEKF:
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6, dtype=np.float64)
 
-        # Discrete state-space model (phi is updated each time step)
-        self._phi = self._prep_state_transition_matrix()
-        self._Q = self._prep_process_noise_cov_matrix()
+        # Discrete state-space model
+        self._prep_statespace()
+
+    def _prep_statespace(self) -> None:
+        """
+        Setup discrete state-space model.
+        """
+        dt = self._dt
+        f_b = np.zeros(3)
+        w_b = self._w_b
+        R_nb = self._R_nb
+
+        vrw = 0.0
+        abs = 0.0
+        abc = 1.0
+        arw = self._arw
+        gbs = self._gbs
+        gbc = self._gbc
+
+        slice_ = np.ix_(self._STATESPACE_SLICE, self._STATESPACE_SLICE)
+        self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[slice_]
+        self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[slice_]
         self._dhdx = self._prep_measurement_matrix()
 
     @property
@@ -168,25 +189,6 @@ class MEKF:
         """
         return self._P.copy()
 
-    def _prep_state_transition_matrix(self) -> NDArray[np.float64]:
-        """
-        Setup state transition matrix, phi, using the first-order approximation:
-
-            phi = I + dt * dfdx
-
-        where dfdx denotes the linearized state matrix.
-
-        Returns
-        -------
-        phi : ndarray, shape (6, 6)
-            State transition matrix.
-        """
-        phi = np.eye(6)
-        phi[self._ATT_IDX, self._ATT_IDX] -= self._dt * S(self._w_b)  # NB! update
-        phi[self._ATT_IDX, self._BG_IDX] -= self._dt * np.eye(3)
-        phi[self._BG_IDX, self._BG_IDX] -= self._dt * np.eye(3) / self._gbc
-        return phi
-
     @staticmethod
     @njit  # type: ignore[misc]
     def _update_state_transition(
@@ -223,24 +225,6 @@ class MEKF:
         phi[1, 2] = dt * wx
         phi[2, 0] = dt * wy
         phi[2, 1] = -dt * wx
-
-    def _prep_process_noise_cov_matrix(self) -> NDArray[np.float64]:
-        """
-        Setup process noise covariance matrix, Q, using the first-order approximation:
-
-            Q = dt @ dfdw @ W @ dfdw.T
-
-        Returns
-        -------
-        Q : ndarray, shape (6, 6)
-            Process noise covariance matrix.
-        """
-        Q = np.zeros((6, 6))
-        Q[self._ATT_IDX, self._ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
-        Q[self._BG_IDX, self._BG_IDX] = (
-            self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
-        )
-        return Q
 
     def _prep_measurement_matrix(self) -> NDArray[np.float64]:
         """
