@@ -704,8 +704,9 @@ class AMEKF:
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
 
-        dz = vg_meas - self._vg_b
-        dhdx = self._dhdx_gref()
+        vg_b = self._vg_b
+        dz = vg_meas - vg_b
+        dhdx = self._dhdx_gref(vg_b)
         _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I6)
 
     def _aiding_update_yaw(
