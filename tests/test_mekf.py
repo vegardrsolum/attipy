@@ -5,6 +5,7 @@ from pytest import fixture
 import attipy as ap
 from attipy._mekf import _dyawda
 from attipy._transforms import _quat_from_euler_zyx
+from attipy import _statespace
 
 
 # class Test_MEKF:
@@ -400,7 +401,7 @@ from attipy._transforms import _quat_from_euler_zyx
 #         np.testing.assert_allclose(P_a, P_b)
 
 
-class Test_AttMEKF:
+class Test_MEKF:
 
     @fixture
     def att(self):
@@ -605,3 +606,18 @@ class Test_AttMEKF:
 
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+
+    def test_prep_state_transition(self, mekf):
+        phi_out = mekf._prep_state_transition_matrix()
+
+        dt = mekf._dt
+        f_b = np.zeros(3)
+        w_b = mekf._w_b
+        R_nb = mekf._att_nb.as_matrix()
+        abc = 1.0
+        gbc = mekf._gbc
+        phi_expect = _statespace._state_transition(dt, f_b, w_b, R_nb, abc, gbc)
+        state_idx = np.r_[_statespace.ATT_IDX, _statespace.BG_IDX]
+        phi_expect = phi_expect[np.ix_(state_idx, state_idx)]
+
+        np.testing.assert_allclose(phi_out, phi_expect)
