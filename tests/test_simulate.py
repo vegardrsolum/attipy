@@ -203,18 +203,14 @@ class Test_pva_sim:
 
         # Validate f and w by strapdown integration using MEKF (no aiding)
         att0 = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs_expect, att0, vel=v_n[0])
-        vel_est, euler_est = [v_n[0]], [euler_nb[0]]
+        mekf = ap.MEKF(fs_expect, att0)
+        euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i, w_i, vel=None)
-            vel_est.append(mekf.velocity)
+            mekf.update(f_i, w_i, gref=False)
             euler_est.append(mekf.attitude.as_euler(degrees=False))
-        vel_est = np.array(vel_est)
         euler_est = np.array(euler_est)
-        pos_est = np.cumsum(vel_est, axis=0) / fs_expect
 
-        np.testing.assert_allclose(pos_est[:100], p_n[:100], atol=1e-1)
-        np.testing.assert_allclose(vel_est[:100], v_n[:100], atol=1e-1)
+        # TODO: check also pos and vel when strapdown estimator is available
         np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
 
     def test_fs_n(self):
