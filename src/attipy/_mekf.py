@@ -675,3 +675,53 @@ class AHRS:
         """
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
+
+    def _reset(self) -> None:
+        """
+        Reset state (regulating error-state to zero).
+        """
+
+        if not self._dx.any():
+            return
+
+        self._att_nb._correct_da(self._dx[0:3])
+        self._bg_b[:] += self._dx[3:6]
+        self._dx[:] = 0.0
+
+    def _aiding_update_gref(
+        self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
+    ) -> None:
+        """
+        Update with gravity reference vector aiding measurement.
+        """
+
+        if vg_meas is None:
+            return None
+
+        if vg_var is None:
+            raise ValueError("'vg_var' not provided.")
+
+        dz = vg_meas - self._vg_b
+        dhdx = self._dhdx_gref()
+        _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I6)
+
+    def _aiding_update_yaw(
+        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+    ) -> None:
+        """
+        Update with heading aiding measurement.
+        """
+
+        if yaw_meas is None:
+            return None
+
+        if yaw_var is None:
+            raise ValueError("'yaw_var' not provided.")
+
+        if yaw_degrees:
+            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
+
+        dz = _signed_smallest_angle(yaw_meas - self._yaw)
+        dhdx = self._dhdx_yaw(self._att_nb._q)
+        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I6)
