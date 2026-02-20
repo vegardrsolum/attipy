@@ -1,8 +1,8 @@
 from typing import Self
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from numba import njit
+from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import (
@@ -23,6 +23,7 @@ from ._statespace import (
     _update_state_transition,
 )
 from ._transforms import _yaw_from_quat
+from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
 
 
@@ -572,7 +573,7 @@ class AHRS:
         phi[0:3, 3:6] -= dt * np.eye(3)
         phi[3:6, 3:6] -= dt * np.eye(3) / gbc
         return phi
-    
+
     @staticmethod
     @njit  # type: ignore[misc]
     def _update_state_transition(
@@ -613,7 +614,9 @@ class AHRS:
         phi[2, 1] = -dt * wx
 
     @staticmethod
-    def _process_noise_cov(dt: float, arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
+    def _process_noise_cov(
+        dt: float, arw: float, gbs: float, gbc: float
+    ) -> NDArray[np.float64]:
         """
         Setup process noise covariance matrix, Q, using the first-order approximation:
 
@@ -639,7 +642,7 @@ class AHRS:
         Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
         Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
         return Q
-    
+
     @staticmethod
     def _measurement_matrix(q_nb, vg_b):
         """
@@ -661,7 +664,7 @@ class AHRS:
         dhdx[0:3, 0:3] = S(vg_b)  # NB! update each time step
         dhdx[3:4, 0:3] = _dyawda(q_nb)  # NB! update each time step
         return dhdx
-    
+
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
@@ -725,3 +728,80 @@ class AHRS:
         dz = _signed_smallest_angle(yaw_meas - self._yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I6)
+
+    def _project_ahead(self) -> None:
+        """
+        Project state and covariance estimates ahead.
+        """
+
+        # Attitude (dead reckoning)
+        self._att_nb._project_ahead(self._w_b, self._dt)
+
+        # Covariance
+        _project_cov_ahead(self._P, self._phi, self._Q)
+
+    def update(
+        self,
+        f: ArrayLike,
+        w: ArrayLike,
+        degrees: bool = False,
+        yaw: float | None = None,
+        yaw_var: float | None = None,
+        yaw_degrees: bool = False,
+        gref: bool = True,
+        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
+    ) -> Self:
+        """
+        Update state estimates with IMU and aiding measurements.
+
+        Parameters
+        ----------
+        f : array_like, shape (3,)
+            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
+            in m/s^2.
+        w : array_like, shape (3,)
+            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
+            ``degrees`` parameter for units.
+        degrees : bool, default False
+            Specifies whether the unit of the rotation rate, ``w``, are deg/s
+            or rad/s (default).
+        yaw : float, optional
+            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
+            for units. If ``None``, heading aiding is not used.
+        yaw_var : float, optional
+            Variance of heading (yaw angle) measurement noise in rad^2 (default)
+            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
+            for units. Required for ``yaw``.
+        yaw_degrees : bool, default False
+            Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
+            or rad and rad^2 (default).
+        gref : bool, default True
+            Specifies whether to use the gravity reference vector aiding measurement.
+            If ``False``, gravity reference aiding is not used.
+        gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
+            Variance of gravity reference vector measurement noise.
+
+        Returns
+        -------
+        MEKF
+            A reference to the instance itself after the update.
+        """
+
+        if degrees:
+            w = (np.pi / 180.0) * np.asarray(w)
+
+        # Project (a priori) state and covariance estimates ahead
+        self._project_ahead()
+
+        # Update (a posteriori) state and covariance estimates with aiding measurements
+        self._aiding_update_gref(-_normalize_vec(f) if gref else None, gref_var)
+        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
+
+        # Reset attitude
+        self._reset()
+
+        # Update model
+        self._w_b[:] = w - self._bg_b
+        self._update_state_transition(self._phi, self._dt, self._w_b)
+
+        return self
