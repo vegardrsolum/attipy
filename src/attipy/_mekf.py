@@ -845,7 +845,7 @@ class AttMEKF:
 #         g: float = 9.80665,
 #         nav_frame: str = "NED",
 #     ) -> None:
-        
+
 #         self._g = g
 #         self._g_n = _gravity_nav(self._g, nav_frame)
 
