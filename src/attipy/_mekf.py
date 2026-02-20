@@ -2,6 +2,7 @@ from typing import Self
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from numba import njit
 
 from ._attitude import Attitude
 from ._kalman import (
@@ -22,6 +23,7 @@ from ._statespace import (
     _update_state_transition,
 )
 from ._transforms import _yaw_from_quat
+from ._vectorops import _skew_symmetric as S
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -494,13 +496,7 @@ class AHRS:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discrete state-space model (phi is updated each time step)
-        f_b = np.zeros(3, dtype=np.float64)
-        vrw = 0.0
-        abs = 0.0
-        abc = 1.0
-        self._phi = self._state_transition(
-            self._dt, f_b, self._w_b, self._R_nb, abc, self._gbc
-        )
+        self._phi = self._state_transition(self._dt, self._w_b, self._gbc)
         self._Q = _process_noise_cov(
             self._dt, self._vrw, self._arw, abs, abc, self._gbs, self._gbc
         )
@@ -509,10 +505,7 @@ class AHRS:
     @staticmethod
     def _state_transition(
         dt: float,
-        f_b: NDArray[np.float64],
         w_b: NDArray[np.float64],
-        R_nb: NDArray[np.float64],
-        abc: float,
         gbc: float,
     ) -> NDArray[np.float64]:
         """
@@ -526,14 +519,8 @@ class AHRS:
         ----------
         dt : float
             Time step in seconds.
-        f_b : ndarray, shape (3,)
-            Specific force measurement (bias corrected) in body frame.
         w_b : ndarray, shape (3,)
             Angular rate measurement (bias corrected) in body frame.
-        R_nb : ndarray, shape (3, 3)
-            Rotation matrix (from body to navigation frame).
-        abc : float
-            Accelerometer bias correlation time in seconds.
         gbc : float
             Gyro bias correlation time in seconds.
 
@@ -543,7 +530,46 @@ class AHRS:
             State transition matrix.
         """
         phi = np.eye(15)
-        phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update each time step
-        phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
-        phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
+        phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
+        phi[0:3, 3:6] -= dt * np.eye(3)
+        phi[3:6, 3:6] -= dt * np.eye(3) / gbc
         return phi
+    
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _update_state_transition(
+        phi: NDArray[np.float64],
+        dt: float,
+        w_b: NDArray[np.float64],
+    ) -> None:
+        """
+        Update the state transition matrix, phi, in place:
+
+            phi[0:3, 0:3] = I - dt * S(w_b)
+
+        Parameters
+        ----------
+        phi : ndarray, shape (15, 15)
+            State transition matrix to be updated in place.
+        dt : float
+            Time step.
+        w_b : ndarray, shape (3,)
+            Angular rate measurement (bias corrected) in body frame.
+
+        Notes
+        -----
+        Assuming the first order approximation:
+
+            phi = I + dt * dfdx
+
+        where dfdx denotes the linearized state matrix.
+        """
+        wx, wy, wz = w_b
+
+        # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
+        phi[0, 1] = dt * wz
+        phi[0, 2] = -dt * wy
+        phi[1, 0] = -dt * wz
+        phi[1, 2] = dt * wx
+        phi[2, 0] = dt * wy
+        phi[2, 1] = -dt * wx
