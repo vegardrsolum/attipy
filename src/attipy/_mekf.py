@@ -428,7 +428,7 @@ class MEKF:
         return self
 
 
-class AHRS:
+class AMEKF:
     """
     Multiplicative extended Kalman filter (MEKF) for attitude estimation.
 
