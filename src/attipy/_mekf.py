@@ -180,15 +180,10 @@ class AttMEKF:
         phi : ndarray, shape (6, 6)
             State transition matrix.
         """
-
-        dt = self._dt
-        w_b = self._w_b
-        gbc = self._gbc
-
         phi = np.eye(self._N_STATES)
-        phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update
-        phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
-        phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
+        phi[ATT_IDX, ATT_IDX] -= self._dt * S(self._w_b)  # NB! update
+        phi[ATT_IDX, BG_IDX] -= self._dt * np.eye(3)
+        phi[BG_IDX, BG_IDX] -= self._dt * np.eye(3) / self._gbc
         return phi
 
     @staticmethod
@@ -241,15 +236,9 @@ class AttMEKF:
         Q : ndarray, shape (6, 6)
             Process noise covariance matrix.
         """
-
-        dt = self._dt
-        arw = self._arw
-        gbs = self._gbs
-        gbc = self._gbc
-
         Q = np.zeros((self._N_STATES, self._N_STATES))
-        Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
-        Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+        Q[ATT_IDX, ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
+        Q[BG_IDX, BG_IDX] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
         return Q
 
     def _prep_measurement_matrix(self) -> NDArray[np.float64]:
@@ -268,13 +257,9 @@ class AttMEKF:
         dhdx : ndarray, shape (4, 6)
             Linearized measurement matrix.
         """
-
-        vg_b = self._vg_b
-        q_nb = self._att_nb._q
-
         dhdx = np.zeros((4, self._N_STATES))
-        dhdx[0:3, ATT_IDX] = S(vg_b)  # NB! update each time step
-        dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # NB! update each time step
+        dhdx[0:3, ATT_IDX] = S(self._vg_b)  # NB! update each time step
+        dhdx[3:4, ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update each time step
         return dhdx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -288,7 +273,7 @@ class AttMEKF:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, ATT_IDX] = _dyawda(q_nb)
+        self._dhdx[3:4, ATT_IDX] = _dyawda(self._att_nb._q)
         return self._dhdx[3]
 
     def _reset(self) -> None:
