@@ -240,7 +240,9 @@ class MEKF:
         """
         Q = np.zeros((self._N_STATES, self._N_STATES))
         Q[self._ATT_IDX, self._ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
-        Q[self._BG_IDX, self._BG_IDX] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+        Q[self._BG_IDX, self._BG_IDX] = (
+            self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+        )
         return Q
 
     def _prep_measurement_matrix(self) -> NDArray[np.float64]:
