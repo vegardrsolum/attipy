@@ -496,9 +496,9 @@ class AttMEKF:
         self._dx = np.zeros(self._N, dtype=np.float64)
 
         # Discrete state-space model (phi is updated each time step)
-        self._phi = self._state_transition(self._dt, self._w_b, self._gbc)
-        self._Q = self._process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = self._measurement_matrix(self._att_nb._q, self._vg_b)
+        self._phi = self._prep_state_transition_matrix()
+        self._Q = self._prep_process_noise_cov_matrix()
+        self._dhdx = self._prep_measurement_matrix()
 
     @property
     def _vg_b(self):
@@ -539,12 +539,7 @@ class AttMEKF:
         """
         return self._P.copy()
 
-    @staticmethod
-    def _state_transition(
-        dt: float,
-        w_b: NDArray[np.float64],
-        gbc: float,
-    ) -> NDArray[np.float64]:
+    def _prep_state_transition_matrix(self) -> NDArray[np.float64]:
         """
         Setup state transition matrix, phi, using the first-order approximation:
 
@@ -552,24 +547,15 @@ class AttMEKF:
 
         where dfdx denotes the linearized state matrix.
 
-        Parameters
-        ----------
-        dt : float
-            Time step in seconds.
-        w_b : ndarray, shape (3,)
-            Angular rate measurement (bias corrected) in body frame.
-        gbc : float
-            Gyro bias correlation time in seconds.
-
         Returns
         -------
-        phi : ndarray, shape (15, 15)
+        phi : ndarray, shape (6, 6)
             State transition matrix.
         """
         phi = np.eye(6)
-        phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
-        phi[0:3, 3:6] -= dt * np.eye(3)
-        phi[3:6, 3:6] -= dt * np.eye(3) / gbc
+        phi[0:3, 0:3] -= self._dt * S(self._w_b)  # NB! update each time step
+        phi[0:3, 3:6] -= self._dt * np.eye(3)
+        phi[3:6, 3:6] -= self._dt * np.eye(3) / self._gbc
         return phi
 
     @staticmethod
@@ -586,7 +572,7 @@ class AttMEKF:
 
         Parameters
         ----------
-        phi : ndarray, shape (15, 15)
+        phi : ndarray, shape (6, 6)
             State transition matrix to be updated in place.
         dt : float
             Time step.
@@ -611,25 +597,11 @@ class AttMEKF:
         phi[2, 0] = dt * wy
         phi[2, 1] = -dt * wx
 
-    @staticmethod
-    def _process_noise_cov(
-        dt: float, arw: float, gbs: float, gbc: float
-    ) -> NDArray[np.float64]:
+    def _prep_process_noise_cov_matrix(self) -> NDArray[np.float64]:
         """
         Setup process noise covariance matrix, Q, using the first-order approximation:
 
             Q = dt @ dfdw @ W @ dfdw.T
-
-        Parameters
-        ----------
-        dt : float
-            Time step in seconds.
-        arw : float
-            Angular random walk (gyroscope noise density) in rad/√Hz.
-        gbs : float
-            Gyro bias stability (bias instability) in rad/s.
-        gbc : float
-            Gyro bias correlation time in seconds.
 
         Returns
         -------
@@ -637,12 +609,11 @@ class AttMEKF:
             Process noise covariance matrix.
         """
         Q = np.zeros((6, 6))
-        Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
-        Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+        Q[0:3, 0:3] = self._dt * self._arw**2 * np.eye(3)
+        Q[3:6, 3:6] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
         return Q
 
-    @staticmethod
-    def _measurement_matrix(q_nb, vg_b):
+    def _prep_measurement_matrix(self) -> NDArray[np.float64]:
         """
         Setup linearized measurement matrix, dhdx.
 
@@ -659,8 +630,8 @@ class AttMEKF:
             Linearized measurement matrix.
         """
         dhdx = np.zeros((4, 6))
-        dhdx[0:3, 0:3] = S(vg_b)  # NB! update each time step
-        dhdx[3:4, 0:3] = _dyawda(q_nb)  # NB! update each time step
+        dhdx[0:3, 0:3] = S(self._vg_b)  # NB! update each time step
+        dhdx[3:4, 0:3] = _dyawda(self._att_nb._q)  # NB! update each time step
         return dhdx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -912,14 +883,14 @@ class AttMEKF:
 #         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
 #         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
 
-        # self._prep_statespace()
+#         self._prep_statespace()
 
-        # def _prep_statespace(self) -> None:
-        #     # Discrete state-space model (phi is updated each time step)
-        #     self._phi = _state_transition(
-        #         self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
-        #     )
-        #     self._Q = _process_noise_cov(
-        #         self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
-        #     )
-        #     self._dhdx = _measurement_matrix(self._att_nb._q)
+#         def _prep_statespace(self) -> None:
+#             # Discrete state-space model (phi is updated each time step)
+#             self._phi = _state_transition(
+#                 self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
+#             )
+#             self._Q = _process_noise_cov(
+#                 self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
+#             )
+#             self._dhdx = _measurement_matrix(self._att_nb._q)
