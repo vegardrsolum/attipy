@@ -10,7 +10,7 @@ from ._kalman import (
     _kalman_update_sequential,
     _project_cov_ahead,
 )
-from ._statespace import ATT_IDX, BG_IDX, _dyawda
+from ._statespace import _dyawda
 from ._transforms import _yaw_from_quat
 from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
@@ -91,6 +91,8 @@ class MEKF:
     """
 
     _N_STATES: int = 6  # state dimension
+    _ATT_IDX: slice = slice(0, 3)  # attitude error state indices
+    _BG_IDX: slice = slice(3, 6)  # gyro bias error state indices
     _I: NDArray[np.float64] = np.eye(_N_STATES)
 
     def __init__(
@@ -181,9 +183,9 @@ class MEKF:
             State transition matrix.
         """
         phi = np.eye(self._N_STATES)
-        phi[ATT_IDX, ATT_IDX] -= self._dt * S(self._w_b)  # NB! update
-        phi[ATT_IDX, BG_IDX] -= self._dt * np.eye(3)
-        phi[BG_IDX, BG_IDX] -= self._dt * np.eye(3) / self._gbc
+        phi[self._ATT_IDX, self._ATT_IDX] -= self._dt * S(self._w_b)  # NB! update
+        phi[self._ATT_IDX, self._BG_IDX] -= self._dt * np.eye(3)
+        phi[self._BG_IDX, self._BG_IDX] -= self._dt * np.eye(3) / self._gbc
         return phi
 
     @staticmethod
@@ -237,8 +239,8 @@ class MEKF:
             Process noise covariance matrix.
         """
         Q = np.zeros((self._N_STATES, self._N_STATES))
-        Q[ATT_IDX, ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
-        Q[BG_IDX, BG_IDX] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+        Q[self._ATT_IDX, self._ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
+        Q[self._BG_IDX, self._BG_IDX] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
         return Q
 
     def _prep_measurement_matrix(self) -> NDArray[np.float64]:
@@ -258,22 +260,22 @@ class MEKF:
             Linearized measurement matrix.
         """
         dhdx = np.zeros((4, self._N_STATES))
-        dhdx[0:3, ATT_IDX] = S(self._vg_b)  # NB! update each time step
-        dhdx[3:4, ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update each time step
+        dhdx[0:3, self._ATT_IDX] = S(self._vg_b)  # NB! update each time step
+        dhdx[3:4, self._ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update each time step
         return dhdx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, ATT_IDX] = S(vg_b)
+        self._dhdx[0:3, self._ATT_IDX] = S(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, ATT_IDX] = _dyawda(self._att_nb._q)
+        self._dhdx[3:4, self._ATT_IDX] = _dyawda(self._att_nb._q)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -284,8 +286,8 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[ATT_IDX])
-        self._bg_b[:] += self._dx[BG_IDX]
+        self._att_nb._correct_da(self._dx[self._ATT_IDX])
+        self._bg_b[:] += self._dx[self._BG_IDX]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
