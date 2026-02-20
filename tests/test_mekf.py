@@ -3,10 +3,9 @@ import pytest
 from pytest import fixture
 
 import attipy as ap
+from attipy import _statespace
 from attipy._mekf import _dyawda
 from attipy._transforms import _quat_from_euler_zyx
-from attipy import _statespace
-
 
 # class Test_MEKF:
 
