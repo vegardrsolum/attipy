@@ -455,8 +455,6 @@ class AttMEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, default 50.0
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    g : float, default 9.80665
-        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
     nav_frame : {'NED', 'ENU'}, default 'NED'
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up).
