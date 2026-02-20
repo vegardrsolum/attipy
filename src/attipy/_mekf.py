@@ -136,7 +136,9 @@ class MEKF:
         dt = self._dt
         f_b = getattr(self, "_f_b", np.zeros(3))
         w_b = self._w_b
+        q_nb = self._att_nb._q
         R_nb = self._R_nb
+        vg_b = self._vg_b
 
         vrw = getattr(self, "_vrw", 0.0)
         abs = getattr(self, "_abs", 0.0)
@@ -148,7 +150,8 @@ class MEKF:
         slice_ = np.ix_(self._STATESPACE_SLICE, self._STATESPACE_SLICE)
         self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[slice_]
         self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[slice_]
-        self._dhdx = self._prep_measurement_matrix()
+        self._dhdx = ss._measurement_matrix(q_nb, vg_b)[:, self._STATESPACE_SLICE]
+        self._dhdx = np.ascontiguousarray(self._dhdx)  # for numba compatibility
 
     @property
     def _vg_b(self):
@@ -226,40 +229,19 @@ class MEKF:
         phi[2, 0] = dt * wy
         phi[2, 1] = -dt * wx
 
-    def _prep_measurement_matrix(self) -> NDArray[np.float64]:
-        """
-        Setup linearized measurement matrix, dhdx.
-
-        Parameters
-        ----------
-        q_nb : ndarray, shape (4,)
-            Unit quaternion.
-        vg_b : ndarray, shape (3,)
-            Gravity reference (unit) vector expressed in the body frame.
-
-        Returns
-        -------
-        dhdx : ndarray, shape (4, 6)
-            Linearized measurement matrix.
-        """
-        dhdx = np.zeros((4, 6))
-        dhdx[0:3, self._ATT_IDX] = S(self._vg_b)  # NB! update
-        dhdx[3:4, self._ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update
-        return dhdx
-
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, self._ATT_IDX] = S(vg_b)
-        return self._dhdx[0:3]
+        self._dhdx[7:10, self._ATT_IDX] = S(vg_b)
+        return self._dhdx[7:10]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
-        return self._dhdx[3]
+        self._dhdx[6:7, self._ATT_IDX] = _dyawda(q_nb)
+        return self._dhdx[6]
 
     def _reset(self) -> None:
         """
