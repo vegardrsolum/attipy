@@ -481,6 +481,7 @@ class AHRS:
         self._g = g
         self._nav_frame = nav_frame.lower()
         self._g_n = _gravity_nav(self._g, self._nav_frame)
+        self._z2g = np.sign(self._g_n[2])
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -498,7 +499,12 @@ class AHRS:
         # Discrete state-space model (phi is updated each time step)
         self._phi = self._state_transition(self._dt, self._w_b, self._gbc)
         self._Q = self._process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix(self._att_nb._q)
+        self._dhdx = self._measurement_matrix(self._att_nb._q, self._vg_b)
+
+    @property
+    def _vg_b(self):
+        """Gravity reference vector (unit vector) expressed in the body frame."""
+        return self._z2g * self._att_nb.as_matrix()[2, :]
 
     @staticmethod
     def _state_transition(
@@ -599,3 +605,25 @@ class AHRS:
         Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
         Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
         return Q
+    
+    @staticmethod
+    def _measurement_matrix(q_nb, vg_b):
+        """
+        Setup linearized measurement matrix, dhdx.
+
+        Parameters
+        ----------
+        q_nb : ndarray, shape (4,)
+            Unit quaternion.
+        vg_b : ndarray, shape (3,)
+            Gravity reference (unit) vector expressed in the body frame.
+
+        Returns
+        -------
+        dhdx : ndarray, shape (4, 6)
+            Linearized measurement matrix.
+        """
+        dhdx = np.zeros((4, 6))
+        dhdx[0:3, 0:3] = S(vg_b)  # NB! update each time step
+        dhdx[3:4, 0:3] = _dyawda(q_nb)  # NB! update each time step
+        return dhdx
