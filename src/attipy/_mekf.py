@@ -568,7 +568,7 @@ class AMEKF:
         phi : ndarray, shape (15, 15)
             State transition matrix.
         """
-        phi = np.eye(15)
+        phi = np.eye(6)
         phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
         phi[0:3, 3:6] -= dt * np.eye(3)
         phi[3:6, 3:6] -= dt * np.eye(3) / gbc
