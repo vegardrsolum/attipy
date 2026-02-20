@@ -777,10 +777,9 @@ class AttMEKF:
         return self
 
 
-class PVAttMEKF(AttMEKF):
+class VAttMEKF(AttMEKF):
     """
-    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
-    (PVA) estimation.
+    Multiplicative extended Kalman filter (MEKF) for attitude and velocity estimation.
 
     Parameters
     ----------
@@ -788,17 +787,12 @@ class PVAttMEKF(AttMEKF):
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
-    pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial position estimate (px, py, pz) in m expressed in the navigation frame.
-        Defaults to zero position.
     vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
         frame. Defaults to zero velocity (stationary).
     acc : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
         the navigation frame. Defaults to zero linear acceleration (stationary).
-    ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
-        Initial accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
@@ -813,11 +807,6 @@ class PVAttMEKF(AttMEKF):
     acc_noise_density : float, default 0.001
         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
         to 0.001 (typical value for low-cost MEMS IMUs).
-    acc_bias_stability : float, default 0.0005
-        Accelerometer bias stability (1-sigma) in m/s^2. Defaults to 0.0005 (typical
-        value for low-cost MEMS IMUs).
-    acc_bias_corr_time : float, default 50.0
-        Accelerometer bias correlation time in seconds. Defaults to 50.0 s.
     gyro_noise_density : float, default 0.0001
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -862,14 +851,12 @@ class PVAttMEKF(AttMEKF):
 
         # IMU noise parameters
         self._vrw = acc_noise_density  # velocity random walk
-        self._abs = acc_bias_stability  # accelerometer bias stability
-        self._abc = acc_bias_corr_time  # accelerometer bias correlation time
 
         # State and covariance estimates
-        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
+        # self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
+        self._f_b = np.zeros(3)
 
         super().__init__(
             fs,
@@ -883,4 +870,21 @@ class PVAttMEKF(AttMEKF):
             nav_frame,
         )
 
-        self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
+    def _prep_state_transition_matrix(self) -> NDArray[np.float64]:
+        """
+        Setup state transition matrix, phi, using the first-order approximation:
+
+            phi = I + dt * dfdx
+
+        where dfdx denotes the linearized state matrix.
+
+        Returns
+        -------
+        phi : ndarray, shape (15, 15)
+            State transition matrix.
+        """
+        phi = np.eye(15)
+        phi[:6, :6] = super()._prep_state_transition_matrix()
+        phi[6:9, 0:3] -= self._dt * self._R_nb @ S(self._f_b)  # NB! update each time step
+        phi[6:9, 3:6] -= self._dt * self._R_nb
+        return phi
