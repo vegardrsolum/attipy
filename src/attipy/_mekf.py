@@ -90,10 +90,9 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _N_STATES: int = 6  # state dimension
     _ATT_IDX: slice = slice(0, 3)  # attitude error state indices
     _BG_IDX: slice = slice(3, 6)  # gyro bias error state indices
-    _I: NDArray[np.float64] = np.eye(_N_STATES)
+    _I: NDArray[np.float64] = np.eye(6)
 
     def __init__(
         self,
@@ -122,8 +121,8 @@ class MEKF:
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(self._N_STATES, self._N_STATES).copy()
-        self._dx = np.zeros(self._N_STATES, dtype=np.float64)
+        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._dx = np.zeros(6, dtype=np.float64)
 
         # Discrete state-space model (phi is updated each time step)
         self._phi = self._prep_state_transition_matrix()
@@ -182,7 +181,7 @@ class MEKF:
         phi : ndarray, shape (6, 6)
             State transition matrix.
         """
-        phi = np.eye(self._N_STATES)
+        phi = np.eye(6)
         phi[self._ATT_IDX, self._ATT_IDX] -= self._dt * S(self._w_b)  # NB! update
         phi[self._ATT_IDX, self._BG_IDX] -= self._dt * np.eye(3)
         phi[self._BG_IDX, self._BG_IDX] -= self._dt * np.eye(3) / self._gbc
@@ -238,7 +237,7 @@ class MEKF:
         Q : ndarray, shape (6, 6)
             Process noise covariance matrix.
         """
-        Q = np.zeros((self._N_STATES, self._N_STATES))
+        Q = np.zeros((6, 6))
         Q[self._ATT_IDX, self._ATT_IDX] = self._dt * self._arw**2 * np.eye(3)
         Q[self._BG_IDX, self._BG_IDX] = (
             self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
@@ -261,9 +260,9 @@ class MEKF:
         dhdx : ndarray, shape (4, 6)
             Linearized measurement matrix.
         """
-        dhdx = np.zeros((4, self._N_STATES))
-        dhdx[0:3, self._ATT_IDX] = S(self._vg_b)  # NB! update each time step
-        dhdx[3:4, self._ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update each time step
+        dhdx = np.zeros((4, 6))
+        dhdx[0:3, self._ATT_IDX] = S(self._vg_b)  # NB! update
+        dhdx[3:4, self._ATT_IDX] = _dyawda(self._att_nb._q)  # NB! update
         return dhdx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
