@@ -460,8 +460,10 @@ class AttMEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _N: int = 6  # state dimension
-    _I: NDArray[np.float64] = np.eye(_N)
+    _N_STATES: int = 6  # state dimension
+    _ATT_IDX = slice(0, 3)  # attitude error state indices
+    _BG_IDX = slice(3, 6)  # gyro bias error state indices
+    _I: NDArray[np.float64] = np.eye(_N_STATES)
 
     def __init__(
         self,
@@ -490,8 +492,8 @@ class AttMEKF:
         self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(self._N, self._N).copy()
-        self._dx = np.zeros(self._N, dtype=np.float64)
+        self._P = np.asarray_chkfinite(P).reshape(self._N_STATES, self._N_STATES).copy()
+        self._dx = np.zeros(self._N_STATES, dtype=np.float64)
 
         # Discrete state-space model (phi is updated each time step)
         self._phi = self._prep_state_transition_matrix()
@@ -550,10 +552,17 @@ class AttMEKF:
         phi : ndarray, shape (6, 6)
             State transition matrix.
         """
-        phi = np.eye(6)
-        phi[0:3, 0:3] -= self._dt * S(self._w_b)  # NB! update each time step
-        phi[0:3, 3:6] -= self._dt * np.eye(3)
-        phi[3:6, 3:6] -= self._dt * np.eye(3) / self._gbc
+
+        dt = self._dt
+        w_b = self._w_b
+        gbc = self._gbc
+        ATT_IDX = self._ATT_IDX
+        BG_IDX = self._BG_IDX
+
+        phi = np.eye(self._N_STATES)
+        phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update
+        phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+        phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
         return phi
 
     @staticmethod
@@ -606,9 +615,17 @@ class AttMEKF:
         Q : ndarray, shape (6, 6)
             Process noise covariance matrix.
         """
-        Q = np.zeros((6, 6))
-        Q[0:3, 0:3] = self._dt * self._arw**2 * np.eye(3)
-        Q[3:6, 3:6] = self._dt * (2.0 * self._gbs**2 / self._gbc) * np.eye(3)
+
+        dt = self._dt
+        arw = self._arw
+        gbs = self._gbs
+        gbc = self._gbc
+        ATT_IDX = self._ATT_IDX
+        BG_IDX = self._BG_IDX
+
+        Q = np.zeros((self._N_STATES, self._N_STATES))
+        Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+        Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
         return Q
 
     def _prep_measurement_matrix(self) -> NDArray[np.float64]:
@@ -627,23 +644,28 @@ class AttMEKF:
         dhdx : ndarray, shape (4, 6)
             Linearized measurement matrix.
         """
-        dhdx = np.zeros((4, 6))
-        dhdx[0:3, 0:3] = S(self._vg_b)  # NB! update each time step
-        dhdx[3:4, 0:3] = _dyawda(self._att_nb._q)  # NB! update each time step
+
+        vg_b = self._vg_b
+        q_nb = self._att_nb._q
+        ATT_IDX = self._ATT_IDX
+
+        dhdx = np.zeros((4, self._N_STATES))
+        dhdx[0:3, ATT_IDX] = S(vg_b)  # NB! update each time step
+        dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # NB! update each time step
         return dhdx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, 0:3] = S(vg_b)
+        self._dhdx[0:3, self._ATT_IDX] = S(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
+        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -654,8 +676,8 @@ class AttMEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[0:3])
-        self._bg_b[:] += self._dx[3:6]
+        self._att_nb._correct_da(self._dx[self._ATT_IDX])
+        self._bg_b[:] += self._dx[self._BG_IDX]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
