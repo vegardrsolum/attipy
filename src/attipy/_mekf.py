@@ -777,120 +777,110 @@ class AttMEKF:
         return self
 
 
-# class PVAttMEKF(AttMEKF):
-#     """
-#     Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
-#     (PVA) estimation.
+class PVAttMEKF(AttMEKF):
+    """
+    Multiplicative extended Kalman filter (MEKF) for position, velocity and attitude
+    (PVA) estimation.
 
-#     Parameters
-#     ----------
-#     fs : float
-#         Sampling rate in Hz.
-#     att : Attitude or array_like, shape (4,)
-#         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
-#     pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial position estimate (px, py, pz) in m expressed in the navigation frame.
-#         Defaults to zero position.
-#     vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
-#         frame. Defaults to zero velocity (stationary).
-#     acc : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
-#         the navigation frame. Defaults to zero linear acceleration (stationary).
-#     ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
-#     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-#     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
-#         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
-#         Defaults to zero angular rate (stationary).
-#     P : array_like, shape (15, 15), default 1e-6 * np.eye(15)
-#         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-#         (1e-6 * np.eye(15)). The order of the (error) states is: dx = (dp, dv, da, dba, dbg),
-#         where dp is the position error, dv is the velocity error, da is the attitude
-#         error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
-#         and dbg is the gyroscope bias error.
-#     acc_noise_density : float, default 0.001
-#         Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
-#         to 0.001 (typical value for low-cost MEMS IMUs).
-#     acc_bias_stability : float, default 0.0005
-#         Accelerometer bias stability (1-sigma) in m/s^2. Defaults to 0.0005 (typical
-#         value for low-cost MEMS IMUs).
-#     acc_bias_corr_time : float, default 50.0
-#         Accelerometer bias correlation time in seconds. Defaults to 50.0 s.
-#     gyro_noise_density : float, default 0.0001
-#         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
-#         0.0001 (typical value for low-cost MEMS IMUs).
-#     gyro_bias_stability : float, default 0.00005
-#         Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
-#         value for low-cost MEMS IMUs).
-#     gyro_bias_corr_time : float, default 50.0
-#         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-#     g : float, default 9.80665
-#         The gravitational acceleration. Default is the 'standard gravity' 9.80665.
-#     nav_frame : {'NED', 'ENU'}, default 'NED'
-#         Specifies the assumed inertial-like navigation frame. Should be 'NED'
-#         (North-East-Down) (default) or 'ENU' (East-North-Up).
-#     """
+    Parameters
+    ----------
+    fs : float
+        Sampling rate in Hz.
+    att : Attitude or array_like, shape (4,)
+        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
+    pos : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial position estimate (px, py, pz) in m expressed in the navigation frame.
+        Defaults to zero position.
+    vel : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial linear velocity estimate (vx, vy, vz) in m/s expressed in the navigation
+        frame. Defaults to zero velocity (stationary).
+    acc : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial linear acceleration estimate (ax, ay, az) in m/s^2 expressed in
+        the navigation frame. Defaults to zero linear acceleration (stationary).
+    ba : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial accelerometer bias estimate (bax, bay, baz) in m/s^2. Defaults to zero bias.
+    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
+        Defaults to zero angular rate (stationary).
+    P : array_like, shape (15, 15), default 1e-6 * np.eye(15)
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * np.eye(15)). The order of the (error) states is: dx = (dp, dv, da, dba, dbg),
+        where dp is the position error, dv is the velocity error, da is the attitude
+        error (3-parameter 2xGibbs vector), dba is the accelerometer bias error,
+        and dbg is the gyroscope bias error.
+    acc_noise_density : float, default 0.001
+        Accelerometer noise density (velocity random walk) in (m/s)/√Hz. Defaults
+        to 0.001 (typical value for low-cost MEMS IMUs).
+    acc_bias_stability : float, default 0.0005
+        Accelerometer bias stability (1-sigma) in m/s^2. Defaults to 0.0005 (typical
+        value for low-cost MEMS IMUs).
+    acc_bias_corr_time : float, default 50.0
+        Accelerometer bias correlation time in seconds. Defaults to 50.0 s.
+    gyro_noise_density : float, default 0.0001
+        Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
+        0.0001 (typical value for low-cost MEMS IMUs).
+    gyro_bias_stability : float, default 0.00005
+        Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
+        value for low-cost MEMS IMUs).
+    gyro_bias_corr_time : float, default 50.0
+        Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    g : float, default 9.80665
+        The gravitational acceleration. Default is the 'standard gravity' 9.80665.
+    nav_frame : {'NED', 'ENU'}, default 'NED'
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) (default) or 'ENU' (East-North-Up).
+    """
 
-#     _N: int = 15  # state dimension
-#     _I: NDArray[np.float64] = np.eye(_N)
+    _N: int = 15  # state dimension
+    _I: NDArray[np.float64] = np.eye(_N)
 
-#     def __init__(
-#         self,
-#         fs: float,
-#         att: Attitude | ArrayLike,
-#         pos: ArrayLike = (0.0, 0.0, 0.0),
-#         vel: ArrayLike = (0.0, 0.0, 0.0),
-#         acc: ArrayLike = (0.0, 0.0, 0.0),
-#         ba: ArrayLike = (0.0, 0.0, 0.0),
-#         bg: ArrayLike = (0.0, 0.0, 0.0),
-#         w: ArrayLike = (0.0, 0.0, 0.0),
-#         P: ArrayLike = 1e-6 * np.eye(15),
-#         acc_noise_density: float = 0.001,
-#         acc_bias_stability: float = 0.0005,
-#         acc_bias_corr_time: float = 50.0,
-#         gyro_noise_density: float = 0.0001,
-#         gyro_bias_stability: float = 0.00005,
-#         gyro_bias_corr_time: float = 50.0,
-#         g: float = 9.80665,
-#         nav_frame: str = "NED",
-#     ) -> None:
+    def __init__(
+        self,
+        fs: float,
+        att: Attitude | ArrayLike,
+        pos: ArrayLike = (0.0, 0.0, 0.0),
+        vel: ArrayLike = (0.0, 0.0, 0.0),
+        acc: ArrayLike = (0.0, 0.0, 0.0),
+        ba: ArrayLike = (0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        w: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = 1e-6 * np.eye(15),
+        acc_noise_density: float = 0.001,
+        acc_bias_stability: float = 0.0005,
+        acc_bias_corr_time: float = 50.0,
+        gyro_noise_density: float = 0.0001,
+        gyro_bias_stability: float = 0.00005,
+        gyro_bias_corr_time: float = 50.0,
+        g: float = 9.80665,
+        nav_frame: str = "NED",
+    ) -> None:
+        
+        self._g = g
+        self._g_n = _gravity_nav(self._g, nav_frame)
 
-#         super().__init__(
-#             fs,
-#             att,
-#             bg,
-#             w,
-#             P,
-#             gyro_noise_density,
-#             gyro_bias_stability,
-#             gyro_bias_corr_time,
-#             nav_frame,
-#         )
-#         self._g = g
-#         self._g_n = _gravity_nav(self._g, self._nav_frame)
+        # IMU noise parameters
+        self._vrw = acc_noise_density  # velocity random walk
+        self._abs = acc_bias_stability  # accelerometer bias stability
+        self._abc = acc_bias_corr_time  # accelerometer bias correlation time
 
-#         # IMU noise parameters
-#         self._vrw = acc_noise_density  # velocity random walk
-#         self._abs = acc_bias_stability  # accelerometer bias stability
-#         self._abc = acc_bias_corr_time  # accelerometer bias correlation time
+        # State and covariance estimates
+        self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
+        self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
+        self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
+        self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
 
-#         # State and covariance estimates
-#         self._p_n = np.asarray_chkfinite(pos).reshape(3).copy()
-#         self._v_n = np.asarray_chkfinite(vel).reshape(3).copy()
-#         self._a_n = np.asarray_chkfinite(acc).reshape(3).copy()
-#         self._ba_b = np.asarray_chkfinite(ba).reshape(3).copy()
-#         self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
+        super().__init__(
+            fs,
+            att,
+            bg,
+            w,
+            P,
+            gyro_noise_density,
+            gyro_bias_stability,
+            gyro_bias_corr_time,
+            nav_frame,
+        )
 
-#         self._prep_statespace()
-
-#         def _prep_statespace(self) -> None:
-#             # Discrete state-space model (phi is updated each time step)
-#             self._phi = _state_transition(
-#                 self._dt, self._f_b, self._w_b, self._R_nb, self._abc, self._gbc
-#             )
-#             self._Q = _process_noise_cov(
-#                 self._dt, self._vrw, self._arw, self._abs, self._abc, self._gbs, self._gbc
-#             )
-#             self._dhdx = _measurement_matrix(self._att_nb._q)
+        self._f_b = self._R_nb.T @ (self._a_n - self._g_n)
