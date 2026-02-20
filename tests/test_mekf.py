@@ -621,3 +621,19 @@ class Test_MEKF:
         phi_expect = phi_expect[np.ix_(state_idx, state_idx)]
 
         np.testing.assert_allclose(phi_out, phi_expect)
+
+    def test_prep_process_noise_cov_matrix(self, mekf):
+        Q_out = mekf._prep_process_noise_cov_matrix()
+
+        dt = mekf._dt
+        vrw = 1.0
+        abs = 1.0
+        abc = 1.0
+        arw = mekf._arw
+        gbs = mekf._gbs
+        gbc = mekf._gbc
+        Q_expect = _statespace._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
+        state_idx = np.r_[_statespace.ATT_IDX, _statespace.BG_IDX]
+        Q_expect = Q_expect[np.ix_(state_idx, state_idx)]
+
+        np.testing.assert_allclose(Q_out, Q_expect)
