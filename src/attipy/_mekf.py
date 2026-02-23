@@ -126,7 +126,7 @@ class MEKF:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discrete state-space model
-        self._prep_statespace()
+        self._phi, self._Q, self._dhdx = self._prep_statespace()
 
     def _prep_statespace(self) -> None:
         """Setup discrete state-space model."""
@@ -144,11 +144,15 @@ class MEKF:
         gbs = self._gbs
         gbc = self._gbc
 
-        sx = np.r_[ss.ATT_IDX, ss.BG_IDX]  # state slice
+        phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)
+        Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
+        dhdx = ss._measurement_matrix(q_nb, vg_b)
+
+        # Use attitude and gyro bias only
+        sx = np.r_[ss.ATT_IDX, ss.BG_IDX]
         sxx = np.ix_(sx, sx)
-        self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[sxx]
-        self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
-        self._dhdx = np.ascontiguousarray(ss._measurement_matrix(q_nb, vg_b)[:, sx])
+
+        return phi[sxx], Q[sxx], np.ascontiguousarray(dhdx[:, sx])
 
     @property
     def _vg_b(self):
