@@ -148,8 +148,7 @@ class MEKF:
         sxx = np.ix_(sx, sx)
         self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[sxx]
         self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
-        self._dhdx = ss._measurement_matrix(q_nb, vg_b)[6:, sx]
-        self._dhdx = np.ascontiguousarray(self._dhdx)  # numba compatibility
+        self._dhdx = np.ascontiguousarray(ss._measurement_matrix(q_nb, vg_b)[6:, sx])
 
     @property
     def _vg_b(self):
