@@ -6,6 +6,7 @@ import attipy as ap
 from attipy import _statespace
 from attipy._mekf import _dyawda
 from attipy._transforms import _quat_from_euler_zyx
+from attipy._vectorops import _skew_symmetric
 
 # class Test_MEKF:
 
@@ -469,6 +470,15 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
 
         np.testing.assert_allclose(mekf._w_b, np.zeros(3))
+
+    def test_dhdx_gref(self, mekf):
+        vg_b = np.random.random(3)
+        vg_b /= np.linalg.norm(vg_b)
+        dhdx = mekf._dhdx_gref(vg_b)
+        dhdx_expected = np.zeros((3, 6))
+        dhdx_expected[:, 0:3] = _skew_symmetric(vg_b)
+        np.testing.assert_allclose(dhdx, dhdx_expected)
+        assert dhdx.flags.c_contiguous
 
     def test_dhdx_yaw(self, mekf):
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
