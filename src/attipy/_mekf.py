@@ -230,15 +230,15 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[7:10, self._ATT_IDX] = S(vg_b)
-        return self._dhdx[7:10]
+        self._dhdx[0:3, self._ATT_IDX] = S(vg_b)
+        return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[6:7, self._ATT_IDX] = _dyawda(q_nb)
-        return self._dhdx[6]
+        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
+        return self._dhdx[3]
 
     def _reset(self) -> None:
         """

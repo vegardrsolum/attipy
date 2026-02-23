@@ -331,10 +331,8 @@ def _measurement_matrix(
         Linearized measurement matrix.
     """
     dhdx = np.zeros((10, 15))
-    dhdx[0:3, POS_IDX] = np.eye(3)  # position
-    dhdx[3:6, VEL_IDX] = np.eye(3)  # velocity
-    dhdx[6:7, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
-    dhdx[7:10, ATT_IDX] = S(
-        vg_b
-    )  # gravity vector in body frame NB! update each time step
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[4:7, VEL_IDX] = np.eye(3)  # velocity
+    dhdx[7:10, POS_IDX] = np.eye(3)  # position
     return dhdx
