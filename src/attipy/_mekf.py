@@ -148,7 +148,7 @@ class MEKF:
         sxx = np.ix_(sx, sx)
         self._phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)[sxx]
         self._Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
-        self._dhdx = np.ascontiguousarray(ss._measurement_matrix(q_nb, vg_b)[6:, sx])
+        self._dhdx = np.ascontiguousarray(ss._measurement_matrix(q_nb, vg_b)[:, sx])
 
     @property
     def _vg_b(self):
@@ -230,15 +230,15 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[1:4, self._ATT_IDX] = S(vg_b)
-        return self._dhdx[1:4]
+        self._dhdx[7:10, self._ATT_IDX] = S(vg_b)
+        return self._dhdx[7:10]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[0:1, self._ATT_IDX] = _dyawda(q_nb)
-        return self._dhdx[0]
+        self._dhdx[6:7, self._ATT_IDX] = _dyawda(q_nb)
+        return self._dhdx[6]
 
     def _reset(self) -> None:
         """
