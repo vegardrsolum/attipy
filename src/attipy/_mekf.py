@@ -1,7 +1,6 @@
 from typing import Self
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from . import _statespace as ss
@@ -126,36 +125,9 @@ class MEKF:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discrete state-space model
-        self._phi, self._Q, self._dhdx = self._prep_statespace()
-
-    def _prep_statespace(self) -> None:
-        """Setup discrete state-space model."""
-        dt = self._dt
-        f_b = np.zeros(3)
-        w_b = self._w_b
-        q_nb = self._att_nb._q
-        R_nb = self._R_nb
-        vg_b = self._vg_b
-
-        vrw = 0.0
-        abs = 0.0
-        abc = 1.0
-        arw = self._arw
-        gbs = self._gbs
-        gbc = self._gbc
-
-        phi = ss._state_transition(dt, f_b, w_b, R_nb, abc, gbc)
-        Q = ss._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
-        dhdx = ss._measurement_matrix(q_nb, vg_b)
-
-        # Use attitude and gyro bias only
-        sx = np.r_[ss.ATT_IDX, ss.BG_IDX]
-        sxx = np.ix_(sx, sx)
-        phi = phi[sxx]
-        Q = Q[sxx]
-        dhdx = np.ascontiguousarray(dhdx[:, sx])
-
-        return phi, Q, dhdx
+        self._phi = ss._state_transition_att(self._dt, self._w_b, self._gbc)
+        self._Q = ss._process_noise_cov_att(self._dt, self._arw, self._gbs, self._gbc)
+        self._dhdx = ss._measurement_matrix_att(self._att_nb._q, self._vg_b)
 
     @property
     def _vg_b(self):
@@ -195,43 +167,6 @@ class MEKF:
         Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _update_state_transition(
-        phi: NDArray[np.float64],
-        dt: float,
-        w_b: NDArray[np.float64],
-    ) -> None:
-        """
-        Update the state transition matrix, phi, in place:
-
-            phi[0:3, 0:3] = I - dt * S(w_b)
-
-        Parameters
-        ----------
-        phi : ndarray, shape (6, 6)
-            State transition matrix to be updated in place.
-        dt : float
-            Time step.
-        w_b : ndarray, shape (3,)
-            Angular rate measurement (bias corrected) in body frame.
-
-        Notes
-        -----
-        Assuming the first order approximation:
-
-            phi = I + dt * dfdx
-
-        where dfdx denotes the linearized state matrix.
-        """
-        wx, wy, wz = w_b
-        phi[0, 1] = dt * wz
-        phi[0, 2] = -dt * wy
-        phi[1, 0] = -dt * wz
-        phi[1, 2] = dt * wx
-        phi[2, 0] = dt * wy
-        phi[2, 1] = -dt * wx
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
@@ -371,6 +306,6 @@ class MEKF:
 
         # Update model
         self._w_b[:] = w - self._bg_b
-        self._update_state_transition(self._phi, self._dt, self._w_b)
+        ss._update_state_transition_att(self._phi, self._dt, self._w_b)
 
         return self
