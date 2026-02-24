@@ -90,8 +90,6 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _ATT_IDX = slice(0, 3)  # attitude error state indices
-    _BG_IDX = slice(3, 6)  # gyro bias error state indices
     _I: NDArray[np.float64] = np.eye(6)
 
     def __init__(
@@ -172,14 +170,14 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, self._ATT_IDX] = S(vg_b)
+        self._dhdx[0:3, 0:3] = S(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
+        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -190,8 +188,8 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[self._ATT_IDX])
-        self._bg_b[:] += self._dx[self._BG_IDX]
+        self._att_nb._correct_da(self._dx[0:3])
+        self._bg_b[:] += self._dx[3:6]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
