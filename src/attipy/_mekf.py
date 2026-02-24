@@ -151,8 +151,11 @@ class MEKF:
         # Use attitude and gyro bias only
         sx = np.r_[ss.ATT_IDX, ss.BG_IDX]
         sxx = np.ix_(sx, sx)
+        phi = phi[sxx]
+        Q = Q[sxx]
+        dhdx = np.ascontiguousarray(dhdx[:, sx])
 
-        return phi[sxx], Q[sxx], np.ascontiguousarray(dhdx[:, sx])
+        return phi, Q, dhdx
 
     @property
     def _vg_b(self):
