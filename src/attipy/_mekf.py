@@ -3,14 +3,19 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from . import _statespace as ss
 from ._attitude import Attitude
 from ._kalman import (
     _kalman_update_scalar,
     _kalman_update_sequential,
     _project_cov_ahead,
 )
-from ._statespace import _dyawda
+from ._statespace import (
+    _dyawda,
+    _measurement_matrix_att,
+    _process_noise_cov_att,
+    _state_transition_att,
+    _update_state_transition_att,
+)
 from ._transforms import _yaw_from_quat
 from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
@@ -123,9 +128,9 @@ class MEKF:
         self._dx = np.zeros(6, dtype=np.float64)
 
         # Discrete state-space model
-        self._phi = ss._state_transition_att(self._dt, self._w_b, self._gbc)
-        self._Q = ss._process_noise_cov_att(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = ss._measurement_matrix_att(self._att_nb._q, self._vg_b)
+        self._phi = _state_transition_att(self._dt, self._w_b, self._gbc)
+        self._Q = _process_noise_cov_att(self._dt, self._arw, self._gbs, self._gbc)
+        self._dhdx = _measurement_matrix_att(self._att_nb._q, self._vg_b)
 
     @property
     def _vg_b(self):
@@ -304,6 +309,6 @@ class MEKF:
 
         # Update model
         self._w_b[:] = w - self._bg_b
-        ss._update_state_transition_att(self._phi, self._dt, self._w_b)
+        _update_state_transition_att(self._phi, self._dt, self._w_b)
 
         return self
