@@ -304,7 +304,7 @@ class MEKF:
         self._aiding_update_gref(-_normalize_vec(f) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
-        # Reset attitude
+        # Reset state
         self._reset()
 
         # Update model
