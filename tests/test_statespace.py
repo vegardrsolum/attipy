@@ -5,7 +5,6 @@ import attipy as ap
 from attipy._statespace import (
     ATT_IDX,
     BG_IDX,
-    _measurement_matrix_att,
     _process_noise_cov,
     _process_noise_cov_att,
     _process_noise_psd,
