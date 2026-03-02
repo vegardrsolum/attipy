@@ -283,8 +283,9 @@ class MEKF:
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
         gref : bool, default True
-            Specifies whether to use the gravity reference vector aiding measurement.
-            If ``False``, gravity reference aiding is not used.
+            Specifies whether to use the specific force measurement and the known
+            direction of gravity as aiding. If ``False``, gravity reference aiding
+            is not used.
         gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
             Variance of gravity reference vector measurement noise.
 
