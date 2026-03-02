@@ -148,3 +148,16 @@ def test_state_transition_att(noise_params):
     phi_expect = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)[sxx]
 
     np.testing.assert_allclose(phi_out, phi_expect)
+
+
+def test_process_noise_cov_att(noise_params):
+    dt = 0.1
+    vrw, arw, abs, abc, gbs, gbc = noise_params
+
+    Q_out = _process_noise_cov_att(dt, arw, gbs, gbc)
+
+    sx = np.r_[ATT_IDX, BG_IDX]
+    sxx = np.ix_(sx, sx)
+    Q_expect = _process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
+
+    np.testing.assert_allclose(Q_out, Q_expect)
