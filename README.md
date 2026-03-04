@@ -48,8 +48,8 @@ f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
 # Estimate attitude using MEKF
-att = ap.Attitude.from_euler(euler[0])
-mekf = ap.MEKF(fs, att)
+att0 = ap.Attitude.from_euler(euler[0])
+mekf = ap.MEKF(fs, att0)
 euler_est = []
 for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
     mekf.update(f_i, w_i, yaw=y_i, yaw_var=yaw_std**2)
