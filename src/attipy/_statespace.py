@@ -453,7 +453,7 @@ def _measurement_matrix_att(
     q_nb : ndarray, shape (4,)
         Unit quaternion.
     vg_b : ndarray, shape (3,)
-        Gravity reference vector expressed in the body frame.
+        Gravity reference unit vector expressed in the body frame.
 
     Returns
     -------
