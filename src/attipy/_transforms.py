@@ -1,4 +1,5 @@
 import numpy as np
+from attipy._vectorops import _normalize_vec
 from numba import njit
 from numpy.typing import NDArray
 
@@ -399,3 +400,29 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 
     q = scale * np.array([2.0, gx, gy, gz])
     return q
+
+
+@njit  # type: ignore[misc]
+def _z_n_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the z-axis of the navigation frame expressed in the body frame from
+    a unit quaternion.
+
+    Parameters
+    ----------
+    q_nb : numpy.ndarray, shape (4,)
+        Unit quaternion representing the transformation from body frame to navigation
+        frame.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        The z-axis of the navigation frame expressed in the body frame (unit vector).
+    """
+    qw, qx, qy, qz = q_nb
+
+    z_n_b_x = 2.0 * (qx * qz - qw * qy)
+    z_n_b_y = 2.0 * (qy * qz + qw * qx)
+    z_n_b_z = 1.0 - 2.0 * (qx**2 + qy**2)
+
+    return np.array([z_n_b_x, z_n_b_y, z_n_b_z])
