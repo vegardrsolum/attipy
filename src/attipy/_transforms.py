@@ -424,8 +424,8 @@ def _z_n_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     qw, qx, qy, qz = q_nb
 
-    z_n_b_x = 2.0 * (qx * qz - qw * qy)
-    z_n_b_y = 2.0 * (qy * qz + qw * qx)
-    z_n_b_z = 1.0 - 2.0 * (qx**2 + qy**2)
+    x = 2.0 * (qx * qz - qw * qy)
+    y = 2.0 * (qy * qz + qw * qx)
+    z = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    return np.array([z_n_b_x, z_n_b_y, z_n_b_z])
+    return np.array([x, y, z])
