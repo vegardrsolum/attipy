@@ -1,7 +1,8 @@
 import numpy as np
-from attipy._vectorops import _normalize_vec
 from numba import njit
 from numpy.typing import NDArray
+
+from attipy._vectorops import _normalize_vec
 
 from ._quatops import _canonical, _normalize
 
