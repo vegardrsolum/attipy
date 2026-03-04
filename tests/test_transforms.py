@@ -8,7 +8,6 @@ from attipy._transforms import (
     _matrix_from_quat,
     _quat_from_euler_zyx,
     _nz_b_from_quat,
-    _matrix_from_euler_zyx,
 )
 
 
