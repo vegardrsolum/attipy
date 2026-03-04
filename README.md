@@ -32,20 +32,22 @@ import attipy as ap
 import numpy as np
 
 
-# Position, velocity, attitude and IMU reference signals
+# Parameters
 fs = 10.0                    # sampling rate in Hz
-t, pos, vel, euler, f, w = ap.pva_sim(fs)
-
-# IMU measurements (with noise)
 acc_noise_density = 0.001    # accelerometer noise density in (m/s^2)/√Hz
 gyro_noise_density = 0.0001  # gyroscope noise density in (rad/s)/√Hz
 bg = (0.001, 0.002, 0.003)   # gyroscope bias in rad/s
+yaw_std = 0.01               # heading noise standard deviation in rad
+
+# Position, velocity, attitude and IMU reference signals
+t, pos, vel, euler, f, w = ap.pva_sim(fs)
+
+# IMU measurements (with noise)
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
 # Heading measurements (with noise)
-yaw_std = 0.01               # heading noise standard deviation in rad
 yaw_meas = euler[:, 2] + yaw_std * rng.standard_normal(yaw.shape)
 
 # Estimate attitude using MEKF
