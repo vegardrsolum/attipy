@@ -220,7 +220,7 @@ class MEKF:
             raise ValueError("'vg_var' not provided.")
 
         if np.isscalar(vg_var):
-            vg_var = np.full(3, vg_var)
+            vg_var = (vg_var, vg_var, vg_var)
 
         vg_b = self._vg_b
         dz = vg_meas - vg_b
