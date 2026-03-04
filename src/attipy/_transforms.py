@@ -415,7 +415,7 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     q_nb : numpy.ndarray, shape (4,)
-        Unit quaternion representing the transformation from frame {b} to frame {n}.
+        Unit quaternion which transforms a vector from frame {b} to frame {n}.
 
     Returns
     -------
