@@ -46,6 +46,15 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     return g_n
 
 
+def _z2g(nav_frame: str) -> float:
+    """
+    Gravity direction along the navigation frame's z-axis.
+
+    Returns +1.0 for 'NED' and -1.0 for 'ENU'.
+    """
+    return np.sign(_gravity_nav(1.0, nav_frame)[2])
+
+
 def _signed_smallest_angle(angle: float) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
@@ -112,7 +121,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._z2g = np.sign(_gravity_nav(1.0, self._nav_frame)[2])
+        self._z2g = _z2g(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
