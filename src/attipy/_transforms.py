@@ -409,6 +409,8 @@ def _z_n_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     Compute the z-axis of the navigation frame expressed in the body frame from
     a unit quaternion.
 
+    Equivalent to the third row vector of the rotation matrix R_nb (body-to-nav).
+
     Parameters
     ----------
     q_nb : numpy.ndarray, shape (4,)
