@@ -17,8 +17,7 @@ from ._statespace import (
     _update_state_transition_att,
 )
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
-from ._vectorops import _normalize_vec
-from ._vectorops import _skew_symmetric as S
+from ._vectorops import _normalize_vec, _skew_symmetric
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -185,7 +184,7 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, 0:3] = S(vg_b)
+        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
