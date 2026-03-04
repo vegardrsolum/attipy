@@ -7,7 +7,7 @@ name = "attipy"
 authors = [
   { name="Vegard R. Solum", email="vegard.rorvik.solum@gmail.com" },
 ]
-description = "A Python library for attitude and linear motion estimation using inertial sensor data"
+description = "Python library for attitude estimation using inertial measurement units"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.12"
