@@ -312,7 +312,9 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _measurement_matrix(
+    q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
+) -> NDArray[np.float64]:
     """
     Setup linearized measurement matrix, dhdx.
 
@@ -320,14 +322,145 @@ def _measurement_matrix(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     ----------
     q_nb : ndarray, shape (4,)
         Unit quaternion.
+    vg_b : ndarray, shape (3,)
+        Gravity reference vector expressed in the body frame.
 
     Returns
     -------
     dhdx : ndarray, shape (7, 12)
         Linearized measurement matrix.
     """
-    dhdx = np.zeros((7, 15))
-    dhdx[0:3, POS_IDX] = np.eye(3)  # position
-    dhdx[3:6, VEL_IDX] = np.eye(3)  # velocity
-    dhdx[6:7, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) NB! update each time step
+    dhdx = np.zeros((10, 15))
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[4:7, VEL_IDX] = np.eye(3)  # velocity
+    dhdx[7:10, POS_IDX] = np.eye(3)  # position
+    return dhdx
+
+
+def _state_transition_att(
+    dt: float, w_b: NDArray[np.float64], gbc: float
+) -> NDArray[np.float64]:
+    """
+    Setup state transition matrix, phi, using the first-order approximation:
+
+        phi = I + dt * dfdx
+
+    where dfdx denotes the linearized state matrix.
+
+    Attitude and gyro bias states only.
+
+    Parameters
+    ----------
+    dt : float
+        Time step in seconds.
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (bias corrected) in body frame.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    phi : ndarray, shape (6, 6)
+        State transition matrix.
+    """
+    phi = np.eye(6)
+    phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
+    phi[0:3, 3:6] -= dt * np.eye(3)
+    phi[3:6, 3:6] -= dt * np.eye(3) / gbc
+    return phi
+
+
+@njit  # type: ignore[misc]
+def _update_state_transition_att(
+    phi: NDArray[np.float64],
+    dt: float,
+    w_b: NDArray[np.float64],
+) -> None:
+    """
+    Update the state transition matrix, phi, in place:
+
+        phi[0:3, 0:3] = I - dt * S(w_b)
+
+    Attitude and gyro bias states only.
+
+    Parameters
+    ----------
+    phi : ndarray, shape (6, 6)
+        State transition matrix to be updated in place.
+    dt : float
+        Time step.
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (bias corrected) in body frame.
+
+    Notes
+    -----
+    Assuming the first order approximation:
+
+        phi = I + dt * dfdx
+
+    where dfdx denotes the linearized state matrix.
+    """
+    wx, wy, wz = w_b
+    phi[0, 1] = dt * wz
+    phi[0, 2] = -dt * wy
+    phi[1, 0] = -dt * wz
+    phi[1, 2] = dt * wx
+    phi[2, 0] = dt * wy
+    phi[2, 1] = -dt * wx
+
+
+def _process_noise_cov_att(
+    dt: float, arw: float, gbs: float, gbc: float
+) -> NDArray[np.float64]:
+    """
+    Setup process noise covariance matrix, Q, using the first-order approximation:
+
+        Q = dt @ dfdw @ W @ dfdw.T
+
+    Attitude and gyro bias states only.
+
+    Parameters
+    ----------
+    dt : float
+        Time step in seconds.
+    arw : float
+        Angular random walk (gyroscope noise density) in rad/√Hz.
+    gbs : float
+        Gyro bias stability (bias instability) in rad/s.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    Q : ndarray, shape (6, 6)
+        Process noise covariance matrix.
+    """
+    Q = np.zeros((6, 6))
+    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
+    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    return Q
+
+
+def _measurement_matrix_att(
+    q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """
+    Setup linearized measurement matrix, dhdx.
+
+    Parameters
+    ----------
+    q_nb : ndarray, shape (4,)
+        Unit quaternion.
+    vg_b : ndarray, shape (3,)
+        Gravity reference unit vector expressed in the body frame.
+
+    Returns
+    -------
+    dhdx : ndarray, shape (4, 6)
+        Linearized measurement matrix.
+    """
+    dhdx = np.zeros((4, 6))
+    dhdx[0:3, 0:3] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
     return dhdx

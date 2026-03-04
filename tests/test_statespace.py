@@ -3,10 +3,14 @@ import pytest
 
 import attipy as ap
 from attipy._statespace import (
+    ATT_IDX,
+    BG_IDX,
     _process_noise_cov,
+    _process_noise_cov_att,
     _process_noise_psd,
     _state_matrix,
     _state_transition,
+    _state_transition_att,
     _update_state_transition,
     _wn_input_matrix,
 )
@@ -126,3 +130,33 @@ def test_process_noise_cov(noise_params):
     Q = dt * dfdw @ W @ dfdw.T
 
     np.testing.assert_allclose(Q_out, Q, atol=1e-12)
+
+
+def test_state_transition_att(noise_params):
+    *_, abc, _, gbc = noise_params
+
+    dt = 0.1
+    f_b_corr = np.array([0.1, 0.2, 9.7])
+    w_b_corr = np.array([0.01, 0.02, 0.03])
+    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
+
+    phi_out = _state_transition_att(dt, w_b_corr, gbc)
+
+    sx = np.r_[ATT_IDX, BG_IDX]
+    sxx = np.ix_(sx, sx)
+    phi_expect = _state_transition(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)[sxx]
+
+    np.testing.assert_allclose(phi_out, phi_expect)
+
+
+def test_process_noise_cov_att(noise_params):
+    dt = 0.1
+    vrw, arw, abs, abc, gbs, gbc = noise_params
+
+    Q_out = _process_noise_cov_att(dt, arw, gbs, gbc)
+
+    sx = np.r_[ATT_IDX, BG_IDX]
+    sxx = np.ix_(sx, sx)
+    Q_expect = _process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
+
+    np.testing.assert_allclose(Q_out, Q_expect)
