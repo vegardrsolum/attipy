@@ -16,7 +16,7 @@ from ._statespace import (
     _state_transition_att,
     _update_state_transition_att,
 )
-from ._transforms import _yaw_from_quat, _z_n_b_from_quat
+from ._transforms import _yaw_from_quat, _nz_b_from_quat
 from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
 
@@ -144,7 +144,7 @@ class MEKF:
     @property
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._z2g * _z_n_b_from_quat(self._att_nb._q)
+        return self._z2g * _nz_b_from_quat(self._att_nb._q)
 
     @property
     def _yaw(self) -> float:

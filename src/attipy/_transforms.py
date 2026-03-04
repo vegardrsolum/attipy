@@ -404,10 +404,10 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _z_n_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute the z-axis of the navigation frame expressed in the body frame from
-    a unit quaternion.
+    Unit vector describing the z-axis of the navigation frame expressed in the body
+    frame, computed from a unit quaternion.
 
     Corresponds to the third row vector of R_nb (rotation matrix from body to nav).
 
