@@ -16,7 +16,7 @@ from ._statespace import (
     _state_transition_att,
     _update_state_transition_att,
 )
-from ._transforms import _yaw_from_quat, _nz_b_from_quat
+from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec
 from ._vectorops import _skew_symmetric as S
 
@@ -46,7 +46,7 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     return g_n
 
 
-def _z2g(nav_frame: str) -> float:
+def _nz2g(nav_frame: str) -> float:
     """
     Gravity direction along the navigation frame's z-axis.
 
@@ -121,7 +121,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._z2g = _z2g(self._nav_frame)
+        self._nz2g = _nz2g(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -144,7 +144,7 @@ class MEKF:
     @property
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._z2g * _nz_b_from_quat(self._att_nb._q)
+        return self._nz2g * _nz_b_from_quat(self._att_nb._q)
 
     @property
     def _yaw(self) -> float:

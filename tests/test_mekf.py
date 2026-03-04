@@ -437,7 +437,7 @@ class Test_MEKF:
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
         assert mekf._nav_frame == "enu"
-        np.testing.assert_allclose(mekf._z2g, -1.0)
+        assert mekf._nz2g == -1.0
 
         assert mekf._arw == gyro_noise_density
         assert mekf._gbs == gyro_bias_stability
@@ -460,6 +460,7 @@ class Test_MEKF:
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
         assert mekf._nav_frame == "ned"
+        assert mekf._nz2g == 1.0
 
         assert mekf._arw == 0.0001
         assert mekf._gbs == 0.00005
@@ -470,6 +471,18 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
 
         np.testing.assert_allclose(mekf._w_b, np.zeros(3))
+
+    def test__init__nav_frame(self):
+        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
+
+        mekf_ned = ap.MEKF(10.0, att, nav_frame="NED")
+        assert mekf_ned._nz2g == 1.0
+
+        mekf_enu = ap.MEKF(10.0, att, nav_frame="ENU")
+        assert mekf_enu._nz2g == -1.0
+
+        with pytest.raises(ValueError):
+            ap.MEKF(10.0, att, nav_frame="invalid")
 
     def test_dhdx_gref(self, mekf):
         vg_b = np.random.random(3)
@@ -487,18 +500,6 @@ class Test_MEKF:
         dhdx_yaw_expected[0:3] = _dyawda(q_nb)
         np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
         assert dhdx_yaw.flags.c_contiguous
-
-    def test__init__nav_frame(self):
-        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
-
-        mekf_ned = ap.MEKF(10.0, att, nav_frame="NED")
-        np.testing.assert_allclose(mekf_ned._z2g, 1.0)
-
-        mekf_enu = ap.MEKF(10.0, att, nav_frame="ENU")
-        np.testing.assert_allclose(mekf_enu._z2g, -1.0)
-
-        with pytest.raises(ValueError):
-            ap.MEKF(10.0, att, nav_frame="invalid")
 
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
