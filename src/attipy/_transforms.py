@@ -409,8 +409,8 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     Unit vector describing the z-axis of frame {n} expressed in frame {b}, computed
     from a unit quaternion, q_nb.
 
-    Note that this vector corresponds to the third row of R_nb (rotation matrix
-    from {b} to {n}).
+    Note that this vector corresponds to the third row of the rotation matrix which
+    transforms a vector from {b} to {n}.
 
     Parameters
     ----------
