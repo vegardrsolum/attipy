@@ -46,9 +46,10 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     return g_n
 
 
-def _nz2g(nav_frame: str) -> float:
+def _nz2vg(nav_frame: str) -> float:
     """
-    Gravity direction along the navigation frame's z-axis.
+    Gravity direction along the navigation frame's z-axis. Transforms the z-axis
+    of the navigation frame to a gravity reference vector (unit vector).
 
     Returns +1.0 for 'NED' and -1.0 for 'ENU'.
     """
@@ -121,7 +122,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._nz2g = _nz2g(self._nav_frame)
+        self._nz2vg = _nz2vg(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -144,7 +145,7 @@ class MEKF:
     @property
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._nz2g * _nz_b_from_quat(self._att_nb._q)
+        return self._nz2vg * _nz_b_from_quat(self._att_nb._q)
 
     @property
     def _yaw(self) -> float:

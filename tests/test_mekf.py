@@ -437,7 +437,7 @@ class Test_MEKF:
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
         assert mekf._nav_frame == "enu"
-        assert mekf._nz2g == -1.0
+        assert mekf._nz2vg == -1.0
 
         assert mekf._arw == gyro_noise_density
         assert mekf._gbs == gyro_bias_stability
@@ -460,7 +460,7 @@ class Test_MEKF:
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
         assert mekf._nav_frame == "ned"
-        assert mekf._nz2g == 1.0
+        assert mekf._nz2vg == 1.0
 
         assert mekf._arw == 0.0001
         assert mekf._gbs == 0.00005
@@ -476,10 +476,10 @@ class Test_MEKF:
         att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
 
         mekf_ned = ap.MEKF(10.0, att, nav_frame="NED")
-        assert mekf_ned._nz2g == 1.0
+        assert mekf_ned._nz2vg == 1.0
 
         mekf_enu = ap.MEKF(10.0, att, nav_frame="ENU")
-        assert mekf_enu._nz2g == -1.0
+        assert mekf_enu._nz2vg == -1.0
 
         with pytest.raises(ValueError):
             ap.MEKF(10.0, att, nav_frame="invalid")
