@@ -209,7 +209,7 @@ class MEKF:
 
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
-        
+
         if np.isscalar(vg_var):
             vg_var = np.full(3, vg_var)
 
