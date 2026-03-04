@@ -342,13 +342,13 @@ def _state_transition_att(
     dt: float, w_b: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
-    (Attitude and gyro bias states only).
-
     Setup state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
     where dfdx denotes the linearized state matrix.
+
+    Attitude and gyro bias states only.
 
     Parameters
     ----------
@@ -378,11 +378,11 @@ def _update_state_transition_att(
     w_b: NDArray[np.float64],
 ) -> None:
     """
-    (Attitude and gyro bias states only).
-
     Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - dt * S(w_b)
+
+    Attitude and gyro bias states only.
 
     Parameters
     ----------
@@ -414,11 +414,11 @@ def _process_noise_cov_att(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    (Attitude and gyro bias states only).
-
     Setup process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
+
+    Attitude and gyro bias states only.
 
     Parameters
     ----------
