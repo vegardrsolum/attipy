@@ -37,15 +37,17 @@ fs = 10.0  # Hz
 t, pos, vel, euler, f, w = ap.pva_sim(fs)
 yaw = euler[:, 2]
 
-# Add measurement noise
-yaw_std = 0.01  # rad
+# Add IMU measurement noise
 acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
 gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
 bg = (0.001, 0.002, 0.003)  # rad/s
 rng = np.random.default_rng(42)
-yaw_meas = yaw + yaw_std * rng.standard_normal(yaw.shape)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+
+# Add heading measurement noise
+yaw_std = 0.01  # rad
+yaw_meas = yaw + yaw_std * rng.standard_normal(yaw.shape)
 
 # Estimate attitude using MEKF
 att0 = ap.Attitude.from_euler(euler[0])
