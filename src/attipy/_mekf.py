@@ -209,6 +209,9 @@ class MEKF:
 
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
+        
+        if np.isscalar(vg_var):
+            vg_var = np.full(3, vg_var)
 
         vg_b = self._vg_b
         dz = vg_meas - vg_b
@@ -256,7 +259,7 @@ class MEKF:
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
+        gref_var: ArrayLike | float | None = 0.001,
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -286,8 +289,10 @@ class MEKF:
             Specifies whether to use the specific force measurement and the known
             direction of gravity as aiding. If ``False``, gravity reference aiding
             is not used.
-        gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
-            Variance of gravity reference vector measurement noise.
+        gref_var : float or array_like, shape (3,), default 0.001
+            Variance of gravity reference vector measurement noise (dimensionless).
+            If a scalar value is provided, the same variance is assumed for all
+            three axes. Required for ``gref``.
 
         Returns
         -------
