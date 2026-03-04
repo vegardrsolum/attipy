@@ -223,34 +223,3 @@ class Test_MEKF:
 
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
-
-    # def test_prep_state_transition(self, mekf):
-    #     phi_out = mekf._prep_state_transition_matrix()
-
-    #     dt = mekf._dt
-    #     f_b = np.zeros(3)
-    #     w_b = mekf._w_b
-    #     R_nb = mekf._att_nb.as_matrix()
-    #     abc = 1.0
-    #     gbc = mekf._gbc
-    #     phi_expect = _statespace._state_transition(dt, f_b, w_b, R_nb, abc, gbc)
-    #     state_idx = np.r_[_statespace.ATT_IDX, _statespace.BG_IDX]
-    #     phi_expect = phi_expect[np.ix_(state_idx, state_idx)]
-
-    #     np.testing.assert_allclose(phi_out, phi_expect)
-
-    # def test_prep_process_noise_cov_matrix(self, mekf):
-    #     Q_out = mekf._prep_process_noise_cov_matrix()
-
-    #     dt = mekf._dt
-    #     vrw = 1.0
-    #     abs = 1.0
-    #     abc = 1.0
-    #     arw = mekf._arw
-    #     gbs = mekf._gbs
-    #     gbc = mekf._gbc
-    #     Q_expect = _statespace._process_noise_cov(dt, vrw, arw, abs, abc, gbs, gbc)
-    #     state_idx = np.r_[_statespace.ATT_IDX, _statespace.BG_IDX]
-    #     Q_expect = Q_expect[np.ix_(state_idx, state_idx)]
-
-    #     np.testing.assert_allclose(Q_out, Q_expect)
