@@ -59,5 +59,4 @@ euler_est = np.asarray(euler_est)
 
 ## Limitations and assumptions
 
-- Intended for small-area, low-velocity applications; Earth rotation is neglected,
-and gravitational acceleration is assumed constant.
+- Intended for small-area, low-velocity applications; the Earth rotation is neglected.
