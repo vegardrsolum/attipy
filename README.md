@@ -15,7 +15,6 @@ Convert to/from a variety of attitude representations using the ``Attitude`` cla
 
 ```python
 import attipy as ap
-import numpy as np
 
 
 # From Euler angles to unit quaternion
