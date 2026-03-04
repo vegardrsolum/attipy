@@ -406,10 +406,11 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Z-axis (unit vector) of frame {n} expressed in frame {b}, computed from the
-    unit quaternion, q_nb.
+    Unit vector describing the z-axis of frame {n} expressed in frame {b}, computed
+    from a unit quaternion, q_nb.
 
-    Corresponds to the third row vector of R_nb (rotation matrix from {b} to {n}).
+    Note that this vector corresponds to the third row of R_nb (rotation matrix
+    from {b} to {n}).
 
     Parameters
     ----------
