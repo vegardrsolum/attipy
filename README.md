@@ -60,3 +60,4 @@ euler_est = np.asarray(euler_est)
 ## Limitations and assumptions
 
 - Intended for small-area, low-velocity applications; Earth rotation effects are neglected.
+- Accelerometer biases are not estimated; accelerometer biases will manifest as tilt errors.
