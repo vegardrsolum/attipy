@@ -135,7 +135,7 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._dx = np.zeros(6, dtype=np.float64)
+        self._dx = np.zeros(6)
 
         # Discrete state-space model
         self._phi = _state_transition_att(self._dt, self._w_b, self._gbc)
