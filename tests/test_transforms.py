@@ -6,8 +6,8 @@ from attipy._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_euler_zyx,
     _matrix_from_quat,
-    _quat_from_euler_zyx,
     _nz_b_from_quat,
+    _quat_from_euler_zyx,
 )
 
 
@@ -81,6 +81,7 @@ def test__matrix_from_euler_zyx(euler):
     out = _matrix_from_euler_zyx(euler)
     expected = Rotation.from_euler("ZYX", euler[::-1]).as_matrix()
     np.testing.assert_array_almost_equal(out, expected)
+
 
 @pytest.mark.parametrize(
     "euler",
