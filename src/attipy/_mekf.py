@@ -144,7 +144,7 @@ class MEKF:
     @property
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._z2g * _z_n_b_from_quat(self._att_nb._q)  # equivalent to R_nb[2]
+        return self._z2g * _z_n_b_from_quat(self._att_nb._q)
 
     @property
     def _yaw(self) -> float:
