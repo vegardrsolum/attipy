@@ -16,9 +16,8 @@ from ._statespace import (
     _state_transition_att,
     _update_state_transition_att,
 )
-from ._transforms import _yaw_from_quat
-from ._vectorops import _normalize_vec
-from ._vectorops import _skew_symmetric as S
+from ._transforms import _nz_b_from_quat, _yaw_from_quat
+from ._vectorops import _normalize_vec, _skew_symmetric
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -46,9 +45,10 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     return g_n
 
 
-def _z2g(nav_frame: str) -> float:
+def _nz2vg(nav_frame: str) -> float:
     """
-    Gravity direction along the navigation frame's z-axis.
+    Gravity direction along the navigation frame's z-axis. Transforms the z-axis
+    of the navigation frame to a gravity reference vector (unit vector).
 
     Returns +1.0 for 'NED' and -1.0 for 'ENU'.
     """
@@ -121,7 +121,7 @@ class MEKF:
         self._fs = fs
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
-        self._z2g = _z2g(self._nav_frame)
+        self._nz2vg = _nz2vg(self._nav_frame)
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -134,7 +134,7 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._dx = np.zeros(6, dtype=np.float64)
+        self._dx = np.zeros(6)
 
         # Discrete state-space model
         self._phi = _state_transition_att(self._dt, self._w_b, self._gbc)
@@ -144,7 +144,7 @@ class MEKF:
     @property
     def _vg_b(self):
         """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._z2g * self._att_nb.as_matrix()[2, :]
+        return self._nz2vg * _nz_b_from_quat(self._att_nb._q)
 
     @property
     def _yaw(self) -> float:
@@ -184,7 +184,7 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, 0:3] = S(vg_b)
+        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -220,7 +220,7 @@ class MEKF:
             raise ValueError("'vg_var' not provided.")
 
         if np.isscalar(vg_var):
-            vg_var = np.full(3, vg_var)
+            vg_var = (vg_var, vg_var, vg_var)
 
         vg_b = self._vg_b
         dz = vg_meas - vg_b

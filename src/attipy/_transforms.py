@@ -2,6 +2,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
+from attipy._vectorops import _normalize_vec
+
 from ._quatops import _canonical, _normalize
 
 
@@ -399,3 +401,31 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 
     q = scale * np.array([2.0, gx, gy, gz])
     return q
+
+
+@njit  # type: ignore[misc]
+def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Unit vector describing the z-axis of frame {n} expressed in frame {b}, computed
+    from a unit quaternion, q_nb.
+
+    Note that this vector corresponds to the third row of the rotation matrix which
+    transforms a vector from {b} to {n}.
+
+    Parameters
+    ----------
+    q_nb : numpy.ndarray, shape (4,)
+        Unit quaternion which transforms a vector from frame {b} to frame {n}.
+
+    Returns
+    -------
+    numpy.ndarray, shape (3,)
+        The z-axis (unit vector) of frame {n} expressed in frame {b}.
+    """
+    qw, qx, qy, qz = q_nb
+
+    x = 2.0 * (qx * qz - qw * qy)
+    y = 2.0 * (qy * qz + qw * qx)
+    z = 1.0 - 2.0 * (qx**2 + qy**2)
+
+    return np.array([x, y, z])
