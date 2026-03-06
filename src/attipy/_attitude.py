@@ -100,7 +100,7 @@ class Attitude:
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+        The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
         part and (qx, qy, qz) is the vector part.
     """
 
@@ -132,7 +132,7 @@ class Attitude:
         Parameters
         ----------
         q : ArrayLike
-            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+            The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
 
         Returns
@@ -161,7 +161,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (4,)
-            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+            The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
         """
         return self._q.copy()
@@ -237,7 +237,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention), (roll, pitch, yaw), representing
+            Set of three Euler angles (ZYX convention) (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
             Specifies whether the Euler angles are given in degrees or radians (default).
@@ -288,7 +288,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles, (roll, pitch, yaw), representing
+            The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
         Notes
@@ -328,7 +328,7 @@ class Attitude:
         Parameters
         ----------
         r : ArrayLike
-            Rotation vector, (rx, ry, rz).
+            Rotation vector (rx, ry, rz).
         degrees : bool, default False
             Specifies whether the input rotation vector, r, is given in degrees
             or radians (default).
@@ -359,7 +359,7 @@ class Attitude:
         Returns
         -------
         numpy.ndarray, shape (3,)
-            Rotation vector, (rx, ry, rz).
+            Rotation vector (rx, ry, rz).
 
         References
         ----------
