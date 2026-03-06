@@ -270,18 +270,18 @@ def pva_sim(
 
     Returns
     -------
-    t : ndarray
-        Time array of shape (n,).
-    p_n : ndarray
-        Position array of shape (n, 3).
-    v_n : ndarray
-        Velocity array of shape (n, 3).
-    euler_nb : ndarray
-        Euler angles array of shape (n, 3).
-    f_b : ndarray
-        Specific force array of shape (n, 3).
-    w_b : ndarray
-        Angular rate array of shape (n, 3).
+    t : ndarray, shape (n,)
+        Time in seconds.
+    p_n : ndarray, shape (n, 3)
+        Position timeseries in m.
+    v_n : ndarray, shape (n, 3)
+        Velocity timeseries in m/s.
+    euler_nb : ndarray, shape (n, 3)
+        Euler angle timeseries in radians (default) or degrees.
+    f_b : ndarray, shape (n, 3)
+        Specific force timeseries in m/s^2.
+    w_b : ndarray, shape (n, 3)
+        Angular rate timeseries in rad/s (default) or deg/s.
     """
 
     f_main, f_beat = 0.1, 0.01
