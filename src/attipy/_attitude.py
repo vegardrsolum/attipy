@@ -208,8 +208,15 @@ class Attitude:
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
-        The direction cosine matrix is computed from the unit quaternion, q, using
-        the formula:
+        Returns
+        -------
+        numpy.ndarray, shape (3, 3)
+            Direction cosine matrix (rotation matrix), R.
+
+        Notes
+        -----
+        The direction cosine matrix, R, is computed from the unit quaternion, q,
+        using the formula:
 
             R = I + 2 * qw * S(qxyz) + 2 * S(qxyz)^2
 
@@ -219,11 +226,6 @@ class Attitude:
         - qw is the scalar part of the unit quaternion, q.
         - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
         - S(qxyz) is the skew-symmetric matrix of qxyz.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3, 3)
-            Direction cosine matrix (rotation matrix), R.
         """
         return _matrix_from_quat(self._q)
 
