@@ -160,7 +160,7 @@ class Attitude:
 
         Returns
         -------
-        q : ndarray, shape (4,)
+        ndarray, shape (4,)
             The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
         """
