@@ -263,7 +263,7 @@ def pva_sim(
     g : float, default 9.80665
         The gravitational acceleration in m/s^2. Default is 'standard gravity' of
         9.80665 m/s^2.
-    nav_frame : str, default "NED"
+    nav_frame : str, default 'NED'
         Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
 
     Returns
