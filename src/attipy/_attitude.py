@@ -160,7 +160,7 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (4,)
+        q : ndarray, shape (4,)
             The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
         """
@@ -210,7 +210,7 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (3, 3)
+        ndarray, shape (3, 3)
             Direction cosine matrix (rotation matrix), R.
 
         Notes
@@ -287,7 +287,7 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (3,)
+        ndarray, shape (3,)
             The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
@@ -358,7 +358,7 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (3,)
+        ndarray, shape (3,)
             Rotation vector (rx, ry, rz).
 
         References
