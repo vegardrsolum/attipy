@@ -14,7 +14,7 @@ from ._transforms import (
 )
 
 
-def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_quat(q: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid unit quaternion.
     """
@@ -105,7 +105,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_quaternion(q)
+        self._q = _asarray_check_quat(q)
         self._q = _canonical(self._q)
 
     def __repr__(self) -> str:
