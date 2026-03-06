@@ -53,14 +53,14 @@ def _asarray_check_euler(euler: ArrayLike) -> NDArray[np.float64]:
     return euler
 
 
-def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_rotvec(r: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation vector.
     """
-    theta = np.asarray_chkfinite(theta, dtype=float)
-    if theta.shape != (3,):
+    r = np.asarray_chkfinite(r, dtype=float)
+    if r.shape != (3,):
         raise ValueError("Rotation vector must be a 3-element array.")
-    return theta
+    return r
 
 
 class Attitude:
