@@ -105,8 +105,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_quat(q)
-        self._q = _canonical(self._q)
+        self._q = _canonical(_asarray_check_quat(q))
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q
