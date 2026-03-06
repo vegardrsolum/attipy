@@ -264,7 +264,8 @@ def pva_sim(
         Specifies whether to return Euler angles and angular velocities in degrees
         and degrees per second or radians and radians per second (default).
     g : float, default 9.80665
-        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
+        The gravitational acceleration in m/s^2. Default is 'standard gravity' of
+        9.80665 m/s^2.
     nav_frame : str, default "NED"
         Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
 
