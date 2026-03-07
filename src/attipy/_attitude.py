@@ -14,7 +14,7 @@ from ._transforms import (
 )
 
 
-def _asarray_check_quaternion(q: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_quat(q: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid unit quaternion.
     """
@@ -53,14 +53,14 @@ def _asarray_check_euler(euler: ArrayLike) -> NDArray[np.float64]:
     return euler
 
 
-def _asarray_check_rotvec(theta: ArrayLike) -> NDArray[np.float64]:
+def _asarray_check_rotvec(r: ArrayLike) -> NDArray[np.float64]:
     """
     Convert the input to a numpy array and check if it is a valid rotation vector.
     """
-    theta = np.asarray_chkfinite(theta, dtype=float)
-    if theta.shape != (3,):
+    r = np.asarray_chkfinite(r, dtype=float)
+    if r.shape != (3,):
         raise ValueError("Rotation vector must be a 3-element array.")
-    return theta
+    return r
 
 
 class Attitude:
@@ -100,13 +100,12 @@ class Attitude:
     Parameters
     ----------
     q : ArrayLike
-        The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+        The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
         part and (qx, qy, qz) is the vector part.
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _asarray_check_quaternion(q)
-        self._q = _canonical(self._q)
+        self._q = _canonical(_asarray_check_quat(q))
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q
@@ -132,7 +131,7 @@ class Attitude:
         Parameters
         ----------
         q : ArrayLike
-            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+            The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
 
         Returns
@@ -160,8 +159,8 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (4,)
-            The 4-element unit quaternion, (qw, qx, qy, qz), where qw is the scalar
+        ndarray, shape (4,)
+            The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
             part and (qx, qy, qz) is the vector part.
         """
         return self._q.copy()
@@ -208,8 +207,15 @@ class Attitude:
         - v_b is a vector expressed in the body frame, {b}.
         - v_n is the same vector expressed in the navigation frame, {n}.
 
-        The direction cosine matrix is computed from the unit quaternion, q, using
-        the formula:
+        Returns
+        -------
+        ndarray, shape (3, 3)
+            Direction cosine matrix (rotation matrix), R.
+
+        Notes
+        -----
+        The direction cosine matrix, R, is computed from the unit quaternion, q,
+        using the formula:
 
             R = I + 2 * qw * S(qxyz) + 2 * S(qxyz)^2
 
@@ -219,11 +225,6 @@ class Attitude:
         - qw is the scalar part of the unit quaternion, q.
         - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
         - S(qxyz) is the skew-symmetric matrix of qxyz.
-
-        Returns
-        -------
-        numpy.ndarray, shape (3, 3)
-            Direction cosine matrix (rotation matrix), R.
         """
         return _matrix_from_quat(self._q)
 
@@ -235,7 +236,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention), (roll, pitch, yaw), representing
+            Set of three Euler angles (ZYX convention) (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
         degrees : bool, default False
             Specifies whether the Euler angles are given in degrees or radians (default).
@@ -285,8 +286,8 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles, (roll, pitch, yaw), representing
+        ndarray, shape (3,)
+            The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
         Notes
@@ -326,7 +327,7 @@ class Attitude:
         Parameters
         ----------
         r : ArrayLike
-            Rotation vector, (rx, ry, rz).
+            Rotation vector (rx, ry, rz).
         degrees : bool, default False
             Specifies whether the input rotation vector, r, is given in degrees
             or radians (default).
@@ -356,8 +357,8 @@ class Attitude:
 
         Returns
         -------
-        numpy.ndarray, shape (3,)
-            Rotation vector, (rx, ry, rz).
+        ndarray, shape (3,)
+            Rotation vector (rx, ry, rz).
 
         References
         ----------

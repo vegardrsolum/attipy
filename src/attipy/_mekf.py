@@ -33,7 +33,7 @@ def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
 
     Returns
     -------
-    NDArray[np.float64], shape (3,)
+    ndarray, shape (3,)
         Gravity vector expressed in the navigation frame.
     """
     if nav_frame.lower() == "ned":

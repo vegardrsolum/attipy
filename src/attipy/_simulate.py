@@ -182,7 +182,6 @@ class BeatDOF(DOF):
 
 
 def _specific_force_body(
-    pos: NDArray[np.float64],
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
     g_n: NDArray[np.float64],
@@ -192,16 +191,14 @@ def _specific_force_body(
 
     Parameters
     ----------
-    pos : ndarray, shape (n, 3)
-        Position (x, y, z) in meters.
-    vel : ndarray, shape (n, 3)
-        Velocity (x_dot, y_dot, z_dot) in meters per second.
     acc : ndarray, shape (n, 3)
         Acceleration (x_ddot, y_ddot, z_ddot) in meters per second squared.
     euler : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
+    g_n : ndarray, shape (3,)
+        Gravity vector expressed in the navigation frame.
     """
-    n = pos.shape[0]
+    n = acc.shape[0]
     f_b = np.zeros((n, 3))
 
     for i in range(n):
@@ -264,24 +261,25 @@ def pva_sim(
         Specifies whether to return Euler angles and angular velocities in degrees
         and degrees per second or radians and radians per second (default).
     g : float, default 9.80665
-        The gravitational acceleration. Default is 'standard gravity' of 9.80665.
-    nav_frame : str, default "NED"
+        The gravitational acceleration in m/s^2. Default is 'standard gravity' of
+        9.80665 m/s^2.
+    nav_frame : str, default 'NED'
         Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
 
     Returns
     -------
-    t : ndarray
-        Time array of shape (n,).
-    p_n : ndarray
-        Position array of shape (n, 3).
-    v_n : ndarray
-        Velocity array of shape (n, 3).
-    euler_nb : ndarray
-        Euler angles array of shape (n, 3).
-    f_b : ndarray
-        Specific force array of shape (n, 3).
-    w_b : ndarray
-        Angular rate array of shape (n, 3).
+    t : ndarray, shape (n,)
+        Time in seconds.
+    p_n : ndarray, shape (n, 3)
+        Position timeseries in m.
+    v_n : ndarray, shape (n, 3)
+        Velocity timeseries in m/s.
+    euler_nb : ndarray, shape (n, 3)
+        Euler angle timeseries in radians (default) or degrees.
+    f_b : ndarray, shape (n, 3)
+        Specific force timeseries in m/s^2.
+    w_b : ndarray, shape (n, 3)
+        Angular rate timeseries in rad/s (default) or deg/s.
     """
 
     f_main, f_beat = 0.1, 0.01
@@ -315,7 +313,7 @@ def pva_sim(
 
     # IMU measurements (i.e., specific force and angular velocity in body frame)
     g_n = _gravity_nav(g, nav_frame.lower())
-    f_b = _specific_force_body(pos, acc, euler, g_n)
+    f_b = _specific_force_body(acc, euler, g_n)
     w_b = _angular_velocity_body(euler, euler_dot)
 
     if degrees:
