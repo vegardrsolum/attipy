@@ -308,7 +308,7 @@ class MEKF:
         """
 
         if degrees:
-            w = (np.pi / 180.0) * np.asarray(w)
+            w = np.radians(w)
 
         # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
