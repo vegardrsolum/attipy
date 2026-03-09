@@ -80,7 +80,7 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att : Attitude or array_like, shape (4,)
+    att : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
