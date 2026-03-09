@@ -80,27 +80,27 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att : Attitude or array_like, shape (4,), default (1.0, 0.0, 0.0, 0.0)
+    att : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    w : array_like, shape (3,), optional
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+    P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error, and dbg is the gyroscope bias error.
-    gyro_noise_density : float, default 0.0001
+    gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
-    gyro_bias_stability : float, default 0.00005
+    gyro_bias_stability : float, optional
         Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
         value for low-cost MEMS IMUs).
-    gyro_bias_corr_time : float, default 50.0
+    gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
+    nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
