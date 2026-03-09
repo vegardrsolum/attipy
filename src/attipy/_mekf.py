@@ -82,6 +82,7 @@ class MEKF:
         Sampling rate in Hz.
     att : Attitude or array_like, shape (4,)
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
+        Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), default (0.0, 0.0, 0.0)
@@ -111,7 +112,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        att: Attitude | ArrayLike,
+        att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
