@@ -298,7 +298,7 @@ class MEKF:
             Specifies whether to use the specific force measurement and the known
             direction of gravity as aiding. If ``False``, gravity reference aiding
             is not used.
-        gref_var : float or array_like, shape (3,), default 0.001
+        gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for ``gref``.
 
