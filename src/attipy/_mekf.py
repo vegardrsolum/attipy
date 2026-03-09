@@ -130,7 +130,6 @@ class MEKF:
 
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
-        self._R_nb = self._att_nb.as_matrix()  # avoiding repeated calls
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
