@@ -105,6 +105,8 @@ class MEKF:
     """
 
     _I: NDArray[np.float64] = np.eye(6)
+    _ATT_IDX = slice(0, 3)
+    _BG_IDX = slice(3, 6)
 
     def __init__(
         self,
@@ -184,14 +186,14 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
+        self._dhdx[0:3, self._ATT_IDX] = _skew_symmetric(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
+        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -202,8 +204,8 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[0:3])
-        self._bg_b[:] += self._dx[3:6]
+        self._att_nb._correct_da(self._dx[self._ATT_IDX])
+        self._bg_b[:] += self._dx[self._BG_IDX]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
@@ -268,7 +270,7 @@ class MEKF:
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | float | None = 0.001,
+        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
