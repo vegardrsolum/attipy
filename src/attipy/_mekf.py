@@ -299,8 +299,7 @@ class MEKF:
             is not used.
         gref_var : float or array_like, shape (3,), default 0.001
             Variance of gravity reference vector measurement noise (dimensionless).
-            If a scalar value is provided, the same variance is assumed for all
-            three axes. Required for ``gref``.
+            Required for ``gref``.
 
         Returns
         -------
