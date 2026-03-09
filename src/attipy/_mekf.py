@@ -83,7 +83,7 @@ class MEKF:
     att : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
-    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     w : array_like, shape (3,), optional
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
