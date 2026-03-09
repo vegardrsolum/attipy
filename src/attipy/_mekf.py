@@ -106,8 +106,8 @@ class MEKF:
     """
 
     _I: NDArray[np.float64] = np.eye(6)
-    _ATT_IDX = slice(0, 3)
-    _BG_IDX = slice(3, 6)
+    _ATT_IDX: slice = slice(0, 3)
+    _BG_IDX: slice = slice(3, 6)
 
     def __init__(
         self,
