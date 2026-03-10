@@ -281,26 +281,25 @@ class MEKF:
         w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
             ``degrees`` parameter for units.
-        degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w``, are deg/s
-            or rad/s (default).
+        degrees : bool, optional
+            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
+            rad/s. Defaults to rad/s.
         yaw : float, optional
-            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
-            for units. If ``None``, heading aiding is not used.
+            Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
+            See ``yaw_degrees`` for unit.
         yaw_var : float, optional
             Variance of heading (yaw angle) measurement noise in rad^2 (default)
-            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
-            for units. Required for ``yaw``.
-        yaw_degrees : bool, default False
+            or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
+        yaw_degrees : bool, optional
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
-        gref : bool, default True
+        gref : bool, optional
             Specifies whether to use the specific force measurement and the known
-            direction of gravity as aiding. If ``False``, gravity reference aiding
-            is not used.
-        gref_var : array_like, shape (3,), default (0.001, 0.001, 0.001)
+            direction of gravity as aiding. Defaults to ``False`` (no gravity reference
+            aiding).
+        gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            Required for ``gref``.
+            Required for ``gref``. Defaults to (0.001, 0.001, 0.001).
 
         Returns
         -------
