@@ -253,18 +253,19 @@ def pva_sim(
 
     Parameters
     ----------
-    fs : float, default 10.0
-        Sampling frequency in Hz.
-    n : int, default 10_000
-        Number of samples to generate.
+    fs : float, optional
+        Sampling frequency in Hz. Defaults to 10.0 Hz.
+    n : int, optional
+        Number of samples to generate. Defaults to 10 000.
     degrees : bool, optional
-        Specifies whether to return Euler angles and angular velocities in degrees
-        and degrees per second or radians and radians per second (default).
-    g : float, default 9.80665
-        The gravitational acceleration in m/s^2. Default is 'standard gravity' of
-        9.80665 m/s^2.
-    nav_frame : str, default 'NED'
-        Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
+        Specifies whether to return the Euler angles and the angular velocities
+        in degrees and degrees per second or radians and radians per second (default).
+    g : float, optional
+        The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
+        of 9.80665 m/s^2.
+    nav_frame : {'NED', 'ENU'}, optional
+        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
+        (East-North-Up). Defaults to 'NED'.
 
     Returns
     -------
