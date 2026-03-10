@@ -112,12 +112,12 @@ class BeatDOF(DOF):
         The beating frequency, which controls the variation in amplitude.
     freq_hz : bool, default True.
         Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
-    phase : float, default 0.0
+    phase : float, optional
         Phase offset of the beat signal. Default is 0.0.
     phase_degrees : bool, optional
         If True, interpret `phase` in degrees. If False, interpret in radians.
         Default is False.
-    offset : float, default 0.0
+    offset : float, optional
         Offset of the beat signal. Default is 0.0.
     """
 
