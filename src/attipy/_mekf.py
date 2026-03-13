@@ -294,8 +294,7 @@ class MEKF:
             or rad and rad^2 (default).
         gref : bool, optional
             Specifies whether to use the specific force measurement and the known
-            direction of gravity as aiding. Defaults to ``False`` (no gravity reference
-            aiding).
+            direction of gravity as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for ``gref``. Defaults to (0.001, 0.001, 0.001).

@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._mekf import _gravity_nav
-from ._transforms import _matrix_from_euler
+from ._transforms import _matrix_from_euler_zyx
 
 
 class DOF(ABC):
@@ -202,7 +202,7 @@ def _specific_force_body(
     f_b = np.zeros((n, 3))
 
     for i in range(n):
-        R_i = _matrix_from_euler(euler[i])
+        R_i = _matrix_from_euler_zyx(euler[i])
         f_b[i] = R_i.T.dot(acc[i] - g_n)
 
     return f_b
