@@ -247,21 +247,21 @@ class MEKF:
         dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
 
-    def _project_ahead(self) -> None:
+    def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
         """
         Project state and covariance estimates ahead.
         """
 
         # Attitude (dead reckoning)
-        self._att_nb._project_ahead(self._w_b, self._dt)
+        self._att_nb._correct_dr(dtheta)
 
         # Covariance
         _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
         self,
-        f: ArrayLike,
-        w: ArrayLike,
+        dvel: ArrayLike,
+        dtheta: ArrayLike,
         degrees: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
@@ -274,12 +274,10 @@ class MEKF:
 
         Parameters
         ----------
-        f : array_like, shape (3,)
-            Specific force (i.e., acceleration + gravity) measurement (fx, fy, fz)
-            in m/s^2.
-        w : array_like, shape (3,)
-            Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
-            ``degrees`` parameter for units.
+        dvel : array_like, shape (3,), optional
+            Velocity change vector (sculling integral) in m/s.
+        dtheta : array_like, shape (3,), optional
+            Attitude change vector (coning integral) in radians.
         degrees : bool, optional
             Specifies whether the unit of the rotation rate, ``w``, is deg/s or
             rad/s. Defaults to rad/s.
@@ -305,21 +303,25 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
+        dvel = np.asarray(dvel)
+        dtheta = np.asarray(dtheta)
+
         if degrees:
-            w = np.radians(w)
+            dtheta = np.radians(dtheta)
+
+        dtheta -= self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead()
+        self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(f) if gref else None, gref_var)
+        self._aiding_update_gref(-_normalize_vec(dvel) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
         self._reset()
 
         # Update model
-        self._w_b[:] = w - self._bg_b
-        _update_state_transition(self._phi, self._dt, self._w_b)
+        _update_state_transition(self._phi, dtheta)
 
         return self
