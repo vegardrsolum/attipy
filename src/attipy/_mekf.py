@@ -85,9 +85,8 @@ class MEKF:
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    w : array_like, shape (3,), optional
-        Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
-        Defaults to zero angular rate (stationary).
+    dtheta_prev : array_like, shape (3,), optional
+        Previous attitude change vector (coning integral) in radians. Defaults to zero.
     P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
@@ -114,7 +113,7 @@ class MEKF:
         fs: float,
         att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        w: ArrayLike = (0.0, 0.0, 0.0),
+        dtheta_prev: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -134,12 +133,12 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._w_b = np.asarray_chkfinite(w).reshape(3).copy()
+        self._dtheta_prev = np.asarray_chkfinite(dtheta_prev).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition(self._dt, self._w_b, self._gbc)
+        self._phi = _state_transition(self._dt, self._dtheta_prev, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
 
@@ -167,13 +166,13 @@ class MEKF:
         """
         return self._bg_b.copy()
 
-    @property
-    def angular_rate(self) -> NDArray[np.float64]:
-        """
-        Copy of the bias corrected angular rate measurement (rad/s) expressed in
-        the body frame.
-        """
-        return self._w_b.copy()
+    # @property
+    # def angular_rate(self) -> NDArray[np.float64]:
+    #     """
+    #     Copy of the bias corrected angular rate measurement (rad/s) expressed in
+    #     the body frame.
+    #     """
+    #     return self._w_b.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
