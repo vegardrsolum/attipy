@@ -381,7 +381,7 @@ def _measurement_matrix_full(
 
 
 def _state_transition(
-    dt: float, w_b: NDArray[np.float64], gbc: float
+    dt: float, dtheta: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup state transition matrix, phi, using the first-order approximation:
@@ -394,8 +394,8 @@ def _state_transition(
     ----------
     dt : float
         Time step in seconds.
-    w_b : ndarray, shape (3,)
-        Angular rate measurement (bias corrected) in body frame.
+    dtheta : ndarray, shape (3,)
+        Attitude change vector (coning integral) in radians.
     gbc : float
         Gyro bias correlation time in seconds.
 
@@ -405,7 +405,7 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(6)
-    phi[0:3, 0:3] -= dt * S(w_b)  # NB! update each time step
+    phi[0:3, 0:3] -= S(dtheta)  # NB! update each time step
     phi[0:3, 3:6] -= dt * np.eye(3)
     phi[3:6, 3:6] -= dt * np.eye(3) / gbc
     return phi
@@ -414,22 +414,19 @@ def _state_transition(
 @njit  # type: ignore[misc]
 def _update_state_transition(
     phi: NDArray[np.float64],
-    dt: float,
-    w_b: NDArray[np.float64],
+    dtheta: NDArray[np.float64],
 ) -> None:
     """
     Update the state transition matrix, phi, in place:
 
-        phi[0:3, 0:3] = I - dt * S(w_b)
+        phi[0:3, 0:3] = I - S(dtheta)
 
     Parameters
     ----------
     phi : ndarray, shape (6, 6)
         State transition matrix to be updated in place.
-    dt : float
-        Time step.
-    w_b : ndarray, shape (3,)
-        Angular rate measurement (bias corrected) in body frame.
+    dtheta : ndarray, shape (3,)
+        Attitude change vector (coning integral) in radians.
 
     Notes
     -----
@@ -439,13 +436,13 @@ def _update_state_transition(
 
     where dfdx denotes the linearized state matrix.
     """
-    wx, wy, wz = w_b
-    phi[0, 1] = dt * wz
-    phi[0, 2] = -dt * wy
-    phi[1, 0] = -dt * wz
-    phi[1, 2] = dt * wx
-    phi[2, 0] = dt * wy
-    phi[2, 1] = -dt * wx
+    dtx, dty, dtz = dtheta
+    phi[0, 1] = dtz
+    phi[0, 2] = -dty
+    phi[1, 0] = -dtz
+    phi[1, 2] = dtx
+    phi[2, 0] = dty
+    phi[2, 1] = -dtx
 
 
 def _process_noise_cov(
