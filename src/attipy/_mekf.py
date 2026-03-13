@@ -11,10 +11,10 @@ from ._kalman import (
 )
 from ._statespace import (
     _dyawda,
-    _measurement_matrix_att,
-    _process_noise_cov_att,
-    _state_transition_att,
-    _update_state_transition_att,
+    _measurement_matrix,
+    _process_noise_cov,
+    _state_transition,
+    _update_state_transition,
 )
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
@@ -80,36 +80,39 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att : Attitude or array_like, shape (4,)
+    att : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
-    bg : array_like, shape (3,), default (0.0, 0.0, 0.0)
+        Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
+    bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    w : array_like, shape (3,), default (0.0, 0.0, 0.0)
+    w : array_like, shape (3,), optional
         Initial angular rate estimate (wx, wy, wz) in rad/s expressed in the body frame.
         Defaults to zero angular rate (stationary).
-    P : array_like, shape (6, 6), default 1e-6 * np.eye(6)
+    P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error, and dbg is the gyroscope bias error.
-    gyro_noise_density : float, default 0.0001
+    gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
-    gyro_bias_stability : float, default 0.00005
+    gyro_bias_stability : float, optional
         Gyroscope bias stability (1-sigma) in rad/s. Defaults to 0.00005 (typical
         value for low-cost MEMS IMUs).
-    gyro_bias_corr_time : float, default 50.0
+    gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    nav_frame : {'NED', 'ENU'}, default 'NED'
+    nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
     _I: NDArray[np.float64] = np.eye(6)
+    _ATT_IDX: slice = slice(0, 3)
+    _BG_IDX: slice = slice(3, 6)
 
     def __init__(
         self,
         fs: float,
-        att: Attitude | ArrayLike,
+        att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         w: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
@@ -136,9 +139,9 @@ class MEKF:
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition_att(self._dt, self._w_b, self._gbc)
-        self._Q = _process_noise_cov_att(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix_att(self._att_nb._q, self._vg_b)
+        self._phi = _state_transition(self._dt, self._w_b, self._gbc)
+        self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
+        self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
 
     @property
     def _vg_b(self):
@@ -183,14 +186,14 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
+        self._dhdx[0:3, self._ATT_IDX] = _skew_symmetric(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
+        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -201,8 +204,8 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[0:3])
-        self._bg_b[:] += self._dx[3:6]
+        self._att_nb._correct_da(self._dx[self._ATT_IDX])
+        self._bg_b[:] += self._dx[self._BG_IDX]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
@@ -217,9 +220,6 @@ class MEKF:
 
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
-
-        if np.isscalar(vg_var):
-            vg_var = (vg_var, vg_var, vg_var)
 
         vg_b = self._vg_b
         dz = vg_meas - vg_b
@@ -267,7 +267,7 @@ class MEKF:
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | float | None = 0.001,
+        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
@@ -280,27 +280,24 @@ class MEKF:
         w : array_like, shape (3,)
             Angular rate measurement (wx, wy, wz) in rad/s (default) or deg/s. See
             ``degrees`` parameter for units.
-        degrees : bool, default False
-            Specifies whether the unit of the rotation rate, ``w``, are deg/s
-            or rad/s (default).
+        degrees : bool, optional
+            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
+            rad/s. Defaults to rad/s.
         yaw : float, optional
-            Heading (yaw angle) measurement in rad (default) or deg. See ``yaw_degrees``
-            for units. If ``None``, heading aiding is not used.
+            Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
+            See ``yaw_degrees`` for unit.
         yaw_var : float, optional
             Variance of heading (yaw angle) measurement noise in rad^2 (default)
-            or deg^2. Units must be compatible with ``yaw``. See ``yaw_degrees``
-            for units. Required for ``yaw``.
-        yaw_degrees : bool, default False
+            or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
+        yaw_degrees : bool, optional
             Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
-        gref : bool, default True
+        gref : bool, optional
             Specifies whether to use the specific force measurement and the known
-            direction of gravity as aiding. If ``False``, gravity reference aiding
-            is not used.
-        gref_var : float or array_like, shape (3,), default 0.001
+            direction of gravity as aiding. Defaults to ``True``.
+        gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            If a scalar value is provided, the same variance is assumed for all
-            three axes. Required for ``gref``.
+            Required for ``gref``. Defaults to (0.001, 0.001, 0.001).
 
         Returns
         -------
@@ -309,7 +306,7 @@ class MEKF:
         """
 
         if degrees:
-            w = (np.pi / 180.0) * np.asarray(w)
+            w = np.radians(w)
 
         # Project (a priori) state and covariance estimates ahead
         self._project_ahead()
@@ -323,6 +320,6 @@ class MEKF:
 
         # Update model
         self._w_b[:] = w - self._bg_b
-        _update_state_transition_att(self._phi, self._dt, self._w_b)
+        _update_state_transition(self._phi, self._dt, self._w_b)
 
         return self

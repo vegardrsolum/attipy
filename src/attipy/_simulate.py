@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._mekf import _gravity_nav
-from ._transforms import _matrix_from_euler
+from ._transforms import _matrix_from_euler_zyx
 
 
 class DOF(ABC):
@@ -112,12 +112,12 @@ class BeatDOF(DOF):
         The beating frequency, which controls the variation in amplitude.
     freq_hz : bool, default True.
         Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
-    phase : float, default 0.0
+    phase : float, optional
         Phase offset of the beat signal. Default is 0.0.
     phase_degrees : bool, optional
         If True, interpret `phase` in degrees. If False, interpret in radians.
         Default is False.
-    offset : float, default 0.0
+    offset : float, optional
         Offset of the beat signal. Default is 0.0.
     """
 
@@ -202,7 +202,7 @@ def _specific_force_body(
     f_b = np.zeros((n, 3))
 
     for i in range(n):
-        R_i = _matrix_from_euler(euler[i])
+        R_i = _matrix_from_euler_zyx(euler[i])
         f_b[i] = R_i.T.dot(acc[i] - g_n)
 
     return f_b
@@ -253,18 +253,19 @@ def pva_sim(
 
     Parameters
     ----------
-    fs : float, default 10.0
-        Sampling frequency in Hz.
-    n : int, default 10_000
-        Number of samples to generate.
+    fs : float, optional
+        Sampling frequency in Hz. Defaults to 10.0 Hz.
+    n : int, optional
+        Number of samples to generate. Defaults to 10 000.
     degrees : bool, optional
-        Specifies whether to return Euler angles and angular velocities in degrees
-        and degrees per second or radians and radians per second (default).
-    g : float, default 9.80665
-        The gravitational acceleration in m/s^2. Default is 'standard gravity' of
-        9.80665 m/s^2.
-    nav_frame : str, default 'NED'
-        Navigation frame. Either 'NED' (North-East-Down) (default) or 'ENU' (East-North-Up).
+        Specifies whether to return the Euler angles and the angular velocities
+        in degrees and degrees per second or radians and radians per second (default).
+    g : float, optional
+        The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
+        of 9.80665 m/s^2.
+    nav_frame : {'NED', 'ENU'}, optional
+        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
+        (East-North-Up). Defaults to 'NED'.
 
     Returns
     -------

@@ -11,7 +11,7 @@ BA_IDX = slice(9, 12)
 BG_IDX = slice(12, 15)
 
 
-def _state_transition(
+def _state_transition_full(
     dt: float,
     f_b: NDArray[np.float64],
     w_b: NDArray[np.float64],
@@ -25,6 +25,13 @@ def _state_transition(
         phi = I + dt * dfdx
 
     where dfdx denotes the linearized state matrix.
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -58,7 +65,7 @@ def _state_transition(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(
+def _update_state_transition_full(
     phi: NDArray[np.float64],
     dt: float,
     f_b: NDArray[np.float64],
@@ -71,6 +78,13 @@ def _update_state_transition(
         phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
         phi[3:9, 9:12] = -dt * R_nb
         phi[6:9, 6:9] = I - dt * S(w_b)
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -131,13 +145,20 @@ def _update_state_transition(
     phi[5, 8] = -dt * (fy * r20 - fx * r21)
 
 
-def _process_noise_cov(
+def _process_noise_cov_full(
     dt: float, vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -178,7 +199,7 @@ def _process_noise_cov(
     return Q
 
 
-def _state_matrix(
+def _state_matrix_full(
     f_b: NDArray[np.float64],
     w_b: NDArray[np.float64],
     R_nb: NDArray[np.float64],
@@ -187,6 +208,13 @@ def _state_matrix(
 ) -> NDArray[np.float64]:
     """
     Setup linearized state matrix, dfdx.
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -217,9 +245,16 @@ def _state_matrix(
     return dfdx
 
 
-def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
+def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Setup linearized (white noise) input matrix, dfdw.
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -239,11 +274,18 @@ def _wn_input_matrix(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dfdw
 
 
-def _process_noise_psd(
+def _process_noise_psd_full(
     vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup white noise (process noise) power spectral density matrix, W.
+
+    Assumes a full state-space model with the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -312,7 +354,7 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return dyawda  # type: ignore[no-any-return]
 
 
-def _measurement_matrix(
+def _measurement_matrix_full(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
@@ -338,7 +380,7 @@ def _measurement_matrix(
     return dhdx
 
 
-def _state_transition_att(
+def _state_transition(
     dt: float, w_b: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
@@ -347,8 +389,6 @@ def _state_transition_att(
         phi = I + dt * dfdx
 
     where dfdx denotes the linearized state matrix.
-
-    Attitude and gyro bias states only.
 
     Parameters
     ----------
@@ -372,7 +412,7 @@ def _state_transition_att(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition_att(
+def _update_state_transition(
     phi: NDArray[np.float64],
     dt: float,
     w_b: NDArray[np.float64],
@@ -381,8 +421,6 @@ def _update_state_transition_att(
     Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - dt * S(w_b)
-
-    Attitude and gyro bias states only.
 
     Parameters
     ----------
@@ -410,15 +448,13 @@ def _update_state_transition_att(
     phi[2, 1] = -dt * wx
 
 
-def _process_noise_cov_att(
+def _process_noise_cov(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
     Setup process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
-
-    Attitude and gyro bias states only.
 
     Parameters
     ----------
@@ -442,7 +478,7 @@ def _process_noise_cov_att(
     return Q
 
 
-def _measurement_matrix_att(
+def _measurement_matrix(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """

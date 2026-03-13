@@ -297,53 +297,6 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 @njit  # type: ignore[misc]
-def _matrix_from_euler(theta: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute the direction cosine matrix (rotation matrix) from Euler angles.
-
-    Parameters
-    ----------
-    theta : numpy.ndarray, shape (3,)
-        Vector of Euler angles in radians (ZYX convention). Contains the following
-        three Euler angles in order:
-            - Roll (roll): Rotation about the x-axis.
-            - Pitch (pitch): Rotation about the y-axis.
-            - Yaw (yaw): Rotation about the z-axis.
-
-    Returns
-    -------
-    numpy.ndarray, shape (3, 3)
-        Direction cosine matrix (rotation matrix).
-    """
-    # TODO: add reference
-
-    roll, pitch, yaw = theta
-
-    cy = np.cos(yaw)
-    sy = np.sin(yaw)
-    cp = np.cos(pitch)
-    sp = np.sin(pitch)
-    cr = np.cos(roll)
-    sr = np.sin(roll)
-
-    r00 = cy * cp
-    r01 = -sy * cr + cy * sp * sr
-    r02 = sy * sr + cy * sp * cr
-
-    r10 = sy * cp
-    r11 = cy * cr + sy * sp * sr
-    r12 = -cy * sr + sy * sp * cr
-
-    r20 = -sp
-    r21 = cp * sr
-    r22 = cp * cr
-
-    dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
-
-    return dcm
-
-
-@njit  # type: ignore[misc]
 def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from a unit quaternion.

@@ -238,7 +238,7 @@ class Attitude:
         theta : ArrayLike
             Set of three Euler angles (ZYX convention) (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
-        degrees : bool, default False
+        degrees : bool, optional
             Specifies whether the Euler angles are given in degrees or radians (default).
 
         Returns
@@ -280,7 +280,7 @@ class Attitude:
 
         Parameters
         ----------
-        degrees : bool, default False
+        degrees : bool, optional
             Specifies whether the output Euler angles should be given in degrees
             or radians (default).
 
@@ -328,7 +328,7 @@ class Attitude:
         ----------
         r : ArrayLike
             Rotation vector (rx, ry, rz).
-        degrees : bool, default False
+        degrees : bool, optional
             Specifies whether the input rotation vector, r, is given in degrees
             or radians (default).
 
@@ -351,7 +351,7 @@ class Attitude:
 
         Parameters
         ----------
-        degrees : bool, default False
+        degrees : bool, optional
             Specifies whether the output rotation vector should be given in degrees
             or radians (default).
 
