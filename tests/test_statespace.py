@@ -3,8 +3,6 @@ import pytest
 
 import attipy as ap
 from attipy._statespace import (
-    ATT_IDX,
-    BG_IDX,
     _process_noise_cov,
     _process_noise_cov_full,
     _process_noise_psd,
@@ -19,35 +17,56 @@ from attipy._statespace import (
 )
 from attipy._vectorops import _skew_symmetric
 
+# @pytest.fixture
+# def noise_params():
+
+#     # Accelerometer
+#     abc = 100.0
+#     gbs = 0.00005
+#     gbc = 50.0
+#     vrw = 0.001
+
+#     # Gyro
+#     gbs = 0.00005
+#     arw = 0.0001
+#     abs = 0.0005
+#     return vrw, arw, abs, abc, gbs, gbc
+
 
 @pytest.fixture
-def noise_params():
-    vrw = 0.001
+def gyro_noise_params():
     arw = 0.0001
-    abs = 0.0005
-    abc = 100.0
     gbs = 0.00005
     gbc = 50.0
-    return vrw, arw, abs, abc, gbs, gbc
+    return arw, gbs, gbc
 
 
-def test_state_matrix_full(noise_params):
-    *_, abc, _, gbc = noise_params
+@pytest.fixture
+def acc_noise_params():
+    vrw = 0.001
+    abs = 0.0005
+    abc = 100.0
+    return vrw, abs, abc
 
-    f_b_corr = np.array([0.1, 0.2, 9.7])
-    w_b_corr = np.array([0.01, 0.02, 0.03])
+
+def test_state_matrix_full(gyro_noise_params, acc_noise_params):
+    *_, abc = acc_noise_params
+    *_, gbc = gyro_noise_params
+
+    f_b = np.array([0.1, 0.2, 9.7])
+    w_b = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    dfdx_out = _state_matrix_full(f_b_corr, w_b_corr, R_nb, abc, gbc)
+    dfdx_out = _state_matrix_full(f_b, w_b, R_nb, abc, gbc)
 
     S = _skew_symmetric  # alias skew symmetric matrix
 
     # Linearized state matrix
     dfdx = np.zeros((15, 15))
     dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b_corr)
+    dfdx[3:6, 6:9] = -R_nb @ S(f_b)
     dfdx[3:6, 9:12] = -R_nb
-    dfdx[6:9, 6:9] = -S(w_b_corr)
+    dfdx[6:9, 6:9] = -S(w_b)
     dfdx[6:9, 12:15] = -np.eye(3)
     dfdx[9:12, 9:12] = -np.eye(3) / abc
     dfdx[12:15, 12:15] = -np.eye(3) / gbc
@@ -70,8 +89,9 @@ def test_wn_input_matrix_full():
     np.testing.assert_allclose(dfdw_out, dfdw)
 
 
-def test_process_noise_psd_full(noise_params):
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+def test_process_noise_psd_full(gyro_noise_params, acc_noise_params):
+    vrw, abs, abc = acc_noise_params
+    arw, gbs, gbc = gyro_noise_params
 
     W_out = _process_noise_psd_full(vrw, arw, abs, abc, gbs, gbc)
 
@@ -84,8 +104,9 @@ def test_process_noise_psd_full(noise_params):
     np.testing.assert_allclose(W_out, W)
 
 
-def test_state_transition_full(noise_params):
-    *_, abc, _, gbc = noise_params
+def test_state_transition_full(gyro_noise_params, acc_noise_params):
+    *_, abc = acc_noise_params
+    *_, gbc = gyro_noise_params
 
     dt = 0.1
     f_b_corr = np.array([0.1, 0.2, 9.7])
@@ -100,8 +121,9 @@ def test_state_transition_full(noise_params):
     np.testing.assert_allclose(phi_out, phi)
 
 
-def test_update_state_transition_full(noise_params):
-    *_, abc, _, gbc = noise_params
+def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
+    *_, abc = acc_noise_params
+    *_, gbc = gyro_noise_params
 
     dt = 0.1
 
@@ -120,9 +142,10 @@ def test_update_state_transition_full(noise_params):
     np.testing.assert_allclose(phi, phi_expected)
 
 
-def test_process_noise_cov_full(noise_params):
+def test_process_noise_cov_full(gyro_noise_params, acc_noise_params):
     dt = 0.1
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+    vrw, abs, abc = acc_noise_params
+    arw, gbs, gbc = gyro_noise_params
 
     Q_out = _process_noise_cov_full(dt, vrw, arw, abs, abc, gbs, gbc)
 
@@ -135,8 +158,8 @@ def test_process_noise_cov_full(noise_params):
     np.testing.assert_allclose(Q_out, Q, atol=1e-12)
 
 
-def test_state_matrix(noise_params):
-    *_, gbc = noise_params
+def test_state_matrix(gyro_noise_params):
+    *_, gbc = gyro_noise_params
 
     w_b = np.array([0.01, 0.02, 0.03])
 
@@ -162,8 +185,8 @@ def test_wn_input_matrix():
     np.testing.assert_allclose(dfdw_out, dfdw)
 
 
-def test_process_noise_psd(noise_params):
-    _, arw, _, _, gbs, gbc = noise_params
+def test_process_noise_psd(gyro_noise_params):
+    arw, gbs, gbc = gyro_noise_params
 
     W_out = _process_noise_psd(arw, gbs, gbc)
 
@@ -175,8 +198,8 @@ def test_process_noise_psd(noise_params):
     np.testing.assert_allclose(W_out, W)
 
 
-def test_state_transition(noise_params):
-    *_, gbc = noise_params
+def test_state_transition(gyro_noise_params):
+    *_, gbc = gyro_noise_params
 
     dt = 0.1
     w_b = np.array([0.01, 0.02, 0.03])
@@ -190,9 +213,9 @@ def test_state_transition(noise_params):
     np.testing.assert_allclose(phi_out, phi)
 
 
-def test_process_noise_cov(noise_params):
+def test_process_noise_cov(gyro_noise_params):
     dt = 0.1
-    _, arw, _, _, gbs, gbc = noise_params
+    arw, gbs, gbc = gyro_noise_params
 
     Q_out = _process_noise_cov(dt, arw, gbs, gbc)
 
