@@ -307,7 +307,7 @@ class MEKF:
             or rad and rad^2 (default).
         gref : bool, optional
             Specifies whether to use the known direction of gravity and the accelerometer
-            pulse vector (dv) as aiding. Defaults to ``True``.
+            measurement as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for ``gref``. Defaults to (0.001, 0.001, 0.001).
