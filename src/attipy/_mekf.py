@@ -80,7 +80,7 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    att : Attitude or array_like, shape (4,), optional
+    q : Attitude or array_like, shape (4,), optional
         Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
@@ -109,7 +109,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
         dtheta: ArrayLike = (0.0, 0.0, 0.0),
@@ -129,7 +129,7 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
+        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
@@ -153,23 +153,14 @@ class MEKF:
         return _yaw_from_quat(self._att_nb._q)
 
     @property
-    def attitude(self) -> Attitude:
-        """Attitude estimate (no copy)."""
-        return self._att_nb
-
-    def bias_gyro(self) -> NDArray[np.float64]:
-        """
-        Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
-        """
+    def q(self) -> NDArray[np.float64]:
+        """Copy of the attitude estimate represented as a unit quaternion."""
+        return self._att_nb._q.copy()
+    
+    @property
+    def bg(self) -> NDArray[np.float64]:
+        """Copy of the gyroscope bias estimate in rad/s"""
         return self._bg_b.copy()
-
-    # @property
-    # def angular_rate(self) -> NDArray[np.float64]:
-    #     """
-    #     Copy of the bias corrected angular rate measurement (rad/s) expressed in
-    #     the body frame.
-    #     """
-    #     return self._w_b.copy()
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -177,6 +168,35 @@ class MEKF:
         Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
+
+    @property
+    def dtheta(self) -> NDArray[np.float64]:
+        """Copy of the previous attitude increment (coning integral) in radians."""
+        return self._dtheta.copy()
+
+    @property
+    def attitude(self) -> Attitude:
+        """Attitude estimate (no copy)."""
+        return self._att_nb
+
+    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
+        """
+        Gyroscope bias estimate expressed in the body frame.
+
+        Parameters
+        ----------
+        degrees : bool, optional
+            Specifies whether to return the bias estimate in deg/s or rad/s. Defaults
+            to rad/s.
+
+        Returns
+        -------
+        ndarray, shape (3,)
+            Copy of the gyroscope bias estimate.
+        """
+        if degrees:
+            return np.degrees(self._bg_b.copy())
+        return self._bg_b.copy()
 
     def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
         """
