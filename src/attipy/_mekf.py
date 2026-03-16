@@ -249,7 +249,7 @@ class MEKF:
         Project state and covariance estimates ahead.
         """
 
-        # Attitude
+        # Attitude update (strapdown algorithm)
         self._att_nb._correct_with_rotvec(dtheta)
 
         # Covariance
