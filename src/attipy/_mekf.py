@@ -291,9 +291,11 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,), optional
-            Velocity increment (sculling integral) in m/s.
+            Velocity increment (sculling integral) in m/s. I.e., the specific force
+            integral over the sampling interval.
         dtheta : array_like, shape (3,), optional
-            Attitude increment (coning integral) in radians.
+            Attitude increment (coning integral) in radians. I.e., the angular rate
+            integral over the sampling interval.
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in deg/s or rad/s. Defaults to rad/s.
         yaw : float, optional
