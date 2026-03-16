@@ -162,17 +162,16 @@ def test_wn_input_matrix():
     np.testing.assert_allclose(dfdw_out, dfdw)
 
 
-def test_process_noise_psd_full(noise_params):
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+def test_process_noise_psd(noise_params):
+    _, arw, _, _, gbs, gbc = noise_params
 
-    W_out = _process_noise_psd_full(vrw, arw, abs, abc, gbs, gbc)
+    W_out = _process_noise_psd(arw, gbs, gbc)
 
     # White noise power spectral density matrix
-    W = np.eye(12)
-    W[0:3, 0:3] *= vrw**2
-    W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * abs**2 / abc
-    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    W = np.eye(6)
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+
     np.testing.assert_allclose(W_out, W)
 
 
