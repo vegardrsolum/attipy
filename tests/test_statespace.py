@@ -109,13 +109,13 @@ def test_state_transition_full(gyro_noise_params, acc_noise_params):
     *_, gbc = gyro_noise_params
 
     dt = 0.1
-    f_b_corr = np.array([0.1, 0.2, 9.7])
-    w_b_corr = np.array([0.01, 0.02, 0.03])
+    f_b = np.array([0.1, 0.2, 9.7])
+    w_b = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    phi_out = _state_transition_full(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
+    phi_out = _state_transition_full(dt, f_b, w_b, R_nb, abc, gbc)
 
-    dfdx = _state_matrix_full(f_b_corr, w_b_corr, R_nb, abc, gbc)
+    dfdx = _state_matrix_full(f_b, w_b, R_nb, abc, gbc)
     phi = np.eye(15) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
@@ -127,10 +127,10 @@ def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
 
     dt = 0.1
 
-    f_b_corr = np.array([0.1, 0.2, 9.7])
-    w_b_corr = np.array([0.01, 0.02, 0.03])
+    f_b = np.array([0.1, 0.2, 9.7])
+    w_b = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
-    phi = _state_transition_full(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
+    phi = _state_transition_full(dt, f_b, w_b, R_nb, abc, gbc)
 
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
