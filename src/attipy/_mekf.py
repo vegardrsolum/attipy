@@ -252,7 +252,7 @@ class MEKF:
         # Attitude update (strapdown algorithm)
         self._att_nb._correct_with_rotvec(dtheta)
 
-        # Covariance
+        # Covariance projection
         _project_cov_ahead(self._P, self._phi, self._Q)
 
     def update(
