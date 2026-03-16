@@ -140,7 +140,7 @@ def test_state_transition(noise_params):
     w_b_corr = np.array([0.01, 0.02, 0.03])
     R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
 
-    phi_out = _state_transition(dt, w_b_corr, gbc)
+    phi_out = _state_transition(dt, dt * w_b_corr, gbc)
 
     sx = np.r_[ATT_IDX, BG_IDX]
     sxx = np.ix_(sx, sx)
