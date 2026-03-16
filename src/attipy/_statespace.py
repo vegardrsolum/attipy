@@ -26,7 +26,7 @@ def _state_transition_full(
 
     where dfdx denotes the linearized state matrix.
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -79,7 +79,7 @@ def _update_state_transition_full(
         phi[3:9, 9:12] = -dt * R_nb
         phi[6:9, 6:9] = I - dt * S(w_b)
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -153,7 +153,7 @@ def _process_noise_cov_full(
 
         Q = dt @ dfdw @ W @ dfdw.T
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -209,7 +209,7 @@ def _state_matrix_full(
     """
     Setup linearized state matrix, dfdx.
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -249,7 +249,7 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Setup linearized (white noise) input matrix, dfdw.
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -280,7 +280,7 @@ def _process_noise_psd_full(
     """
     Setup white noise (process noise) power spectral density matrix, W.
 
-    Assumes a full state-space model with the following 15 states in order:
+    Assumes the following 15 states in order:
     - Position (3)
     - Velocity (3)
     - Attitude (3)
@@ -360,6 +360,13 @@ def _measurement_matrix_full(
     """
     Setup linearized measurement matrix, dhdx.
 
+    Assumes the following 15 states in order:
+    - Position (3)
+    - Velocity (3)
+    - Attitude (3)
+    - Accelerometer bias (3)
+    - Gyro bias (3)
+
     Parameters
     ----------
     q_nb : ndarray, shape (4,)
@@ -369,7 +376,7 @@ def _measurement_matrix_full(
 
     Returns
     -------
-    dhdx : ndarray, shape (7, 12)
+    dhdx : ndarray, shape (10, 15)
         Linearized measurement matrix.
     """
     dhdx = np.zeros((10, 15))
@@ -506,7 +513,7 @@ def _state_matrix(
     """
     Setup linearized state matrix, dfdx.
 
-    Assumes the following states in order:
+    Assumes the following 6 states in order:
     - Attitude (3)
     - Gyro bias (3)
 
@@ -533,7 +540,7 @@ def _wn_input_matrix() -> NDArray[np.float64]:
     """
     Setup linearized (white noise) input matrix, dfdw.
 
-    Assumes the following states in order:
+    Assumes the following 6 states in order:
     - Attitude (3)
     - Gyro bias (3)
 
@@ -552,7 +559,7 @@ def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64
     """
     Setup white noise (process noise) power spectral density matrix, W.
 
-    Assumes the following states in order:
+    Assumes the following 6 states in order:
     - Attitude (3)
     - Gyro bias (3)
 
