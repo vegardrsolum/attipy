@@ -85,12 +85,12 @@ class MEKF:
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    dtheta : array_like, shape (3,), optional
-        Previous attitude increment (coning integral) in radians. Defaults to zero.
     P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error, and dbg is the gyroscope bias error.
+    dtheta : array_like, shape (3,), optional
+        Previous attitude increment (coning integral) in radians. Defaults to zero.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -111,8 +111,8 @@ class MEKF:
         fs: float,
         att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
+        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
