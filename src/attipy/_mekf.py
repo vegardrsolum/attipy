@@ -105,8 +105,6 @@ class MEKF:
     """
 
     _I: NDArray[np.float64] = np.eye(6)
-    _ATT_IDX: slice = slice(0, 3)
-    _BG_IDX: slice = slice(3, 6)
 
     def __init__(
         self,
@@ -185,14 +183,14 @@ class MEKF:
         """
         Gravity reference vector part of the measurement matrix, shape (3, 6).
         """
-        self._dhdx[0:3, self._ATT_IDX] = _skew_symmetric(vg_b)
+        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
         return self._dhdx[0:3]
 
     def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Heading (yaw angle) part of the measurement matrix, shape (6,).
         """
-        self._dhdx[3:4, self._ATT_IDX] = _dyawda(q_nb)
+        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
     def _reset(self) -> None:
@@ -203,8 +201,8 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_with_gibbs2(self._dx[self._ATT_IDX])
-        self._bg_b[:] += self._dx[self._BG_IDX]
+        self._att_nb._correct_with_gibbs2(self._dx[0:3])
+        self._bg_b[:] += self._dx[3:6]
         self._dx[:] = 0.0
 
     def _aiding_update_gref(
@@ -289,8 +287,8 @@ class MEKF:
             Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
         gref : bool, optional
-            Specifies whether to use the specific force measurement and the known
-            direction of gravity as aiding. Defaults to ``True``.
+            Specifies whether to use the known direction of gravity and the sculling
+            integral as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for ``gref``. Defaults to (0.001, 0.001, 0.001).
