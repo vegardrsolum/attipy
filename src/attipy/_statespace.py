@@ -523,7 +523,54 @@ def _state_matrix(
         Linearized state matrix.
     """
     dfdx = np.zeros((6, 6))
-    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
-    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
-    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
+    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -np.eye(3) / gbc
     return dfdx
+
+
+def _wn_input_matrix() -> NDArray[np.float64]:
+    """
+    Setup linearized (white noise) input matrix, dfdw.
+
+    Assumes the following states in order:
+    - Attitude (3)
+    - Gyro bias (3)
+
+    Returns
+    -------
+    dfdw : ndarray, shape (6, 6)
+        Linearized (white noise) input matrix.
+    """
+    dfdw = np.zeros((6, 6))
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
+    return dfdw
+
+
+def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
+    """
+    Setup white noise (process noise) power spectral density matrix, W.
+
+    Assumes the following states in order:
+    - Attitude (3)
+    - Gyro bias (3)
+
+    Parameters
+    ----------
+    arw : float
+        Angular random walk (gyroscope noise density) in rad/√Hz.
+    gbs : float
+        Gyro bias stability (bias instability) in rad/s.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    W : ndarray, shape (6, 6)
+        Process noise power spectral density matrix.
+    """
+    W = np.eye(6)
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    return W
