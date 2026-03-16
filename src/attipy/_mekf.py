@@ -290,9 +290,9 @@ class MEKF:
 
         Parameters
         ----------
-        dv : array_like, shape (3,), optional
+        dv : array_like, shape (3,)
             Velocity increment (sculling integral) in m/s.
-        dtheta : array_like, shape (3,), optional
+        dtheta : array_like, shape (3,)
             Attitude increment (coning integral) in radians.
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in deg/s or rad/s. Defaults to rad/s.
