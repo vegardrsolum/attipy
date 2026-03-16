@@ -406,7 +406,7 @@ def _state_transition(
     dt : float
         Time step in seconds.
     dtheta : ndarray, shape (3,)
-        Attitude change vector (coning integral) in radians.
+        Attitude increment (coning integral) in radians.
     gbc : float
         Gyro bias correlation time in seconds.
 
@@ -441,7 +441,7 @@ def _update_state_transition(
     phi : ndarray, shape (6, 6)
         State transition matrix to be updated in place.
     dtheta : ndarray, shape (3,)
-        Attitude change vector (coning integral) in radians.
+        Attitude increment (coning integral) in radians.
 
     Notes
     -----
