@@ -302,7 +302,6 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        self._dvel[:] = dvel
         self._dtheta[:] = dtheta
 
         if degrees:
@@ -314,7 +313,7 @@ class MEKF:
         self._project_ahead(self._dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(self._dvel) if gref else None, gref_var)
+        self._aiding_update_gref(-_normalize_vec(dvel) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
