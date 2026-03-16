@@ -3,7 +3,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from attipy import Attitude
-from attipy._quatops import _correct_quat_with_gibbs2, _quatprod
+from attipy._quatops import _quatprod
 
 
 class Test_Attitude:
