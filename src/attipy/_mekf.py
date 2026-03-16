@@ -274,12 +274,11 @@ class MEKF:
         Parameters
         ----------
         dvel : array_like, shape (3,), optional
-            Velocity change vector (sculling integral) in m/s.
+            Velocity increment (sculling integral) in m/s.
         dtheta : array_like, shape (3,), optional
-            Attitude change vector (coning integral) in radians.
+            Attitude increment (coning integral) in radians.
         degrees : bool, optional
-            Specifies whether the unit of the rotation rate, ``w``, is deg/s or
-            rad/s. Defaults to rad/s.
+            Specifies whether ``dtheta`` is given in deg/s or rad/s. Defaults to rad/s.
         yaw : float, optional
             Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
             See ``yaw_degrees`` for unit.
@@ -287,7 +286,7 @@ class MEKF:
             Variance of heading (yaw angle) measurement noise in rad^2 (default)
             or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
         yaw_degrees : bool, optional
-            Specifies whether the unit of ``yaw`` and ``yaw_var`` are deg and deg^2
+            Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
         gref : bool, optional
             Specifies whether to use the specific force measurement and the known
