@@ -153,16 +153,6 @@ class MEKF:
         return _yaw_from_quat(self._att_nb._q)
 
     @property
-    def q(self) -> NDArray[np.float64]:
-        """Copy of the attitude estimate represented as a unit quaternion."""
-        return self._att_nb._q.copy()
-
-    @property
-    def bg(self) -> NDArray[np.float64]:
-        """Copy of the gyroscope bias estimate in rad/s"""
-        return self._bg_b.copy()
-
-    @property
     def P(self) -> NDArray[np.float64]:
         """
         Copy of the error covariance matrix estimate.
