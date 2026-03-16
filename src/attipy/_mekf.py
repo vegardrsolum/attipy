@@ -209,7 +209,7 @@ class MEKF:
         self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
     ) -> None:
         """
-        Update with gravity reference vector aiding measurement.
+        Update state and covariance with gravity reference vector aiding measurement.
         """
 
         if vg_meas is None:
@@ -227,7 +227,7 @@ class MEKF:
         self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
     ) -> None:
         """
-        Update with heading aiding measurement.
+        Update state and covariance with heading (yaw angle) aiding measurement.
         """
 
         if yaw_meas is None:
