@@ -497,3 +497,33 @@ def _measurement_matrix(
     dhdx[0:3, 0:3] = S(vg_b)  # gravity ref vector (NB! update)
     dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
     return dhdx
+
+
+def _state_matrix(
+    w_b: NDArray[np.float64],
+    gbc: float,
+) -> NDArray[np.float64]:
+    """
+    Setup linearized state matrix, dfdx.
+
+    Assumes the following states in order:
+    - Attitude (3)
+    - Gyro bias (3)
+
+    Parameters
+    ----------
+    w_b : ndarray, shape (3,)
+        Angular rate measurement (bias corrected) in body frame.
+    gbc : float
+        Gyro bias correlation time in seconds.
+
+    Returns
+    -------
+    dfdx : ndarray, shape (6, 6)
+        Linearized state matrix.
+    """
+    dfdx = np.zeros((6, 6))
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
+    return dfdx
