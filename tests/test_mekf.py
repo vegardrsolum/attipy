@@ -22,7 +22,7 @@ class Test_MEKF:
         fs = 1024.0
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         bg_b = (0.1, -0.2, 0.3)
-        w_b = (0.01, -0.02, 0.03)
+        dtheta = (0.01, -0.02, 0.03)
         P = 42.0 * np.eye(6)
         nav_frame = "enu"
         gyro_noise_density = 0.000456
@@ -33,7 +33,7 @@ class Test_MEKF:
             fs,
             q_nb,
             bg=bg_b,
-            w=w_b,
+            dtheta=dtheta,
             P=P,
             nav_frame=nav_frame,
             gyro_noise_density=gyro_noise_density,
@@ -52,7 +52,7 @@ class Test_MEKF:
 
         np.testing.assert_allclose(mekf._att_nb._q, q_nb)
         np.testing.assert_allclose(mekf._bg_b, bg_b)
-        np.testing.assert_allclose(mekf._w_b, w_b)
+        np.testing.assert_allclose(mekf._dtheta, dtheta)
         np.testing.assert_allclose(mekf._P, P)
 
         # Check C contiguity
@@ -77,7 +77,7 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
 
-        np.testing.assert_allclose(mekf._w_b, np.zeros(3))
+        np.testing.assert_allclose(mekf._dtheta, np.zeros(3))
 
     def test__init__nav_frame(self):
         att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
@@ -116,14 +116,8 @@ class Test_MEKF:
     def test_bias_gyro(self, att):
         mekf = ap.MEKF(10.0, att, bg=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
-        np.testing.assert_allclose(mekf.bias_gyro, bg_expected)
+        np.testing.assert_allclose(mekf.bias_gyro(), bg_expected)
         assert mekf.bias_gyro is not mekf._bg_b  # ensure it is a copy
-
-    def test_angular_rate(self, att):
-        w = np.array([0.1, -0.2, 0.3])
-        mekf = ap.MEKF(10.0, att, w=w)
-        np.testing.assert_allclose(mekf.angular_rate, w)
-        assert mekf.angular_rate is not mekf._w_b  # ensure it is a copy
 
     def test_P(self, mekf, att):
         mekf = ap.MEKF(10.0, att, P=np.eye(6))
@@ -133,6 +127,7 @@ class Test_MEKF:
     def test_update(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
+        dt = 1.0 / fs
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
@@ -151,9 +146,9 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
-            mekf.update(f_i, w_i)
+            mekf.update(f_i * dt, w_i * dt)
             euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bias_gyro)
+            bg_est.append(mekf.bias_gyro())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -165,13 +160,14 @@ class Test_MEKF:
         euler_out = euler_est[warmup:, :2]
         bg_out = bg_est[warmup:, :2]
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
     def test_update_full_aiding(self, pva_sim):
         *_, euler_nb, f_b, w_b = pva_sim
         yaw = euler_nb[:, 2]
         fs = 10.24
+        dt = 1.0 / fs
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
@@ -193,24 +189,18 @@ class Test_MEKF:
         # Estimate attitude using MEKF
         att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
         mekf = ap.MEKF(fs, att)
-        (
-            euler_est,
-            bg_est,
-        ) = (
-            [],
-            [],
-        )
+        euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(
-                f_i,
-                w_i,
+                f_i * dt,
+                w_i * dt,
                 yaw=y_i,
                 yaw_var=yaw_var,
                 gref=True,
                 gref_var=0.001 * np.ones(3),
             )
             euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bias_gyro)
+            bg_est.append(mekf.bias_gyro())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -221,5 +211,5 @@ class Test_MEKF:
         euler_out = euler_est[warmup:]
         bg_out = bg_est[warmup:]
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.006)
+        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)

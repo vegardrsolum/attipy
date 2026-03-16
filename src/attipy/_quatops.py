@@ -86,24 +86,24 @@ def _normalize(q: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit  # type: ignore[misc]
 def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
     """
-    Corrects a unit quaternion, q, with a small attitude error, da, parameterized
+    Update/correct a unit quaternion, q, with a small attitude error, da, parameterized
     as a scaled (2x) Gibbs vector.
 
     The correction is applied as:
 
-        q = q ⊗ dq
+        q = q ⊗ dq(da)
 
-    where ⊗ denotes the quaternion product (Hamilton product), and dq is the unit
-    quaternion corresponding to the scaled (2x) Gibbs vector da:
+    where ⊗ denotes the quaternion product (Hamilton product), and dq(da) is the
+    unit quaternion corresponding to the scaled (2x) Gibbs vector da:
 
-        dq = 1 / sqrt(4 + ||da||^2) * [2, dax, day, daz]
+        dq(da) = 1 / sqrt(4 + ||da||^2) * [2, dax, day, daz]
 
     Parameters
     ----------
     q : ndarray, shape (4,)
         Unit quaternion [qw, qx, qy, qz] (modified in place).
     da : ndarray, shape (3,)
-        Small attitude error parameterized as a scaled (2x) Gibbs vector.
+        Small attitude error (dax, day, daz) parameterized as a scaled (2x) Gibbs vector.
 
     Notes
     -----
@@ -124,4 +124,47 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
     q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
     q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
+    q[:] = _normalize(q)
+
+
+@njit  # type: ignore[misc]
+def _correct_quat_with_rotvec(
+    q: NDArray[np.float64], dtheta: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """
+    Update/correct a unit quaternion, q, with a small attitude increment, dtheta,
+    parameterized as a rotation vector.
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz) to be updated (in place).
+    dtheta : ndarray, shape (3,)
+        Attitude increment (rotation vector).
+
+    References
+    ----------
+    .. [1] https://www.vectornav.com/resources/inertial-navigation-primer/math-fundamentals/math-coning (Eq. 2.5.1)
+    """
+
+    qw, qx, qy, qz = q
+    rx, ry, rz = dtheta
+
+    gamma = 0.5 * np.sqrt(rx**2 + ry**2 + rz**2)
+    cos_gamma = np.cos(gamma)
+
+    if gamma >= 1e-5:
+        scale = np.sin(gamma) / (2.0 * gamma)
+    else:
+        scale = 0.5
+
+    # Psi
+    px = scale * rx
+    py = scale * ry
+    pz = scale * rz
+
+    q[0] = cos_gamma * qw - px * qx - py * qy - pz * qz
+    q[1] = px * qw + cos_gamma * qx + pz * qy - py * qz
+    q[2] = py * qw - pz * qx + cos_gamma * qy + px * qz
+    q[3] = pz * qw + py * qx - px * qy + cos_gamma * qz
     q[:] = _normalize(q)

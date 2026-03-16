@@ -3,7 +3,11 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical, _correct_quat_with_gibbs2, _normalize, _quatprod
+from ._quatops import (
+    _canonical,
+    _correct_quat_with_gibbs2,
+    _correct_quat_with_rotvec,
+)
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -370,29 +374,16 @@ class Attitude:
             r = np.degrees(r)
         return r
 
-    def _correct_dr(self, dr: NDArray[np.float64]) -> None:
+    def _correct_with_rotvec(self, dtheta: NDArray[np.float64]) -> None:
         """
-        Correct the attitude quaternion with an incremental rotation given by a
-        rotation vector, dr.
+        Update/correct the attitude with a small incremental rotation given as a
+        rotation vector, dtheta.
         """
-        self._correct_dq(_quat_from_rotvec(dr))
+        _correct_quat_with_rotvec(self._q, dtheta)
 
-    def _correct_dq(self, dq: NDArray[np.float64]) -> None:
+    def _correct_with_gibbs2(self, da: NDArray[np.float64]) -> None:
         """
-        Correct the attitude quaternion with an incremental rotation given by a
-        unit quaternion, dq.
-        """
-        self._q[:] = _normalize(_quatprod(self._q, dq))
-
-    def _correct_da(self, da: NDArray[np.float64]) -> None:
-        """
-        Correct the attitude quaternion with an incremental rotation given by a
+        Update/correct the attitude with a small incremental rotation given as a
         scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
-
-    def _project_ahead(self, w_b: NDArray[np.float64], dt: float) -> None:
-        """
-        Project ahead using angular rate (dead reckoning).
-        """
-        self._correct_dr(w_b * dt)
