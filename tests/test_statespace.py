@@ -7,15 +7,15 @@ from attipy._statespace import (
     BG_IDX,
     _process_noise_cov,
     _process_noise_cov_full,
+    _process_noise_psd,
     _process_noise_psd_full,
+    _state_matrix,
     _state_matrix_full,
     _state_transition,
     _state_transition_full,
     _update_state_transition_full,
-    _wn_input_matrix_full,
-    _state_matrix,
     _wn_input_matrix,
-    _process_noise_psd,
+    _wn_input_matrix_full,
 )
 from attipy._vectorops import _skew_symmetric
 
@@ -176,30 +176,28 @@ def test_process_noise_psd(noise_params):
 
 
 def test_state_transition(noise_params):
-    *_, abc, _, gbc = noise_params
+    *_, gbc = noise_params
 
     dt = 0.1
-    f_b_corr = np.array([0.1, 0.2, 9.7])
-    w_b_corr = np.array([0.01, 0.02, 0.03])
-    R_nb = ap.Attitude.from_euler([0.1, 0.2, 0.3]).as_matrix()
+    w_b = np.array([0.01, 0.02, 0.03])
+    dtheta = dt * w_b
 
-    phi_out = _state_transition(dt, dt * w_b_corr, gbc)
+    phi_out = _state_transition(dt, dtheta, gbc)
 
-    sx = np.r_[ATT_IDX, BG_IDX]
-    sxx = np.ix_(sx, sx)
-    phi_expect = _state_transition_full(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)[sxx]
+    dfdx = _state_matrix(w_b, gbc)
+    phi = np.eye(6) + dt * dfdx  # first order approximation
 
-    np.testing.assert_allclose(phi_out, phi_expect)
+    np.testing.assert_allclose(phi_out, phi)
 
 
 def test_process_noise_cov(noise_params):
     dt = 0.1
-    vrw, arw, abs, abc, gbs, gbc = noise_params
+    _, arw, _, _, gbs, gbc = noise_params
 
     Q_out = _process_noise_cov(dt, arw, gbs, gbc)
 
-    sx = np.r_[ATT_IDX, BG_IDX]
-    sxx = np.ix_(sx, sx)
-    Q_expect = _process_noise_cov_full(dt, vrw, arw, abs, abc, gbs, gbc)[sxx]
+    W = _process_noise_psd(arw, gbs, gbc)
+    dfdw = _wn_input_matrix()
+    Q = dt * dfdw @ W @ dfdw.T
 
-    np.testing.assert_allclose(Q_out, Q_expect)
+    np.testing.assert_allclose(Q_out, Q, atol=1e-12)
