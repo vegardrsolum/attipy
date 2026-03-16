@@ -203,9 +203,8 @@ def test_state_transition(gyro_noise_params):
 
     dt = 0.1
     w_b = np.array([0.01, 0.02, 0.03])
-    dtheta = dt * w_b
 
-    phi_out = _state_transition(dt, dtheta, gbc)
+    phi_out = _state_transition(dt, dt * w_b, gbc)
 
     dfdx = _state_matrix(w_b, gbc)
     phi = np.eye(6) + dt * dfdx  # first order approximation
