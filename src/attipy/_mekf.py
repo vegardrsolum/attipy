@@ -257,7 +257,7 @@ class MEKF:
 
     def update(
         self,
-        dvel: ArrayLike,
+        dv: ArrayLike,
         dtheta: ArrayLike,
         degrees: bool = False,
         yaw: float | None = None,
@@ -271,7 +271,7 @@ class MEKF:
 
         Parameters
         ----------
-        dvel : array_like, shape (3,), optional
+        dv : array_like, shape (3,), optional
             Velocity increment (sculling integral) in m/s.
         dtheta : array_like, shape (3,), optional
             Attitude increment (coning integral) in radians.
@@ -310,7 +310,7 @@ class MEKF:
         self._project_ahead(self._dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(dvel) if gref else None, gref_var)
+        self._aiding_update_gref(-_normalize_vec(dv) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
