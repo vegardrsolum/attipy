@@ -17,21 +17,6 @@ from attipy._statespace import (
 )
 from attipy._vectorops import _skew_symmetric
 
-# @pytest.fixture
-# def noise_params():
-
-#     # Accelerometer
-#     abc = 100.0
-#     gbs = 0.00005
-#     gbc = 50.0
-#     vrw = 0.001
-
-#     # Gyro
-#     gbs = 0.00005
-#     arw = 0.0001
-#     abs = 0.0005
-#     return vrw, arw, abs, abc, gbs, gbc
-
 
 @pytest.fixture
 def gyro_noise_params():
