@@ -157,7 +157,6 @@ class MEKF:
         """Attitude estimate (no copy)."""
         return self._att_nb
 
-    @property
     def bias_gyro(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate (rad/s) expressed in the body frame.
