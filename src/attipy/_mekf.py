@@ -156,7 +156,7 @@ class MEKF:
     def q(self) -> NDArray[np.float64]:
         """Copy of the attitude estimate represented as a unit quaternion."""
         return self._att_nb._q.copy()
-    
+
     @property
     def bg(self) -> NDArray[np.float64]:
         """Copy of the gyroscope bias estimate in rad/s"""
