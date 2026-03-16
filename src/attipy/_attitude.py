@@ -7,8 +7,6 @@ from ._quatops import (
     _canonical,
     _correct_quat_with_gibbs2,
     _correct_quat_with_rotvec,
-    _normalize,
-    _quatprod,
 )
 from ._transforms import (
     _euler_zyx_from_quat,
