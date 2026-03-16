@@ -397,6 +397,10 @@ def _state_transition(
 
     where dfdx denotes the linearized state matrix.
 
+    Assumes the following 6 states in order:
+    - Attitude (3)
+    - Gyro bias (3)
+
     Parameters
     ----------
     dt : float
@@ -427,6 +431,10 @@ def _update_state_transition(
     Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - S(dtheta)
+
+    Assumes the following 6 states in order:
+    - Attitude (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
@@ -460,6 +468,10 @@ def _process_noise_cov(
 
         Q = dt @ dfdw @ W @ dfdw.T
 
+    Assumes the following 6 states in order:
+    - Attitude (3)
+    - Gyro bias (3)
+
     Parameters
     ----------
     dt : float
@@ -487,6 +499,10 @@ def _measurement_matrix(
 ) -> NDArray[np.float64]:
     """
     Setup linearized measurement matrix, dhdx.
+
+    Assumes the following 6 states in order:
+    - Attitude (3)
+    - Gyro bias (3)
 
     Parameters
     ----------
