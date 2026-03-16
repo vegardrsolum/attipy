@@ -295,7 +295,7 @@ class MEKF:
         dtheta : array_like, shape (3,)
             Attitude increment (coning integral) in radians.
         degrees : bool, optional
-            Specifies whether ``dtheta`` is given in deg/s or rad/s. Defaults to rad/s.
+            Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
             Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
             See ``yaw_degrees`` for unit.
