@@ -389,30 +389,3 @@ class Attitude:
         scaled (2x) Gibbs vector, da.
         """
         _correct_quat_with_gibbs2(self._q, da)
-
-    # def _correct_dr(self, dr: NDArray[np.float64]) -> None:
-    #     """
-    #     Correct the attitude quaternion with an incremental rotation given by a
-    #     rotation vector, dr.
-    #     """
-    #     self._correct_dq(_quat_from_rotvec(dr))
-
-    # def _correct_dq(self, dq: NDArray[np.float64]) -> None:
-    #     """
-    #     Correct the attitude quaternion with an incremental rotation given by a
-    #     unit quaternion, dq.
-    #     """
-    #     self._q[:] = _normalize(_quatprod(self._q, dq))
-
-    # def _correct_da(self, da: NDArray[np.float64]) -> None:
-    #     """
-    #     Correct the attitude quaternion with an incremental rotation given by a
-    #     scaled (2x) Gibbs vector, da.
-    #     """
-    #     _correct_quat_with_gibbs2(self._q, da)
-
-    # def _project_ahead(self, w_b: NDArray[np.float64], dt: float) -> None:
-    #     """
-    #     Project ahead using angular rate (dead reckoning).
-    #     """
-    #     self._correct_dr(w_b * dt)
