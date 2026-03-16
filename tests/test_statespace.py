@@ -13,6 +13,9 @@ from attipy._statespace import (
     _state_transition_full,
     _update_state_transition_full,
     _wn_input_matrix_full,
+    _state_matrix,
+    _wn_input_matrix,
+    _process_noise_psd,
 )
 from attipy._vectorops import _skew_symmetric
 
@@ -130,6 +133,47 @@ def test_process_noise_cov_full(noise_params):
     Q = dt * dfdw @ W @ dfdw.T
 
     np.testing.assert_allclose(Q_out, Q, atol=1e-12)
+
+
+def test_state_matrix(noise_params):
+    *_, gbc = noise_params
+
+    w_b = np.array([0.01, 0.02, 0.03])
+
+    dfdx_out = _state_matrix(w_b, gbc)
+
+    # Linearized state matrix
+    dfdx = np.zeros((6, 6))
+    dfdx[0:3, 0:3] = -_skew_symmetric(w_b)
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -np.eye(3) / gbc
+
+    np.testing.assert_allclose(dfdx_out, dfdx)
+
+
+def test_wn_input_matrix():
+    dfdw_out = _wn_input_matrix()
+
+    # Input (white noise) matrix
+    dfdw = np.zeros((6, 6))
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
+
+    np.testing.assert_allclose(dfdw_out, dfdw)
+
+
+def test_process_noise_psd_full(noise_params):
+    vrw, arw, abs, abc, gbs, gbc = noise_params
+
+    W_out = _process_noise_psd_full(vrw, arw, abs, abc, gbs, gbc)
+
+    # White noise power spectral density matrix
+    W = np.eye(12)
+    W[0:3, 0:3] *= vrw**2
+    W[3:6, 3:6] *= arw**2
+    W[6:9, 6:9] *= 2.0 * abs**2 / abc
+    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    np.testing.assert_allclose(W_out, W)
 
 
 def test_state_transition(noise_params):
