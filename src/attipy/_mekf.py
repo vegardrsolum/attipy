@@ -203,7 +203,7 @@ class MEKF:
         if not self._dx.any():
             return
 
-        self._att_nb._correct_da(self._dx[self._ATT_IDX])
+        self._att_nb._correct_with_gibbs2(self._dx[self._ATT_IDX])
         self._bg_b[:] += self._dx[self._BG_IDX]
         self._dx[:] = 0.0
 
@@ -252,7 +252,7 @@ class MEKF:
         """
 
         # Attitude (dead reckoning)
-        self._att_nb._correct_dr(dtheta)
+        self._att_nb._correct_with_rotvec(dtheta)
 
         # Covariance
         _project_cov_ahead(self._P, self._phi, self._Q)
