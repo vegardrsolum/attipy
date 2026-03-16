@@ -85,8 +85,8 @@ class MEKF:
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    dtheta_prev : array_like, shape (3,), optional
-        Previous attitude change vector (coning integral) in radians. Defaults to zero.
+    dtheta : array_like, shape (3,), optional
+        Previous attitude increment (coning integral) in radians. Defaults to zero.
     P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
@@ -113,7 +113,7 @@ class MEKF:
         fs: float,
         att: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        dtheta_prev: ArrayLike = (0.0, 0.0, 0.0),
+        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = 1e-6 * np.eye(6),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -133,12 +133,12 @@ class MEKF:
         # State and covariance estimates
         self._att_nb = att if isinstance(att, Attitude) else Attitude(att)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._dtheta_prev = np.asarray_chkfinite(dtheta_prev).reshape(3).copy()
+        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition(self._dt, self._dtheta_prev, self._gbc)
+        self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
 
@@ -302,25 +302,25 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        dvel = np.asarray(dvel)
-        dtheta = np.asarray(dtheta)
+        self._dvel[:] = dvel
+        self._dtheta[:] = dtheta
 
         if degrees:
-            dtheta = np.radians(dtheta)
+            self._dtheta *= np.pi / 180.0
 
-        dtheta -= self._dt * self._bg_b
+        self._dtheta -= self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead(dtheta)
+        self._project_ahead(self._dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(dvel) if gref else None, gref_var)
+        self._aiding_update_gref(-_normalize_vec(self._dvel) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
         self._reset()
 
         # Update model
-        _update_state_transition(self._phi, dtheta)
+        _update_state_transition(self._phi, self._dtheta)
 
         return self
