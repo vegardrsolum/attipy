@@ -5,9 +5,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
 from ._kalman import (
-    _kalman_update_scalar,
-    _kalman_update_sequential,
     _project_cov_ahead,
+)
+from ._kalman_fast import (
+    _kalman_update_scalar_fast,
+    _kalman_update_sequential_fast,
 )
 from ._statespace import (
     _dyawda,
@@ -104,7 +106,7 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _I: NDArray[np.float64] = np.eye(6)
+    _tmp: NDArray[np.float64] = np.empty(6)
 
     def __init__(
         self,
@@ -230,7 +232,7 @@ class MEKF:
         vg_b = self._vg_b
         dz = vg_meas - vg_b
         dhdx = self._dhdx_gref(vg_b)
-        _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
+        _kalman_update_sequential_fast(self._dx, self._P, dz, vg_var, dhdx, self._tmp)
 
     def _aiding_update_yaw(
         self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
@@ -251,7 +253,7 @@ class MEKF:
 
         dz = _signed_smallest_angle(yaw_meas - self._yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
+        _kalman_update_scalar_fast(self._dx, self._P, dz, yaw_var, dhdx, self._tmp)
 
     def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
         """
