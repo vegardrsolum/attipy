@@ -58,14 +58,6 @@ def _covariance_update_fast(
         for j in range(n):
             P[i, j] += c * k[j]
 
-    # Ensure symmetry (P <- (P + P') / 2)
-    # TODO: this may not be necessary, consider removing
-    for i in range(n):
-        for j in range(i + 1, n):
-            avg = 0.5 * (P[i, j] + P[j, i])
-            P[i, j] = avg
-            P[j, i] = avg
-
 
 @njit  # type: ignore[misc]
 def _kalman_update_scalar_fast(
