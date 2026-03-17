@@ -90,7 +90,7 @@ class MEKF:
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error, and dbg is the gyroscope bias error.
     dtheta : array_like, shape (3,), optional
-        Previous attitude increment (coning integral) in radians. Defaults to zero.
+        Previous attitude increment measurement in radians. Defaults to zero.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
