@@ -26,7 +26,7 @@ def _kalman_gain_fast(
     k : ndarray, shape (n,)
         Kalman gain vector.
     """
-    # TODO: speed-up
+    # TODO: speed-up (e.g., by preallocating k)
 
     # Innovation covariance (inverse)
     Ph = np.dot(P, h)
