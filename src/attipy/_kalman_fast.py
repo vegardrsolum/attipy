@@ -37,8 +37,7 @@ def _covariance_update_fast(
     n = P.shape[0]
 
     # hP = h' @ P  (n-length temporary)
-    # hP = tmp
-    hP = np.empty(n)
+    hP = tmp
     for i in range(n):
         s = 0.0
         for j in range(n):
@@ -52,8 +51,7 @@ def _covariance_update_fast(
             P[i, j] -= ki * hP[j]
 
     # Th = P @ h, where P is now T = A @ P_orig  (n-length temporary)
-    # Th = tmp
-    Th = np.empty(n)
+    Th = tmp
     for i in range(n):
         s = 0.0
         for j in range(n):
