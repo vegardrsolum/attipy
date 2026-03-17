@@ -11,6 +11,7 @@ def _covariance_update_fast(
     k: NDArray[np.float64],
     h: NDArray[np.float64],
     r: float,
+    tmp: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
     Compute the updated state error covariance matrix estimate (Joseph form).
@@ -29,11 +30,14 @@ def _covariance_update_fast(
         Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
+    tmp : ndarray, shape (n,)
+        Temporary workspace array for intermediate calculations, to avoid repeated
+        allocations.
     """
     n = P.shape[0]
 
     # hP = h' @ P  (n-length temporary)
-    hP = np.empty(n)
+    hP = tmp
     for i in range(n):
         s = 0.0
         for j in range(n):
@@ -47,7 +51,7 @@ def _covariance_update_fast(
             P[i, j] -= ki * hP[j]
 
     # Th = P @ h, where P is now T = A @ P_orig  (n-length temporary)
-    Th = np.empty(n)
+    Th = tmp
     for i in range(n):
         s = 0.0
         for j in range(n):
@@ -70,6 +74,7 @@ def _kalman_update_scalar_fast(
     z: float,
     r: float,
     h: NDArray[np.float64],
+    tmp: NDArray[np.float64],
 ) -> None:
     """
     Scalar Kalman filter measurement update.
@@ -86,6 +91,9 @@ def _kalman_update_scalar_fast(
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
+    tmp : ndarray, shape (n,)
+        Temporary workspace array for intermediate calculations, to avoid repeated
+        allocations.
     """
 
     # Kalman gain
@@ -95,7 +103,7 @@ def _kalman_update_scalar_fast(
     x[:] += k * (z - np.dot(h, x))
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update_fast(P, k, h, r)
+    _covariance_update_fast(P, k, h, r, tmp)
 
 
 @njit  # type: ignore[misc]
@@ -105,6 +113,7 @@ def _kalman_update_sequential_fast(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
+    tmp: NDArray[np.float64],
 ) -> None:
     """
     Sequential (one-at-a-time) Kalman filter measurement update.
@@ -121,7 +130,10 @@ def _kalman_update_sequential_fast(
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
+    tmp : ndarray, shape (n,)
+        Temporary workspace array for intermediate calculations, to avoid repeated
+        allocations.
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar_fast(x, P, z[i], var[i], H[i])
+        _kalman_update_scalar_fast(x, P, z[i], var[i], H[i], tmp)
