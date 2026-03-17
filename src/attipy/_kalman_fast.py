@@ -34,7 +34,6 @@ def _covariance_update_fast(
     """
     n = P.shape[0]
 
-    # hP = h' @ P
     hP = tmp
     for i in range(n):
         s = 0.0
@@ -42,13 +41,11 @@ def _covariance_update_fast(
             s += h[j] * P[j, i]
         hP[i] = s
 
-    # P <- (I - k h') @ P = P - k * hP'
     for i in range(n):
         ki = k[i]
         for j in range(n):
             P[i, j] -= ki * hP[j]
 
-    # Th = P @ h, where P is now T = A @ P_orig
     Th = tmp
     for i in range(n):
         s = 0.0
@@ -56,13 +53,12 @@ def _covariance_update_fast(
             s += P[i, j] * h[j]
         Th[i] = s
 
-    # P <- T @ A' + r k k' = T + (r*k - Th) * k'
     for i in range(n):
         c = r * k[i] - Th[i]
         for j in range(n):
             P[i, j] += c * k[j]
 
-    # Ensure symmetry: P <- (P + P') / 2
+    # Ensure symmetry (P <- (P + P') / 2)
     # TODO: this may not be necessary, consider removing
     for i in range(n):
         for j in range(i + 1, n):
