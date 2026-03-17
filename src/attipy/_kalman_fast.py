@@ -14,16 +14,14 @@ def _covariance_update_fast(
     tmp: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
-    Compute the updated state error covariance matrix estimate (Joseph form).
+    Compute the updated state error covariance matrix estimate (Joseph form):
 
-    Computes P <- A @ P @ A' + r * k @ k', where A = I - k @ h',
-    in place using only one n-length temporary instead of multiple n x n
-    temporary matrices.
+        P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
     Parameters
     ----------
     P : ndarray, shape (n, n)
-        State error covariance matrix, updated in place.
+        State error covariance matrix to be updated in place.
     k : ndarray, shape (n,)
         Kalman gain vector.
     h : ndarray, shape (n,)
@@ -71,8 +69,6 @@ def _covariance_update_fast(
             avg = 0.5 * (P[i, j] + P[j, i])
             P[i, j] = avg
             P[j, i] = avg
-
-    return P
 
 
 @njit  # type: ignore[misc]
