@@ -47,8 +47,8 @@ f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 
 # IMU (accelerometer and gyroscope) pulse vector measurements (with noise)
-dv_meas = f_meas / fs
-dtheta_meas = w_meas / fs
+dv_meas = f_meas / fs      # velocity increments
+dtheta_meas = w_meas / fs  # angle increments
 
 # Heading measurements (with noise)
 yaw_meas = euler[:, 2] + yaw_std * rng.standard_normal(euler[:, 2].shape)
