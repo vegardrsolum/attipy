@@ -2,7 +2,40 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._kalman import _kalman_gain
+
+@njit  # type: ignore[misc]
+def _kalman_gain_fast(
+    P: NDArray[np.float64], h: NDArray[np.float64], r: float
+) -> NDArray[np.float64]:
+    """
+    Compute the Kalman gain for a scalar measurement:
+
+        k = P @ h.T / (h @ P @ h.T + r)
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    r : float
+        Scalar measurement noise variance.
+
+    Returns
+    -------
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    """
+    # TODO: speed-up
+
+    # Innovation covariance (inverse)
+    Ph = np.dot(P, h)
+    s_inv = 1.0 / (np.sum(h * Ph) + r)
+
+    # Kalman gain
+    k = Ph * s_inv
+
+    return k
 
 
 @njit  # type: ignore[misc]
@@ -23,8 +56,9 @@ def _state_update_fast(
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
     """
+    n = len(x)  # number of states
     y = z - np.sum(h * x)
-    for i in range(len(x)):
+    for i in range(n):
         x[i] += k[i] * y
 
 
@@ -55,7 +89,7 @@ def _covariance_update_fast(
         Temporary workspace array for intermediate calculations, to avoid repeated
         allocations.
     """
-    n = P.shape[0]
+    n = len(h)  # number of states
 
     hP = tmp
     for i in range(n):
@@ -112,7 +146,7 @@ def _kalman_update_scalar_fast(
     """
 
     # Kalman gain
-    k = _kalman_gain(P, h, r)
+    k = _kalman_gain_fast(P, h, r)
 
     # Updated (a posteriori) state estimate
     _state_update_fast(x, z, k, h)
