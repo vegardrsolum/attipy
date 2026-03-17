@@ -106,8 +106,6 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _tmp: NDArray[np.float64] = np.empty(6)
-
     def __init__(
         self,
         fs: float,
@@ -124,6 +122,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
+        self._tmp = np.empty(6)  # preallocated workspace
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
