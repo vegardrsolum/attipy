@@ -17,7 +17,7 @@ def _covariance_update_fast(
     Compute the updated state error covariance matrix estimate (Joseph form).
 
     Computes P <- A @ P @ A' + r * k @ k', where A = I - k @ h',
-    in place using only two n-length temporaries instead of multiple n x n
+    in place using only one n-length temporary instead of multiple n x n
     temporary matrices.
 
     Parameters
@@ -36,7 +36,7 @@ def _covariance_update_fast(
     """
     n = P.shape[0]
 
-    # hP = h' @ P  (n-length temporary)
+    # hP = h' @ P
     hP = tmp
     for i in range(n):
         s = 0.0
@@ -50,7 +50,7 @@ def _covariance_update_fast(
         for j in range(n):
             P[i, j] -= ki * hP[j]
 
-    # Th = P @ h, where P is now T = A @ P_orig  (n-length temporary)
+    # Th = P @ h, where P is now T = A @ P_orig
     Th = tmp
     for i in range(n):
         s = 0.0
