@@ -41,18 +41,24 @@ yaw_std = 0.01               # heading noise standard deviation in rad
 # Position, velocity, attitude and IMU reference signals
 t, pos, vel, euler, f, w = ap.pva_sim(fs)
 
-# IMU and heading measurements (with noise)
+# IMU (accelerometer and gyroscope) rate measurements (with noise)
 rng = np.random.default_rng(42)
 f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
+
+# IMU (accelerometer and gyroscope) pulse vector measurements (with noise)
+dv_meas = f_meas / fs
+dtheta_meas = w_meas / fs
+
+# Heading measurements (with noise)
 yaw_meas = euler[:, 2] + yaw_std * rng.standard_normal(euler[:, 2].shape)
 
 # Estimate attitude using MEKF
 att0 = ap.Attitude.from_euler(euler[0])
 mekf = ap.MEKF(fs, att0)
 euler_est = []
-for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
-    mekf.update(f_i / fs, w_i / fs, yaw=y_i, yaw_var=yaw_std**2)
+for dv_i, dtheta_i, y_i in zip(dv_meas, dtheta_meas, yaw_meas):
+    mekf.update(dv_i, dtheta_i, yaw=y_i, yaw_var=yaw_std**2)
     euler_est.append(mekf.attitude.as_euler())
 euler_est = np.asarray(euler_est)
 ```
