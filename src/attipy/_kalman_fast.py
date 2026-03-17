@@ -6,13 +6,36 @@ from ._kalman import _kalman_gain
 
 
 @njit  # type: ignore[misc]
+def _state_update_fast(
+    x: NDArray[np.float64], z: float, k: NDArray[np.float64], h: NDArray[np.float64]
+) -> None:
+    """
+    Update state with scalar measurement.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State vector to be updated in place.
+    z : float
+        Scalar measurement.
+    k : ndarray, shape (n,)
+        Kalman gain vector.
+    h : ndarray, shape (n,)
+        Measurement matrix (row vector).
+    """
+    y = z - np.sum(h * x)
+    for i in range(len(x)):
+        x[i] += k[i] * y
+
+
+@njit  # type: ignore[misc]
 def _covariance_update_fast(
     P: NDArray[np.float64],
     k: NDArray[np.float64],
     h: NDArray[np.float64],
     r: float,
     tmp: NDArray[np.float64],
-) -> NDArray[np.float64]:
+) -> None:
     """
     Compute the updated state error covariance matrix estimate (Joseph form):
 
@@ -92,7 +115,7 @@ def _kalman_update_scalar_fast(
     k = _kalman_gain(P, h, r)
 
     # Updated (a posteriori) state estimate
-    x[:] += k * (z - np.dot(h, x))
+    _state_update_fast(x, z, k, h)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
     _covariance_update_fast(P, k, h, r, tmp)
