@@ -1,6 +1,7 @@
 import numpy as np
 
 from attipy._kalman_fast import (
+    _covariance_update_fast,
     _kalman_update_scalar_fast,
     _kalman_update_sequential_fast,
 )
@@ -59,4 +60,27 @@ def test_kalman_scalar():
     P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
 
     np.testing.assert_allclose(x_upd, x.ravel())
+    np.testing.assert_allclose(P_upd, P)
+
+
+def test_covariance_update_fast():
+
+    n = 9  # state dimension
+
+    rng = np.random.default_rng(42)
+
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    h = rng.random(n)
+    k = rng.random(n)
+    r = rng.random()
+
+    P_upd = P.copy()
+    _covariance_update_fast(P_upd, k, h, r, np.empty(n))
+
+    k = np.ascontiguousarray(k[:, np.newaxis])  # (n, 1)
+    h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
+
+    P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
+
     np.testing.assert_allclose(P_upd, P)
