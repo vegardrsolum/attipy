@@ -100,11 +100,11 @@ def _covariance_update_fast(
     n = len(h)  # number of states
 
     hP = tmp
-    for i in range(n):
+    for j in range(n):
         s = 0.0
-        for j in range(n):
-            s += h[j] * P[j, i]
-        hP[i] = s
+        for i in range(n):
+            s += h[i] * P[i, j]
+        hP[j] = s
 
     for i in range(n):
         ki = k[i]
