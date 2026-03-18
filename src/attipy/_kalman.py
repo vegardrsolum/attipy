@@ -4,6 +4,60 @@ from numpy.typing import NDArray
 
 
 @njit  # type: ignore[misc]
+def _kalman_update(
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
+    z: NDArray[np.float64],
+    var: NDArray[np.float64],
+    H: NDArray[np.float64],
+    I_: NDArray[np.float64],
+) -> None:
+    """
+    Kalman filter measurement update.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        State estimate to be updated.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated.
+    z : ndarray, shape (m,)
+        Measurement vector.
+    var : ndarray, shape (m,)
+        Measurement noise variances corresponding to each scalar measurement.
+    H : ndarray, shape (m, n)
+        Measurement matrix where each row corresponds to a scalar measurement model.
+
+    Returns
+    -------
+    x : ndarray, shape (n,)
+        Updated state estimate.
+    P : ndarray, shape (n, n)
+        Updated state error covariance matrix.
+    """
+    x = np.asarray(x)
+    P = np.asarray(P)
+    z = np.asarray(z)
+    H = np.asarray(H)
+    R = np.diag(np.asarray(var))
+    I_ = np.eye(x.size)
+
+    # Innovaition (pre-fit residual) covariance
+    S = H @ P @ H.T + R
+
+    # Kalman gain
+    K = P @ H.T @ np.linalg.inv(S)
+
+    # Updated (a posteriori) state estimate
+    x = x + K @ (z - H @ x)
+
+    # Updated (a posteriori) covariance estimate (Joseph form)
+    P = (I_ - K @ H) @ P @ (I_ - K @ H).T + K @ R @ K.T
+
+    return x, P
+
+
+@njit  # type: ignore[misc]
 def _kalman_gain(
     P: NDArray[np.float64], h: NDArray[np.float64], r: float
 ) -> NDArray[np.float64]:
