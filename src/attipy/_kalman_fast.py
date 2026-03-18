@@ -61,11 +61,12 @@ def _state_update_fast(
     """
     n = len(x)  # number of states
 
-    y = 0.0
+    # Innovation / measurement residual, y = z - h @ x
+    y = z
     for i in range(n):
-        y += h[i] * x[i]
+        y -= h[i] * x[i]
 
-    y = z - y
+    # State update, x = x + k * y
     for i in range(n):
         x[i] += k[i] * y
 
