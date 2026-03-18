@@ -50,9 +50,23 @@ def _nz2vg(nav_frame: str) -> float:
     Gravity direction along the navigation frame's z-axis. Transforms the z-axis
     of the navigation frame to a gravity reference vector (unit vector).
 
-    Returns +1.0 for 'NED' and -1.0 for 'ENU'.
+    Parameters
+    ----------
+    nav_frame : {'NED', 'ENU'}
+        Navigation frame.
+
+    Returns
+    -------
+    float
+        Gravity direction along the navigation frame's z-axis. +1.0 for 'NED' and
+        -1.0 for 'ENU'.
     """
-    return np.sign(_gravity_nav(1.0, nav_frame)[2])
+    if nav_frame.lower() == "ned":
+        return 1.0
+    elif nav_frame.lower() == "enu":
+        return -1.0
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
 
 def _signed_smallest_angle(angle: float) -> float:
