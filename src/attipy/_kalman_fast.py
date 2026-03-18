@@ -193,7 +193,10 @@ def _kalman_update_sequential_fast(
 
 @njit  # type: ignore[misc]
 def _project_cov_ahead_fast(
-    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
+    P: NDArray[np.float64],
+    phi: NDArray[np.float64],
+    Q: NDArray[np.float64],
+    tmp: NDArray[np.float64],
 ) -> None:
     """
     Project the error covariance ahead:
@@ -208,5 +211,23 @@ def _project_cov_ahead_fast(
         State transition matrix.
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
+    tmp : ndarray, shape (n, n)
+        Temporary workspace matrix.
     """
-    P[:, :] = phi @ P @ phi.T + Q
+    n = P.shape[0]
+
+    # tmp = phi @ P
+    for i in range(n):
+        for j in range(n):
+            s = 0.0
+            for k in range(n):
+                s += phi[i, k] * P[k, j]
+            tmp[i, j] = s
+
+    # P = tmp @ phi.T + Q
+    for i in range(n):
+        for j in range(n):
+            s = 0.0
+            for k in range(n):
+                s += tmp[i, k] * phi[j, k]
+            P[i, j] = s + Q[i, j]

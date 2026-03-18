@@ -92,7 +92,7 @@ def test_project_cov_ahead():
     Q = A @ A.T + np.eye(n)  # positive semi-definite
 
     P_proj = P.copy()
-    _project_cov_ahead_fast(P_proj, phi, Q)
+    _project_cov_ahead_fast(P_proj, phi, Q, np.empty((n, n)))
 
     P_expect = phi @ P @ phi.T + Q
 
