@@ -11,7 +11,7 @@ def _kalman_gain_fast(
     out: NDArray[np.float64],
 ) -> None:
     """
-    Compute the Kalman gain for a scalar measurement:
+    Compute the Kalman gain for a scalar measurement (matrix notation):
 
         k = P @ h.T / (h @ P @ h.T + r)
 
@@ -79,7 +79,7 @@ def _covariance_update_fast(
     tmp: NDArray[np.float64],
 ) -> None:
     """
-    Joseph-form covariance update (in place):
+    Joseph-form covariance update (matrix notation):
 
         P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
@@ -199,7 +199,7 @@ def _project_cov_ahead_fast(
     tmp: NDArray[np.float64],
 ) -> None:
     """
-    Project the error covariance ahead:
+    Project the error covariance ahead (matrix notation):
 
         P = phi @ P @ phi.T + Q
 
