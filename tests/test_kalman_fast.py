@@ -5,6 +5,7 @@ from attipy._kalman_fast import (
     _covariance_update_fast,
     _kalman_update_scalar_fast,
     _kalman_update_sequential_fast,
+    _project_cov_ahead_fast,
 )
 
 
@@ -76,3 +77,23 @@ def test_covariance_update_fast():
     P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
 
     np.testing.assert_allclose(P_upd, P)
+
+
+def test_project_cov_ahead():
+
+    rng = np.random.default_rng(42)
+
+    n = 9  # state dimension
+
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    phi = rng.random((n, n))
+    A = rng.random((n, n))
+    Q = A @ A.T + np.eye(n)  # positive semi-definite
+
+    P_proj = P.copy()
+    _project_cov_ahead_fast(P_proj, phi, Q)
+
+    P_expect = phi @ P @ phi.T + Q
+
+    np.testing.assert_allclose(P_proj, P_expect)

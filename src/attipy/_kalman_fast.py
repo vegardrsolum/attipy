@@ -189,3 +189,24 @@ def _kalman_update_sequential_fast(
     m = z.shape[0]
     for i in range(m):
         _kalman_update_scalar_fast(x, P, z[i], var[i], H[i], tmp)
+
+
+@njit  # type: ignore[misc]
+def _project_cov_ahead_fast(
+    P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
+) -> None:
+    """
+    Project the error covariance ahead:
+
+        P = phi @ P @ phi.T + Q
+
+    Parameters
+    ----------
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
+    phi : ndarray, shape (n, n)
+        State transition matrix.
+    Q : ndarray, shape (n, n)
+        Process noise covariance matrix.
+    """
+    P[:, :] = phi @ P @ phi.T + Q
