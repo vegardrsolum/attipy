@@ -8,7 +8,7 @@ def _kalman_gain_fast(
     P: NDArray[np.float64],
     h: NDArray[np.float64],
     r: float,
-    k: NDArray[np.float64],
+    out: NDArray[np.float64],
 ) -> None:
     """
     Compute the Kalman gain for a scalar measurement:
@@ -23,7 +23,7 @@ def _kalman_gain_fast(
         Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
-    k : ndarray, shape (n,)
+    out : ndarray, shape (n,)
         Output array for the Kalman gain vector, written in place.
     """
     n = len(h)  # number of states
@@ -33,12 +33,12 @@ def _kalman_gain_fast(
         v = 0.0
         for j in range(n):
             v += P[i, j] * h[j]
-        k[i] = v
+        out[i] = v
         s += h[i] * v
 
     s_inv = 1.0 / (s + r)
     for i in range(n):
-        k[i] *= s_inv
+        out[i] *= s_inv
 
 
 @njit  # type: ignore[misc]
