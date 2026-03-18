@@ -1,14 +1,14 @@
 import numpy as np
 from numba import njit
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 
 
 def _kalman_update(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
-    z: NDArray[np.float64],
-    R: NDArray[np.float64],
-    H: NDArray[np.float64],
+    x: ArrayLike,
+    P: ArrayLike,
+    z: ArrayLike,
+    R: ArrayLike,
+    H: ArrayLike,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Kalman filter measurement update.
@@ -17,15 +17,15 @@ def _kalman_update(
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
+    x : array_like, shape (n,)
         State estimate to be updated.
-    P : ndarray, shape (n, n)
+    P : array_like, shape (n, n)
         State error covariance matrix to be updated.
-    z : ndarray, shape (m,)
+    z : array_like, shape (m,)
         Measurement vector.
-    R : ndarray, shape (m, m)
+    R : array_like, shape (m, m)
         Measurement noise covariance matrix.
-    H : ndarray, shape (m, n)
+    H : array_like, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
 
     Returns
