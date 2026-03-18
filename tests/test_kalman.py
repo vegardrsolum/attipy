@@ -65,14 +65,14 @@ def test_kalman_update_scalar():
     A = rng.random((n, n))
     P = A @ A.T + np.eye(n)  # positive semi-definite
     h = rng.random(n)
-    r = rng.random(1)
-    z = rng.random(1)
+    r = rng.random()
+    z = rng.random()
 
     x_upd = x.copy()
     P_upd = P.copy()
     _kalman_update_scalar(x_upd, P_upd, z, r, h)
 
-    x_expect, P_expect = _kalman_update(x, P, z, r.reshape(1, 1), h.reshape(1, n))
+    x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
 
-    np.testing.assert_allclose(x_upd, x_expect.ravel())
+    np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)

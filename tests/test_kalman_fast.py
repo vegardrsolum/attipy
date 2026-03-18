@@ -51,7 +51,7 @@ def test_kalman_scalar():
 
     x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
 
-    np.testing.assert_allclose(x_upd, x_expect.ravel())
+    np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
 
 
