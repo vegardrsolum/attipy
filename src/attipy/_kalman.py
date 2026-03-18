@@ -15,6 +15,8 @@ def _kalman_update(
     """
     Kalman filter measurement update.
 
+    Used as reference implementation for testing the fast versions.
+
     Parameters
     ----------
     x : ndarray, shape (n,)
