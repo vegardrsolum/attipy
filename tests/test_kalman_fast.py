@@ -23,7 +23,7 @@ def test_kalman_sequential():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(n))
+    _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(2 * n))
 
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
@@ -49,7 +49,7 @@ def test_kalman_scalar():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(n))
+    _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(2 * n))
 
     x = np.ascontiguousarray(x[:, np.newaxis])  # (n, 1)
     h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)

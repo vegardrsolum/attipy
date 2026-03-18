@@ -5,8 +5,11 @@ from numpy.typing import NDArray
 
 @njit  # type: ignore[misc]
 def _kalman_gain_fast(
-    P: NDArray[np.float64], h: NDArray[np.float64], r: float
-) -> NDArray[np.float64]:
+    P: NDArray[np.float64],
+    h: NDArray[np.float64],
+    r: float,
+    k: NDArray[np.float64],
+) -> None:
     """
     Compute the Kalman gain for a scalar measurement:
 
@@ -20,22 +23,24 @@ def _kalman_gain_fast(
         Measurement matrix (row vector).
     r : float
         Scalar measurement noise variance.
-
-    Returns
-    -------
     k : ndarray, shape (n,)
-        Kalman gain vector.
+        Output array for the Kalman gain vector, written in place.
     """
-    # TODO: speed-up (e.g., by preallocating k)
+    n = P.shape[0]
 
-    # Innovation covariance (inverse)
-    Ph = np.dot(P, h)
-    s_inv = 1.0 / (np.sum(h * Ph) + r)
+    # k = P @ h
+    s = 0.0
+    for i in range(n):
+        v = 0.0
+        for j in range(n):
+            v += P[i, j] * h[j]
+        k[i] = v
+        s += h[i] * v  # accumulate h' @ P @ h
 
-    # Kalman gain
-    k = Ph * s_inv
-
-    return k
+    # Kalman gain: k = P @ h / (h' @ P @ h + r)
+    s_inv = 1.0 / (s + r)
+    for i in range(n):
+        k[i] *= s_inv
 
 
 @njit  # type: ignore[misc]
@@ -57,7 +62,10 @@ def _state_update_fast(
         Measurement matrix (row vector).
     """
     n = len(x)  # number of states
-    y = z - np.sum(h * x)
+    y = 0.0
+    for i in range(n):
+        y += h[i] * x[i]
+    y = z - y
     for i in range(n):
         x[i] += k[i] * y
 
@@ -140,19 +148,23 @@ def _kalman_update_scalar_fast(
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
-    tmp : ndarray, shape (n,)
+    tmp : ndarray, shape (2*n,)
         Temporary workspace array for intermediate calculations, to avoid repeated
-        allocations.
+        allocations. The first n elements are used for the Kalman gain vector and
+        the remaining n elements are used by the covariance update.
     """
+    n = len(x)
+    k = tmp[:n]
+    work = tmp[n:]
 
     # Kalman gain
-    k = _kalman_gain_fast(P, h, r)
+    _kalman_gain_fast(P, h, r, k)
 
     # Updated (a posteriori) state estimate
     _state_update_fast(x, z, k, h)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update_fast(P, k, h, r, tmp)
+    _covariance_update_fast(P, k, h, r, work)
 
 
 @njit  # type: ignore[misc]
@@ -179,7 +191,7 @@ def _kalman_update_sequential_fast(
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
-    tmp : ndarray, shape (n,)
+    tmp : ndarray, shape (2*n,)
         Temporary workspace array for intermediate calculations, to avoid repeated
         allocations.
     """
