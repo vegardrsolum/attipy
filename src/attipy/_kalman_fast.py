@@ -28,7 +28,7 @@ def _kalman_gain_fast(
     """
     n = len(h)  # number of states
 
-    s = 0.0
+    s = r
     for i in range(n):
         v = 0.0
         for j in range(n):
@@ -36,7 +36,7 @@ def _kalman_gain_fast(
         out[i] = v
         s += h[i] * v
 
-    s_inv = 1.0 / (s + r)
+    s_inv = 1.0 / s
     for i in range(n):
         out[i] *= s_inv
 
