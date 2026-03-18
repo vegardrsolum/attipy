@@ -1,5 +1,6 @@
 import numpy as np
 
+from attipy._kalman import _kalman_update
 from attipy._kalman_fast import (
     _covariance_update_fast,
     _kalman_update_scalar_fast,
@@ -7,7 +8,7 @@ from attipy._kalman_fast import (
 )
 
 
-def test_kalman_sequential():
+def test_kalman_update_sequential_fast():
 
     rng = np.random.default_rng(42)
 
@@ -25,10 +26,7 @@ def test_kalman_sequential():
     P_upd = P.copy()
     _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(2 * n))
 
-    R = np.diag(var)
-    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    x_expect = x + K @ (z - H @ x)
-    P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
+    x_expect, P_expect = _kalman_update(x, P, z, np.diag(var), H)
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
@@ -51,16 +49,10 @@ def test_kalman_scalar():
     P_upd = P.copy()
     _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(2 * n))
 
-    x = np.ascontiguousarray(x[:, np.newaxis])  # (n, 1)
-    h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
+    x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
 
-    s = h @ P @ h.T + r
-    k = P @ h.T / s
-    x = x + k @ (z - h @ x)
-    P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
-
-    np.testing.assert_allclose(x_upd, x.ravel())
-    np.testing.assert_allclose(P_upd, P)
+    np.testing.assert_allclose(x_upd, x_expect.ravel())
+    np.testing.assert_allclose(P_upd, P_expect)
 
 
 def test_covariance_update_fast():
