@@ -28,13 +28,13 @@ def _kalman_gain_fast(
     """
     n = len(h)  # number of states
 
-    s = r
+    s = r  # innovation covariance, h @ P @ h.T + r
     for i in range(n):
-        v = 0.0
+        Ph_i = 0.0  # P @ h.T for the i-th state
         for j in range(n):
-            v += P[i, j] * h[j]
-        out[i] = v
-        s += h[i] * v
+            Ph_i += P[i, j] * h[j]
+        out[i] = Ph_i
+        s += h[i] * Ph_i
 
     s_inv = 1.0 / s
     for i in range(n):
