@@ -28,7 +28,7 @@ def test_kalman_update():
     np.testing.assert_allclose(P_upd, P_expect)
 
 
-def test_kalman_sequential():
+def test_kalman_update_sequential():
 
     rng = np.random.default_rng(42)
 
@@ -52,7 +52,7 @@ def test_kalman_sequential():
     np.testing.assert_allclose(P_upd, P_expect)
 
 
-def test_kalman_scalar():
+def test_kalman_update_scalar():
 
     n = 9  # state dimension
 
