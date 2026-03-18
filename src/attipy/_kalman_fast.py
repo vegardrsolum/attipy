@@ -26,18 +26,16 @@ def _kalman_gain_fast(
     k : ndarray, shape (n,)
         Output array for the Kalman gain vector, written in place.
     """
-    n = P.shape[0]
+    n = len(h)  # number of states
 
-    # k = P @ h
     s = 0.0
     for i in range(n):
         v = 0.0
         for j in range(n):
             v += P[i, j] * h[j]
         k[i] = v
-        s += h[i] * v  # accumulate h' @ P @ h
+        s += h[i] * v
 
-    # Kalman gain: k = P @ h / (h' @ P @ h + r)
     s_inv = 1.0 / (s + r)
     for i in range(n):
         k[i] *= s_inv
@@ -96,27 +94,22 @@ def _covariance_update_fast(
     tmp : ndarray, shape (n,)
         Temporary workspace array.
     """
-    n = len(h)
+    n = len(h)  # number of states
 
-    # tmp = h' @ P  (must complete before P is modified)
     for j in range(n):
         s = 0.0
         for i in range(n):
             s += h[i] * P[i, j]
         tmp[j] = s
 
-    # Fused per-row: apply both rank-1 updates with a single pass over each row
     for i in range(n):
         ki = k[i]
 
-        # P[i,:] -= k[i] * (h' @ P)   →  row i of (I - k h') P
-        # Simultaneously accumulate dot product with h for the second update
         dot = 0.0
         for j in range(n):
             P[i, j] -= ki * tmp[j]
             dot += P[i, j] * h[j]
 
-        # P[i,:] += (r * k[i] - [(I - k h') P  h]_i) * k
         c = r * ki - dot
         for j in range(n):
             P[i, j] += c * k[j]
@@ -151,7 +144,7 @@ def _kalman_update_scalar_fast(
         allocations. The first n elements are used for the Kalman gain vector and
         the remaining n elements are used by the covariance update.
     """
-    n = len(x)
+    n = len(x)  # number of states
     k = tmp[:n]
     work = tmp[n:]
 
