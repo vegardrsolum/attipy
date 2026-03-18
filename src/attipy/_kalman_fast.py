@@ -122,6 +122,7 @@ def _kalman_update_scalar_fast(
     z: float,
     r: float,
     h: NDArray[np.float64],
+    k: NDArray[np.float64],
     tmp: NDArray[np.float64],
 ) -> None:
     """
@@ -139,14 +140,11 @@ def _kalman_update_scalar_fast(
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
-    tmp : ndarray, shape (2*n,)
-        Temporary workspace array for intermediate calculations, to avoid repeated
-        allocations. The first n elements are used for the Kalman gain vector and
-        the remaining n elements are used by the covariance update.
+    k : ndarray, shape (n,)
+        Temporary workspace array for the Kalman gain vector.
+    tmp : ndarray, shape (n,)
+        Temporary workspace array for the covariance update.
     """
-    n = len(x)  # number of states
-    k = tmp[:n]
-    work = tmp[n:]
 
     # Kalman gain
     _kalman_gain_fast(P, h, r, k)
@@ -155,7 +153,7 @@ def _kalman_update_scalar_fast(
     _state_update_fast(x, z, k, h)
 
     # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update_fast(P, k, h, r, work)
+    _covariance_update_fast(P, k, h, r, tmp)
 
 
 @njit  # type: ignore[misc]
@@ -165,6 +163,7 @@ def _kalman_update_sequential_fast(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
+    k: NDArray[np.float64],
     tmp: NDArray[np.float64],
 ) -> None:
     """
@@ -182,13 +181,14 @@ def _kalman_update_sequential_fast(
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
-    tmp : ndarray, shape (2*n,)
-        Temporary workspace array for intermediate calculations, to avoid repeated
-        allocations.
+    k : ndarray, shape (n,)
+        Temporary workspace array for the Kalman gain vector.
+    tmp : ndarray, shape (n,)
+        Temporary workspace array for the covariance update.
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar_fast(x, P, z[i], var[i], H[i], tmp)
+        _kalman_update_scalar_fast(x, P, z[i], var[i], H[i], k, tmp)
 
 
 @njit  # type: ignore[misc]

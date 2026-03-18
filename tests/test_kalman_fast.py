@@ -25,7 +25,7 @@ def test_kalman_update_sequential_fast():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(2 * n))
+    _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(n), np.empty(n))
 
     x_expect, P_expect = _kalman_update(x, P, z, np.diag(var), H)
 
@@ -48,7 +48,7 @@ def test_kalman_scalar():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(2 * n))
+    _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(n), np.empty(n))
 
     x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
 
