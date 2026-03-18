@@ -62,7 +62,7 @@ def _kalman_gain(
     P: NDArray[np.float64], h: NDArray[np.float64], r: float
 ) -> NDArray[np.float64]:
     """
-    Compute the Kalman gain for a scalar measurement:
+    Compute the Kalman gain for a scalar measurement (matrix notation):
 
         k = P @ h.T / (h @ P @ h.T + r)
 
@@ -99,7 +99,7 @@ def _covariance_update(
     r: float,
 ) -> None:
     """
-    Compute the updated state error covariance matrix estimate (Joseph form):
+    Joseph-form covariance update (matrix notation):
 
         P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
