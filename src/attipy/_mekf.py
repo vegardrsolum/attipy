@@ -4,12 +4,10 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import (
-    _project_cov_ahead,
-)
 from ._kalman_fast import (
     _kalman_update_scalar_fast,
     _kalman_update_sequential_fast,
+    _project_cov_ahead_fast,
 )
 from ._statespace import (
     _dyawda,
@@ -122,7 +120,8 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
-        self._tmp = np.empty(12)  # preallocated workspace (2 * state_dim)
+        self._tmp = np.empty(12)  # preallocated workspace
+        self._tmp_cov = np.empty((6, 6))  # preallocated workspace
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -263,7 +262,7 @@ class MEKF:
         self._att_nb._correct_with_rotvec(dtheta)
 
         # Covariance projection
-        _project_cov_ahead(self._P, self._phi, self._Q)
+        _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp_cov)
 
     def update(
         self,
