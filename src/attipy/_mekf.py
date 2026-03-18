@@ -4,10 +4,10 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ._attitude import Attitude
-from ._kalman import (
-    _kalman_update_scalar,
-    _kalman_update_sequential,
-    _project_cov_ahead,
+from ._kalman_fast import (
+    _kalman_update_scalar_fast,
+    _kalman_update_sequential_fast,
+    _project_cov_ahead_fast,
 )
 from ._statespace import (
     _dyawda,
@@ -50,9 +50,23 @@ def _nz2vg(nav_frame: str) -> float:
     Gravity direction along the navigation frame's z-axis. Transforms the z-axis
     of the navigation frame to a gravity reference vector (unit vector).
 
-    Returns +1.0 for 'NED' and -1.0 for 'ENU'.
+    Parameters
+    ----------
+    nav_frame : {'NED', 'ENU'}
+        Navigation frame.
+
+    Returns
+    -------
+    float
+        Gravity direction along the navigation frame's z-axis. +1.0 for 'NED' and
+        -1.0 for 'ENU'.
     """
-    return np.sign(_gravity_nav(1.0, nav_frame)[2])
+    if nav_frame.lower() == "ned":
+        return 1.0
+    elif nav_frame.lower() == "enu":
+        return -1.0
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
 
 def _signed_smallest_angle(angle: float) -> float:
@@ -104,8 +118,6 @@ class MEKF:
         (North-East-Down) (default) or 'ENU' (East-North-Up).
     """
 
-    _I: NDArray[np.float64] = np.eye(6)
-
     def __init__(
         self,
         fs: float,
@@ -122,6 +134,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
+        self._tmp = np.empty((6, 6))  # preallocated workspace
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -230,7 +243,9 @@ class MEKF:
         vg_b = self._vg_b
         dz = vg_meas - vg_b
         dhdx = self._dhdx_gref(vg_b)
-        _kalman_update_sequential(self._dx, self._P, dz, vg_var, dhdx, self._I)
+        _kalman_update_sequential_fast(
+            self._dx, self._P, dz, vg_var, dhdx, self._tmp[0], self._tmp[1]
+        )
 
     def _aiding_update_yaw(
         self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
@@ -251,7 +266,9 @@ class MEKF:
 
         dz = _signed_smallest_angle(yaw_meas - self._yaw)
         dhdx = self._dhdx_yaw(self._att_nb._q)
-        _kalman_update_scalar(self._dx, self._P, dz, yaw_var, dhdx, self._I)
+        _kalman_update_scalar_fast(
+            self._dx, self._P, dz, yaw_var, dhdx, self._tmp[0], self._tmp[1]
+        )
 
     def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
         """
@@ -262,7 +279,7 @@ class MEKF:
         self._att_nb._correct_with_rotvec(dtheta)
 
         # Covariance projection
-        _project_cov_ahead(self._P, self._phi, self._Q)
+        _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
 
     def update(
         self,

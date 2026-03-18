@@ -1,38 +1,15 @@
 import numpy as np
 
-from attipy._kalman import (
-    _kalman_update,
-    _kalman_update_scalar,
-    _kalman_update_sequential,
-    _project_cov_ahead,
+from attipy._kalman import _kalman_update
+from attipy._kalman_fast import (
+    _covariance_update_fast,
+    _kalman_update_scalar_fast,
+    _kalman_update_sequential_fast,
+    _project_cov_ahead_fast,
 )
 
 
-def test_kalman_update():
-
-    rng = np.random.default_rng(42)
-
-    m = 4  # number of measurements
-    n = 9  # state dimension
-
-    x = rng.random(n)
-    A = rng.random((n, n))
-    P = A @ A.T + np.eye(n)  # positive semi-definite
-    H = rng.random((m, n))
-    R = rng.random((m, m))
-    z = rng.random(m)
-
-    x_upd, P_upd = _kalman_update(x, P, z, R, H)
-
-    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    x_expect = x + K @ (z - H @ x)
-    P_expect = (np.eye(n) - K @ H) @ P @ (np.eye(n) - K @ H).T + K @ R @ K.T
-
-    np.testing.assert_allclose(x_upd, x_expect)
-    np.testing.assert_allclose(P_upd, P_expect)
-
-
-def test_kalman_update_sequential():
+def test_kalman_update_sequential_fast():
 
     rng = np.random.default_rng(42)
 
@@ -48,7 +25,7 @@ def test_kalman_update_sequential():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_sequential(x_upd, P_upd, z, var, H)
+    _kalman_update_sequential_fast(x_upd, P_upd, z, var, H, np.empty(n), np.empty(n))
 
     x_expect, P_expect = _kalman_update(x, P, z, np.diag(var), H)
 
@@ -56,7 +33,7 @@ def test_kalman_update_sequential():
     np.testing.assert_allclose(P_upd, P_expect)
 
 
-def test_kalman_update_scalar():
+def test_kalman_scalar():
 
     n = 9  # state dimension
 
@@ -71,12 +48,35 @@ def test_kalman_update_scalar():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_scalar(x_upd, P_upd, z, r, h)
+    _kalman_update_scalar_fast(x_upd, P_upd, z, r, h, np.empty(n), np.empty(n))
 
     x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
+
+
+def test_covariance_update_fast():
+
+    n = 9  # state dimension
+
+    rng = np.random.default_rng(42)
+
+    A = rng.random((n, n))
+    P = A @ A.T + np.eye(n)  # positive semi-definite
+    h = rng.random(n)
+    k = rng.random(n)
+    r = rng.random()
+
+    P_upd = P.copy()
+    _covariance_update_fast(P_upd, k, h, r, np.empty(n))
+
+    k = np.ascontiguousarray(k[:, np.newaxis])  # (n, 1)
+    h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
+
+    P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
+
+    np.testing.assert_allclose(P_upd, P)
 
 
 def test_project_cov_ahead():
@@ -92,7 +92,7 @@ def test_project_cov_ahead():
     Q = A @ A.T + np.eye(n)  # positive semi-definite
 
     P_proj = P.copy()
-    _project_cov_ahead(P_proj, phi, Q)
+    _project_cov_ahead_fast(P_proj, phi, Q, np.empty((n, n)))
 
     P_expect = phi @ P @ phi.T + Q
 
