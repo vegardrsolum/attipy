@@ -46,10 +46,7 @@ def test_kalman_sequential():
     P_upd = P.copy()
     _kalman_update_sequential(x_upd, P_upd, z, var, H, np.eye(n))
 
-    R = np.diag(var)
-    K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-    x_expect = x + K @ (z - H @ x)
-    P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
+    x_expect, P_expect = _kalman_update(x, P, z, var, H)
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
