@@ -22,7 +22,7 @@ def test_kalman_update():
     R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
     x_expect = x + K @ (z - H @ x)
-    P_expect = (np.eye(9) - K @ H) @ P @ (np.eye(9) - K @ H).T + K @ R @ K.T
+    P_expect = (np.eye(n) - K @ H) @ P @ (np.eye(n) - K @ H).T + K @ R @ K.T
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
@@ -69,14 +69,7 @@ def test_kalman_scalar():
     P_upd = P.copy()
     _kalman_update_scalar(x_upd, P_upd, z, r, h, np.eye(n))
 
-    x = np.ascontiguousarray(x[:, np.newaxis])  # (n, 1)
-    h = np.ascontiguousarray(h[np.newaxis, :])  # (1, n)
-    z = np.ascontiguousarray(z[:, np.newaxis])  # (1, 1)
+    x_expect, P_expect = _kalman_update(x, P, z, r, h[np.newaxis, :])
 
-    s = h @ P @ h.T + r
-    k = P @ h.T / s
-    x = x + k @ (z - h @ x)
-    P[:, :] = (np.eye(n) - k @ h) @ P @ (np.eye(n) - k @ h).T + r * k @ k.T
-
-    np.testing.assert_allclose(x_upd, x.ravel())
-    np.testing.assert_allclose(P_upd, P)
+    np.testing.assert_allclose(x_upd, x_expect.ravel())
+    np.testing.assert_allclose(P_upd, P_expect)
