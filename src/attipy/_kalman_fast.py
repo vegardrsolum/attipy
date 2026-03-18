@@ -217,6 +217,7 @@ def _project_cov_ahead_fast(
     """
     n = P.shape[0]
 
+    # tmp = phi @ P
     for i in range(n):
         for j in range(n):
             s = 0.0
@@ -224,6 +225,7 @@ def _project_cov_ahead_fast(
                 s += phi[i, k] * P[k, j]
             tmp[i, j] = s
 
+    # P = tmp @ phi.T + Q
     for i in range(n):
         for j in range(n):
             s = 0.0
