@@ -3,14 +3,13 @@ from numba import njit
 from numpy.typing import NDArray
 
 
-@njit  # type: ignore[misc]
 def _kalman_update(
     x: NDArray[np.float64],
     P: NDArray[np.float64],
     z: NDArray[np.float64],
-    var: NDArray[np.float64],
+    R: NDArray[np.float64],
     H: NDArray[np.float64],
-) -> None:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Kalman filter measurement update.
 
@@ -24,8 +23,8 @@ def _kalman_update(
         State error covariance matrix to be updated.
     z : ndarray, shape (m,)
         Measurement vector.
-    var : ndarray, shape (m,)
-        Measurement noise variances corresponding to each scalar measurement.
+    R : ndarray, shape (m, m)
+        Measurement noise covariance matrix.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
 
@@ -40,7 +39,7 @@ def _kalman_update(
     P = np.asarray(P)
     z = np.asarray(z)
     H = np.asarray(H)
-    R = np.diag(np.asarray(var))
+    R = np.asarray(R)
     I_ = np.eye(x.size)
 
     # Innovation (pre-fit residual) covariance

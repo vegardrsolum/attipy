@@ -18,12 +18,11 @@ def test_kalman_update():
     A = rng.random((n, n))
     P = A @ A.T + np.eye(n)  # positive semi-definite
     H = rng.random((m, n))
-    var = rng.random(m)
+    R = rng.random((m, m))
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_update(x, P, z, var, H)
+    x_upd, P_upd = _kalman_update(x, P, z, R, H)
 
-    R = np.diag(var)
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
     x_expect = x + K @ (z - H @ x)
     P_expect = (np.eye(n) - K @ H) @ P @ (np.eye(n) - K @ H).T + K @ R @ K.T
@@ -50,7 +49,7 @@ def test_kalman_update_sequential():
     P_upd = P.copy()
     _kalman_update_sequential(x_upd, P_upd, z, var, H)
 
-    x_expect, P_expect = _kalman_update(x, P, z, var, H)
+    x_expect, P_expect = _kalman_update(x, P, z, np.diag(var), H)
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
@@ -73,7 +72,7 @@ def test_kalman_update_scalar():
     P_upd = P.copy()
     _kalman_update_scalar(x_upd, P_upd, z, r, h)
 
-    x_expect, P_expect = _kalman_update(x, P, z, r, h[np.newaxis, :])
+    x_expect, P_expect = _kalman_update(x, P, z, r.reshape(1, 1), h.reshape(1, n))
 
     np.testing.assert_allclose(x_upd, x_expect.ravel())
     np.testing.assert_allclose(P_upd, P_expect)
