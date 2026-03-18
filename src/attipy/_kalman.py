@@ -43,7 +43,7 @@ def _kalman_update(
     R = np.diag(np.asarray(var))
     I_ = np.eye(x.size)
 
-    # Innovaition (pre-fit residual) covariance
+    # Innovation (pre-fit residual) covariance
     S = H @ P @ H.T + R
 
     # Kalman gain
