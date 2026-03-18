@@ -79,7 +79,7 @@ def _covariance_update_fast(
     tmp: NDArray[np.float64],
 ) -> None:
     """
-    Compute the updated state error covariance matrix estimate (Joseph form):
+    Joseph-form covariance update (in place):
 
         P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
 
@@ -94,32 +94,30 @@ def _covariance_update_fast(
     r : float
         Scalar measurement noise variance.
     tmp : ndarray, shape (n,)
-        Temporary workspace array for intermediate calculations, to avoid repeated
-        allocations.
+        Temporary workspace array.
     """
-    n = len(h)  # number of states
+    n = len(h)
 
-    hP = tmp
+    # tmp = h' @ P  (must complete before P is modified)
     for j in range(n):
         s = 0.0
         for i in range(n):
             s += h[i] * P[i, j]
-        hP[j] = s
+        tmp[j] = s
 
+    # Fused per-row: apply both rank-1 updates with a single pass over each row
     for i in range(n):
         ki = k[i]
-        for j in range(n):
-            P[i, j] -= ki * hP[j]
 
-    Th = tmp
-    for i in range(n):
-        s = 0.0
+        # P[i,:] -= k[i] * (h' @ P)   →  row i of (I - k h') P
+        # Simultaneously accumulate dot product with h for the second update
+        dot = 0.0
         for j in range(n):
-            s += P[i, j] * h[j]
-        Th[i] = s
+            P[i, j] -= ki * tmp[j]
+            dot += P[i, j] * h[j]
 
-    for i in range(n):
-        c = r * k[i] - Th[i]
+        # P[i,:] += (r * k[i] - [(I - k h') P  h]_i) * k
+        c = r * ki - dot
         for j in range(n):
             P[i, j] += c * k[j]
 
