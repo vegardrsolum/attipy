@@ -10,7 +10,6 @@ def _kalman_update(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
-    I_: NDArray[np.float64],
 ) -> None:
     """
     Kalman filter measurement update.
