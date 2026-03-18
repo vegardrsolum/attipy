@@ -90,7 +90,7 @@ class MEKF:
         (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
         where da is the attitude error, and dbg is the gyroscope bias error.
     dtheta : array_like, shape (3,), optional
-        Previous attitude increment (coning integral) in radians. Defaults to zero.
+        Previous attitude increment measurement in radians. Defaults to zero.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -281,9 +281,15 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Velocity increment (sculling integral) in m/s.
+            Velocity increment in m/s. Ideally, a sculling-corrected integral of
+            specific force measurements over the sampling interval should be used.
+            However, if the specific force, f, is approximately constant over the
+            sampling interval, dt, the simple approximation dv = f * dt can be used.
         dtheta : array_like, shape (3,)
-            Attitude increment (coning integral) in radians.
+            Attitude increment in radians. Ideally, a coning-corrected integral
+            of the angular rate over the sampling interval should be used. However,
+            if the angular rate, w, is approximately constant over the sampling
+            interval, dt, the simple approximation dtheta = w * dt can be used.
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
