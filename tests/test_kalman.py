@@ -1,6 +1,10 @@
 import numpy as np
 
-from attipy._kalman import _kalman_update_scalar, _kalman_update_sequential, _kalman_update
+from attipy._kalman import (
+    _kalman_update,
+    _kalman_update_scalar,
+    _kalman_update_sequential,
+)
 
 
 def test_kalman_update():
@@ -44,7 +48,7 @@ def test_kalman_update_sequential():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_sequential(x_upd, P_upd, z, var, H, np.eye(n))
+    _kalman_update_sequential(x_upd, P_upd, z, var, H)
 
     x_expect, P_expect = _kalman_update(x, P, z, var, H)
 
@@ -67,7 +71,7 @@ def test_kalman_update_scalar():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_scalar(x_upd, P_upd, z, r, h, np.eye(n))
+    _kalman_update_scalar(x_upd, P_upd, z, r, h)
 
     x_expect, P_expect = _kalman_update(x, P, z, r, h[np.newaxis, :])
 
