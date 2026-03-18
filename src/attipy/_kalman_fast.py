@@ -104,12 +104,10 @@ def _covariance_update_fast(
 
     for i in range(n):
         ki = k[i]
-
         dot = 0.0
         for j in range(n):
             P[i, j] -= ki * tmp[j]
             dot += P[i, j] * h[j]
-
         c = r * ki - dot
         for j in range(n):
             P[i, j] += c * k[j]
