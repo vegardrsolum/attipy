@@ -231,4 +231,4 @@ def _project_cov_ahead_fast(
             for k in range(n):
                 s += tmp[i, k] * phi[j, k]
             P[i, j] = s + Q[i, j]
-            P[j, i] = P[i, j]  # exploit symmetry
+            P[j, i] = P[i, j]  # symmetry
