@@ -298,9 +298,13 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Velocity increment (sculling integral) in m/s.
+            Sculling integral in m/s. I.e., the integral of specific force, f, over
+            the sampling interval, dt. The simple approximation dv = f * dt can be
+            used if sculling-corrected integrals are not available.
         dtheta : array_like, shape (3,)
-            Attitude increment (coning integral) in radians.
+            Coning integral (see ``degrees`` parameter for units). I.e., the integral
+            of angular velocity, w, over the sampling interval, dt. The simple approximation
+            dtheta = w * dt can be used if coning-corrected integrals are not available.
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
