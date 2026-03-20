@@ -308,8 +308,8 @@ class MEKF:
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
-            Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
-            See ``yaw_degrees`` for unit.
+            Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
+            Defaults to ``None`` (no yaw aiding).
         yaw_var : float, optional
             Variance of heading (yaw angle) measurement noise in rad^2 (default)
             or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
