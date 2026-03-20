@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._quatops import _correct_quat_with_gibbs2, _quatprod
+from attipy._quatops import (
+    _correct_quat_with_gibbs2,
+    _correct_quat_with_rotvec,
+    _quatprod,
+)
 
 euler_deg_data = [
     (0.0, 0.0, 0.0),
@@ -30,5 +34,22 @@ def test_correct_quat_with_gibbs2(euler_deg):
     q_corr_expect = q_corr_expect
 
     _correct_quat_with_gibbs2(q, da)
+
+    np.testing.assert_allclose(q, q_corr_expect)
+
+
+@pytest.mark.parametrize("euler_deg", euler_deg_data)
+def test_correct_quat_with_rotvec(euler_deg):
+
+    q = ap.Attitude.from_euler(euler_deg, degrees=True).as_quaternion()
+    dtheta = np.array([0.01, -0.02, 0.03])  # rotation vector attitude correction
+
+    dtheta_norm = np.linalg.norm(dtheta)
+    dq_w = np.cos(0.5 * dtheta_norm)
+    dq_xyz = np.sin(0.5 * dtheta_norm) * dtheta / dtheta_norm
+    dq = np.array((dq_w, *dq_xyz))
+    q_corr_expect = _quatprod(q, dq)
+
+    _correct_quat_with_rotvec(q, dtheta)
 
     np.testing.assert_allclose(q, q_corr_expect)

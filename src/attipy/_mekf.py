@@ -1,10 +1,10 @@
 from typing import Self
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from numba import njit
+from numpy.typing import ArrayLike, NDArray
 
-from attipy._quatops import _correct_quat_with_rotvec, _correct_quat_with_gibbs2
+from attipy._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 
 from ._attitude import Attitude
 from ._kalman_fast import (
