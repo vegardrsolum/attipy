@@ -94,6 +94,9 @@ def _reset(q, bg, dx) -> None:
     """
     Reset states (regulating error-states to zero).
 
+    Moves information from the error-state vector, dx, to the nominal states, q
+    and bg, and then resets the error-state vector to zero.
+
     Parameters
     ----------
     q : ndarray, shape (4,)
@@ -101,11 +104,18 @@ def _reset(q, bg, dx) -> None:
     bg : ndarray, shape (3,)
         Gyroscope bias to be updated in place.
     dx : ndarray, shape (6,)
-        Error-state vector to be reset in place.
+        Error-state vector (da, dbg) to be reset in place.
     """
     _correct_quat_with_gibbs2(q, dx[0:3])
-    bg[:] += dx[3:6]
-    dx[:] = 0.0
+    bg[0] += dx[3]
+    bg[1] += dx[4]
+    bg[2] += dx[5]
+    dx[0] = 0.0
+    dx[1] = 0.0
+    dx[2] = 0.0
+    dx[3] = 0.0
+    dx[4] = 0.0
+    dx[5] = 0.0
 
 
 class MEKF:
