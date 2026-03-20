@@ -89,6 +89,25 @@ def _signed_smallest_angle(angle: float) -> float:
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
 
+@njit  # type: ignore[misc]
+def _reset(q, bg, dx) -> None:
+    """
+    Reset states (regulating error-states to zero).
+
+    Parameters
+    ----------
+    q : ndarray, shape (4,)
+        Unit quaternion to be updated in place.
+    bg : ndarray, shape (3,)
+        Gyroscope bias to be updated in place.
+    dx : ndarray, shape (6,)
+        Error-state vector to be reset in place.
+    """
+    _correct_quat_with_gibbs2(q, dx[0:3])
+    bg[:] += dx[3:6]
+    dx[:] = 0.0
+
+
 class MEKF:
     """
     Multiplicative extended Kalman filter (MEKF) for attitude estimation.
@@ -218,16 +237,6 @@ class MEKF:
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _reset(q, bg, dx) -> None:
-        """
-        Reset state (regulating error-state to zero).
-        """
-        _correct_quat_with_gibbs2(q, dx[0:3])
-        bg[:] += dx[3:6]
-        dx[:] = 0.0
-
     def _aiding_update_gref(
         self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
     ) -> None:
@@ -345,7 +354,7 @@ class MEKF:
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
-        self._reset(self._att_nb._q, self._bg_b, self._dx)
+        _reset(self._att_nb._q, self._bg_b, self._dx)
 
         # Update state space model
         self._dtheta[:] = dtheta
