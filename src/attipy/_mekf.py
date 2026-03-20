@@ -110,12 +110,8 @@ def _reset(q_nb, bg_b, dx) -> None:
     bg_b[0] += dx[3]
     bg_b[1] += dx[4]
     bg_b[2] += dx[5]
-    dx[0] = 0.0
-    dx[1] = 0.0
-    dx[2] = 0.0
-    dx[3] = 0.0
-    dx[4] = 0.0
-    dx[5] = 0.0
+    for i in range(6):
+        dx[i] = 0.0
 
 
 class MEKF:
