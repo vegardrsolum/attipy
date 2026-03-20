@@ -311,8 +311,8 @@ class MEKF:
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement noise in rad^2 (default)
-            or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
+            Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
+            Required for ``yaw``.
         yaw_degrees : bool, optional
             Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
