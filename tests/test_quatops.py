@@ -42,7 +42,7 @@ def test_correct_quat_with_gibbs2(euler_deg):
 def test_correct_quat_with_rotvec(euler_deg):
 
     q = ap.Attitude.from_euler(euler_deg, degrees=True).as_quaternion()
-    dtheta = np.array([0.01, -0.02, 0.03])  # rotation vector attitude correction
+    dtheta = np.random.default_rng(42).random(3) * 0.01
 
     dtheta_norm = np.linalg.norm(dtheta)
     dq_w = np.cos(0.5 * dtheta_norm)
