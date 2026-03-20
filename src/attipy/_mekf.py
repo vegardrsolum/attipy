@@ -94,8 +94,8 @@ def _reset(q_nb, bg_b, dx) -> None:
     """
     Reset states (regulating error-states to zero).
 
-    Moves information from the error-state vector, dx, to the nominal states, q_nb
-    and bg_b, and then resets the error-state vector to zero.
+    Moves information from the error-state vector to the nominal state vectors,
+    and then resets the error-state vector to zero.
 
     Parameters
     ----------
