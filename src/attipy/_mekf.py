@@ -90,26 +90,26 @@ def _signed_smallest_angle(angle: float) -> float:
 
 
 @njit  # type: ignore[misc]
-def _reset(q, bg, dx) -> None:
+def _reset(q_nb, bg_b, dx) -> None:
     """
     Reset states (regulating error-states to zero).
 
-    Moves information from the error-state vector, dx, to the nominal states, q
-    and bg, and then resets the error-state vector to zero.
+    Moves information from the error-state vector, dx, to the nominal states, q_nb
+    and bg_b, and then resets the error-state vector to zero.
 
     Parameters
     ----------
-    q : ndarray, shape (4,)
+    q_nb : ndarray, shape (4,)
         Unit quaternion to be updated in place.
-    bg : ndarray, shape (3,)
+    bg_b : ndarray, shape (3,)
         Gyroscope bias to be updated in place.
     dx : ndarray, shape (6,)
         Error-state vector (da, dbg) to be reset in place.
     """
-    _correct_quat_with_gibbs2(q, dx[0:3])
-    bg[0] += dx[3]
-    bg[1] += dx[4]
-    bg[2] += dx[5]
+    _correct_quat_with_gibbs2(q_nb, dx[0:3])
+    bg_b[0] += dx[3]
+    bg_b[1] += dx[4]
+    bg_b[2] += dx[5]
     dx[0] = 0.0
     dx[1] = 0.0
     dx[2] = 0.0
