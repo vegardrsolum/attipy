@@ -47,7 +47,8 @@ def _quat_from_matrix(dcm: NDArray[np.float64]) -> NDArray[np.float64]:
         qz = 0.25 * s
 
     q = np.array([qw, qx, qy, qz])
-    return _normalize(q)
+    _normalize(q)
+    return q
 
 
 @njit  # type: ignore[misc]
@@ -255,8 +256,8 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
         s = np.sin(half_angle) / angle
 
     q = np.array([c, s * rx, s * ry, s * rz])
-
-    return _normalize(q)
+    _normalize(q)
+    return q
 
 
 @njit  # type: ignore[misc]
