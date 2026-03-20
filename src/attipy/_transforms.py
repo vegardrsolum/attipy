@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ._quatops import _canonical, _normalize
+from ._quatops import _canonical, _normalize_quat_inplace
 
 
 @njit  # type: ignore[misc]
@@ -47,7 +47,8 @@ def _quat_from_matrix(dcm: NDArray[np.float64]) -> NDArray[np.float64]:
         qz = 0.25 * s
 
     q = np.array([qw, qx, qy, qz])
-    return _normalize(q)
+    _normalize_quat_inplace(q)
+    return q
 
 
 @njit  # type: ignore[misc]
@@ -255,8 +256,8 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
         s = np.sin(half_angle) / angle
 
     q = np.array([c, s * rx, s * ry, s * rz])
-
-    return _normalize(q)
+    _normalize_quat_inplace(q)
+    return q
 
 
 @njit  # type: ignore[misc]
@@ -373,10 +374,9 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     numpy.ndarray, shape (3,)
         The z-axis (unit vector) of frame {n} expressed in frame {b}.
     """
-    qw, qx, qy, qz = q_nb
 
-    x = 2.0 * (qx * qz - qw * qy)
-    y = 2.0 * (qy * qz + qw * qx)
-    z = 1.0 - 2.0 * (qx**2 + qy**2)
+    x = 2.0 * (q_nb[1] * q_nb[3] - q_nb[0] * q_nb[2])
+    y = 2.0 * (q_nb[2] * q_nb[3] + q_nb[0] * q_nb[1])
+    z = 1.0 - 2.0 * (q_nb[1] ** 2 + q_nb[2] ** 2)
 
     return np.array([x, y, z])

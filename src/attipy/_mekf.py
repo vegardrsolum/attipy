@@ -1,7 +1,10 @@
 from typing import Self
 
 import numpy as np
+from numba import njit
 from numpy.typing import ArrayLike, NDArray
+
+from attipy._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 
 from ._attitude import Attitude
 from ._kalman_fast import (
@@ -84,6 +87,31 @@ def _signed_smallest_angle(angle: float) -> float:
         The smallest angle between [-pi, pi] radians.
     """
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
+
+
+@njit  # type: ignore[misc]
+def _reset(q_nb, bg_b, dx) -> None:
+    """
+    Reset states (regulating error-states to zero).
+
+    Moves information from the error-state vector to the nominal state vectors,
+    and then resets the error-state vector to zero.
+
+    Parameters
+    ----------
+    q_nb : ndarray, shape (4,)
+        Unit quaternion to be updated in place.
+    bg_b : ndarray, shape (3,)
+        Gyroscope bias to be updated in place.
+    dx : ndarray, shape (6,)
+        Error-state vector (da, dbg) to be reset in place.
+    """
+    _correct_quat_with_gibbs2(q_nb, dx[0:3])
+    bg_b[0] += dx[3]
+    bg_b[1] += dx[4]
+    bg_b[2] += dx[5]
+    for i in range(6):
+        dx[i] = 0.0
 
 
 class MEKF:
@@ -215,18 +243,6 @@ class MEKF:
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
-    def _reset(self) -> None:
-        """
-        Reset state (regulating error-state to zero).
-        """
-
-        if not self._dx.any():
-            return
-
-        self._att_nb._correct_with_gibbs2(self._dx[0:3])
-        self._bg_b[:] += self._dx[3:6]
-        self._dx[:] = 0.0
-
     def _aiding_update_gref(
         self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
     ) -> None:
@@ -241,10 +257,14 @@ class MEKF:
             raise ValueError("'vg_var' not provided.")
 
         vg_b = self._vg_b
-        dz = vg_meas - vg_b
-        dhdx = self._dhdx_gref(vg_b)
         _kalman_update_sequential_fast(
-            self._dx, self._P, dz, vg_var, dhdx, self._tmp[0], self._tmp[1]
+            vg_meas - vg_b,
+            vg_var,
+            self._dhdx_gref(vg_b),
+            self._dx,
+            self._P,
+            self._tmp[0],
+            self._tmp[1],
         )
 
     def _aiding_update_yaw(
@@ -264,10 +284,14 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        dz = _signed_smallest_angle(yaw_meas - self._yaw)
-        dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar_fast(
-            self._dx, self._P, dz, yaw_var, dhdx, self._tmp[0], self._tmp[1]
+            _signed_smallest_angle(yaw_meas - self._yaw),
+            yaw_var,
+            self._dhdx_yaw(self._att_nb._q),
+            self._dx,
+            self._P,
+            self._tmp[0],
+            self._tmp[1],
         )
 
     def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
@@ -276,7 +300,7 @@ class MEKF:
         """
 
         # Attitude update (strapdown algorithm)
-        self._att_nb._correct_with_rotvec(dtheta)
+        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
         # Covariance projection
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
@@ -308,11 +332,11 @@ class MEKF:
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
-            Heading (yaw angle) aiding measurement. Defaults to ``None`` (no yaw aiding).
-            See ``yaw_degrees`` for unit.
+            Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
+            Defaults to ``None`` (no yaw aiding).
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement noise in rad^2 (default)
-            or deg^2. Required for ``yaw``. See ``yaw_degrees`` for units.
+            Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
+            Required for ``yaw``.
         yaw_degrees : bool, optional
             Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
@@ -328,25 +352,26 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-
-        self._dtheta[:] = dtheta
+        dv = np.asarray(dv)
+        dtheta = np.asarray(dtheta)
 
         if degrees:
-            self._dtheta *= np.pi / 180.0
+            dtheta = np.radians(dtheta)
 
-        self._dtheta -= self._dt * self._bg_b
+        dtheta = dtheta - self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead(self._dtheta)
+        self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_gref(-_normalize_vec(dv) if gref else None, gref_var)
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
-        self._reset()
+        _reset(self._att_nb._q, self._bg_b, self._dx)
 
-        # Update model
-        _update_state_transition(self._phi, self._dtheta)
+        # Update state space model
+        self._dtheta[:] = dtheta
+        _update_state_transition(self._phi, dtheta)
 
         return self

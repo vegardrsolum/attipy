@@ -30,7 +30,7 @@ def _normalize_vec(v: NDArray[np.float64]) -> NDArray[np.float64]:
     Parameters
     ----------
     v : numpy.ndarray, shape (3,)
-        Vector to be normalized
+        Vector to be normalized.
 
     Returns
     -------
