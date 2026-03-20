@@ -17,7 +17,7 @@ jobs:
       VERSION_NUMBER: v${{ inputs.version_number }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Make release and generate notes
         run: |
