@@ -4,11 +4,11 @@ from numpy.typing import ArrayLike, NDArray
 
 
 def _kalman_update(
-    x: ArrayLike,
-    P: ArrayLike,
     z: ArrayLike,
     R: ArrayLike,
     H: ArrayLike,
+    x: ArrayLike,
+    P: ArrayLike,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Kalman filter measurement update.
@@ -17,16 +17,16 @@ def _kalman_update(
 
     Parameters
     ----------
-    x : array_like, shape (n,)
-        State estimate to be updated.
-    P : array_like, shape (n, n)
-        State error covariance matrix to be updated.
     z : array_like, shape (m,)
         Measurement vector.
     R : array_like, shape (m, m)
         Measurement noise covariance matrix.
     H : array_like, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
+    x : array_like, shape (n,)
+        State estimate to be updated.
+    P : array_like, shape (n, n)
+        State error covariance matrix to be updated.
 
     Returns
     -------
@@ -35,11 +35,11 @@ def _kalman_update(
     P : ndarray, shape (n, n)
         Updated state error covariance matrix.
     """
-    x = np.asarray(x)
-    P = np.asarray(P)
     z = np.asarray(z)
     H = np.asarray(H)
     R = np.asarray(R)
+    x = np.asarray(x)
+    P = np.asarray(P)
     I_ = np.eye(x.size)
 
     # Innovation (pre-fit residual) covariance
@@ -120,27 +120,27 @@ def _covariance_update(
 
 @njit  # type: ignore[misc]
 def _kalman_update_scalar(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
     z: float,
     r: float,
     h: NDArray[np.float64],
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
 ) -> None:
     """
     Scalar Kalman filter measurement update.
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
     z : float
         Scalar measurement.
     r : float
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
     """
 
     # Kalman gain
@@ -155,31 +155,31 @@ def _kalman_update_scalar(
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
 ) -> None:
     """
     Sequential (one-at-a-time) Kalman filter measurement update.
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
     z : ndarray, shape (m,)
         Measurement vector.
     var : ndarray, shape (m,)
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar(x, P, z[i], var[i], H[i])
+        _kalman_update_scalar(z[i], var[i], H[i], x, P)
 
 
 @njit  # type: ignore[misc]

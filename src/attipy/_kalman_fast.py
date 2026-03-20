@@ -117,11 +117,11 @@ def _covariance_update_fast(
 
 @njit  # type: ignore[misc]
 def _kalman_update_scalar_fast(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
     z: float,
     r: float,
     h: NDArray[np.float64],
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
     tmp_k: NDArray[np.float64],
     tmp_cov: NDArray[np.float64],
 ) -> None:
@@ -130,16 +130,16 @@ def _kalman_update_scalar_fast(
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
     z : float
         Scalar measurement.
     r : float
         Scalar measurement noise variance.
     h : ndarray, shape (n,)
         Measurement matrix (row vector).
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
     tmp_k : ndarray, shape (n,)
         Temporary workspace array for the Kalman gain vector.
     tmp_cov : ndarray, shape (n,)
@@ -158,11 +158,11 @@ def _kalman_update_scalar_fast(
 
 @njit  # type: ignore[misc]
 def _kalman_update_sequential_fast(
-    x: NDArray[np.float64],
-    P: NDArray[np.float64],
     z: NDArray[np.float64],
     var: NDArray[np.float64],
     H: NDArray[np.float64],
+    x: NDArray[np.float64],
+    P: NDArray[np.float64],
     tmp_k: NDArray[np.float64],
     tmp_cov: NDArray[np.float64],
 ) -> None:
@@ -171,16 +171,16 @@ def _kalman_update_sequential_fast(
 
     Parameters
     ----------
-    x : ndarray, shape (n,)
-        State estimate to be updated in place.
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
     z : ndarray, shape (m,)
         Measurement vector.
     var : ndarray, shape (m,)
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
         Measurement matrix where each row corresponds to a scalar measurement model.
+    x : ndarray, shape (n,)
+        State estimate to be updated in place.
+    P : ndarray, shape (n, n)
+        State error covariance matrix to be updated in place.
     tmp_k : ndarray, shape (n,)
         Temporary workspace array for the Kalman gain vector.
     tmp_cov : ndarray, shape (n,)
@@ -188,7 +188,7 @@ def _kalman_update_sequential_fast(
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar_fast(x, P, z[i], var[i], H[i], tmp_k, tmp_cov)
+        _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, tmp_k, tmp_cov)
 
 
 @njit  # type: ignore[misc]

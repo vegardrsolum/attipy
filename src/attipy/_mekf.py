@@ -258,11 +258,11 @@ class MEKF:
 
         vg_b = self._vg_b
         _kalman_update_sequential_fast(
-            self._dx,
-            self._P,
             vg_meas - vg_b,
             vg_var,
             self._dhdx_gref(vg_b),
+            self._dx,
+            self._P,
             self._tmp[0],
             self._tmp[1],
         )
@@ -285,11 +285,11 @@ class MEKF:
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
         _kalman_update_scalar_fast(
-            self._dx,
-            self._P,
             _signed_smallest_angle(yaw_meas - self._yaw),
             yaw_var,
             self._dhdx_yaw(self._att_nb._q),
+            self._dx,
+            self._P,
             self._tmp[0],
             self._tmp[1],
         )

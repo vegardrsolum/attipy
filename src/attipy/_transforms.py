@@ -377,6 +377,6 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     x = 2.0 * (q_nb[1] * q_nb[3] - q_nb[0] * q_nb[2])
     y = 2.0 * (q_nb[2] * q_nb[3] + q_nb[0] * q_nb[1])
-    z = 1.0 - 2.0 * (q_nb[1]**2 + q_nb[2]**2)
+    z = 1.0 - 2.0 * (q_nb[1] ** 2 + q_nb[2] ** 2)
 
     return np.array([x, y, z])

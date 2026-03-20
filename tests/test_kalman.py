@@ -22,7 +22,7 @@ def test_kalman_update():
     R = rng.random((m, m))
     z = rng.random(m)
 
-    x_upd, P_upd = _kalman_update(x, P, z, R, H)
+    x_upd, P_upd = _kalman_update(z, R, H, x, P)
 
     K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
     x_expect = x + K @ (z - H @ x)
@@ -48,9 +48,9 @@ def test_kalman_update_sequential():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_sequential(x_upd, P_upd, z, var, H)
+    _kalman_update_sequential(z, var, H, x_upd, P_upd)
 
-    x_expect, P_expect = _kalman_update(x, P, z, np.diag(var), H)
+    x_expect, P_expect = _kalman_update(z, np.diag(var), H, x, P)
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
@@ -71,9 +71,9 @@ def test_kalman_update_scalar():
 
     x_upd = x.copy()
     P_upd = P.copy()
-    _kalman_update_scalar(x_upd, P_upd, z, r, h)
+    _kalman_update_scalar(z, r, h, x_upd, P_upd)
 
-    x_expect, P_expect = _kalman_update(x, P, z, np.array([[r]]), h.reshape(1, n))
+    x_expect, P_expect = _kalman_update(z, np.array([[r]]), h.reshape(1, n), x, P)
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
