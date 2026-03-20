@@ -8,13 +8,14 @@ on:
         required: true
         type: string
 
-env:
-  VERSION_NUMBER: v${{ inputs.version_number }}
-
 jobs:
   make_release:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+    env:
+      VERSION_NUMBER: v${{ inputs.version_number }}
+
     steps:
       - uses: actions/checkout@v4
 
