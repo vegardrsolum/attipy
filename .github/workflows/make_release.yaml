@@ -11,6 +11,8 @@ on:
 jobs:
   make_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       VERSION_NUMBER: v${{ inputs.version_number }}
 
