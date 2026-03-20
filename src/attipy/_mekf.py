@@ -257,10 +257,14 @@ class MEKF:
             raise ValueError("'vg_var' not provided.")
 
         vg_b = self._vg_b
-        dz = vg_meas - vg_b
-        dhdx = self._dhdx_gref(vg_b)
         _kalman_update_sequential_fast(
-            self._dx, self._P, dz, vg_var, dhdx, self._tmp[0], self._tmp[1]
+            self._dx,
+            self._P,
+            vg_meas - vg_b,
+            vg_var,
+            self._dhdx_gref(vg_b),
+            self._tmp[0],
+            self._tmp[1],
         )
 
     def _aiding_update_yaw(
@@ -280,10 +284,14 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        dz = _signed_smallest_angle(yaw_meas - self._yaw)
-        dhdx = self._dhdx_yaw(self._att_nb._q)
         _kalman_update_scalar_fast(
-            self._dx, self._P, dz, yaw_var, dhdx, self._tmp[0], self._tmp[1]
+            self._dx,
+            self._P,
+            _signed_smallest_angle(yaw_meas - self._yaw),
+            yaw_var,
+            self._dhdx_yaw(self._att_nb._q),
+            self._tmp[0],
+            self._tmp[1],
         )
 
     def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
