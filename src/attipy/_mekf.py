@@ -298,15 +298,13 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Velocity increment in m/s. Ideally, a sculling-corrected integral of
-            specific force measurements over the sampling interval should be used.
-            However, if the specific force, f, is approximately constant over the
-            sampling interval, dt, the simple approximation dv = f * dt can be used.
+            Specific force (f) integral over the sampling interval (dt) in m/s.
+            The simple approximation dv = f * dt can be used if sculling-corrected
+            integrals are not available.
         dtheta : array_like, shape (3,)
-            Attitude increment in radians. Ideally, a coning-corrected integral
-            of the angular rate over the sampling interval should be used. However,
-            if the angular rate, w, is approximately constant over the sampling
-            interval, dt, the simple approximation dtheta = w * dt can be used.
+            Rotation rate (omega) integral over the sampling interval (dt) in radians.
+            The simple approximation dtheta = omega * dt can be used if coning-corrected
+            integrals are not available.
         degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
