@@ -373,17 +373,3 @@ class Attitude:
         if degrees:
             r = np.degrees(r)
         return r
-
-    # def _correct_with_rotvec(self, dtheta: NDArray[np.float64]) -> None:
-    #     """
-    #     Update/correct the attitude with a small incremental rotation given as a
-    #     rotation vector, dtheta.
-    #     """
-    #     _correct_quat_with_rotvec(self._q, dtheta)
-
-    # def _correct_with_gibbs2(self, da: NDArray[np.float64]) -> None:
-    #     """
-    #     Update/correct the attitude with a small incremental rotation given as a
-    #     scaled (2x) Gibbs vector, da.
-    #     """
-    #     _correct_quat_with_gibbs2(self._q, da)

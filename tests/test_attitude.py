@@ -157,19 +157,3 @@ class Test_Attitude:
         rotvec_out = att.as_rotvec(degrees=False)
 
         np.testing.assert_allclose(rotvec_out, rotvec)
-
-    # def test__correct_with_rotvec(self, pva_sim):
-    #     _, _, _, euler, _, w = pva_sim
-
-    #     fs = 10.24
-    #     dt = 1.0 / fs
-    #     att = Attitude.from_euler(euler[0])
-
-    #     euler_out = []
-    #     for w_i in w:
-    #         att._correct_with_rotvec(w_i * dt)
-    #         euler_out.append(att.as_euler(degrees=False))
-
-    #     euler_out = np.asarray(euler_out)
-
-    #     np.testing.assert_allclose(euler_out, euler, atol=0.01)
