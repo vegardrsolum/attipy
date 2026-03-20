@@ -329,15 +329,15 @@ class MEKF:
             A reference to the instance itself after the update.
         """
 
-        self._dtheta[:] = dtheta
+        dtheta = np.asarray(dtheta)
 
         if degrees:
-            self._dtheta *= np.pi / 180.0
+            dtheta = np.radians(dtheta)
 
-        self._dtheta -= self._dt * self._bg_b
+        dtheta = dtheta - self._dt * self._bg_b
 
         # Project (a priori) state and covariance estimates ahead
-        self._project_ahead(self._dtheta)
+        self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
         self._aiding_update_gref(-_normalize_vec(dv) if gref else None, gref_var)
@@ -346,7 +346,8 @@ class MEKF:
         # Reset state (regulating error-state to zero)
         self._reset()
 
-        # Update model
-        _update_state_transition(self._phi, self._dtheta)
+        # Update state
+        self._dtheta[:] = dtheta
+        _update_state_transition(self._phi, dtheta)
 
         return self
