@@ -64,14 +64,14 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
 
 
 @njit  # type: ignore[misc]
-def _normalize(q: NDArray[np.float64]) -> None:
+def _normalize_quat(q: NDArray[np.float64]) -> None:
     """
     L2-normalize a quaternion in place.
 
     Parameters
     ----------
     q : numpy.ndarray, shape (4,)
-        Quaternion to be normalized (modified in place).
+        Quaternion to be normalized (in place).
     """
     norm_inv = 1.0 / np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)
     q[0] *= norm_inv
@@ -121,7 +121,7 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
     q[1] += 0.5 * (qw * dax + qy * daz - qz * day)
     q[2] += 0.5 * (qw * day - qx * daz + qz * dax)
     q[3] += 0.5 * (qw * daz + qx * day - qy * dax)
-    _normalize(q)
+    _normalize_quat(q)
 
 
 @njit  # type: ignore[misc]
@@ -164,4 +164,4 @@ def _correct_quat_with_rotvec(
     q[1] = px * qw + cos_gamma * qx + pz * qy - py * qz
     q[2] = py * qw - pz * qx + cos_gamma * qy + px * qz
     q[3] = pz * qw + py * qx - px * qy + cos_gamma * qz
-    _normalize(q)
+    _normalize_quat(q)
