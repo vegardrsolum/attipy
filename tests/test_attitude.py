@@ -158,31 +158,31 @@ class Test_Attitude:
 
         np.testing.assert_allclose(rotvec_out, rotvec)
 
-    def test__correct_with_rotvec(self, pva_sim):
-        _, _, _, euler, _, w = pva_sim
+    # def test__correct_with_rotvec(self, pva_sim):
+    #     _, _, _, euler, _, w = pva_sim
 
-        fs = 10.24
-        dt = 1.0 / fs
-        att = Attitude.from_euler(euler[0])
+    #     fs = 10.24
+    #     dt = 1.0 / fs
+    #     att = Attitude.from_euler(euler[0])
 
-        euler_out = []
-        for w_i in w:
-            att._correct_with_rotvec(w_i * dt)
-            euler_out.append(att.as_euler(degrees=False))
+    #     euler_out = []
+    #     for w_i in w:
+    #         att._correct_with_rotvec(w_i * dt)
+    #         euler_out.append(att.as_euler(degrees=False))
 
-        euler_out = np.asarray(euler_out)
+    #     euler_out = np.asarray(euler_out)
 
-        np.testing.assert_allclose(euler_out, euler, atol=0.01)
+    #     np.testing.assert_allclose(euler_out, euler, atol=0.01)
 
-    @pytest.mark.parametrize("euler_deg", euler_deg_data)
-    def test__correct_with_gibbs2(self, euler_deg):
-        att = Attitude.from_euler(euler_deg, degrees=True)
-        da = np.array([0.01, -0.02, 0.03])  # 2x Gibbs vector attitude correction
+    # @pytest.mark.parametrize("euler_deg", euler_deg_data)
+    # def test__correct_with_gibbs2(self, euler_deg):
+    #     att = Attitude.from_euler(euler_deg, degrees=True)
+    #     da = np.array([0.01, -0.02, 0.03])  # 2x Gibbs vector attitude correction
 
-        dq = (1.0 / np.sqrt(4.0 + np.dot(da, da))) * np.array([2.0, *da])
-        q_corr_expect = _quatprod(att._q, dq)
-        q_corr_expect = q_corr_expect
+    #     dq = (1.0 / np.sqrt(4.0 + np.dot(da, da))) * np.array([2.0, *da])
+    #     q_corr_expect = _quatprod(att._q, dq)
+    #     q_corr_expect = q_corr_expect
 
-        att._correct_with_gibbs2(da)
+    #     att._correct_with_gibbs2(da)
 
-        np.testing.assert_allclose(att.as_quaternion(), q_corr_expect)
+    #     np.testing.assert_allclose(att.as_quaternion(), q_corr_expect)

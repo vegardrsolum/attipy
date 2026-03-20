@@ -2,6 +2,9 @@ from typing import Self
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from numba import njit
+
+from attipy._quatops import _correct_quat_with_rotvec, _correct_quat_with_gibbs2
 
 from ._attitude import Attitude
 from ._kalman_fast import (
@@ -215,17 +218,15 @@ class MEKF:
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
-    def _reset(self) -> None:
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _reset(q, bg, dx) -> None:
         """
         Reset state (regulating error-state to zero).
         """
-
-        if not self._dx.any():
-            return
-
-        self._att_nb._correct_with_gibbs2(self._dx[0:3])
-        self._bg_b[:] += self._dx[3:6]
-        self._dx[:] = 0.0
+        _correct_quat_with_gibbs2(q, dx[0:3])
+        bg[:] += dx[3:6]
+        dx[:] = 0.0
 
     def _aiding_update_gref(
         self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
@@ -276,7 +277,7 @@ class MEKF:
         """
 
         # Attitude update (strapdown algorithm)
-        self._att_nb._correct_with_rotvec(dtheta)
+        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
         # Covariance projection
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
@@ -344,9 +345,9 @@ class MEKF:
         self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
-        self._reset()
+        self._reset(self._att_nb._q, self._bg_b, self._dx)
 
-        # Update state
+        # Update state space model
         self._dtheta[:] = dtheta
         _update_state_transition(self._phi, dtheta)
 
