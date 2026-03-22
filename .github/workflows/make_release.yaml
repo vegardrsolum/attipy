@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_number:
-        description: Version number [MAJOR.MINOR.PATCH]
+        description: Version number [MAJOR.MINOR.PATCH] (do not include 'v' prefix)
         required: true
         type: string
 
