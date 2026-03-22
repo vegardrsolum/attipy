@@ -55,6 +55,9 @@ complete = [
   "unit",
 ]
 
+[tool.black]
+extend-exclude = "src/attipy/__about__.py"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
