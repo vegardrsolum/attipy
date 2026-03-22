@@ -57,6 +57,11 @@ complete = [
 
 [tool.black]
 extend-exclude = "src/attipy/__about__.py"
+target-version = ["py312"]
+
+[tool.isort]
+skip = ["src/attipy/__about__.py"]
+profile = "black"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
