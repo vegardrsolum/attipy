@@ -48,13 +48,13 @@ def test_state_matrix_full(gyro_noise_params, acc_noise_params):
 
     # Linearized state matrix
     dfdx = np.zeros((15, 15))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b)
-    dfdx[3:6, 9:12] = -R_nb
-    dfdx[6:9, 6:9] = -S(w_b)
-    dfdx[6:9, 12:15] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / abc
-    dfdx[12:15, 12:15] = -np.eye(3) / gbc
+    dfdx[0:3, 0:3] = -S(w_b)
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -np.eye(3) / gbc
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b)
+    dfdx[6:9, 12:15] = -R_nb
+    dfdx[9:12, 6:9] = np.eye(3)
+    dfdx[12:15, 12:15] = -np.eye(3) / abc
 
     np.testing.assert_allclose(dfdx_out, dfdx)
 
@@ -66,9 +66,9 @@ def test_wn_input_matrix_full():
 
     # Input (white noise) matrix
     dfdw = np.zeros((15, 12))
-    dfdw[3:6, 0:3] = -R_nb
-    dfdw[6:9, 3:6] = -np.eye(3)
-    dfdw[9:12, 6:9] = np.eye(3)
+    dfdw[0:3, 0:3] = -np.eye(3)
+    dfdw[3:6, 3:6] = np.eye(3)
+    dfdw[6:9, 6:9] = -R_nb
     dfdw[12:15, 9:12] = np.eye(3)
 
     np.testing.assert_allclose(dfdw_out, dfdw)
@@ -82,10 +82,10 @@ def test_process_noise_psd_full(gyro_noise_params, acc_noise_params):
 
     # White noise power spectral density matrix
     W = np.eye(12)
-    W[0:3, 0:3] *= vrw**2
-    W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * abs**2 / abc
-    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
+    W[9:12, 9:12] *= 2.0 * abs**2 / abc
     np.testing.assert_allclose(W_out, W)
 
 

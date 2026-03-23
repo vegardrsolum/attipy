@@ -1,8 +1,41 @@
+"""
+State-space model used by the error-state Kalman filter.
+
+The following continuous-time stochastic state-space model is assumed:
+
+    dx/dt = dfdx @ x + dfdw @ w
+
+where x denotes the state vector, w denotes the white noise input vector with power
+spectral density W, dfdx denotes the linearized state matrix, and dfdw denotes the
+linearized white noise input matrix.
+
+The corresponding discrete-time state-space model is defined as:
+
+    x_{k+1} = phi @ x_k + w_k
+
+where x_k denotes the state vector, phi denotes the state transition matrix, and
+w_k denotes the zero-mean white noise input vector with covariance Q for time step k.
+
+Using a first-order approximation, the discrete-time state-space model becomes:
+
+    phi = I + dt * dfdx
+    Q = dt * dfdw @ W @ dfdw.T
+
+where dt is the discrete time step.
+"""
+
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
 from ._vectorops import _skew_symmetric as S
+
+# Error-state order
+ATT_IDX = slice(0, 3)  # attitude error (2x Gibbs vector)
+BG_IDX = slice(3, 6)  # gyroscope bias error
+VEL_IDX = slice(6, 9)  # velocity error
+POS_IDX = slice(9, 12)  # position error
+BA_IDX = slice(12, 15)  # accelerometer bias error
 
 
 def _state_transition_full(
@@ -14,18 +47,16 @@ def _state_transition_full(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first-order approximation:
+    Set up the state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
-    where dfdx denotes the linearized state matrix.
-
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
-    - Attitude (3)
-    - Accelerometer bias (3)
-    - Gyro bias (3)
+    - Attitude error (3)
+    - Gyro bias error (3)
+    - Velocity error (3)
+    - Position error (3)
+    - Accelerometer bias error (3)
 
     Parameters
     ----------
@@ -48,13 +79,13 @@ def _state_transition_full(
         State transition matrix.
     """
     phi = np.eye(15)
-    phi[0:3, 3:6] += dt * np.eye(3)
-    phi[3:6, 6:9] -= dt * R_nb @ S(f_b)  # NB! update each time step
-    phi[3:6, 9:12] -= dt * R_nb  # NB! update each time step
-    phi[6:9, 6:9] -= dt * S(w_b)  # NB! update each time step
-    phi[6:9, 12:15] -= dt * np.eye(3)
-    phi[9:12, 9:12] -= dt * np.eye(3) / abc
-    phi[12:15, 12:15] -= dt * np.eye(3) / gbc
+    phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
+    phi[VEL_IDX, ATT_IDX] -= dt * R_nb @ S(f_b)  # NB! update each time step
+    phi[VEL_IDX, BA_IDX] -= dt * R_nb  # NB! update each time step
+    phi[ATT_IDX, ATT_IDX] -= dt * S(w_b)  # NB! update each time step
+    phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+    phi[BA_IDX, BA_IDX] -= dt * np.eye(3) / abc
+    phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
     return phi
 
 
@@ -69,16 +100,16 @@ def _update_state_transition_full(
     """
     Update the state transition matrix, phi, in place:
 
-        phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
-        phi[3:9, 9:12] = -dt * R_nb
-        phi[6:9, 6:9] = I - dt * S(w_b)
+        phi[0:3, 0:3] = I - dt * S(w_b)
+        phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+        phi[6:9, 12:15] = -dt * R_nb
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -108,51 +139,51 @@ def _update_state_transition_full(
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
-    phi[6, 7] = dt * wz
-    phi[6, 8] = -dt * wy
-    phi[7, 6] = -dt * wz
-    phi[7, 8] = dt * wx
-    phi[8, 6] = dt * wy
-    phi[8, 7] = -dt * wx
+    # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
+    phi[0, 1] = dt * wz
+    phi[0, 2] = -dt * wy
+    phi[1, 0] = -dt * wz
+    phi[1, 2] = dt * wx
+    phi[2, 0] = dt * wy
+    phi[2, 1] = -dt * wx
 
-    # phi[3:9, 9:12] = -dt * R_nb
-    phi[3, 9] = -dt * r00
-    phi[3, 10] = -dt * r01
-    phi[3, 11] = -dt * r02
-    phi[4, 9] = -dt * r10
-    phi[4, 10] = -dt * r11
-    phi[4, 11] = -dt * r12
-    phi[5, 9] = -dt * r20
-    phi[5, 10] = -dt * r21
-    phi[5, 11] = -dt * r22
+    # phi[6:9, 12:15] = -dt * R_nb
+    phi[6, 12] = -dt * r00
+    phi[6, 13] = -dt * r01
+    phi[6, 14] = -dt * r02
+    phi[7, 12] = -dt * r10
+    phi[7, 13] = -dt * r11
+    phi[7, 14] = -dt * r12
+    phi[8, 12] = -dt * r20
+    phi[8, 13] = -dt * r21
+    phi[8, 14] = -dt * r22
 
-    # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
-    phi[3, 6] = -dt * (fz * r01 - fy * r02)
-    phi[4, 6] = -dt * (fz * r11 - fy * r12)
-    phi[5, 6] = -dt * (fz * r21 - fy * r22)
-    phi[3, 7] = -dt * (-fz * r00 + fx * r02)
-    phi[4, 7] = -dt * (-fz * r10 + fx * r12)
-    phi[5, 7] = -dt * (-fz * r20 + fx * r22)
-    phi[3, 8] = -dt * (fy * r00 - fx * r01)
-    phi[4, 8] = -dt * (fy * r10 - fx * r11)
-    phi[5, 8] = -dt * (fy * r20 - fx * r21)
+    # phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+    phi[6, 0] = -dt * (fz * r01 - fy * r02)
+    phi[7, 0] = -dt * (fz * r11 - fy * r12)
+    phi[8, 0] = -dt * (fz * r21 - fy * r22)
+    phi[6, 1] = -dt * (-fz * r00 + fx * r02)
+    phi[7, 1] = -dt * (-fz * r10 + fx * r12)
+    phi[8, 1] = -dt * (-fz * r20 + fx * r22)
+    phi[6, 2] = -dt * (fy * r00 - fx * r01)
+    phi[7, 2] = -dt * (fy * r10 - fx * r11)
+    phi[8, 2] = -dt * (fy * r20 - fx * r21)
 
 
 def _process_noise_cov_full(
     dt: float, vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first-order approximation:
+    Set up the process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -178,18 +209,18 @@ def _process_noise_cov_full(
 
     Notes
     -----
-    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
+    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
-        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.zeros((15, 15))
-    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
-    Q[9:12, 9:12] = dt * (2.0 * abs**2 / abc) * np.eye(3)
-    Q[12:15, 12:15] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
+    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BA_IDX, BA_IDX] = dt * (2.0 * abs**2 / abc) * np.eye(3)
+    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
@@ -201,14 +232,14 @@ def _state_matrix_full(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup linearized state matrix, dfdx.
+    Set up the linearized state matrix, dfdx.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -229,26 +260,32 @@ def _state_matrix_full(
         Linearized state matrix.
     """
     dfdx = np.zeros((15, 15))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b)  # NB! update each time step
-    dfdx[3:6, 9:12] = -R_nb  # NB! update each time step
-    dfdx[6:9, 6:9] = -S(w_b)  # NB! update each time step
-    dfdx[6:9, 12:15] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / abc
-    dfdx[12:15, 12:15] = -np.eye(3) / gbc
+    dfdx[POS_IDX, VEL_IDX] = np.eye(3)
+    dfdx[VEL_IDX, ATT_IDX] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[VEL_IDX, BA_IDX] = -R_nb  # NB! update each time step
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BA_IDX, BA_IDX] = -np.eye(3) / abc
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
 
 def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Setup linearized (white noise) input matrix, dfdw.
+    Set up the linearized (white noise) input matrix, dfdw.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
+
+    and the following 12 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
+    - Accelerometer white noise (3)
+    - Accelerometer bias white noise (3)
 
     Parameters
     ----------
@@ -261,10 +298,10 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((15, 12))
-    dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
-    dfdw[6:9, 3:6] = -np.eye(3)
-    dfdw[9:12, 6:9] = np.eye(3)
-    dfdw[12:15, 9:12] = np.eye(3)
+    dfdw[ATT_IDX, 0:3] = -np.eye(3)
+    dfdw[BG_IDX, 3:6] = np.eye(3)
+    dfdw[VEL_IDX, 6:9] = -R_nb  # NB! update each time step
+    dfdw[BA_IDX, 9:12] = np.eye(3)
     return dfdw
 
 
@@ -272,14 +309,13 @@ def _process_noise_psd_full(
     vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup white noise (process noise) power spectral density matrix, W.
+    Set up the white noise (process noise) power spectral density matrix, W.
 
-    Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
-    - Attitude (3)
-    - Accelerometer bias (3)
-    - Gyro bias (3)
+    Assumes the following 12 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
+    - Accelerometer white noise (3)
+    - Accelerometer bias white noise (3)
 
     Parameters
     ----------
@@ -302,10 +338,10 @@ def _process_noise_psd_full(
         Process noise power spectral density matrix.
     """
     W = np.eye(12)
-    W[0:3, 0:3] *= vrw**2
-    W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * abs**2 / abc
-    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
+    W[9:12, 9:12] *= 2.0 * abs**2 / abc
     return W
 
 
@@ -352,14 +388,14 @@ def _measurement_matrix_full(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Setup linearized measurement matrix, dhdx.
+    Set up the linearized measurement matrix, dhdx.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -374,10 +410,10 @@ def _measurement_matrix_full(
         Linearized measurement matrix.
     """
     dhdx = np.zeros((10, 15))
-    dhdx[0:3, 6:9] = S(vg_b)  # gravity ref vector (NB! update)
-    dhdx[3:4, 6:9] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
-    dhdx[4:7, 3:6] = np.eye(3)  # velocity
-    dhdx[7:10, 0:3] = np.eye(3)  # position
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[4:7, VEL_IDX] = np.eye(3)  # velocity
+    dhdx[7:10, POS_IDX] = np.eye(3)  # position
     return dhdx
 
 
@@ -385,7 +421,7 @@ def _state_transition(
     dt: float, dtheta: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first-order approximation:
+    Set up the state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
@@ -410,9 +446,9 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(6)
-    phi[0:3, 0:3] -= S(dtheta)  # NB! update each time step
-    phi[0:3, 3:6] -= dt * np.eye(3)
-    phi[3:6, 3:6] -= dt * np.eye(3) / gbc
+    phi[ATT_IDX, ATT_IDX] -= S(dtheta)  # NB! update each time step
+    phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+    phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
     return phi
 
 
@@ -458,7 +494,7 @@ def _process_noise_cov(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first-order approximation:
+    Set up the process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
@@ -483,8 +519,8 @@ def _process_noise_cov(
         Process noise covariance matrix.
     """
     Q = np.zeros((6, 6))
-    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
-    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
@@ -492,7 +528,7 @@ def _measurement_matrix(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Setup linearized measurement matrix, dhdx.
+    Set up the linearized measurement matrix, dhdx.
 
     Assumes the following 6 states in order:
     - Attitude (3)
@@ -511,8 +547,8 @@ def _measurement_matrix(
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 6))
-    dhdx[0:3, 0:3] = S(vg_b)  # gravity ref vector (NB! update)
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
     return dhdx
 
 
@@ -521,7 +557,7 @@ def _state_matrix(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup linearized state matrix, dfdx.
+    Set up the linearized state matrix, dfdx.
 
     Assumes the following 6 states in order:
     - Attitude (3)
@@ -540,19 +576,23 @@ def _state_matrix(
         Linearized state matrix.
     """
     dfdx = np.zeros((6, 6))
-    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
 
 def _wn_input_matrix() -> NDArray[np.float64]:
     """
-    Setup linearized (white noise) input matrix, dfdw.
+    Set up the linearized (white noise) input matrix, dfdw.
 
     Assumes the following 6 states in order:
     - Attitude (3)
     - Gyro bias (3)
+
+    and the following 6 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
 
     Returns
     -------
@@ -560,18 +600,18 @@ def _wn_input_matrix() -> NDArray[np.float64]:
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((6, 6))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
+    dfdw[ATT_IDX, 0:3] = -np.eye(3)
+    dfdw[BG_IDX, 3:6] = np.eye(3)
     return dfdw
 
 
 def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
     """
-    Setup white noise (process noise) power spectral density matrix, W.
+    Set up the white noise (process noise) power spectral density matrix, W.
 
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
+    Assumes the following 6 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
 
     Parameters
     ----------
