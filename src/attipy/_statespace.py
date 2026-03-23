@@ -21,13 +21,11 @@ def _state_transition_full(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first-order approximation:
+    Set up the state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
-    where dfdx denotes the linearized state matrix.
-
-    Assumes the following 15 states in order:
+    Assuming the following 15 states in order:
     - Attitude (3)
     - Gyro bias (3)
     - Velocity (3)
@@ -53,6 +51,16 @@ def _state_transition_full(
     -------
     phi : ndarray, shape (15, 15)
         State transition matrix.
+
+    Notes
+    -----
+    The following continuous-time linearized state-space model is assumed:
+
+        dx/dt = dfdx @ x + dfdw @ w
+
+    where x denotes the state vector, w denotes the white noise input vector, dfdx
+    denotes the linearized state matrix, and dfdw denotes the linearized (white noise)
+    input matrix.
     """
     phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
