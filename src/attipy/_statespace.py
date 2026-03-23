@@ -156,11 +156,11 @@ def _process_noise_cov_full(
         Q = dt @ dfdw @ W @ dfdw.T
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
-    - Attitude (3)
-    - Accelerometer bias (3)
-    - Gyro bias (3)
+        - Attitude (3)
+        - Gyro bias (3)
+        - Velocity (3)
+        - Position (3)
+        - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -186,18 +186,18 @@ def _process_noise_cov_full(
 
     Notes
     -----
-    In general, Q[3:6, 3:6] should be updated each time step if R_nb changes:
+    In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
-        Q[3:6, 3:6] = dt * (R_nb @ Wv @ R_nb.T)
+        Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
 
     However, if the acceleration noise (velocity random walk) is isotropic (same
     in all axes), the rotation is not needed, and we can compute Q only once.
     """
     Q = np.zeros((15, 15))
-    Q[3:6, 3:6] = dt * vrw**2 * np.eye(3)
-    Q[6:9, 6:9] = dt * arw**2 * np.eye(3)
-    Q[9:12, 9:12] = dt * (2.0 * abs**2 / abc) * np.eye(3)
-    Q[12:15, 12:15] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[VEL_IDX, VEL_IDX] = dt * vrw**2 * np.eye(3)
+    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BA_IDX, BA_IDX] = dt * (2.0 * abs**2 / abc) * np.eye(3)
+    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
