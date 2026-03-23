@@ -29,11 +29,11 @@ def _state_transition_full(
     where dfdx denotes the linearized state matrix.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -77,16 +77,16 @@ def _update_state_transition_full(
     """
     Update the state transition matrix, phi, in place:
 
-        phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
-        phi[3:9, 9:12] = -dt * R_nb
-        phi[6:9, 6:9] = I - dt * S(w_b)
+        phi[0:3, 0:3] = I - dt * S(w_b)
+        phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+        phi[6:9, 12:15] = -dt * R_nb
 
-    Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
+Assumes the following 15 states in order:
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
