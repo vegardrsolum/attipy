@@ -258,6 +258,12 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     - Position (3)
     - Accelerometer bias (3)
 
+    and the following 12 white noise inputs in order:
+    - Accelerometer white noise (3)
+    - Gyroscope white noise (3)
+    - Accelerometer bias white noise (3)
+    - Gyroscope bias white noise (3)
+
     Parameters
     ----------
     R_nb : ndarray, shape (3, 3)
