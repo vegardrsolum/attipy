@@ -5,6 +5,13 @@ from numpy.typing import NDArray
 from ._vectorops import _skew_symmetric as S
 
 
+ATT_IDX = slice(0, 3)  # attitude (2x Gibbs vector)
+BG_IDX = slice(3, 6)  # gyroscope bias
+VEL_IDX = slice(6, 9)  # velocity
+POS_IDX = slice(9, 12)  # position
+BA_IDX = slice(12, 15)  # accelerometer bias
+
+
 def _state_transition_full(
     dt: float,
     f_b: NDArray[np.float64],
