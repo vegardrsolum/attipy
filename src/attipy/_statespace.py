@@ -66,8 +66,8 @@ def _state_transition_full(
 
         x_{k+1} = phi @ x_k + w_k
 
-    where phi denotes the state transition matrix, and w_k denotes the zero-mean
-    white noise input with covariance Q.
+    where x_k denotes the state vector at time t_k, phi denotes the state transition
+    matrix, and w_k denotes the zero-mean white noise input with covariance Q.
 
     Using a first-order approximation, the discrete-time state space model becomes:
 
