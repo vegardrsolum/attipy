@@ -252,11 +252,11 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     Setup linearized (white noise) input matrix, dfdw.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
-    - Attitude (3)
-    - Accelerometer bias (3)
-    - Gyro bias (3)
+        - Attitude (3)
+        - Gyro bias (3)
+        - Velocity (3)
+        - Position (3)
+        - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -269,10 +269,10 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((15, 12))
-    dfdw[3:6, 0:3] = -R_nb  # NB! update each time step
-    dfdw[6:9, 3:6] = -np.eye(3)
-    dfdw[9:12, 6:9] = np.eye(3)
-    dfdw[12:15, 9:12] = np.eye(3)
+    dfdw[VEL_IDX, 0:3] = -R_nb  # NB! update each time step
+    dfdw[ATT_IDX, 3:6] = -np.eye(3)
+    dfdw[BA_IDX, 6:9] = np.eye(3)
+    dfdw[BG_IDX, 9:12] = np.eye(3)
     return dfdw
 
 
