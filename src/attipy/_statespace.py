@@ -54,7 +54,8 @@ def _state_transition_full(
 
     Notes
     -----
-    The following continuous-time, linearized, stochastic state-space model is assumed:
+    The following continuous-time, linearized and stochastic state-space model is
+    assumed:
 
         dx/dt = dfdx @ x + dfdw @ w
 
