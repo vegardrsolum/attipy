@@ -25,12 +25,20 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
-    Assuming the following 15 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-    - Velocity (3)
-    - Position (3)
-    - Accelerometer bias (3)
+    for a 'full' 15-state error model with the following states in order:
+    - Attitude error (3)
+    - Gyro bias error (3)
+    - Velocity error (3)
+    - Position error (3)
+    - Accelerometer bias error (3)
+
+    and the following continuous-time linearized state-space model:
+
+        dx/dt = dfdx @ x + dfdw @ w
+
+    where x denotes the state vector, w denotes the white noise input vector, dfdx
+    denotes the linearized state matrix, and dfdw denotes the linearized (white noise)
+    input matrix.
 
     Parameters
     ----------
@@ -51,16 +59,6 @@ def _state_transition_full(
     -------
     phi : ndarray, shape (15, 15)
         State transition matrix.
-
-    Notes
-    -----
-    The following continuous-time linearized state-space model is assumed:
-
-        dx/dt = dfdx @ x + dfdw @ w
-
-    where x denotes the state vector, w denotes the white noise input vector, dfdx
-    denotes the linearized state matrix, and dfdw denotes the linearized (white noise)
-    input matrix.
     """
     phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
