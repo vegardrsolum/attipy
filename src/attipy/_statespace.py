@@ -259,10 +259,10 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     - Accelerometer bias (3)
 
     and the following 12 white noise inputs in order:
-    - Accelerometer white noise (3)
     - Gyroscope white noise (3)
-    - Accelerometer bias white noise (3)
     - Gyroscope bias white noise (3)
+    - Accelerometer white noise (3)
+    - Accelerometer bias white noise (3)
 
     Parameters
     ----------
@@ -275,10 +275,10 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((15, 12))
-    dfdw[VEL_IDX, 0:3] = -R_nb  # NB! update each time step
-    dfdw[ATT_IDX, 3:6] = -np.eye(3)
-    dfdw[BA_IDX, 6:9] = np.eye(3)
-    dfdw[BG_IDX, 9:12] = np.eye(3)
+    dfdw[ATT_IDX, 0:3] = -np.eye(3)
+    dfdw[BG_IDX, 3:6] = np.eye(3)
+    dfdw[VEL_IDX, 6:9] = -R_nb  # NB! update each time step
+    dfdw[BA_IDX, 9:12] = np.eye(3)
     return dfdw
 
 
@@ -288,12 +288,11 @@ def _process_noise_psd_full(
     """
     Setup white noise (process noise) power spectral density matrix, W.
 
-    Assumes the following 15 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-    - Velocity (3)
-    - Position (3)
-    - Accelerometer bias (3)
+    Assumes the following 12 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
+    - Accelerometer white noise (3)
+    - Accelerometer bias white noise (3)
 
     Parameters
     ----------
@@ -316,10 +315,10 @@ def _process_noise_psd_full(
         Process noise power spectral density matrix.
     """
     W = np.eye(12)
-    W[0:3, 0:3] *= vrw**2
-    W[3:6, 3:6] *= arw**2
-    W[6:9, 6:9] *= 2.0 * abs**2 / abc
-    W[9:12, 9:12] *= 2.0 * gbs**2 / gbc
+    W[0:3, 0:3] *= arw**2
+    W[3:6, 3:6] *= 2.0 * gbs**2 / gbc
+    W[6:9, 6:9] *= vrw**2
+    W[9:12, 9:12] *= 2.0 * abs**2 / abc
     return W
 
 
