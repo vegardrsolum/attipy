@@ -82,11 +82,11 @@ def _update_state_transition_full(
         phi[6:9, 12:15] = -dt * R_nb
 
     Assumes the following 15 states in order:
-        - Attitude (3)
-        - Gyro bias (3)
-        - Velocity (3)
-        - Position (3)
-        - Accelerometer bias (3)
+    - Attitude (3)
+    - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -156,11 +156,11 @@ def _process_noise_cov_full(
         Q = dt @ dfdw @ W @ dfdw.T
 
     Assumes the following 15 states in order:
-        - Attitude (3)
-        - Gyro bias (3)
-        - Velocity (3)
-        - Position (3)
-        - Accelerometer bias (3)
+    - Attitude (3)
+    - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -212,11 +212,11 @@ def _state_matrix_full(
     Setup linearized state matrix, dfdx.
 
     Assumes the following 15 states in order:
-        - Attitude (3)
-        - Gyro bias (3)
-        - Velocity (3)
-        - Position (3)
-        - Accelerometer bias (3)
+    - Attitude (3)
+    - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -252,11 +252,11 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     Setup linearized (white noise) input matrix, dfdw.
 
     Assumes the following 15 states in order:
-        - Attitude (3)
-        - Gyro bias (3)
-        - Velocity (3)
-        - Position (3)
-        - Accelerometer bias (3)
+    - Attitude (3)
+    - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -283,11 +283,11 @@ def _process_noise_psd_full(
     Setup white noise (process noise) power spectral density matrix, W.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
