@@ -116,35 +116,35 @@ def _update_state_transition_full(
     r10, r11, r12 = R_nb[1]
     r20, r21, r22 = R_nb[2]
 
-    # phi[6:9, 6:9] = np.eye(3) - dt * S(w_b)
-    phi[6, 7] = dt * wz
-    phi[6, 8] = -dt * wy
-    phi[7, 6] = -dt * wz
-    phi[7, 8] = dt * wx
-    phi[8, 6] = dt * wy
-    phi[8, 7] = -dt * wx
+    # phi[0:3, 0:3] = np.eye(3) - dt * S(w_b)
+    phi[0, 1] = dt * wz
+    phi[0, 2] = -dt * wy
+    phi[1, 0] = -dt * wz
+    phi[1, 2] = dt * wx
+    phi[2, 0] = dt * wy
+    phi[2, 1] = -dt * wx
 
-    # phi[3:9, 9:12] = -dt * R_nb
-    phi[3, 9] = -dt * r00
-    phi[3, 10] = -dt * r01
-    phi[3, 11] = -dt * r02
-    phi[4, 9] = -dt * r10
-    phi[4, 10] = -dt * r11
-    phi[4, 11] = -dt * r12
-    phi[5, 9] = -dt * r20
-    phi[5, 10] = -dt * r21
-    phi[5, 11] = -dt * r22
+    # phi[6:9, 12:15] = -dt * R_nb
+    phi[6, 12] = -dt * r00
+    phi[6, 13] = -dt * r01
+    phi[6, 14] = -dt * r02
+    phi[7, 12] = -dt * r10
+    phi[7, 13] = -dt * r11
+    phi[7, 14] = -dt * r12
+    phi[8, 12] = -dt * r20
+    phi[8, 13] = -dt * r21
+    phi[8, 14] = -dt * r22
 
-    # phi[3:6, 6:9] = -dt * R_nb @ S(f_b)
-    phi[3, 6] = -dt * (fz * r01 - fy * r02)
-    phi[4, 6] = -dt * (fz * r11 - fy * r12)
-    phi[5, 6] = -dt * (fz * r21 - fy * r22)
-    phi[3, 7] = -dt * (-fz * r00 + fx * r02)
-    phi[4, 7] = -dt * (-fz * r10 + fx * r12)
-    phi[5, 7] = -dt * (-fz * r20 + fx * r22)
-    phi[3, 8] = -dt * (fy * r00 - fx * r01)
-    phi[4, 8] = -dt * (fy * r10 - fx * r11)
-    phi[5, 8] = -dt * (fy * r20 - fx * r21)
+    # phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
+    phi[6, 0] = -dt * (fz * r01 - fy * r02)
+    phi[7, 0] = -dt * (fz * r11 - fy * r12)
+    phi[8, 0] = -dt * (fz * r21 - fy * r22)
+    phi[6, 1] = -dt * (-fz * r00 + fx * r02)
+    phi[7, 1] = -dt * (-fz * r10 + fx * r12)
+    phi[8, 1] = -dt * (-fz * r20 + fx * r22)
+    phi[6, 2] = -dt * (fy * r00 - fx * r01)
+    phi[7, 2] = -dt * (fy * r10 - fx * r11)
+    phi[8, 2] = -dt * (fy * r20 - fx * r21)
 
 
 def _process_noise_cov_full(
