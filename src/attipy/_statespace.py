@@ -496,8 +496,8 @@ def _process_noise_cov(
         Process noise covariance matrix.
     """
     Q = np.zeros((6, 6))
-    Q[0:3, 0:3] = dt * arw**2 * np.eye(3)
-    Q[3:6, 3:6] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
+    Q[ATT_IDX, ATT_IDX] = dt * arw**2 * np.eye(3)
+    Q[BG_IDX, BG_IDX] = dt * (2.0 * gbs**2 / gbc) * np.eye(3)
     return Q
 
 
