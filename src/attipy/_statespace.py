@@ -567,14 +567,18 @@ def _wn_input_matrix() -> NDArray[np.float64]:
     - Attitude (3)
     - Gyro bias (3)
 
+    and the following 6 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
+
     Returns
     -------
     dfdw : ndarray, shape (6, 6)
         Linearized (white noise) input matrix.
     """
     dfdw = np.zeros((6, 6))
-    dfdw[0:3, 0:3] = -np.eye(3)
-    dfdw[3:6, 3:6] = np.eye(3)
+    dfdw[ATT_IDX, 0:3] = -np.eye(3)
+    dfdw[BG_IDX, 3:6] = np.eye(3)
     return dfdw
 
 
