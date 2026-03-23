@@ -123,8 +123,9 @@ class MEKF:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), optional
-        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
-        Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
+        Initial attitude estimate given as an Attitude instance or a unit quaternion
+        (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
+        (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     P : array_like, shape (6, 6), optional
