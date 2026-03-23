@@ -54,13 +54,27 @@ def _state_transition_full(
 
     Notes
     -----
-    The following continuous-time linearized state-space model is assumed:
+    The following continuous-time, linearized, stochastic state-space model is assumed:
 
         dx/dt = dfdx @ x + dfdw @ w
 
-    where x denotes the state vector, w denotes the white noise input vector, dfdx
-    denotes the linearized state matrix, and dfdw denotes the linearized (white noise)
-    input matrix.
+    where x denotes the state vector, w denotes the white noise input vector with
+    power spectral density W, dfdx denotes the linearized state matrix, and dfdw
+    denotes the linearized (white noise) input matrix.
+
+    A corresponding discrete-time state space model can be found:
+
+        x_{k+1} = phi @ x_k + w_k
+
+    where phi denotes the state transition matrix, and w_k denotes the zero-mean
+    white noise input with covariance Q.
+
+    Using a first-order approximation, the discrete-time state space model becomes:
+
+        phi = I + dt * dfdx
+        Q = dt * dfdw @ W @ dfdw.T
+
+    where dt is the discrete time step.
     """
     phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
