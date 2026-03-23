@@ -1,5 +1,5 @@
 """
-State-space models for the error-state Kalman filter.
+State-space model used by the error-state Kalman filter.
 
 The following continuous-time stochastic state-space model is assumed:
 
