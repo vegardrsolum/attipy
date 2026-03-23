@@ -4,7 +4,6 @@ from numpy.typing import NDArray
 
 from ._vectorops import _skew_symmetric as S
 
-
 # State order
 ATT_IDX = slice(0, 3)  # attitude (2x Gibbs vector)
 BG_IDX = slice(3, 6)  # gyroscope bias
