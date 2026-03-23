@@ -212,11 +212,11 @@ def _state_matrix_full(
     Setup linearized state matrix, dfdx.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
-    - Attitude (3)
-    - Accelerometer bias (3)
-    - Gyro bias (3)
+        - Attitude (3)
+        - Gyro bias (3)
+        - Velocity (3)
+        - Position (3)
+        - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -237,13 +237,13 @@ def _state_matrix_full(
         Linearized state matrix.
     """
     dfdx = np.zeros((15, 15))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b)  # NB! update each time step
-    dfdx[3:6, 9:12] = -R_nb  # NB! update each time step
-    dfdx[6:9, 6:9] = -S(w_b)  # NB! update each time step
-    dfdx[6:9, 12:15] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / abc
-    dfdx[12:15, 12:15] = -np.eye(3) / gbc
+    dfdx[POS_IDX, VEL_IDX] = np.eye(3)
+    dfdx[VEL_IDX, ATT_IDX] = -R_nb @ S(f_b)  # NB! update each time step
+    dfdx[VEL_IDX, BA_IDX] = -R_nb  # NB! update each time step
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BA_IDX, BA_IDX] = -np.eye(3) / abc
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
 
