@@ -586,6 +586,10 @@ def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64
     """
     Setup white noise (process noise) power spectral density matrix, W.
 
+    Assumes the following 6 white noise inputs in order:
+    - Gyroscope white noise (3)
+    - Gyroscope bias white noise (3)
+
     Parameters
     ----------
     arw : float
