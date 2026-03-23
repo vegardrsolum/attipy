@@ -25,7 +25,7 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
-    with the following continuous-time linearized stochastic state-space model:
+    with the following continuous-time linearized state-space model:
 
         dx/dt = dfdx @ x + dfdw @ w
 
