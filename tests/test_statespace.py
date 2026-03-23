@@ -48,13 +48,13 @@ def test_state_matrix_full(gyro_noise_params, acc_noise_params):
 
     # Linearized state matrix
     dfdx = np.zeros((15, 15))
-    dfdx[0:3, 3:6] = np.eye(3)
-    dfdx[3:6, 6:9] = -R_nb @ S(f_b)
-    dfdx[3:6, 9:12] = -R_nb
-    dfdx[6:9, 6:9] = -S(w_b)
-    dfdx[6:9, 12:15] = -np.eye(3)
-    dfdx[9:12, 9:12] = -np.eye(3) / abc
-    dfdx[12:15, 12:15] = -np.eye(3) / gbc
+    dfdx[0:3, 0:3] = -S(w_b)
+    dfdx[0:3, 3:6] = -np.eye(3)
+    dfdx[3:6, 3:6] = -np.eye(3) / gbc
+    dfdx[6:9, 0:3] = -R_nb @ S(f_b)
+    dfdx[6:9, 12:15] = -R_nb
+    dfdx[9:12, 6:9] = np.eye(3)
+    dfdx[12:15, 12:15] = -np.eye(3) / abc
 
     np.testing.assert_allclose(dfdx_out, dfdx)
 
