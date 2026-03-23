@@ -81,12 +81,12 @@ def _update_state_transition_full(
         phi[6:9, 0:3] = -dt * R_nb @ S(f_b)
         phi[6:9, 12:15] = -dt * R_nb
 
-Assumes the following 15 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-    - Velocity (3)
-    - Position (3)
-    - Accelerometer bias (3)
+    Assumes the following 15 states in order:
+        - Attitude (3)
+        - Gyro bias (3)
+        - Velocity (3)
+        - Position (3)
+        - Accelerometer bias (3)
 
     Parameters
     ----------
