@@ -423,9 +423,9 @@ def _state_transition(
         State transition matrix.
     """
     phi = np.eye(6)
-    phi[0:3, 0:3] -= S(dtheta)  # NB! update each time step
-    phi[0:3, 3:6] -= dt * np.eye(3)
-    phi[3:6, 3:6] -= dt * np.eye(3) / gbc
+    phi[ATT_IDX, ATT_IDX] -= S(dtheta)  # NB! update each time step
+    phi[ATT_IDX, BG_IDX] -= dt * np.eye(3)
+    phi[BG_IDX, BG_IDX] -= dt * np.eye(3) / gbc
     return phi
 
 
