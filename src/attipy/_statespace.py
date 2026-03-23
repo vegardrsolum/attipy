@@ -172,7 +172,7 @@ def _process_noise_cov_full(
     dt: float, vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first-order approximation:
+    Set up the process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
@@ -230,7 +230,7 @@ def _state_matrix_full(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup linearized state matrix, dfdx.
+    Set up the linearized state matrix, dfdx.
 
     Assumes the following 15 states in order:
     - Attitude (3)
@@ -270,7 +270,7 @@ def _state_matrix_full(
 
 def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Setup linearized (white noise) input matrix, dfdw.
+    Set up the linearized (white noise) input matrix, dfdw.
 
     Assumes the following 15 states in order:
     - Attitude (3)
@@ -307,7 +307,7 @@ def _process_noise_psd_full(
     vrw: float, arw: float, abs: float, abc: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup white noise (process noise) power spectral density matrix, W.
+    Set up the white noise (process noise) power spectral density matrix, W.
 
     Assumes the following 12 white noise inputs in order:
     - Gyroscope white noise (3)
@@ -386,7 +386,7 @@ def _measurement_matrix_full(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Setup linearized measurement matrix, dhdx.
+    Set up the linearized measurement matrix, dhdx.
 
     Assumes the following 15 states in order:
     - Attitude (3)
@@ -419,7 +419,7 @@ def _state_transition(
     dt: float, dtheta: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup state transition matrix, phi, using the first-order approximation:
+    Set up the state transition matrix, phi, using the first-order approximation:
 
         phi = I + dt * dfdx
 
@@ -492,7 +492,7 @@ def _process_noise_cov(
     dt: float, arw: float, gbs: float, gbc: float
 ) -> NDArray[np.float64]:
     """
-    Setup process noise covariance matrix, Q, using the first-order approximation:
+    Set up the process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
 
@@ -526,7 +526,7 @@ def _measurement_matrix(
     q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
-    Setup linearized measurement matrix, dhdx.
+    Set up the linearized measurement matrix, dhdx.
 
     Assumes the following 6 states in order:
     - Attitude (3)
@@ -555,7 +555,7 @@ def _state_matrix(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Setup linearized state matrix, dfdx.
+    Set up the linearized state matrix, dfdx.
 
     Assumes the following 6 states in order:
     - Attitude (3)
@@ -582,7 +582,7 @@ def _state_matrix(
 
 def _wn_input_matrix() -> NDArray[np.float64]:
     """
-    Setup linearized (white noise) input matrix, dfdw.
+    Set up the linearized (white noise) input matrix, dfdw.
 
     Assumes the following 6 states in order:
     - Attitude (3)
@@ -605,7 +605,7 @@ def _wn_input_matrix() -> NDArray[np.float64]:
 
 def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
     """
-    Setup white noise (process noise) power spectral density matrix, W.
+    Set up the white noise (process noise) power spectral density matrix, W.
 
     Assumes the following 6 white noise inputs in order:
     - Gyroscope white noise (3)
