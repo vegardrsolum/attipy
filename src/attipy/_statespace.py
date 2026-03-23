@@ -524,8 +524,8 @@ def _measurement_matrix(
         Linearized measurement matrix.
     """
     dhdx = np.zeros((4, 6))
-    dhdx[0:3, 0:3] = S(vg_b)  # gravity ref vector (NB! update)
-    dhdx[3:4, 0:3] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
     return dhdx
 
 
