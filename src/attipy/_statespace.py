@@ -553,9 +553,9 @@ def _state_matrix(
         Linearized state matrix.
     """
     dfdx = np.zeros((6, 6))
-    dfdx[0:3, 0:3] = -S(w_b)  # NB! update each time step
-    dfdx[0:3, 3:6] = -np.eye(3)
-    dfdx[3:6, 3:6] = -np.eye(3) / gbc
+    dfdx[ATT_IDX, ATT_IDX] = -S(w_b)  # NB! update each time step
+    dfdx[ATT_IDX, BG_IDX] = -np.eye(3)
+    dfdx[BG_IDX, BG_IDX] = -np.eye(3) / gbc
     return dfdx
 
 
