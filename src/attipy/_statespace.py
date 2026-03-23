@@ -368,11 +368,11 @@ def _measurement_matrix_full(
     Setup linearized measurement matrix, dhdx.
 
     Assumes the following 15 states in order:
-    - Position (3)
-    - Velocity (3)
     - Attitude (3)
-    - Accelerometer bias (3)
     - Gyro bias (3)
+    - Velocity (3)
+    - Position (3)
+    - Accelerometer bias (3)
 
     Parameters
     ----------
@@ -387,10 +387,10 @@ def _measurement_matrix_full(
         Linearized measurement matrix.
     """
     dhdx = np.zeros((10, 15))
-    dhdx[0:3, 6:9] = S(vg_b)  # gravity ref vector (NB! update)
-    dhdx[3:4, 6:9] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
-    dhdx[4:7, 3:6] = np.eye(3)  # velocity
-    dhdx[7:10, 0:3] = np.eye(3)  # position
+    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
+    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
+    dhdx[4:7, VEL_IDX] = np.eye(3)  # velocity
+    dhdx[7:10, POS_IDX] = np.eye(3)  # position
     return dhdx
 
 
