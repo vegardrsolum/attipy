@@ -30,12 +30,12 @@ from numpy.typing import NDArray
 
 from ._vectorops import _skew_symmetric as S
 
-# State order
-ATT_IDX = slice(0, 3)  # attitude (2x Gibbs vector)
-BG_IDX = slice(3, 6)  # gyroscope bias
-VEL_IDX = slice(6, 9)  # velocity
-POS_IDX = slice(9, 12)  # position
-BA_IDX = slice(12, 15)  # accelerometer bias
+# Error-state order
+ATT_IDX = slice(0, 3)  # attitude error (2x Gibbs vector)
+BG_IDX = slice(3, 6)  # gyroscope bias error
+VEL_IDX = slice(6, 9)  # velocity error
+POS_IDX = slice(9, 12)  # position error
+BA_IDX = slice(12, 15)  # accelerometer bias error
 
 
 def _state_transition_full(
