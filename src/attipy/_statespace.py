@@ -582,10 +582,6 @@ def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64
     """
     Setup white noise (process noise) power spectral density matrix, W.
 
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-
     Parameters
     ----------
     arw : float
