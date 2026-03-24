@@ -51,6 +51,9 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
+    where dt denotes the discrete time step, and dfdx denotes the continuous time
+    state matrix.
+
     Assumes the following 15 states in order:
     - Attitude error (3)
     - Gyro bias error (3)
