@@ -171,7 +171,6 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        # self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
         if isinstance(q, Attitude):
             self._att_nb = q
         elif q is None:
