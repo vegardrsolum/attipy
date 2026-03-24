@@ -1,29 +1,3 @@
-"""
-State-space model used by the error-state Kalman filter.
-
-The following continuous-time stochastic state-space model is assumed:
-
-    dx/dt = dfdx @ x + dfdw @ w
-
-where x denotes the state vector, w denotes the white noise input vector with power
-spectral density W, dfdx denotes the linearized state matrix, and dfdw denotes the
-linearized white noise input matrix.
-
-The corresponding discrete-time state-space model is defined as:
-
-    x_{k+1} = phi @ x_k + w_k
-
-where x_k denotes the state vector, phi denotes the state transition matrix, and
-w_k denotes the zero-mean white noise input vector with covariance Q for time step k.
-
-Using a first-order approximation, the discrete-time state-space model becomes:
-
-    phi = I + dt * dfdx
-    Q = dt * dfdw @ W @ dfdw.T
-
-where dt is the discrete time step.
-"""
-
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
