@@ -25,8 +25,8 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
-    where dt denotes the discrete time step, and dfdx denotes the continuous-time
-    state matrix.
+    where dt denotes the discrete time step, dfdx denotes the continuous-time state
+    matrix, and I denotes the identity matrix.
 
     Assumes the following 15 states in order:
     - Attitude error (3)
