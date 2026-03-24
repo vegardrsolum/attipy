@@ -51,7 +51,7 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
-    where dt denotes the discrete time step, and dfdx denotes the continuous time
+    where dt denotes the discrete time step, and dfdx denotes the continuous-time
     state matrix.
 
     Assumes the following 15 states in order:
@@ -133,7 +133,8 @@ def _update_state_transition_full(
 
         phi = I + dt * dfdx
 
-    where dfdx denotes the linearized state matrix.
+    where dt denotes the discrete time step, and dfdx denotes the continuous-time
+    state matrix.
     """
     wx, wy, wz = w_b
     fx, fy, fz = f_b
@@ -180,6 +181,10 @@ def _process_noise_cov_full(
     Set up the process noise covariance matrix, Q, using the first-order approximation:
 
         Q = dt @ dfdw @ W @ dfdw.T
+
+    where dt denotes the discrete time step, dfdw denotes the continuous-time white
+    noise input matrix, and W denotes the power spectral density matrix of the white
+    noise.
 
     Assumes the following 15 states in order:
     - Attitude (3)
