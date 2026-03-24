@@ -152,7 +152,7 @@ class MEKF:
         fs: float,
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(6),
+        P: ArrayLike = None,
         dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -174,8 +174,12 @@ class MEKF:
         self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
+
+        if P is None:
+            self._P = 1e-6 * np.eye(6)
+        else:
+            self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
