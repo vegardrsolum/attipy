@@ -150,10 +150,10 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
+        q: Attitude | ArrayLike | None = None,
+        bg: ArrayLike | None = None,
         P: ArrayLike | None = None,
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
+        dtheta: ArrayLike | None = None,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -171,15 +171,17 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # State and covariance estimates
-        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
-        self._dx = np.zeros(6)
-
-        if P is None:
-            self._P = 1e-6 * np.eye(6)
+        # self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        if isinstance(q, Attitude):
+            self._att_nb = q
+        elif q is None:
+            self._att_nb = Attitude((1.0, 0.0, 0.0, 0.0))
         else:
-            self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+            self._att_nb = Attitude(q)
+        self._bg_b = np.asarray(bg).copy() if bg is not None else np.zeros(3)
+        self._dtheta = np.asarray(dtheta).copy() if dtheta is not None else np.zeros(3)
+        self._P = np.asarray(P).copy() if P is not None else 1e-6 * np.eye(6)
+        self._dx = np.zeros(6)
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
