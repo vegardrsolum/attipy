@@ -272,7 +272,7 @@ class MEKF:
         )
 
     def _aiding_update_yaw(
-        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+        self, yaw_meas: float, yaw_var: float | None, yaw_degrees: bool
     ) -> None:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
