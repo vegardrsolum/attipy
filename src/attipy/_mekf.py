@@ -23,6 +23,16 @@ from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 
+P0 = (
+    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
+)
+
+
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     """
     Gravity vector expressed in the navigation frame ('NED' or 'ENU').
@@ -150,10 +160,10 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q: Attitude | ArrayLike | None = None,
-        bg: ArrayLike | None = None,
-        P: ArrayLike | None = None,
-        dtheta: ArrayLike | None = None,
+        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
+        P: ArrayLike = P0,
+        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -170,25 +180,12 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # Initial attitude estimate
-        if isinstance(q, Attitude):
-            self._att_nb = q
-        elif q is None:
-            self._att_nb = Attitude((1.0, 0.0, 0.0, 0.0))
-        else:
-            self._att_nb = Attitude(q)
-
-        # Initial gyroscope bias estimate
-        self._bg_b = np.asarray(bg).copy() if bg is not None else np.zeros(3)
-
-        # Initial error covariance matrix estimate
-        self._P = np.asarray(P).copy() if P is not None else 1e-6 * np.eye(6)
-
-        # Initial error-state estimate (da, dbg) (always zero after reset)
+        # Initial state and covariance estimates
+        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._dx = np.zeros(6)
-
-        # Previous attitude increment (coning integral)
-        self._dtheta = np.asarray(dtheta).copy() if dtheta is not None else np.zeros(3)
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
