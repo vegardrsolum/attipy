@@ -22,6 +22,15 @@ from ._statespace import (
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
+P0 = (
+    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
+)
+
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     """
@@ -123,14 +132,15 @@ class MEKF:
     fs : float
         Sampling rate in Hz.
     q : Attitude or array_like, shape (4,), optional
-        Initial attitude estimate as an Attitude instance or a unit quaternion (qw, qx, qy, qz).
-        Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
+        Initial attitude estimate given as an Attitude instance or a unit quaternion
+        (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
+        (i.e., no rotation).
     bg : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     P : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * np.eye(6)). The order of the (error) states is: dx = (da, dbg),
-        where da is the attitude error, and dbg is the gyroscope bias error.
+        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
+        da is the attitude error, and dbg is the gyroscope bias error.
     dtheta : array_like, shape (3,), optional
         Previous attitude increment (coning integral) in radians. Defaults to zero.
     gyro_noise_density : float, optional
@@ -151,7 +161,7 @@ class MEKF:
         fs: float,
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = 1e-6 * np.eye(6),
+        P: ArrayLike = P0,
         dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -169,11 +179,11 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # State and covariance estimates
+        # Initial state and covariance estimates
         self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
@@ -243,16 +253,10 @@ class MEKF:
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
-    def _aiding_update_gref(
-        self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
-    ) -> None:
+    def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike | None) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
         """
-
-        if vg_meas is None:
-            return None
-
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
 
@@ -273,10 +277,6 @@ class MEKF:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
         """
-
-        if yaw_meas is None:
-            return None
-
         if yaw_var is None:
             raise ValueError("'yaw_var' not provided.")
 
@@ -309,6 +309,7 @@ class MEKF:
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
+        *,
         degrees: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
@@ -364,8 +365,10 @@ class MEKF:
         self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(dv) if gref else None, gref_var)
-        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
+        if gref is True:
+            self._aiding_update_gref(-_normalize_vec(dv), gref_var)
+        if yaw is not None:
+            self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)

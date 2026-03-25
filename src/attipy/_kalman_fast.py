@@ -186,7 +186,7 @@ def _kalman_update_sequential_fast(
     tmp_cov : ndarray, shape (n,)
         Temporary workspace array for the covariance update.
     """
-    m = z.shape[0]
+    m = len(z)
     for i in range(m):
         _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, tmp_k, tmp_cov)
 

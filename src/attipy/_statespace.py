@@ -1,29 +1,3 @@
-"""
-State-space model used by the error-state Kalman filter.
-
-The following continuous-time stochastic state-space model is assumed:
-
-    dx/dt = dfdx @ x + dfdw @ w
-
-where x denotes the state vector, w denotes the white noise input vector with power
-spectral density W, dfdx denotes the linearized state matrix, and dfdw denotes the
-linearized white noise input matrix.
-
-The corresponding discrete-time state-space model is defined as:
-
-    x_{k+1} = phi @ x_k + w_k
-
-where x_k denotes the state vector, phi denotes the state transition matrix, and
-w_k denotes the zero-mean white noise input vector with covariance Q for time step k.
-
-Using a first-order approximation, the discrete-time state-space model becomes:
-
-    phi = I + dt * dfdx
-    Q = dt * dfdw @ W @ dfdw.T
-
-where dt is the discrete time step.
-"""
-
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
@@ -51,6 +25,9 @@ def _state_transition_full(
 
         phi = I + dt * dfdx
 
+    where dt denotes the discrete time step, dfdx denotes the continuous-time state
+    matrix, and I denotes the identity matrix.
+
     Assumes the following 15 states in order:
     - Attitude error (3)
     - Gyro bias error (3)
@@ -77,6 +54,15 @@ def _state_transition_full(
     -------
     phi : ndarray, shape (15, 15)
         State transition matrix.
+
+    Notes
+    -----
+    The following discrete-time state-space model is assumed:
+
+        x_{k+1} = phi @ x_k + w_k
+
+    where x_k denotes the state vector at time t_k, w_k denotes the zero-mean white
+    noise input vector with covariance Q, and phi denotes the state transition matrix.
     """
     phi = np.eye(15)
     phi[POS_IDX, VEL_IDX] += dt * np.eye(3)
@@ -130,7 +116,8 @@ def _update_state_transition_full(
 
         phi = I + dt * dfdx
 
-    where dfdx denotes the linearized state matrix.
+    where dt denotes the discrete time step, dfdx denotes the continuous-time state
+    matrix, and I denotes the identity matrix.
     """
     wx, wy, wz = w_b
     fx, fy, fz = f_b
@@ -178,6 +165,10 @@ def _process_noise_cov_full(
 
         Q = dt @ dfdw @ W @ dfdw.T
 
+    where dt denotes the discrete time step, dfdw denotes the continuous-time white
+    noise input matrix, and W denotes the power spectral density matrix of the white
+    noise.
+
     Assumes the following 15 states in order:
     - Attitude (3)
     - Gyro bias (3)
@@ -209,6 +200,15 @@ def _process_noise_cov_full(
 
     Notes
     -----
+    Notes
+    -----
+    The following discrete-time state-space model is assumed:
+
+        x_{k+1} = phi @ x_k + w_k
+
+    where x_k denotes the state vector at time t_k, w_k denotes the zero-mean white
+    noise input vector with covariance Q, and phi denotes the state transition matrix.
+
     In general, Q[6:9, 6:9] should be updated each time step if R_nb changes:
 
         Q[6:9, 6:9] = dt * (R_nb @ Wv @ R_nb.T)
@@ -232,7 +232,7 @@ def _state_matrix_full(
     gbc: float,
 ) -> NDArray[np.float64]:
     """
-    Set up the linearized state matrix, dfdx.
+    Set up the continuous-time linearized state matrix, dfdx.
 
     Assumes the following 15 states in order:
     - Attitude (3)
@@ -258,6 +258,16 @@ def _state_matrix_full(
     -------
     dfdx : ndarray, shape (15, 15)
         Linearized state matrix.
+
+    Notes
+    -----
+    The following continuous-time stochastic state-space model is assumed:
+
+        dx/dt = dfdx @ x + dfdw @ w
+
+    where x denotes the state vector, w denotes the white noise input vector with
+    power spectral density W, dfdx denotes the linearized state matrix, and dfdw
+    denotes the linearized white noise input matrix.
     """
     dfdx = np.zeros((15, 15))
     dfdx[POS_IDX, VEL_IDX] = np.eye(3)
@@ -296,6 +306,16 @@ def _wn_input_matrix_full(R_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     dfdw : ndarray, shape (15, 12)
         Linearized (white noise) input matrix.
+
+    Notes
+    -----
+    The following continuous-time stochastic state-space model is assumed:
+
+        dx/dt = dfdx @ x + dfdw @ w
+
+    where x denotes the state vector, w denotes the white noise input vector with
+    power spectral density W, dfdx denotes the linearized state matrix, and dfdw
+    denotes the linearized white noise input matrix.
     """
     dfdw = np.zeros((15, 12))
     dfdw[ATT_IDX, 0:3] = -np.eye(3)
@@ -336,6 +356,16 @@ def _process_noise_psd_full(
     -------
     W : ndarray, shape (12, 12)
         Process noise power spectral density matrix.
+
+    Notes
+    -----
+    The following continuous-time stochastic state-space model is assumed:
+
+        dx/dt = dfdx @ x + dfdw @ w
+
+    where x denotes the state vector, w denotes the white noise input vector with
+    power spectral density W, dfdx denotes the linearized state matrix, and dfdw
+    denotes the linearized white noise input matrix.
     """
     W = np.eye(12)
     W[0:3, 0:3] *= arw**2
