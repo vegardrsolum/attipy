@@ -172,7 +172,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
-        self._tmp = np.empty((6, 6))
+        self._tmp = np.empty((6, 6))  # preallocated workspace
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
