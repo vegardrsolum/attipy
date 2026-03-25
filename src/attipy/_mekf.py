@@ -22,10 +22,6 @@ from ._statespace import (
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
-# Default initial values for MEKF
-Q0 = (1.0, 0.0, 0.0, 0.0)  # identity quaternion (no rotation)
-BG0 = (0.0, 0.0, 0.0)  # zero bias
-DTHETA0 = (0.0, 0.0, 0.0)  # stationary
 P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
@@ -163,10 +159,10 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q: Attitude | ArrayLike = Q0,
-        bg: ArrayLike = BG0,
+        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = P0,
-        dtheta: ArrayLike = DTHETA0,
+        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
