@@ -160,7 +160,6 @@ class MEKF:
         self,
         fs: float,
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        *,
         bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = P0,
         dtheta: ArrayLike = (0.0, 0.0, 0.0),
