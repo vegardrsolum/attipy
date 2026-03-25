@@ -180,7 +180,7 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
