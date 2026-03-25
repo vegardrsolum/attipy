@@ -253,16 +253,10 @@ class MEKF:
         self._dhdx[3:4, 0:3] = _dyawda(q_nb)
         return self._dhdx[3]
 
-    def _aiding_update_gref(
-        self, vg_meas: ArrayLike | None, vg_var: ArrayLike | None
-    ) -> None:
+    def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike | None) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
         """
-
-        if vg_meas is None:
-            return None
-
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
 
@@ -283,10 +277,6 @@ class MEKF:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
         """
-
-        if yaw_meas is None:
-            return None
-
         if yaw_var is None:
             raise ValueError("'yaw_var' not provided.")
 
@@ -374,8 +364,10 @@ class MEKF:
         self._project_ahead(dtheta)
 
         # Update (a posteriori) state and covariance estimates with aiding measurements
-        self._aiding_update_gref(-_normalize_vec(dv) if gref else None, gref_var)
-        self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
+        if gref is True:
+            self._aiding_update_gref(-_normalize_vec(dv), gref_var)
+        if yaw is not None:
+            self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
