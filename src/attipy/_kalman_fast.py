@@ -227,8 +227,8 @@ def _project_cov_ahead_fast(
     # P = tmp @ phi.T + Q
     for i in range(n):
         for j in range(i, n):
-            s = 0.0
+            s = Q[i, j]
             for k in range(n):
                 s += tmp[i, k] * phi[j, k]
-            P[i, j] = s + Q[i, j]
-            P[j, i] = P[i, j]  # symmetry
+            P[i, j] = s
+            P[j, i] = s  # symmetry
