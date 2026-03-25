@@ -182,14 +182,14 @@ class MEKF:
         # Initial gyroscope bias estimate
         self._bg_b = np.asarray(bg).copy() if bg is not None else np.zeros(3)
 
-        # Previous attitude increment (coning integral)
-        self._dtheta = np.asarray(dtheta).copy() if dtheta is not None else np.zeros(3)
-
         # Initial error covariance matrix estimate
         self._P = np.asarray(P).copy() if P is not None else 1e-6 * np.eye(6)
 
         # Initial error-state estimate (da, dbg) (always zero after reset)
         self._dx = np.zeros(6)
+
+        # Previous attitude increment (coning integral)
+        self._dtheta = np.asarray(dtheta).copy() if dtheta is not None else np.zeros(3)
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
