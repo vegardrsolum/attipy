@@ -3,11 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import (
-    _canonical,
-    _correct_quat_with_gibbs2,
-    _correct_quat_with_rotvec,
-)
+from ._quatops import _canonical
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
