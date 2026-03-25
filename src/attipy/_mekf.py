@@ -170,7 +170,6 @@ class MEKF:
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-
         # Initial attitude estimate
         if isinstance(q, Attitude):
             self._att_nb = q
