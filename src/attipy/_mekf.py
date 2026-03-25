@@ -163,33 +163,33 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
+        self._tmp = np.empty((6, 6))
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
-        # Initial state and covariance estimates
+
+        # Initial attitude estimate
         if isinstance(q, Attitude):
             self._att_nb = q
         elif q is None:
             self._att_nb = Attitude((1.0, 0.0, 0.0, 0.0))
         else:
             self._att_nb = Attitude(q)
-        if bg is None:
-            self._bg_b = np.zeros(3)
-        else:
-            self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        if dtheta is None:
-            self._dtheta = np.zeros(3)
-        else:
-            self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
-        if P is None:
-            self._P = 1e-6 * np.eye(6)
-        else:
-            self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._dx = np.zeros(6)  # error-state
-        self._tmp = np.empty((6, 6))  # preallocated workspace
+
+        # Initial gyroscope bias estimate
+        self._bg_b = np.asarray(bg).copy() if bg is not None else np.zeros(3)
+
+        # Previous attitude increment (coning integral)
+        self._dtheta = np.asarray(dtheta).copy() if dtheta is not None else np.zeros(3)
+
+        # Initial error covariance matrix estimate
+        self._P = np.asarray(P).copy() if P is not None else 1e-6 * np.eye(6)
+
+        # Initial error-state estimate (da, dbg) (always zero after reset)
+        self._dx = np.zeros(6)
 
         # Discrete state-space model
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
