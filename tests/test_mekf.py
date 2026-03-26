@@ -57,6 +57,8 @@ class Test_MEKF:
 
         # Check C contiguity
         assert mekf._dhdx.flags.c_contiguous
+        assert mekf._dhdx_gref.flags.c_contiguous
+        assert mekf._dhdx_yaw.flags.c_contiguous
         assert mekf._phi.flags.c_contiguous
         assert mekf._Q.flags.c_contiguous
 
@@ -90,23 +92,6 @@ class Test_MEKF:
 
         with pytest.raises(ValueError):
             ap.MEKF(10.0, att, nav_frame="invalid")
-
-    def test_dhdx_gref(self, mekf):
-        vg_b = np.random.random(3)
-        vg_b /= np.linalg.norm(vg_b)
-        dhdx = mekf._dhdx_gref(vg_b)
-        dhdx_expected = np.zeros((3, 6))
-        dhdx_expected[:, 0:3] = _skew_symmetric(vg_b)
-        np.testing.assert_allclose(dhdx, dhdx_expected)
-        assert dhdx.flags.c_contiguous
-
-    def test_dhdx_yaw(self, mekf):
-        q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
-        dhdx_yaw = mekf._dhdx_yaw(q_nb)
-        dhdx_yaw_expected = np.zeros((6,))
-        dhdx_yaw_expected[0:3] = _dyawda(q_nb)
-        np.testing.assert_allclose(dhdx_yaw, dhdx_yaw_expected)
-        assert dhdx_yaw.flags.c_contiguous
 
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])

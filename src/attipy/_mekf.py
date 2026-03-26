@@ -191,6 +191,8 @@ class MEKF:
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
+        self._dhdx_gref = self._dhdx[0:3]
+        self._dhdx_yaw = self._dhdx[3]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -228,20 +230,6 @@ class MEKF:
             return np.degrees(self._bg_b.copy())
         return self._bg_b.copy()
 
-    def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Gravity reference vector part of the measurement matrix, shape (3, 6).
-        """
-        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
-        return self._dhdx[0:3]
-
-    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Heading (yaw angle) part of the measurement matrix, shape (6,).
-        """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
-        return self._dhdx[3]
-
     def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike | None) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
@@ -250,10 +238,12 @@ class MEKF:
             raise ValueError("'vg_var' not provided.")
 
         vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
+        self._dhdx_gref[0:3, 0:3] = _skew_symmetric(vg_b)
+
         _kalman_update_sequential_fast(
             vg_meas - vg_b,
             vg_var,
-            self._dhdx_gref(vg_b),
+            self._dhdx_gref,
             self._dx,
             self._P,
             self._tmp[0],
@@ -273,10 +263,12 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
+        self._dhdx_yaw[0:3] = _dyawda(self._att_nb._q)
+
         _kalman_update_scalar_fast(
             _signed_smallest_angle(yaw_meas - _yaw_from_quat(self._att_nb._q)),
             yaw_var,
-            self._dhdx_yaw(self._att_nb._q),
+            self._dhdx_yaw,
             self._dx,
             self._P,
             self._tmp[0],
