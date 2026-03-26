@@ -187,21 +187,10 @@ class MEKF:
         self._dx = np.zeros(6)
 
         # Discrete state-space model
+        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
-
-    @property
-    def _vg_b(self):
-        """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._nz2vg * _nz_b_from_quat(self._att_nb._q)
-
-    @property
-    def _yaw(self) -> float:
-        """
-        Heading (yaw angle) estimate in radians.
-        """
-        return _yaw_from_quat(self._att_nb._q)
+        self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -260,7 +249,7 @@ class MEKF:
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
 
-        vg_b = self._vg_b
+        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
         _kalman_update_sequential_fast(
             vg_meas - vg_b,
             vg_var,
@@ -285,7 +274,7 @@ class MEKF:
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
         _kalman_update_scalar_fast(
-            _signed_smallest_angle(yaw_meas - self._yaw),
+            _signed_smallest_angle(yaw_meas - _yaw_from_quat(self._att_nb._q)),
             yaw_var,
             self._dhdx_yaw(self._att_nb._q),
             self._dx,
