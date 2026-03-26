@@ -180,28 +180,19 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = q if isinstance(q, Attitude) else Attitude(q)
+        self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
+        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
         self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix(self._att_nb._q, self._vg_b)
-
-    @property
-    def _vg_b(self):
-        """Gravity reference vector (unit vector) expressed in the body frame."""
-        return self._nz2vg * _nz_b_from_quat(self._att_nb._q)
-
-    @property
-    def _yaw(self) -> float:
-        """
-        Heading (yaw angle) estimate in radians.
-        """
-        return _yaw_from_quat(self._att_nb._q)
+        self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
+        self._dhdx_gref = self._dhdx[0:3]
+        self._dhdx_yaw = self._dhdx[3]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -239,20 +230,6 @@ class MEKF:
             return np.degrees(self._bg_b.copy())
         return self._bg_b.copy()
 
-    def _dhdx_gref(self, vg_b: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Gravity reference vector part of the measurement matrix, shape (3, 6).
-        """
-        self._dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
-        return self._dhdx[0:3]
-
-    def _dhdx_yaw(self, q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-        """
-        Heading (yaw angle) part of the measurement matrix, shape (6,).
-        """
-        self._dhdx[3:4, 0:3] = _dyawda(q_nb)
-        return self._dhdx[3]
-
     def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike | None) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
@@ -260,11 +237,13 @@ class MEKF:
         if vg_var is None:
             raise ValueError("'vg_var' not provided.")
 
-        vg_b = self._vg_b
+        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
+        self._dhdx_gref[0:3, 0:3] = _skew_symmetric(vg_b)
+
         _kalman_update_sequential_fast(
             vg_meas - vg_b,
             vg_var,
-            self._dhdx_gref(vg_b),
+            self._dhdx_gref,
             self._dx,
             self._P,
             self._tmp[0],
@@ -272,7 +251,7 @@ class MEKF:
         )
 
     def _aiding_update_yaw(
-        self, yaw_meas: float | None, yaw_var: float | None, yaw_degrees: bool
+        self, yaw_meas: float, yaw_var: float | None, yaw_degrees: bool
     ) -> None:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
@@ -284,10 +263,12 @@ class MEKF:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
+        self._dhdx_yaw[0:3] = _dyawda(self._att_nb._q)
+
         _kalman_update_scalar_fast(
-            _signed_smallest_angle(yaw_meas - self._yaw),
+            _signed_smallest_angle(yaw_meas - _yaw_from_quat(self._att_nb._q)),
             yaw_var,
-            self._dhdx_yaw(self._att_nb._q),
+            self._dhdx_yaw,
             self._dx,
             self._P,
             self._tmp[0],
@@ -315,7 +296,7 @@ class MEKF:
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
         gref: bool = True,
-        gref_var: ArrayLike | None = (0.001, 0.001, 0.001),
+        gref_var: ArrayLike = (0.001, 0.001, 0.001),
     ) -> Self:
         """
         Update state estimates with IMU and aiding measurements.

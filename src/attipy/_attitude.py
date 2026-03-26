@@ -3,11 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import (
-    _canonical,
-    _correct_quat_with_gibbs2,
-    _correct_quat_with_rotvec,
-)
+from ._quatops import _canonical
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -39,8 +35,7 @@ def _asarray_check_matrix(dcm: ArrayLike) -> NDArray[np.float64]:
     R = np.asarray_chkfinite(dcm, dtype=float)
     if R.shape != (3, 3):
         raise ValueError("SO(3) matrix must be a 3x3 array.")
-    I3x3 = np.eye(3)
-    if not np.allclose(R.T @ R, I3x3):
+    if not np.allclose(R.T @ R, np.eye(3)):
         raise ValueError("SO(3) matrix must be orthogonal.")
     if not np.isclose(np.linalg.det(R), 1.0):
         raise ValueError("SO(3) matrix must have a determinant of 1.")
