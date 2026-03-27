@@ -275,17 +275,6 @@ class MEKF:
             self._tmp[1],
         )
 
-    def _project_ahead(self, dtheta: NDArray[np.float64]) -> None:
-        """
-        Project state and covariance estimates ahead.
-        """
-
-        # Attitude update (strapdown algorithm)
-        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
-
-        # Covariance projection
-        _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
-
     def update(
         self,
         dv: ArrayLike,
@@ -342,10 +331,13 @@ class MEKF:
 
         dtheta = dtheta - self._dt * self._bg_b
 
-        # Project (a priori) state and covariance estimates ahead
-        self._project_ahead(dtheta)
+        # Project attitude estimate ahead (strapdown algorithm) (a priori)
+        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
-        # Update (a posteriori) state and covariance estimates with aiding measurements
+        # Project error covariance matrix estimate ahead (a priori)
+        _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
+
+        # Update state and covariance estimates with aiding measurements (a posteriori)
         if gref is True:
             self._aiding_update_gref(-_normalize_vec(dv), gref_var)
         if yaw is not None:
