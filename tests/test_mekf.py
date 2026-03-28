@@ -22,7 +22,6 @@ class Test_MEKF:
         fs = 1024.0
         q_nb = _quat_from_euler_zyx(np.radians([10.0, -20.0, 45.0]))
         bg_b = (0.1, -0.2, 0.3)
-        dtheta = (0.01, -0.02, 0.03)
         P = 42.0 * np.eye(6)
         nav_frame = "enu"
         gyro_noise_density = 0.000456
@@ -33,7 +32,6 @@ class Test_MEKF:
             fs,
             q_nb,
             bg=bg_b,
-            dtheta=dtheta,
             P=P,
             nav_frame=nav_frame,
             gyro_noise_density=gyro_noise_density,
@@ -52,7 +50,6 @@ class Test_MEKF:
 
         np.testing.assert_allclose(mekf._att_nb._q, q_nb)
         np.testing.assert_allclose(mekf._bg_b, bg_b)
-        np.testing.assert_allclose(mekf._dtheta, dtheta)
         np.testing.assert_allclose(mekf._P, P)
 
         # Check C contiguity
@@ -78,8 +75,6 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
-
-        np.testing.assert_allclose(mekf._dtheta, np.zeros(3))
 
     def test__init__nav_frame(self):
         att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
