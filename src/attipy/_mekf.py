@@ -141,8 +141,6 @@ class MEKF:
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
         da is the attitude error, and dbg is the gyroscope bias error.
-    dtheta : array_like, shape (3,), optional
-        Previous attitude increment (coning integral) in radians. Defaults to zero.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -162,7 +160,6 @@ class MEKF:
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg: ArrayLike = (0.0, 0.0, 0.0),
         P: ArrayLike = P0,
-        dtheta: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -183,12 +180,11 @@ class MEKF:
         self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
         self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
-        self._dtheta = np.asarray_chkfinite(dtheta).reshape(3).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
         vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
-        self._phi = _state_transition(self._dt, self._dtheta, self._gbc)
+        self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
         self._dhdx_gref = self._dhdx[0:3]
@@ -200,11 +196,6 @@ class MEKF:
         Copy of the error covariance matrix estimate.
         """
         return self._P.copy()
-
-    @property
-    def dtheta(self) -> NDArray[np.float64]:
-        """Copy of the previous attitude increment (coning integral) in radians."""
-        return self._dtheta.copy()
 
     @property
     def attitude(self) -> Attitude:
@@ -331,6 +322,9 @@ class MEKF:
 
         dtheta = dtheta - self._dt * self._bg_b
 
+        # Update state-space model
+        _update_state_transition(self._phi, dtheta)
+
         # Project attitude estimate ahead (strapdown algorithm) (a priori)
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
@@ -345,9 +339,5 @@ class MEKF:
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
-
-        # Update state space model
-        self._dtheta[:] = dtheta
-        _update_state_transition(self._phi, dtheta)
 
         return self
