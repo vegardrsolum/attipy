@@ -81,6 +81,7 @@ def _nz2vg(nav_frame: str) -> float:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
 
+@njit  # type: ignore[misc]
 def _signed_smallest_angle(angle: float) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
