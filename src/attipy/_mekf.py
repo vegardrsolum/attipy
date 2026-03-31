@@ -315,7 +315,7 @@ class MEKF:
             Defaults to ``None`` (no yaw aiding).
         yaw_var : float, optional
             Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
-            Required for ``yaw``.
+            Required for yaw aiding; if not provided, yaw aiding is ignored.
         yaw_degrees : bool, optional
             Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
@@ -324,7 +324,8 @@ class MEKF:
             direction of gravity as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            Required for ``gref``. Defaults to (0.001, 0.001, 0.001).
+            Required for gravity reference vector aiding; if not provided, gravity
+            reference vector aiding is ignored. Defaults to (0.001, 0.001, 0.001).
 
         Returns
         -------
