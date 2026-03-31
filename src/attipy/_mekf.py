@@ -222,49 +222,65 @@ class MEKF:
             return np.degrees(self._bg_b.copy())
         return self._bg_b.copy()
 
-    def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike) -> None:
+    @staticmethod
+    @njit  # type: ignore[misc]
+    def _aiding_update_gref(
+        vg_meas: ArrayLike,
+        vg_var: ArrayLike,
+        dhdx: NDArray[np.float64],
+        nz2vg: float,
+        q_nb: NDArray[np.float64],
+        dx: NDArray[np.float64],
+        P: NDArray[np.float64],
+        tmp: NDArray[np.float64],
+    ) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
         """
-        if vg_var is None:
-            raise ValueError("'vg_var' not provided.")
 
-        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
-        self._dhdx_gref[0:3, 0:3] = _skew_symmetric(vg_b)
+        vg_b = nz2vg * _nz_b_from_quat(q_nb)
+        dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
         _kalman_update_sequential_fast(
             vg_meas - vg_b,
             vg_var,
-            self._dhdx_gref,
-            self._dx,
-            self._P,
-            self._tmp[0],
-            self._tmp[1],
+            dhdx,
+            dx,
+            P,
+            tmp[0],
+            tmp[1],
         )
 
+    @staticmethod
+    @njit  # type: ignore[misc]
     def _aiding_update_yaw(
-        self, yaw_meas: float, yaw_var: float, yaw_degrees: bool
+        yaw_meas: float,
+        yaw_var: float,
+        yaw_degrees: bool,
+        dhdx: NDArray[np.float64],
+        q_nb: NDArray[np.float64],
+        dx: NDArray[np.float64],
+        P: NDArray[np.float64],
+        tmp: NDArray[np.float64],
     ) -> None:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
         """
-        if yaw_var is None:
-            raise ValueError("'yaw_var' not provided.")
 
         if yaw_degrees:
             yaw_meas = (np.pi / 180.0) * yaw_meas
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
-        self._dhdx_yaw[0:3] = _dyawda(self._att_nb._q)
+        dhdx[0:3] = _dyawda(q_nb)
 
         _kalman_update_scalar_fast(
-            _signed_smallest_angle(yaw_meas - _yaw_from_quat(self._att_nb._q)),
+            _signed_smallest_angle(yaw_meas - _yaw_from_quat(q_nb)),
             yaw_var,
-            self._dhdx_yaw,
-            self._dx,
-            self._P,
-            self._tmp[0],
-            self._tmp[1],
+            dhdx,
+            dx,
+            P,
+            tmp[0],
+            tmp[1],
         )
 
     def update(
@@ -333,10 +349,28 @@ class MEKF:
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
 
         # Update state and covariance estimates with aiding measurements (a posteriori)
-        if gref is True:
-            self._aiding_update_gref(-_normalize_vec(dv), gref_var)
-        if yaw is not None:
-            self._aiding_update_yaw(yaw, yaw_var, yaw_degrees)
+        if gref is True and gref_var is not None:
+            self._aiding_update_gref(
+                -_normalize_vec(dv),
+                gref_var,
+                self._dhdx_gref,
+                self._nz2vg,
+                self._att_nb._q,
+                self._dx,
+                self._P,
+                self._tmp,
+            )
+        if yaw is not None and yaw_var is not None:
+            self._aiding_update_yaw(
+                yaw,
+                yaw_var,
+                yaw_degrees,
+                self._dhdx_yaw,
+                self._att_nb._q,
+                self._dx,
+                self._P,
+                self._tmp,
+            )
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
