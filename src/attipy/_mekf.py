@@ -225,7 +225,7 @@ class MEKF:
     @staticmethod
     @njit  # type: ignore[misc]
     def _aiding_update_gref(
-        vg_meas: ArrayLike,
+        dv: ArrayLike,
         vg_var: ArrayLike,
         dhdx: NDArray[np.float64],
         nz2vg: float,
@@ -242,7 +242,7 @@ class MEKF:
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
         _kalman_update_sequential_fast(
-            vg_meas - vg_b,
+            -_normalize_vec(dv) - vg_b,
             vg_var,
             dhdx,
             dx,
@@ -254,7 +254,7 @@ class MEKF:
     @staticmethod
     @njit  # type: ignore[misc]
     def _aiding_update_yaw(
-        yaw_meas: float,
+        yaw: float,
         yaw_var: float,
         yaw_degrees: bool,
         dhdx: NDArray[np.float64],
@@ -268,13 +268,13 @@ class MEKF:
         """
 
         if yaw_degrees:
-            yaw_meas = (np.pi / 180.0) * yaw_meas
+            yaw = (np.pi / 180.0) * yaw
             yaw_var = (np.pi / 180.0) ** 2 * yaw_var
 
         dhdx[0:3] = _dyawda(q_nb)
 
         _kalman_update_scalar_fast(
-            _signed_smallest_angle(yaw_meas - _yaw_from_quat(q_nb)),
+            _signed_smallest_angle(yaw - _yaw_from_quat(q_nb)),
             yaw_var,
             dhdx,
             dx,
@@ -351,7 +351,7 @@ class MEKF:
         # Update state and covariance estimates with aiding measurements (a posteriori)
         if gref is True and gref_var is not None:
             self._aiding_update_gref(
-                -_normalize_vec(dv),
+                dv,
                 gref_var,
                 self._dhdx_gref,
                 self._nz2vg,
