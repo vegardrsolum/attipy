@@ -222,7 +222,7 @@ class MEKF:
             return np.degrees(self._bg_b.copy())
         return self._bg_b.copy()
 
-    def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike | None) -> None:
+    def _aiding_update_gref(self, vg_meas: ArrayLike, vg_var: ArrayLike) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
         """
@@ -243,7 +243,7 @@ class MEKF:
         )
 
     def _aiding_update_yaw(
-        self, yaw_meas: float, yaw_var: float | None, yaw_degrees: bool
+        self, yaw_meas: float, yaw_var: float, yaw_degrees: bool
     ) -> None:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
