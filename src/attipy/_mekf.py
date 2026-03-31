@@ -226,7 +226,7 @@ class MEKF:
     @njit  # type: ignore[misc]
     def _aiding_update_gref(
         dv: ArrayLike,
-        vg_var: ArrayLike,
+        var: ArrayLike,
         dhdx: NDArray[np.float64],
         nz2vg: float,
         q_nb: NDArray[np.float64],
@@ -239,24 +239,17 @@ class MEKF:
         """
 
         vg_b = nz2vg * _nz_b_from_quat(q_nb)
+        dz = -_normalize_vec(dv) - vg_b
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
-        _kalman_update_sequential_fast(
-            -_normalize_vec(dv) - vg_b,
-            vg_var,
-            dhdx,
-            dx,
-            P,
-            tmp[0],
-            tmp[1],
-        )
+        _kalman_update_sequential_fast(dz, var, dhdx, dx, P, tmp[0], tmp[1])
 
     @staticmethod
     @njit  # type: ignore[misc]
     def _aiding_update_yaw(
         yaw: float,
-        yaw_var: float,
-        yaw_degrees: bool,
+        var: float,
+        degrees: bool,
         dhdx: NDArray[np.float64],
         q_nb: NDArray[np.float64],
         dx: NDArray[np.float64],
@@ -267,21 +260,14 @@ class MEKF:
         Update state and covariance with heading (yaw angle) aiding measurement.
         """
 
-        if yaw_degrees:
+        if degrees:
             yaw = (np.pi / 180.0) * yaw
-            yaw_var = (np.pi / 180.0) ** 2 * yaw_var
+            var = (np.pi / 180.0) ** 2 * var
 
+        dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
         dhdx[0:3] = _dyawda(q_nb)
 
-        _kalman_update_scalar_fast(
-            _signed_smallest_angle(yaw - _yaw_from_quat(q_nb)),
-            yaw_var,
-            dhdx,
-            dx,
-            P,
-            tmp[0],
-            tmp[1],
-        )
+        _kalman_update_scalar_fast(dz, var, dhdx, dx, P, tmp[0], tmp[1])
 
     def update(
         self,
