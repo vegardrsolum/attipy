@@ -301,7 +301,7 @@ class MEKF:
             Defaults to ``None`` (no yaw aiding).
         yaw_var : float, optional
             Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
-            Required for yaw aiding; if not provided, yaw aiding is ignored.
+            Required for yaw aiding. Defaults to None.
         yaw_degrees : bool, optional
             Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
             or rad and rad^2 (default).
@@ -310,8 +310,7 @@ class MEKF:
             direction of gravity as aiding. Defaults to ``True``.
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
-            Required for gravity reference vector aiding; if not provided, gravity
-            reference vector aiding is ignored. Defaults to (0.001, 0.001, 0.001).
+            Required for gravity reference vector aiding. Defaults to (0.001, 0.001, 0.001).
 
         Returns
         -------
@@ -329,13 +328,13 @@ class MEKF:
         # Update state-space model
         _update_state_transition(self._phi, dtheta)
 
-        # Project attitude estimate ahead (strapdown algorithm) (a priori)
+        # Project (a priori) attitude estimate ahead (strapdown algorithm)
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
-        # Project error covariance matrix estimate ahead (a priori)
+        # Project (a priori) error covariance matrix estimate ahead
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
 
-        # Update state and covariance estimates with aiding measurements (a posteriori)
+        # Correct (a posteriori) state estimate using gravity reference vector aiding
         if gref is True and gref_var is not None:
             self._aiding_update_gref(
                 dv,
@@ -347,6 +346,10 @@ class MEKF:
                 self._P,
                 self._tmp,
             )
+        elif gref_var is None:
+            raise ValueError("gref_var is not provided; required for gref aiding.")
+
+        # Correct (a posteriori) state estimate using yaw aiding
         if yaw is not None and yaw_var is not None:
             self._aiding_update_yaw(
                 yaw,
@@ -358,6 +361,8 @@ class MEKF:
                 self._P,
                 self._tmp,
             )
+        elif yaw_var is None:
+            raise ValueError("yaw_var is not provided; required for yaw aiding.")
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
