@@ -190,8 +190,6 @@ class MEKF:
         self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
-        self._dhdx_gref = self._dhdx[0:3]
-        self._dhdx_yaw = self._dhdx[3]
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -230,10 +228,10 @@ class MEKF:
         dv: ArrayLike,
         var: ArrayLike | None,
         dhdx: NDArray[np.float64],
-        nz2vg: float,
-        q_nb: NDArray[np.float64],
         dx: NDArray[np.float64],
         P: NDArray[np.float64],
+        q_nb: NDArray[np.float64],
+        nz2vg: float,
         tmp: NDArray[np.float64],
     ) -> None:
         """
@@ -247,7 +245,7 @@ class MEKF:
         dz = -_normalize_vec(dv) - vg_b
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
-        _kalman_update_sequential_fast(dz, var, dhdx, dx, P, tmp[0], tmp[1])
+        _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0], tmp[1])
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -256,9 +254,9 @@ class MEKF:
         var: float | None,
         degrees: bool,
         dhdx: NDArray[np.float64],
-        q_nb: NDArray[np.float64],
         dx: NDArray[np.float64],
         P: NDArray[np.float64],
+        q_nb: NDArray[np.float64],
         tmp: NDArray[np.float64],
     ) -> None:
         """
@@ -273,9 +271,9 @@ class MEKF:
             var = DEG2RAD**2 * var
 
         dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
-        dhdx[0:3] = _dyawda(q_nb)
+        dhdx[3, 0:3] = _dyawda(q_nb)
 
-        _kalman_update_scalar_fast(dz, var, dhdx, dx, P, tmp[0], tmp[1])
+        _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0], tmp[1])
 
     def update(
         self,
@@ -347,11 +345,11 @@ class MEKF:
             self._aiding_update_gref(
                 dv,
                 gref_var,
-                self._dhdx_gref,
-                self._nz2vg,
-                self._att_nb._q,
+                self._dhdx,
                 self._dx,
                 self._P,
+                self._att_nb._q,
+                self._nz2vg,
                 self._tmp,
             )
 
@@ -361,10 +359,10 @@ class MEKF:
                 yaw,
                 yaw_var,
                 yaw_degrees,
-                self._dhdx_yaw,
-                self._att_nb._q,
+                self._dhdx,
                 self._dx,
                 self._P,
+                self._att_nb._q,
                 self._tmp,
             )
 
