@@ -127,7 +127,7 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
 @njit  # type: ignore[misc]
 def _correct_quat_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
-) -> NDArray[np.float64]:
+) -> None:
     """
     Update/correct a unit quaternion, q, with a small attitude increment, dtheta,
     parameterized as a rotation vector.

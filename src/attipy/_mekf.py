@@ -102,7 +102,7 @@ def _signed_smallest_angle(angle: float) -> float:
 
 
 @njit  # type: ignore[misc]
-def _reset(q_nb, bg_b, dx) -> None:
+def _reset(q_nb: NDArray[np.float64], bg_b: NDArray[np.float64], dx: NDArray[np.float64]) -> None:
     """
     Reset states (regulating error-states to zero).
 
@@ -203,7 +203,7 @@ class MEKF:
         """Attitude estimate (no copy)."""
         return self._att_nb
 
-    def bias_gyro(self, degrees=False) -> NDArray[np.float64]:
+    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Gyroscope bias estimate expressed in the body frame.
 
@@ -219,7 +219,7 @@ class MEKF:
             Copy of the gyroscope bias estimate.
         """
         if degrees:
-            return np.degrees(self._bg_b.copy())
+            return np.degrees(self._bg_b.copy())  # type: ignore[no-any-return]
         return self._bg_b.copy()
 
     @staticmethod
@@ -323,11 +323,11 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dv = np.asarray(dv)
-        dtheta = np.asarray(dtheta)
+        dv = np.asarray(dv, dtype=np.float64)
+        dtheta = np.asarray(dtheta, dtype=np.float64)
 
         if degrees:
-            dtheta = np.radians(dtheta)
+            dtheta = np.asarray(np.radians(dtheta), dtype=np.float64)
 
         dtheta = dtheta - self._dt * self._bg_b
 

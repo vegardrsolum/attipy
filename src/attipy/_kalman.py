@@ -54,7 +54,7 @@ def _kalman_update(
     # Updated (a posteriori) covariance estimate (Joseph form)
     P = (I_ - K @ H) @ P @ (I_ - K @ H).T + K @ R @ K.T
 
-    return x, P
+    return x, P  # type: ignore[return-value]
 
 
 @njit  # type: ignore[misc]
@@ -88,7 +88,7 @@ def _kalman_gain(
     # Kalman gain
     k = Ph * s_inv
 
-    return k
+    return k  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]

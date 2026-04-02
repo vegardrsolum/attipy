@@ -240,7 +240,14 @@ def pva_sim(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-):
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
     """
     Generate position, velocity and attitude (PVA) signals, and corresponding IMU
     signals (specific force and angular rate).
@@ -296,7 +303,7 @@ def pva_sim(
 
     # Time
     dt = 1.0 / fs
-    t = dt * np.arange(n)
+    t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # DOF timeseries and corresponding accelerations and rotation rates
     px, px_dot, px_ddot = px_sig(t)
