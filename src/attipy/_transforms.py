@@ -352,7 +352,7 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
     scale = 1.0 / np.sqrt(4.0 + gx**2 + gy**2 + gz**2)
 
     q = scale * np.array([2.0, gx, gy, gz])
-    return q
+    return q  # type: ignore[no-any-return]
 
 
 @njit  # type: ignore[misc]

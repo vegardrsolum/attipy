@@ -104,7 +104,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q = _canonical(_asarray_check_quat(q))
+        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q))
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q
@@ -225,7 +225,7 @@ class Attitude:
         - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
         - S(qxyz) is the skew-symmetric matrix of qxyz.
         """
-        return _matrix_from_quat(self._q)
+        return _matrix_from_quat(self._q)  # type: ignore[no-any-return]
 
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
@@ -314,7 +314,7 @@ class Attitude:
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
             theta = np.degrees(theta)
-        return theta
+        return theta  # type: ignore[no-any-return]
 
     @classmethod
     def from_rotvec(cls, r: ArrayLike, degrees: bool = False) -> Self:
@@ -367,4 +367,4 @@ class Attitude:
         r = _rotvec_from_quat(self._q)
         if degrees:
             r = np.degrees(r)
-        return r
+        return r  # type: ignore[no-any-return]
