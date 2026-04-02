@@ -23,6 +23,7 @@ from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
+RAD2DEG = 180.0 / np.pi
 
 P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -221,7 +222,7 @@ class MEKF:
             Copy of the gyroscope bias estimate.
         """
         if degrees:
-            return np.degrees(self._bg_b.copy())  # type: ignore[no-any-return]
+            return RAD2DEG * self._bg_b.copy()
         return self._bg_b.copy()
 
     @staticmethod
