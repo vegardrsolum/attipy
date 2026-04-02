@@ -102,7 +102,9 @@ def _signed_smallest_angle(angle: float) -> float:
 
 
 @njit  # type: ignore[misc]
-def _reset(q_nb: NDArray[np.float64], bg_b: NDArray[np.float64], dx: NDArray[np.float64]) -> None:
+def _reset(
+    q_nb: NDArray[np.float64], bg_b: NDArray[np.float64], dx: NDArray[np.float64]
+) -> None:
     """
     Reset states (regulating error-states to zero).
 
