@@ -325,11 +325,11 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dv = np.asarray(dv, dtype=np.float64)
-        dtheta = np.asarray(dtheta, dtype=np.float64)
+        dv = np.asarray(dv)
+        dtheta = np.asarray(dtheta)
 
         if degrees:
-            dtheta = np.asarray(np.radians(dtheta), dtype=np.float64)
+            dtheta = DEG2RAD * dtheta
 
         dtheta = dtheta - self._dt * self._bg_b
 
