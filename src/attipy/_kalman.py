@@ -58,67 +58,6 @@ def _kalman_update(
 
 
 @njit  # type: ignore[misc]
-def _kalman_gain(
-    P: NDArray[np.float64], h: NDArray[np.float64], r: float
-) -> NDArray[np.float64]:
-    """
-    Compute the Kalman gain for a scalar measurement (matrix notation):
-
-        k = P @ h.T / (h @ P @ h.T + r)
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        State error covariance matrix.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-
-    Returns
-    -------
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    """
-
-    # Innovation covariance (inverse)
-    Ph = np.dot(P, h)
-    s_inv = 1.0 / (np.dot(h, Ph) + r)
-
-    # Kalman gain
-    k = Ph * s_inv
-
-    return k  # type: ignore[no-any-return]
-
-
-@njit  # type: ignore[misc]
-def _covariance_update(
-    P: NDArray[np.float64],
-    k: NDArray[np.float64],
-    h: NDArray[np.float64],
-    r: float,
-) -> None:
-    """
-    Joseph-form covariance update (matrix notation):
-
-        P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-    """
-    A = np.eye(k.size) - np.outer(k, h)
-    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
-
-
-@njit  # type: ignore[misc]
 def _kalman_update_scalar(
     z: float,
     r: float,
@@ -142,15 +81,19 @@ def _kalman_update_scalar(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     """
+    Ph = np.dot(P, h)
+
+    # Innovation (pre-fit residual) covariance
+    s = np.dot(h, Ph) + r
 
     # Kalman gain
-    k = _kalman_gain(P, h, r)
+    k = Ph / s
 
     # Updated (a posteriori) state estimate
     x[:] += k * (z - np.dot(h, x))
 
-    # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update(P, k, h, r)
+    # Updated (a posteriori) covariance estimate (Joseph form expanded)
+    P[:, :] = P - np.outer(k, Ph) - np.outer(Ph, k) + s * np.outer(k, k)
 
 
 @njit  # type: ignore[misc]
