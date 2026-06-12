@@ -83,12 +83,17 @@ def _kalman_update_scalar(
         State error covariance matrix to be updated in place.
     """
     Ph = np.dot(P, h)
+
+    # Innovation (pre-fit residual) covariance
     s = np.dot(h, Ph) + r
+
+    # Kalman gain
     k = Ph / s
 
+    # Updated (a posteriori) state estimate
     x[:] += k * (z - np.dot(h, x))
 
-    # Joseph form expanded: (I - kh^T) P (I - hk^T) + r*kk^T
+    # Updated (a posteriori) covariance estimate (Joseph form expanded)
     P[:, :] = P - np.outer(k, Ph) - np.outer(Ph, k) + s * np.outer(k, k)
 
 
