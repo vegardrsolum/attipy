@@ -174,6 +174,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
+
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
         self._gbs = gyro_bias_stability  # gyro bias stability
