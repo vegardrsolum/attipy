@@ -227,7 +227,7 @@ class MEKF:
     @njit  # type: ignore[misc]
     def _aiding_update_gref(
         dv: ArrayLike,
-        var: ArrayLike | None,
+        var: NDArray[np.float64],
         dhdx: NDArray[np.float64],
         dx: NDArray[np.float64],
         P: NDArray[np.float64],
@@ -237,10 +237,6 @@ class MEKF:
         """
         Update state and covariance with gravity reference vector aiding measurement.
         """
-
-        if var is None:
-            raise ValueError("gref_var is not provided; required for gref aiding.")
-
         vg_b = nz2vg * _nz_b_from_quat(q_nb)
         dz = -_normalize_vec(dv) - vg_b
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
@@ -251,7 +247,7 @@ class MEKF:
     @njit  # type: ignore[misc]
     def _aiding_update_yaw(
         yaw: float,
-        var: float | None,
+        var: float,
         degrees: bool,
         dhdx: NDArray[np.float64],
         dx: NDArray[np.float64],
@@ -261,10 +257,6 @@ class MEKF:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
         """
-
-        if var is None:
-            raise ValueError("yaw_var is not provided; required for yaw aiding.")
-
         if degrees:
             yaw = DEG2RAD * yaw
             var = DEG2RAD**2 * var
@@ -324,6 +316,7 @@ class MEKF:
         """
         dv = np.asarray(dv)
         dtheta = np.asarray(dtheta)
+        gref_var = np.asarray(gref_var, dtype=np.float64)
 
         if degrees:
             dtheta = DEG2RAD * dtheta
@@ -340,7 +333,7 @@ class MEKF:
         _project_cov_ahead(self._P, self._phi, self._Q)
 
         # Correct (a posteriori) state estimate using gravity reference vector aiding
-        if gref is True:
+        if gref:
             self._aiding_update_gref(
                 dv,
                 gref_var,
@@ -353,6 +346,8 @@ class MEKF:
 
         # Correct (a posteriori) state estimate using yaw aiding
         if yaw is not None:
+            if yaw_var is None:
+                raise ValueError("yaw_var is not provided; required for yaw aiding.")
             self._aiding_update_yaw(
                 yaw,
                 yaw_var,
