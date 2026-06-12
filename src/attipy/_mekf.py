@@ -316,7 +316,7 @@ class MEKF:
         """
         dv = np.asarray(dv)
         dtheta = np.asarray(dtheta)
-        gref_var = np.asarray(gref_var, dtype=np.float64)
+        gref_var = np.asarray(gref_var)
 
         if degrees:
             dtheta = DEG2RAD * dtheta
