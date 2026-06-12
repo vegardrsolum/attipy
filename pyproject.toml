@@ -34,7 +34,6 @@ source = "vcs"
 version-file = "src/attipy/__about__.py"
 
 [tool.hatch.envs.test]
-python = "3.12"
 dependencies = [
   "black",
   "isort",
