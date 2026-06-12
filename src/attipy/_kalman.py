@@ -22,8 +22,7 @@ def _kalman_update(
     R : array_like, shape (m, m)
         Measurement noise covariance matrix.
     H : array_like, shape (m, n)
-        Measurement matrix where each row corresponds to a scalar
-        measurement model.
+        Measurement matrix where each row corresponds to a scalar measurement model.
     x : array_like, shape (n,)
         State estimate to be updated.
     P : array_like, shape (n, n)
