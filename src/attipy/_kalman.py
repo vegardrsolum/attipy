@@ -22,7 +22,8 @@ def _kalman_update(
     R : array_like, shape (m, m)
         Measurement noise covariance matrix.
     H : array_like, shape (m, n)
-        Measurement matrix where each row corresponds to a scalar measurement model.
+        Measurement matrix where each row corresponds to a scalar
+        measurement model.
     x : array_like, shape (n,)
         State estimate to be updated.
     P : array_like, shape (n, n)
@@ -58,67 +59,6 @@ def _kalman_update(
 
 
 @njit  # type: ignore[misc]
-def _kalman_gain(
-    P: NDArray[np.float64], h: NDArray[np.float64], r: float
-) -> NDArray[np.float64]:
-    """
-    Compute the Kalman gain for a scalar measurement (matrix notation):
-
-        k = P @ h.T / (h @ P @ h.T + r)
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        State error covariance matrix.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-
-    Returns
-    -------
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    """
-
-    # Innovation covariance (inverse)
-    Ph = np.dot(P, h)
-    s_inv = 1.0 / (np.dot(h, Ph) + r)
-
-    # Kalman gain
-    k = Ph * s_inv
-
-    return k  # type: ignore[no-any-return]
-
-
-@njit  # type: ignore[misc]
-def _covariance_update(
-    P: NDArray[np.float64],
-    k: NDArray[np.float64],
-    h: NDArray[np.float64],
-    r: float,
-) -> None:
-    """
-    Joseph-form covariance update (matrix notation):
-
-        P = (I - k @ h) @ P @ (I - k @ h).T + r * k @ k.T
-
-    Parameters
-    ----------
-    P : ndarray, shape (n, n)
-        State error covariance matrix to be updated in place.
-    k : ndarray, shape (n,)
-        Kalman gain vector.
-    h : ndarray, shape (n,)
-        Measurement matrix (row vector).
-    r : float
-        Scalar measurement noise variance.
-    """
-    A = np.eye(k.size) - np.outer(k, h)
-    P[:, :] = A @ P @ A.T + r * np.outer(k, k)
-
-
-@njit  # type: ignore[misc]
 def _kalman_update_scalar(
     z: float,
     r: float,
@@ -142,15 +82,14 @@ def _kalman_update_scalar(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     """
+    Ph = np.dot(P, h)
+    s = np.dot(h, Ph) + r
+    k = Ph / s
 
-    # Kalman gain
-    k = _kalman_gain(P, h, r)
-
-    # Updated (a posteriori) state estimate
     x[:] += k * (z - np.dot(h, x))
 
-    # Updated (a posteriori) covariance estimate (Joseph form)
-    _covariance_update(P, k, h, r)
+    # Joseph form expanded: (I - kh^T) P (I - hk^T) + r*kk^T
+    P[:, :] = P - np.outer(k, Ph) - np.outer(Ph, k) + s * np.outer(k, k)
 
 
 @njit  # type: ignore[misc]
@@ -171,7 +110,8 @@ def _kalman_update_sequential(
     var : ndarray, shape (m,)
         Measurement noise variances corresponding to each scalar measurement.
     H : ndarray, shape (m, n)
-        Measurement matrix where each row corresponds to a scalar measurement model.
+        Measurement matrix where each row corresponds to a scalar
+        measurement model.
     x : ndarray, shape (n,)
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
