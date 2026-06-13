@@ -1,6 +1,8 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
-from scipy.spatial.transform import Rotation
 
 from attipy._transforms import (
     _euler_zyx_from_quat,
@@ -8,92 +10,73 @@ from attipy._transforms import (
     _matrix_from_quat,
     _nz_b_from_quat,
     _quat_from_euler_zyx,
+    _quat_from_gibbs2,
+    _quat_from_matrix,
+    _quat_from_rotvec,
+    _rotvec_from_quat,
+    _yaw_from_quat,
+)
+
+_ATTITUDES = json.loads(
+    (Path(__file__).parent / "testdata" / "attitudes.json").read_text()
 )
 
 
-@pytest.mark.parametrize(
-    "q",
-    [
-        np.array([0.96591925, -0.25882081, 0.0, 0.0], dtype=float),  # about x-axis
-        np.array([0.96591925, 0.0, -0.25882081, 0.0], dtype=float),  # about y-axis
-        np.array([0.96591925, 0.0, 0.0, -0.25882081], dtype=float),  # about z-axis
-    ],
-)
-def test_matrix_from_quat(q):
-    rot_matrix = _matrix_from_quat(q)
-    rot_matrix_expect = Rotation.from_quat(q[[1, 2, 3, 0]]).as_matrix()
-    np.testing.assert_array_almost_equal(rot_matrix, rot_matrix_expect, decimal=3)
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_matrix_from_quat(att):
+    result = _matrix_from_quat(np.array(att["quaternion"]))
+    np.testing.assert_allclose(result, att["matrix"])
 
 
-@pytest.mark.parametrize(
-    "angle, axis, euler",
-    [
-        (
-            np.radians(10.0),
-            np.array([0.0, 0.0, 1.0]),
-            np.array([0.0, 0.0, np.radians(10.0)]),
-        ),  # pure yaw
-        (
-            np.radians(10.0),
-            np.array([0.0, 1.0, 0.0]),
-            np.array([0.0, np.radians(10.0), 0.0]),
-        ),  # pure pitch
-        (
-            np.radians(10.0),
-            np.array([1.0, 0.0, 0.0]),
-            np.array([np.radians(10.0), 0.0, 0.0]),
-        ),  # pure roll
-        (
-            np.radians(10.0),
-            np.array([1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0)]),
-            np.array([0.1059987325729154, 0.0953360919950474, 0.1059987325729154]),
-        ),  # mixed
-    ],
-)
-def test__euler_zyx_from_quat(angle, axis, euler):
-    q = np.array(
-        [
-            np.cos(angle / 2),
-            np.sin(angle / 2) * axis[0],
-            np.sin(angle / 2) * axis[1],
-            np.sin(angle / 2) * axis[2],
-        ]
-    )
-
-    roll_pitch_yaw = _euler_zyx_from_quat(q)
-    np.testing.assert_array_almost_equal(roll_pitch_yaw, euler, decimal=16)
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_quat_from_matrix(att):
+    result = _quat_from_matrix(np.array(att["matrix"]))
+    np.testing.assert_allclose(result, att["quaternion"])
 
 
-@pytest.mark.parametrize(
-    "euler",
-    [
-        np.array([10.0, 0.0, 0.0]),  # pure roll
-        np.array([0.0, 10.0, 0.0]),  # pure pitch
-        np.array([0.0, 0.0, 10.0]),  # pure yaw
-        np.array([10.0, -10.0, 10.0]),  # mixed
-    ],
-)
-def test__matrix_from_euler_zyx(euler):
-    """
-    The Numba optimized implementaiton uses from-origin-to-body (zyx) convention,
-    where also the resulting rotation matrix is from-origin-to-body.
-    """
-    out = _matrix_from_euler_zyx(euler)
-    expected = Rotation.from_euler("ZYX", euler[::-1]).as_matrix()
-    np.testing.assert_array_almost_equal(out, expected)
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_euler_zyx_from_quat(att):
+    result = _euler_zyx_from_quat(np.array(att["quaternion"]))
+    np.testing.assert_allclose(result, att["euler_rad"])
 
 
-@pytest.mark.parametrize(
-    "euler",
-    [
-        np.array([10.0, 0.0, 0.0]),  # pure roll
-        np.array([0.0, 10.0, 0.0]),  # pure pitch
-        np.array([0.0, 0.0, 10.0]),  # pure yaw
-        np.array([10.0, -10.0, 10.0]),  # mixed
-    ],
-)
-def test__nz_b_from_quat(euler):
-    q_nb = _quat_from_euler_zyx(euler)
-    R_nb = _matrix_from_euler_zyx(euler)
-    nz_b = _nz_b_from_quat(q_nb)
-    np.testing.assert_array_almost_equal(nz_b, R_nb[2])
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_quat_from_euler_zyx(att):
+    result = _quat_from_euler_zyx(np.array(att["euler_rad"]))
+    np.testing.assert_allclose(result, att["quaternion"], atol=1e-14)
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_matrix_from_euler_zyx(att):
+    result = _matrix_from_euler_zyx(np.array(att["euler_rad"]))
+    np.testing.assert_allclose(result, att["matrix"], atol=1e-14)
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_quat_from_rotvec(att):
+    result = _quat_from_rotvec(np.array(att["rotvec"]))
+    np.testing.assert_allclose(result, att["quaternion"])
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_rotvec_from_quat(att):
+    result = _rotvec_from_quat(np.array(att["quaternion"]))
+    np.testing.assert_allclose(result, att["rotvec"])
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_yaw_from_quat(att):
+    result = _yaw_from_quat(np.array(att["quaternion"]))
+    np.testing.assert_allclose(result, att["euler_rad"][2])
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_nz_b_from_quat(att):
+    result = _nz_b_from_quat(np.array(att["quaternion"]))
+    np.testing.assert_allclose(result, att["matrix"][2])
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_quat_from_gibbs2(att):
+    result = _quat_from_gibbs2(np.array(att["gibbs2"]))
+    np.testing.assert_allclose(result, att["quaternion"])
