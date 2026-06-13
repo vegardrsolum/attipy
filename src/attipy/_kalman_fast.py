@@ -99,7 +99,9 @@ def _project_cov_ahead_fast(
     tmp: NDArray[np.float64],
 ) -> None:
     """
-    Project the error covariance ahead: P = phi @ P @ phi.T + Q
+    Project the error covariance ahead:
+    
+        P = phi @ P @ phi.T + Q
 
     Parameters
     ----------
