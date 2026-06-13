@@ -100,7 +100,7 @@ def _project_cov_ahead_fast(
 ) -> None:
     """
     Project the error covariance ahead:
-    
+
         P = phi @ P @ phi.T + Q
 
     Parameters
