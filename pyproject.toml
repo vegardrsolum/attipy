@@ -39,7 +39,6 @@ dependencies = [
   "isort",
   "mypy",
   "pytest",
-  "scipy"  # used as reference implementation for rotations
 ]
 
 [tool.hatch.envs.test.scripts]
