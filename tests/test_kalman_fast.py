@@ -30,13 +30,14 @@ def test_kalman_update_sequential_fast():
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
+    np.testing.assert_allclose(P_upd, P_upd.T)
 
 
-def test_kalman_scalar():
-
-    n = 9  # state dimension
+def test_kalman_update_scalar_fast():
 
     rng = np.random.default_rng(42)
+
+    n = 9  # state dimension
 
     x = rng.random(n)
     A = rng.random((n, n))
@@ -53,9 +54,10 @@ def test_kalman_scalar():
 
     np.testing.assert_allclose(x_upd, x_expect)
     np.testing.assert_allclose(P_upd, P_expect)
+    np.testing.assert_allclose(P_upd, P_upd.T)
 
 
-def test_project_cov_ahead():
+def test_project_cov_ahead_fast():
 
     rng = np.random.default_rng(42)
 
@@ -73,3 +75,4 @@ def test_project_cov_ahead():
     P_expect = phi @ P @ phi.T + Q
 
     np.testing.assert_allclose(P_proj, P_expect)
+    np.testing.assert_allclose(P_proj, P_proj.T)
