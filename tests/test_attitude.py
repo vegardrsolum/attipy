@@ -38,7 +38,7 @@ class Test_Attitude:
     @pytest.mark.parametrize("att", _ATTITUDES)
     def test_from_quaternion(self, att):
         q = att["quaternion"]
-        assert Attitude.from_quaternion(q)._q == pytest.approx(q)
+        np.testing.assert_allclose(Attitude.from_quaternion(q)._q, q)
 
     @pytest.mark.parametrize("att", _ATTITUDES)
     def test_as_quaternion(self, att):
