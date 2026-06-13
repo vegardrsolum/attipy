@@ -6,7 +6,9 @@ import pytest
 
 from attipy import Attitude
 
-_ATTITUDES = json.loads((Path(__file__).parent / "testdata" / "attitudes.json").read_text())
+_ATTITUDES = json.loads(
+    (Path(__file__).parent / "testdata" / "attitudes.json").read_text()
+)
 
 
 class Test_Attitude:

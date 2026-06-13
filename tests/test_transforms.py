@@ -17,7 +17,9 @@ from attipy._transforms import (
     _yaw_from_quat,
 )
 
-_ATTITUDES = json.loads((Path(__file__).parent / "testdata" / "attitudes.json").read_text())
+_ATTITUDES = json.loads(
+    (Path(__file__).parent / "testdata" / "attitudes.json").read_text()
+)
 
 
 @pytest.mark.parametrize("att", _ATTITUDES)
