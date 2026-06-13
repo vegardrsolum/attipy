@@ -17,7 +17,7 @@ from ._statespace import (
     _measurement_matrix,
     _process_noise_cov,
     _state_transition,
-    _update_state_transition,
+    _state_transition_update,
 )
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
@@ -322,7 +322,7 @@ class MEKF:
         dtheta = dtheta - self._dt * self._bg_b
 
         # Update state-space model
-        _update_state_transition(self._phi, dtheta)
+        _state_transition_update(self._phi, dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)

@@ -11,7 +11,7 @@ from attipy._statespace import (
     _state_matrix_full,
     _state_transition,
     _state_transition_full,
-    _update_state_transition_full,
+    _state_transition_update_full,
     _wn_input_matrix,
     _wn_input_matrix_full,
 )
@@ -106,7 +106,7 @@ def test_state_transition_full(gyro_noise_params, acc_noise_params):
     np.testing.assert_allclose(phi_out, phi)
 
 
-def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
+def test_state_transition_update_full(gyro_noise_params, acc_noise_params):
     *_, abc = acc_noise_params
     *_, gbc = gyro_noise_params
 
@@ -120,7 +120,7 @@ def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
     R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
-    _update_state_transition_full(phi, dt, f_b_corr, w_b_corr, R_nb)
+    _state_transition_update_full(phi, dt, f_b_corr, w_b_corr, R_nb)
 
     phi_expected = _state_transition_full(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
 
