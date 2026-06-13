@@ -76,7 +76,5 @@ def test_nz_b_from_quat(att):
 
 @pytest.mark.parametrize("att", _FIXTURES)
 def test_quat_from_gibbs2(att):
-    q = np.array(att["quaternion"])
-    g2 = 2.0 * q[1:] / q[0]
-    result = _quat_from_gibbs2(g2)
-    np.testing.assert_allclose(result, q)
+    result = _quat_from_gibbs2(np.array(att["gibbs2"]))
+    np.testing.assert_allclose(result, att["quaternion"])
