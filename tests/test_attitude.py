@@ -15,6 +15,14 @@ class Test_Attitude:
         q = att["quaternion"]
         assert Attitude(q)._q == pytest.approx(q)
 
+    def test__init__wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude([1.0, 0.0, 0.0])
+
+    def test__init__non_unit(self):
+        with pytest.raises(ValueError):
+            Attitude([1.0, 1.0, 0.0, 0.0])
+
     def test__repr__(self):
         q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
         att = Attitude(q)
@@ -48,6 +56,18 @@ class Test_Attitude:
         result = Attitude.from_matrix(att["matrix"])
         np.testing.assert_allclose(result._q, att["quaternion"])
 
+    def test_from_matrix_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix(np.eye(2))
+
+    def test_from_matrix_non_orthogonal(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix([[2.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+    def test_from_matrix_improper(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix(-np.eye(3))
+
     @pytest.mark.parametrize("att", _FIXTURES)
     def test_as_matrix(self, att):
         result = Attitude(att["quaternion"]).as_matrix()
@@ -63,6 +83,10 @@ class Test_Attitude:
         euler_deg = np.degrees(att["euler_rad"])
         result = Attitude.from_euler(euler_deg, degrees=True)
         np.testing.assert_allclose(result._q, att["quaternion"])
+
+    def test_from_euler_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_euler([0.0, 0.0])
 
     @pytest.mark.parametrize("att", _FIXTURES)
     def test_as_euler_rad(self, att):
@@ -85,6 +109,10 @@ class Test_Attitude:
         result = Attitude.from_rotvec(rotvec_deg, degrees=True)
         np.testing.assert_allclose(result._q, att["quaternion"])
 
+    def test_from_rotvec_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_rotvec([0.0, 0.0])
+
     @pytest.mark.parametrize("att", _FIXTURES)
     def test_as_rotvec_rad(self, att):
         result = Attitude(att["quaternion"]).as_rotvec(degrees=False)
@@ -94,33 +122,3 @@ class Test_Attitude:
     def test_as_rotvec_deg(self, att):
         result = Attitude(att["quaternion"]).as_rotvec(degrees=True)
         np.testing.assert_allclose(result, np.degrees(att["rotvec"]))
-
-
-class Test_Attitude_Validation:
-    def test__init__wrong_shape(self):
-        with pytest.raises(ValueError):
-            Attitude([1.0, 0.0, 0.0])
-
-    def test__init__non_unit(self):
-        with pytest.raises(ValueError):
-            Attitude([1.0, 1.0, 0.0, 0.0])
-
-    def test_from_matrix_wrong_shape(self):
-        with pytest.raises(ValueError):
-            Attitude.from_matrix(np.eye(2))
-
-    def test_from_matrix_non_orthogonal(self):
-        with pytest.raises(ValueError):
-            Attitude.from_matrix([[2.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-
-    def test_from_matrix_improper(self):
-        with pytest.raises(ValueError):
-            Attitude.from_matrix(-np.eye(3))
-
-    def test_from_euler_wrong_shape(self):
-        with pytest.raises(ValueError):
-            Attitude.from_euler([0.0, 0.0])
-
-    def test_from_rotvec_wrong_shape(self):
-        with pytest.raises(ValueError):
-            Attitude.from_rotvec([0.0, 0.0])
