@@ -11,6 +11,7 @@ from attipy._statespace import (
     _state_matrix_full,
     _state_transition,
     _state_transition_full,
+    _state_transition_update,
     _state_transition_update_full,
     _wn_input_matrix,
     _wn_input_matrix_full,
@@ -195,6 +196,21 @@ def test_state_transition(gyro_noise_params):
     phi = np.eye(6) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
+
+
+def test_state_transition_update(gyro_noise_params):
+    *_, gbc = gyro_noise_params
+
+    dt = 0.1
+    w_b = np.array([0.01, 0.02, 0.03])
+    phi = _state_transition(dt, dt * w_b, gbc)
+
+    w_b_corr = np.array([0.015, 0.025, 0.035])
+    _state_transition_update(phi, dt * w_b_corr)
+
+    phi_expected = _state_transition(dt, dt * w_b_corr, gbc)
+
+    np.testing.assert_allclose(phi, phi_expected)
 
 
 def test_process_noise_cov(gyro_noise_params):
