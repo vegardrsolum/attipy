@@ -4,14 +4,13 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from attipy._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
-
 from ._attitude import Attitude
 from ._kalman_fast import (
     _kalman_update_scalar_fast,
     _kalman_update_sequential_fast,
     _project_cov_ahead_fast,
 )
+from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
     _dyawda,
     _measurement_matrix,
