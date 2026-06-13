@@ -95,7 +95,7 @@ def _signed_smallest_angle(angle: float) -> float:
     Returns
     -------
     float
-        The smallest angle between [-pi, pi] radians.
+        The smallest angle between [-pi, pi) radians.
     """
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
