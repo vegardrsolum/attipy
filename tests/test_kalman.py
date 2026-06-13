@@ -58,9 +58,9 @@ def test_kalman_update_sequential():
 
 def test_kalman_update_scalar():
 
-    n = 9  # state dimension
-
     rng = np.random.default_rng(42)
+
+    n = 9  # state dimension
 
     x = rng.random(n)
     A = rng.random((n, n))
