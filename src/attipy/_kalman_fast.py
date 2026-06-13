@@ -28,11 +28,11 @@ def _kalman_update_scalar_fast(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     tmp : ndarray, shape (n,)
-        Temporary workspace; holds Ph = P @ h on output.
+        Temporary workspace array.
     """
     n = h.shape[0]
 
-    # Ph = P @ h into tmp, s = h @ Ph + r
+    # Innovation (pre-fit residual) covariance
     s = r
     for i in range(n):
         Ph_i = 0.0
@@ -43,7 +43,7 @@ def _kalman_update_scalar_fast(
 
     s_inv = 1.0 / s
 
-    # State update: x += (Ph/s) * (z - h @ x)
+    # Updated (a posteriori) state estimate
     y = z
     for i in range(n):
         y -= h[i] * x[i]
@@ -51,7 +51,7 @@ def _kalman_update_scalar_fast(
     for i in range(n):
         x[i] += tmp[i] * ky
 
-    # Covariance update: P = P - outer(Ph, Ph) / s (rank-1 downdate, upper triangle)
+    # Updated (a posteriori) covariance estimate (rank-1 downdate, upper triangle + mirror)
     for i in range(n):
         for j in range(i, n):
             p = P[i, j] - tmp[i] * tmp[j] * s_inv
@@ -114,7 +114,6 @@ def _project_cov_ahead_fast(
     """
     n = P.shape[0]
 
-    # tmp = phi @ P
     for i in range(n):
         for j in range(n):
             s = 0.0
@@ -122,7 +121,7 @@ def _project_cov_ahead_fast(
                 s += phi[i, k] * P[k, j]
             tmp[i, j] = s
 
-    # P = tmp @ phi.T + Q (exploit symmetry)
+    # upper triangle + mirror
     for i in range(n):
         for j in range(i, n):
             p = Q[i, j]
