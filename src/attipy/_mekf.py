@@ -7,10 +7,10 @@ from numpy.typing import ArrayLike, NDArray
 from attipy._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 
 from ._attitude import Attitude
-from ._kalman import (
-    _kalman_update_scalar,
-    _kalman_update_sequential,
-    _project_cov_ahead,
+from ._kalman_fast import (
+    _kalman_update_scalar_fast,
+    _kalman_update_sequential_fast,
+    _project_cov_ahead_fast,
 )
 from ._statespace import (
     _dyawda,
@@ -174,6 +174,7 @@ class MEKF:
         self._dt = 1.0 / fs
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
+        self._tmp = np.empty((6, 6))  # preallocated workspace
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -233,6 +234,7 @@ class MEKF:
         P: NDArray[np.float64],
         q_nb: NDArray[np.float64],
         nz2vg: float,
+        tmp: NDArray[np.float64],
     ) -> None:
         """
         Update state and covariance with gravity reference vector aiding measurement.
@@ -245,7 +247,7 @@ class MEKF:
         dz = -_normalize_vec(dv) - vg_b
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
-        _kalman_update_sequential(dz, var, dhdx[0:3], dx, P)
+        _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0])
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -257,6 +259,7 @@ class MEKF:
         dx: NDArray[np.float64],
         P: NDArray[np.float64],
         q_nb: NDArray[np.float64],
+        tmp: NDArray[np.float64],
     ) -> None:
         """
         Update state and covariance with heading (yaw angle) aiding measurement.
@@ -272,7 +275,7 @@ class MEKF:
         dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
         dhdx[3, 0:3] = _dyawda(q_nb)
 
-        _kalman_update_scalar(dz, var, dhdx[3], dx, P)
+        _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0])
 
     def update(
         self,
@@ -337,7 +340,7 @@ class MEKF:
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
-        _project_cov_ahead(self._P, self._phi, self._Q)
+        _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
 
         # Correct (a posteriori) state estimate using gravity reference vector aiding
         if gref is True:
@@ -349,6 +352,7 @@ class MEKF:
                 self._P,
                 self._att_nb._q,
                 self._nz2vg,
+                self._tmp,
             )
 
         # Correct (a posteriori) state estimate using yaw aiding
@@ -361,6 +365,7 @@ class MEKF:
                 self._dx,
                 self._P,
                 self._att_nb._q,
+                self._tmp,
             )
 
         # Reset state (regulating error-state to zero)
