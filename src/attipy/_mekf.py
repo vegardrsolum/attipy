@@ -247,7 +247,7 @@ class MEKF:
         dz = -_normalize_vec(dv) - vg_b
         dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
 
-        _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0], tmp[1])
+        _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0])
 
     @staticmethod
     @njit  # type: ignore[misc]
@@ -275,7 +275,7 @@ class MEKF:
         dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
         dhdx[3, 0:3] = _dyawda(q_nb)
 
-        _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0], tmp[1])
+        _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0])
 
     def update(
         self,
