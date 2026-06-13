@@ -39,6 +39,7 @@ dependencies = [
   "isort",
   "mypy",
   "pytest",
+  "scipy",  # required by numba as a BLAS provider for linear algebra in @njit functions
 ]
 
 [tool.hatch.envs.test.scripts]
