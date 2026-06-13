@@ -23,9 +23,25 @@ class Test_Attitude:
         assert repr_str == expected_str
 
     @pytest.mark.parametrize("att", _FIXTURES)
+    def test_canonical_sign(self, att):
+        q = np.array(att["quaternion"])
+        np.testing.assert_allclose(Attitude(-q)._q, q)
+
+    @pytest.mark.parametrize("att", _FIXTURES)
     def test_from_quaternion(self, att):
         q = att["quaternion"]
         assert Attitude.from_quaternion(q)._q == pytest.approx(q)
+
+    @pytest.mark.parametrize("att", _FIXTURES)
+    def test_as_quaternion(self, att):
+        q = att["quaternion"]
+        np.testing.assert_allclose(Attitude(q).as_quaternion(), q)
+
+    def test_as_quaternion_returns_copy(self):
+        q = [1.0, 0.0, 0.0, 0.0]
+        att = Attitude(q)
+        att.as_quaternion()[0] = 0.0
+        np.testing.assert_allclose(att._q, q)
 
     @pytest.mark.parametrize("att", _FIXTURES)
     def test_from_matrix(self, att):
@@ -78,3 +94,33 @@ class Test_Attitude:
     def test_as_rotvec_deg(self, att):
         result = Attitude(att["quaternion"]).as_rotvec(degrees=True)
         np.testing.assert_allclose(result, np.degrees(att["rotvec"]))
+
+
+class Test_Attitude_Validation:
+    def test__init__wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude([1.0, 0.0, 0.0])
+
+    def test__init__non_unit(self):
+        with pytest.raises(ValueError):
+            Attitude([1.0, 1.0, 0.0, 0.0])
+
+    def test_from_matrix_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix(np.eye(2))
+
+    def test_from_matrix_non_orthogonal(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix([[2.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+    def test_from_matrix_improper(self):
+        with pytest.raises(ValueError):
+            Attitude.from_matrix(-np.eye(3))
+
+    def test_from_euler_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_euler([0.0, 0.0])
+
+    def test_from_rotvec_wrong_shape(self):
+        with pytest.raises(ValueError):
+            Attitude.from_rotvec([0.0, 0.0])
