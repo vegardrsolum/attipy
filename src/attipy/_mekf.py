@@ -166,11 +166,8 @@ def _reset(
         Error-state vector (da, dbg) to be reset in place.
     """
     _correct_quat_with_gibbs2(q_nb, dx[0:3])
-    bg_b[0] += dx[3]
-    bg_b[1] += dx[4]
-    bg_b[2] += dx[5]
-    for i in range(6):
-        dx[i] = 0.0
+    bg_b += dx[3:6]
+    dx[:] = 0.0
 
 
 class MEKF:
