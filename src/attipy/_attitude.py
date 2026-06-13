@@ -111,36 +111,6 @@ class Attitude:
         q_str = f"{qw:.3g} + {qx:.3g}i + {qy:.3g}j + {qz:.3g}k".replace("+ -", "- ")
         return f"Attitude(q={q_str})"
 
-    @classmethod
-    def from_quaternion(cls, q: ArrayLike) -> Self:
-        """
-        Initialize from a unit quaternion, q, defined such that it transforms a
-        vector from the body frame, {b}, to the navigation frame, {n}, using:
-
-            [0, v_n] = q ⊗ [0, v_b] ⊗ q*
-
-        where,
-
-        - q is the unit quaternion.
-        - q* is the conjugate of the unit quaternion q.
-        - v_b is a vector expressed in the body frame, {b}.
-        - v_n is the same vector expressed in the navigation frame, {n}.
-
-        and ⊗ denotes quaternion multiplication (Hamilton product).
-
-        Parameters
-        ----------
-        q : ArrayLike
-            The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
-            part and (qx, qy, qz) is the vector part.
-
-        Returns
-        -------
-        Attitude
-            Attitude instance.
-        """
-        return cls(q)
-
     def as_quaternion(self) -> NDArray[np.float64]:
         """
         Represent the attitude as a unit quaternion, q, defined such that it transforms
