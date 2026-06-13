@@ -156,20 +156,6 @@ class Attitude:
         -------
         ndarray, shape (3, 3)
             Direction cosine matrix (rotation matrix), R.
-
-        Notes
-        -----
-        The direction cosine matrix, R, is computed from the unit quaternion, q,
-        using the formula:
-
-            R = I + 2 * qw * S(qxyz) + 2 * S(qxyz)^2
-
-        where,
-
-        - I is the 3x3 identity matrix.
-        - qw is the scalar part of the unit quaternion, q.
-        - qxyz is the vector part, (qx, qy, qz), of the unit quaternion, q.
-        - S(qxyz) is the skew-symmetric matrix of qxyz.
         """
         return _matrix_from_quat(self._q)  # type: ignore[no-any-return]
 
