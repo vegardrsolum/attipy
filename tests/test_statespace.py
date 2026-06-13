@@ -11,7 +11,8 @@ from attipy._statespace import (
     _state_matrix_full,
     _state_transition,
     _state_transition_full,
-    _update_state_transition_full,
+    _state_transition_update,
+    _state_transition_update_full,
     _wn_input_matrix,
     _wn_input_matrix_full,
 )
@@ -106,7 +107,7 @@ def test_state_transition_full(gyro_noise_params, acc_noise_params):
     np.testing.assert_allclose(phi_out, phi)
 
 
-def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
+def test_state_transition_update_full(gyro_noise_params, acc_noise_params):
     *_, abc = acc_noise_params
     *_, gbc = gyro_noise_params
 
@@ -120,7 +121,7 @@ def test_update_state_transition_full(gyro_noise_params, acc_noise_params):
     f_b_corr = np.array([0.15, 0.25, 9.6])
     w_b_corr = np.array([0.015, 0.025, 0.035])
     R_nb = ap.Attitude.from_euler([0.15, 0.25, 0.35]).as_matrix()
-    _update_state_transition_full(phi, dt, f_b_corr, w_b_corr, R_nb)
+    _state_transition_update_full(phi, dt, f_b_corr, w_b_corr, R_nb)
 
     phi_expected = _state_transition_full(dt, f_b_corr, w_b_corr, R_nb, abc, gbc)
 
@@ -195,6 +196,21 @@ def test_state_transition(gyro_noise_params):
     phi = np.eye(6) + dt * dfdx  # first order approximation
 
     np.testing.assert_allclose(phi_out, phi)
+
+
+def test_state_transition_update(gyro_noise_params):
+    *_, gbc = gyro_noise_params
+
+    dt = 0.1
+    w_b = np.array([0.01, 0.02, 0.03])
+    phi = _state_transition(dt, dt * w_b, gbc)
+
+    w_b_corr = np.array([0.015, 0.025, 0.035])
+    _state_transition_update(phi, dt * w_b_corr)
+
+    phi_expected = _state_transition(dt, dt * w_b_corr, gbc)
+
+    np.testing.assert_allclose(phi, phi_expected)
 
 
 def test_process_noise_cov(gyro_noise_params):

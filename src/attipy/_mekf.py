@@ -17,7 +17,7 @@ from ._statespace import (
     _measurement_matrix,
     _process_noise_cov,
     _state_transition,
-    _update_state_transition,
+    _state_transition_update,
 )
 from ._transforms import _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
@@ -102,6 +102,51 @@ def _signed_smallest_angle(angle: float) -> float:
 
 
 @njit  # type: ignore[misc]
+def _aiding_update_gref(
+    dv: NDArray[np.float64],
+    var: NDArray[np.float64],
+    dhdx: NDArray[np.float64],
+    dx: NDArray[np.float64],
+    P: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    nz2vg: float,
+    tmp: NDArray[np.float64],
+) -> None:
+    """
+    Update state and covariance with gravity reference vector aiding measurement.
+    """
+    vg_b = nz2vg * _nz_b_from_quat(q_nb)
+    dz = -_normalize_vec(dv) - vg_b
+    dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
+
+    _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0])
+
+
+@njit  # type: ignore[misc]
+def _aiding_update_yaw(
+    yaw: float,
+    var: float,
+    degrees: bool,
+    dhdx: NDArray[np.float64],
+    dx: NDArray[np.float64],
+    P: NDArray[np.float64],
+    q_nb: NDArray[np.float64],
+    tmp: NDArray[np.float64],
+) -> None:
+    """
+    Update state and covariance with heading (yaw angle) aiding measurement.
+    """
+    if degrees:
+        yaw = DEG2RAD * yaw
+        var = DEG2RAD**2 * var
+
+    dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
+    dhdx[3, 0:3] = _dyawda(q_nb)
+
+    _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0])
+
+
+@njit  # type: ignore[misc]
 def _reset(
     q_nb: NDArray[np.float64], bg_b: NDArray[np.float64], dx: NDArray[np.float64]
 ) -> None:
@@ -121,11 +166,8 @@ def _reset(
         Error-state vector (da, dbg) to be reset in place.
     """
     _correct_quat_with_gibbs2(q_nb, dx[0:3])
-    bg_b[0] += dx[3]
-    bg_b[1] += dx[4]
-    bg_b[2] += dx[5]
-    for i in range(6):
-        dx[i] = 0.0
+    bg_b += dx[3:6]
+    dx[:] = 0.0
 
 
 class MEKF:
@@ -224,59 +266,6 @@ class MEKF:
             return np.degrees(self._bg_b.copy())  # type: ignore[no-any-return]
         return self._bg_b.copy()
 
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _aiding_update_gref(
-        dv: ArrayLike,
-        var: ArrayLike | None,
-        dhdx: NDArray[np.float64],
-        dx: NDArray[np.float64],
-        P: NDArray[np.float64],
-        q_nb: NDArray[np.float64],
-        nz2vg: float,
-        tmp: NDArray[np.float64],
-    ) -> None:
-        """
-        Update state and covariance with gravity reference vector aiding measurement.
-        """
-
-        if var is None:
-            raise ValueError("gref_var is not provided; required for gref aiding.")
-
-        vg_b = nz2vg * _nz_b_from_quat(q_nb)
-        dz = -_normalize_vec(dv) - vg_b
-        dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
-
-        _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0])
-
-    @staticmethod
-    @njit  # type: ignore[misc]
-    def _aiding_update_yaw(
-        yaw: float,
-        var: float | None,
-        degrees: bool,
-        dhdx: NDArray[np.float64],
-        dx: NDArray[np.float64],
-        P: NDArray[np.float64],
-        q_nb: NDArray[np.float64],
-        tmp: NDArray[np.float64],
-    ) -> None:
-        """
-        Update state and covariance with heading (yaw angle) aiding measurement.
-        """
-
-        if var is None:
-            raise ValueError("yaw_var is not provided; required for yaw aiding.")
-
-        if degrees:
-            yaw = DEG2RAD * yaw
-            var = DEG2RAD**2 * var
-
-        dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
-        dhdx[3, 0:3] = _dyawda(q_nb)
-
-        _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0])
-
     def update(
         self,
         dv: ArrayLike,
@@ -325,7 +314,6 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dv = np.asarray(dv)
         dtheta = np.asarray(dtheta)
 
         if degrees:
@@ -334,7 +322,7 @@ class MEKF:
         dtheta = dtheta - self._dt * self._bg_b
 
         # Update state-space model
-        _update_state_transition(self._phi, dtheta)
+        _state_transition_update(self._phi, dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)
@@ -343,10 +331,10 @@ class MEKF:
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
 
         # Correct (a posteriori) state estimate using gravity reference vector aiding
-        if gref is True:
-            self._aiding_update_gref(
-                dv,
-                gref_var,
+        if gref:
+            _aiding_update_gref(
+                np.asarray(dv),
+                np.asarray(gref_var),
                 self._dhdx,
                 self._dx,
                 self._P,
@@ -357,7 +345,9 @@ class MEKF:
 
         # Correct (a posteriori) state estimate using yaw aiding
         if yaw is not None:
-            self._aiding_update_yaw(
+            if yaw_var is None:
+                raise ValueError("yaw_var is not provided; required for yaw aiding.")
+            _aiding_update_yaw(
                 yaw,
                 yaw_var,
                 yaw_degrees,

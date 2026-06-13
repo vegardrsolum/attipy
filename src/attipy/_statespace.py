@@ -76,7 +76,7 @@ def _state_transition_full(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition_full(
+def _state_transition_update_full(
     phi: NDArray[np.float64],
     dt: float,
     f_b: NDArray[np.float64],
@@ -483,7 +483,7 @@ def _state_transition(
 
 
 @njit  # type: ignore[misc]
-def _update_state_transition(
+def _state_transition_update(
     phi: NDArray[np.float64],
     dtheta: NDArray[np.float64],
 ) -> None:
