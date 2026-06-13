@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
   "numba",
   "numpy",
+  "scipy",  # provides BLAS for numba linear algebra on Linux
 ]
 
 [project.urls]
@@ -39,7 +40,6 @@ dependencies = [
   "isort",
   "mypy",
   "pytest",
-  "scipy",  # required by numba as a BLAS provider for linear algebra in @njit functions
 ]
 
 [tool.hatch.envs.test.scripts]
