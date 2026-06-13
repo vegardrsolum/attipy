@@ -271,7 +271,7 @@ class MEKF:
         dv: ArrayLike,
         dtheta: ArrayLike,
         *,
-        degrees: bool = False,
+        dtheta_degrees: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -288,10 +288,10 @@ class MEKF:
             the sampling interval, dt. The simple approximation dv = f * dt can be
             used if sculling-corrected integrals are not available.
         dtheta : array_like, shape (3,)
-            Coning integral (see ``degrees`` parameter for units). I.e., the integral
+            Coning integral (see ``dtheta_degrees`` parameter for units). I.e., the integral
             of angular velocity, w, over the sampling interval, dt. The simple approximation
             dtheta = w * dt can be used if coning-corrected integrals are not available.
-        degrees : bool, optional
+        dtheta_degrees : bool, optional
             Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
@@ -316,7 +316,7 @@ class MEKF:
         """
         dtheta = np.asarray(dtheta)
 
-        if degrees:
+        if dtheta_degrees:
             dtheta = DEG2RAD * dtheta
 
         dtheta = dtheta - self._dt * self._bg_b
