@@ -27,7 +27,7 @@ class Test_Attitude:
         q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
         att = Attitude(q)
         repr_str = repr(att)
-        expected_str = "Attitude(q=[0.52 + -0.511i + 0.64j + 0.242k])"
+        expected_str = "Attitude(q=0.52 - 0.511i + 0.64j + 0.242k)"
         assert repr_str == expected_str
 
     @pytest.mark.parametrize("att", _ATTITUDES)
