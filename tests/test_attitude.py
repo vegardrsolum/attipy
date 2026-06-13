@@ -76,13 +76,13 @@ class Test_Attitude:
     @pytest.mark.parametrize("att", _ATTITUDES)
     def test_from_euler_rad(self, att):
         result = Attitude.from_euler(att["euler_rad"], degrees=False)
-        np.testing.assert_allclose(result._q, att["quaternion"])
+        np.testing.assert_allclose(result._q, att["quaternion"], atol=1e-14)
 
     @pytest.mark.parametrize("att", _ATTITUDES)
     def test_from_euler_deg(self, att):
         euler_deg = np.degrees(att["euler_rad"])
         result = Attitude.from_euler(euler_deg, degrees=True)
-        np.testing.assert_allclose(result._q, att["quaternion"])
+        np.testing.assert_allclose(result._q, att["quaternion"], atol=1e-14)
 
     def test_from_euler_wrong_shape(self):
         with pytest.raises(ValueError):

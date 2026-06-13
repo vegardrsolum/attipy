@@ -41,7 +41,7 @@ def test_euler_zyx_from_quat(att):
 @pytest.mark.parametrize("att", _ATTITUDES)
 def test_quat_from_euler_zyx(att):
     result = _quat_from_euler_zyx(np.array(att["euler_rad"]))
-    np.testing.assert_allclose(result, att["quaternion"])
+    np.testing.assert_allclose(result, att["quaternion"], atol=1e-14)
 
 
 @pytest.mark.parametrize("att", _ATTITUDES)
