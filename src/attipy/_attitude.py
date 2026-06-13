@@ -258,6 +258,11 @@ class Attitude:
         degrees : bool, optional
             Specifies whether the rotation vector is given in degrees or radians (default).
 
+        Returns
+        -------
+        Attitude
+            Attitude instance.
+
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Rotation_vector
