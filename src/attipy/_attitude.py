@@ -113,19 +113,7 @@ class Attitude:
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a unit quaternion, q, defined such that it transforms
-        a vector from the body frame, {b}, to the navigation frame, {n}, using:
-
-            [0, v_n] = q ⊗ [0, v_b] ⊗ q*
-
-        where,
-
-        - q is the unit quaternion.
-        - q* is the conjugate of the unit quaternion q.
-        - v_b is a vector expressed in the body frame, {b}.
-        - v_n is the same vector expressed in the navigation frame, {n}.
-
-        and ⊗ denotes quaternion multiplication (Hamilton product).
+        Represent the attitude as a unit quaternion.
 
         Returns
         -------
@@ -138,16 +126,10 @@ class Attitude:
     @classmethod
     def from_matrix(cls, dcm: ArrayLike) -> Self:
         """
-        Initialize from a direction cosine matrix (DCM), R, defined such that it
-        transforms vectors from the body frame, {b}, to the navigation frame, {n},
-        using:
+        Initialize from a direction cosine matrix (DCM), R, that transforms vectors
+        from the body frame, {b}, to the navigation frame, {n}:
 
             v_n = R @ v_b
-
-        where,
-        - R is the 3x3 direction cosine matrix (rotation matrix).
-        - v_b is a vector expressed in the body frame, {b}.
-        - v_n is the same vector expressed in the navigation frame, {n}.
 
         Parameters
         ----------
@@ -165,17 +147,10 @@ class Attitude:
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a direction cosine matrix (DCM), R, defined such
-        that it transforms vectors from the body frame, {b}, to the navigation frame,
-        {n}, using:
+        Represent the attitude as a direction cosine matrix (DCM), R, that transforms
+        vectors from the body frame, {b}, to the navigation frame, {n}:
 
             v_n = R @ v_b
-
-        where,
-
-        - R is the 3x3 direction cosine matrix (rotation matrix).
-        - v_b is a vector expressed in the body frame, {b}.
-        - v_n is the same vector expressed in the navigation frame, {n}.
 
         Returns
         -------
@@ -246,7 +221,7 @@ class Attitude:
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
+        Represent the attitude as a set of Euler angles (ZYX convention).
 
         Parameters
         ----------
@@ -260,27 +235,9 @@ class Attitude:
             The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
             rotations about the X, Y, and Z axes, respectively.
 
-        Notes
-        -----
-        The ZYX Euler angles describe how to transition from the 'navigation' frame
-        to the 'body' frame through three consecutive intrinsic and passive rotations
-        in the ZYX order.
-
-        Defined as:
-
-            R = R_z(yaw) @ R_y(pitch) @ R_x(roll)
-
-        where,
-
-        - yaw is a first rotation about the navigation frame's Z-axis.
-        - pitch is a second rotation about the intermediate Y-axis.
-        - roll is a final rotation about the second intermediate X-axis to arrive
-          at the body frame.
-
-        and R is the direction cosine matrix (transforming vectors from the body frame to
-        the navigation frame):
-
-            v_n = R @ v_b
+        See Also
+        --------
+        from_euler : Convention details.
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
@@ -299,8 +256,7 @@ class Attitude:
         r : ArrayLike
             Rotation vector (rx, ry, rz).
         degrees : bool, optional
-            Specifies whether the input rotation vector, r, is given in degrees
-            or radians (default).
+            Specifies whether the rotation vector is given in degrees or radians (default).
 
         References
         ----------
