@@ -53,7 +53,8 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._P, P)
 
         # Check C contiguity
-        assert mekf._dhdx.flags.c_contiguous
+        assert mekf._dhdx_gref.flags.c_contiguous
+        assert mekf._dhdx_yaw.flags.c_contiguous
         assert mekf._phi.flags.c_contiguous
         assert mekf._Q.flags.c_contiguous
 

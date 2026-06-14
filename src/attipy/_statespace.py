@@ -155,34 +155,6 @@ def _process_noise_cov(
     return Q
 
 
-def _measurement_matrix(
-    q_nb: NDArray[np.float64], vg_b: NDArray[np.float64]
-) -> NDArray[np.float64]:
-    """
-    Set up the linearized measurement matrix, dhdx.
-
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-
-    Parameters
-    ----------
-    q_nb : ndarray, shape (4,)
-        Unit quaternion.
-    vg_b : ndarray, shape (3,)
-        Gravity reference unit vector expressed in the body frame.
-
-    Returns
-    -------
-    dhdx : ndarray, shape (4, 6)
-        Linearized measurement matrix.
-    """
-    dhdx = np.zeros((4, 6))
-    dhdx[0:3, ATT_IDX] = S(vg_b)  # gravity ref vector (NB! update)
-    dhdx[3:4, ATT_IDX] = _dyawda(q_nb)  # heading (yaw angle) (NB! update)
-    return dhdx
-
-
 def _state_matrix(
     w_b: NDArray[np.float64],
     gbc: float,
