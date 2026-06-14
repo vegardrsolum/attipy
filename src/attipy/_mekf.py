@@ -204,6 +204,7 @@ class MEKF:
         self,
         fs: float,
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        *,
         gyro_bias: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
