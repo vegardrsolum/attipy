@@ -115,9 +115,9 @@ def _aiding_update_gref(
     """
     vg_b = nz2vg * _nz_b_from_quat(q_nb)
     dz = -_normalize_vec(dv) - vg_b
-    dhdx[0:3, 0:3] = _skew_symmetric(vg_b)
+    dhdx[:, 0:3] = _skew_symmetric(vg_b)
 
-    _kalman_update_sequential_fast(dz, var, dhdx[0:3], dx, P, tmp[0])
+    _kalman_update_sequential_fast(dz, var, dhdx, dx, P, tmp[0])
 
 
 @njit  # type: ignore[misc]
@@ -139,9 +139,9 @@ def _aiding_update_yaw(
         var = DEG2RAD**2 * var
 
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
-    dhdx[3, 0:3] = _dyawda(q_nb)
+    dhdx[0:3] = _dyawda(q_nb)
 
-    _kalman_update_scalar_fast(dz, var, dhdx[3], dx, P, tmp[0])
+    _kalman_update_scalar_fast(dz, var, dhdx, dx, P, tmp[0])
 
 
 @njit  # type: ignore[misc]
@@ -231,7 +231,8 @@ class MEKF:
         # Discrete state-space model
         self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = np.zeros((4, 6))  # preallocation
+        self._dhdx_gref = np.zeros((3, 6))
+        self._dhdx_yaw = np.zeros(6)
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -322,7 +323,7 @@ class MEKF:
             _aiding_update_gref(
                 np.asarray(dv),
                 np.asarray(gref_var),
-                self._dhdx,
+                self._dhdx_gref,
                 self._dx,
                 self._P,
                 self._att_nb._q,
@@ -338,7 +339,7 @@ class MEKF:
                 yaw,
                 yaw_var,
                 yaw_degrees,
-                self._dhdx,
+                self._dhdx_yaw,
                 self._dx,
                 self._P,
                 self._att_nb._q,
