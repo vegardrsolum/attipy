@@ -23,7 +23,7 @@ from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
 
-P0 = (
+_P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
     (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
@@ -177,13 +177,13 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    q : Attitude or array_like, shape (4,), optional
+    q0 : Attitude or array_like, shape (4,), optional
         Initial attitude estimate given as an Attitude instance or a unit quaternion
         (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
         (i.e., no rotation).
-    bg : array_like, shape (3,), optional
+    bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    P : array_like, shape (6, 6), optional
+    P0 : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
         da is the attitude error, and dbg is the gyroscope bias error.
@@ -203,9 +203,10 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = P0,
+        q0: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
+        *,
+        P0: ArrayLike = _P0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -223,9 +224,9 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._att_nb = Attitude(q0) if not isinstance(q0, Attitude) else q0
+        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
@@ -246,29 +247,18 @@ class MEKF:
         """Attitude estimate (no copy)."""
         return self._att_nb
 
-    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
+    @property
+    def gyro_bias(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate expressed in the body frame.
-
-        Parameters
-        ----------
-        degrees : bool, optional
-            Specifies whether to return the bias estimate in deg/s or rad/s. Defaults
-            to rad/s.
-
-        Returns
-        -------
-        ndarray, shape (3,)
-            Copy of the gyroscope bias estimate.
+        Copy of the gyroscope bias estimate in rad/s.
         """
-        if degrees:
-            return np.degrees(self._bg_b.copy())  # type: ignore[no-any-return]
         return self._bg_b.copy()
 
     def update(
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
+        /,
         *,
         dtheta_degrees: bool = False,
         yaw: float | None = None,
