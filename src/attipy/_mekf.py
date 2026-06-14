@@ -246,23 +246,10 @@ class MEKF:
         """Attitude estimate (no copy)."""
         return self._att_nb
 
-    def bias_gyro(self, degrees: bool = False) -> NDArray[np.float64]:
+    def gyro_bias(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate expressed in the body frame.
-
-        Parameters
-        ----------
-        degrees : bool, optional
-            Specifies whether to return the bias estimate in deg/s or rad/s. Defaults
-            to rad/s.
-
-        Returns
-        -------
-        ndarray, shape (3,)
-            Copy of the gyroscope bias estimate.
+        Copy of the gyroscope bias estimate in rad/s.
         """
-        if degrees:
-            return np.degrees(self._bg_b.copy())  # type: ignore[no-any-return]
         return self._bg_b.copy()
 
     def update(
