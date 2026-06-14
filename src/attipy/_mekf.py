@@ -23,7 +23,7 @@ from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
 
-P0 = (
+_P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
     (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
@@ -177,12 +177,16 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    q : Attitude or array_like, shape (4,), optional
+    q0 : Attitude or array_like, shape (4,), optional
         Initial attitude estimate given as an Attitude instance or a unit quaternion
         (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
         (i.e., no rotation).
-    gyro_bias : array_like, shape (3,), optional
-        Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
+    bg0 : array_like, shape (3,), optional
+        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    P0 : array_like, shape (6, 6), optional
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
+        da is the attitude error, and dbg is the gyroscope bias error.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -191,10 +195,6 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
-    P : array_like, shape (6, 6), optional
-        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
-        da is the attitude error, and dbg is the gyroscope bias error.
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up).
@@ -203,13 +203,13 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        q0: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
         *,
-        gyro_bias: ArrayLike = (0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
+        P0: ArrayLike = _P0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
-        P: ArrayLike = P0,
         nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
@@ -224,9 +224,9 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
-        self._bg_b = np.asarray_chkfinite(gyro_bias).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
+        self._att_nb = Attitude(q0) if not isinstance(q0, Attitude) else q0
+        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
+        self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
         # Discrete state-space model
