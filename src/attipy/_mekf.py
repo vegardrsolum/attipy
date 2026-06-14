@@ -258,6 +258,7 @@ class MEKF:
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
+        /,
         *,
         dtheta_degrees: bool = False,
         yaw: float | None = None,
