@@ -181,12 +181,8 @@ class MEKF:
         Initial attitude estimate given as an Attitude instance or a unit quaternion
         (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
         (i.e., no rotation).
-    bg : array_like, shape (3,), optional
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
-    P : array_like, shape (6, 6), optional
-        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
-        da is the attitude error, and dbg is the gyroscope bias error.
+    gyro_bias : array_like, shape (3,), optional
+        Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -195,6 +191,10 @@ class MEKF:
         value for low-cost MEMS IMUs).
     gyro_bias_corr_time : float, optional
         Gyroscope bias correlation time in seconds. Defaults to 50.0 s.
+    P : array_like, shape (6, 6), optional
+        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
+        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
+        da is the attitude error, and dbg is the gyroscope bias error.
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
         (North-East-Down) (default) or 'ENU' (East-North-Up).
