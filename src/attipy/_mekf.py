@@ -230,10 +230,9 @@ class MEKF:
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        vg_b = self._nz2vg * _nz_b_from_quat(self._att_nb._q)
         self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = _measurement_matrix(self._att_nb._q, vg_b)
+        self._dhdx = np.zeros((4, 6))  # updated before applying aiding
 
     @property
     def P(self) -> NDArray[np.float64]:
