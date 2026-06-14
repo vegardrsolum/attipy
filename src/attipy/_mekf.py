@@ -13,7 +13,6 @@ from ._kalman_fast import (
 from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
     _dyawda,
-    _measurement_matrix,
     _process_noise_cov,
     _state_transition,
     _state_transition_update,
@@ -232,7 +231,7 @@ class MEKF:
         # Discrete state-space model
         self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
-        self._dhdx = np.zeros((4, 6))  # updated before applying aiding
+        self._dhdx = np.zeros((4, 6))  # preallocation
 
     @property
     def P(self) -> NDArray[np.float64]:
