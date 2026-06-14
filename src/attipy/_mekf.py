@@ -204,11 +204,11 @@ class MEKF:
         self,
         fs: float,
         q: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg: ArrayLike = (0.0, 0.0, 0.0),
-        P: ArrayLike = P0,
+        gyro_bias: ArrayLike = (0.0, 0.0, 0.0),
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
+        P: ArrayLike = P0,
         nav_frame: str = "NED",
     ) -> None:
         self._fs = fs
@@ -224,7 +224,7 @@ class MEKF:
 
         # Initial state and covariance estimates
         self._att_nb = Attitude(q) if not isinstance(q, Attitude) else q
-        self._bg_b = np.asarray_chkfinite(bg).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(gyro_bias).reshape(3).copy()
         self._P = np.asarray_chkfinite(P).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
