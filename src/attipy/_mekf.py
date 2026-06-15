@@ -135,8 +135,8 @@ def _aiding_update_yaw(
     Update state and covariance with heading (yaw angle) aiding measurement.
     """
     if degrees:
-        yaw = DEG2RAD * yaw
-        var = DEG2RAD**2 * var
+        yaw *= DEG2RAD
+        var *= DEG2RAD**2
 
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
     dhdx[0:3] = _dyawda(q_nb)
