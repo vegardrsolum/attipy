@@ -88,7 +88,7 @@ def test_dyawda(att):
     q = np.array(att["quaternion"])
     a = np.array(att["gibbs2"])
 
-    # Skip cases where yaw is close to ±180 degrees, where the gradient is ill-defined
+    # Skip cases where yaw is close to ±180 degrees, and the gradient is ill-defined
     yaw = att["euler_rad"][2]
     if abs(abs(yaw) - np.pi) < 0.01:
         return
