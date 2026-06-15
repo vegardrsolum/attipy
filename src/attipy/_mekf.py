@@ -301,7 +301,7 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dtheta = np.asarray(dtheta)
+        dtheta = np.array(dtheta, dtype=float)
 
         if dtheta_degrees:
             dtheta *= DEG2RAD
