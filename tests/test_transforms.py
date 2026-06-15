@@ -94,6 +94,10 @@ def test_dyawda(att):
 
     result = _dyawda(q)
 
+    def yaw_from_gibbs2(a):
+        ax, ay, az = a
+        return np.arctan2(2.0 * (ax * ay + 2.0 * az), 4.0 + ax**2 - ay**2 - az**2)
+
     # Numerical gradient via centred finite differences on the Gibbs vector.
     eps = 1e-6
     numerical = np.empty(3)
@@ -102,8 +106,6 @@ def test_dyawda(att):
         a_bwd = a.copy()
         a_fwd[i] += eps
         a_bwd[i] -= eps
-        yaw_fwd = _yaw_from_quat(_quat_from_gibbs2(a_fwd))
-        yaw_bwd = _yaw_from_quat(_quat_from_gibbs2(a_bwd))
-        numerical[i] = (yaw_fwd - yaw_bwd) / (2.0 * eps)
+        numerical[i] = (yaw_from_gibbs2(a_fwd) - yaw_from_gibbs2(a_bwd)) / (2.0 * eps)
 
     np.testing.assert_allclose(result, numerical, atol=1e-8)
