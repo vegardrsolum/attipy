@@ -304,9 +304,9 @@ class MEKF:
         dtheta = np.asarray(dtheta)
 
         if dtheta_degrees:
-            dtheta = DEG2RAD * dtheta
+            dtheta *= DEG2RAD
 
-        dtheta = dtheta - self._dt * self._bg_b
+        dtheta -= self._dt * self._bg_b
 
         # Update state-space model
         _state_transition_update(self._phi, dtheta)
