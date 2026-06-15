@@ -35,11 +35,11 @@ def _kalman_update(
     P : ndarray, shape (n, n)
         Updated state error covariance matrix.
     """
-    z = np.asarray(z)
-    H = np.asarray(H)
-    R = np.asarray(R)
-    x = np.asarray(x)
-    P = np.asarray(P)
+    z = np.asarray(z, dtype=float)
+    H = np.asarray(H, dtype=float)
+    R = np.asarray(R, dtype=float)
+    x = np.asarray(x, dtype=float)
+    P = np.asarray(P, dtype=float)
     I_ = np.eye(x.size)
 
     # Innovation (pre-fit residual) covariance

@@ -9,45 +9,6 @@ ATT_IDX = slice(0, 3)  # attitude error (2x Gibbs vector)
 BG_IDX = slice(3, 6)  # gyroscope bias error
 
 
-@njit  # type: ignore[misc]
-def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Compute yaw angle gradient wrt to the scaled Gibbs vector.
-
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
-
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
-
-    Returns
-    -------
-    numpy.ndarray, shape (3,)
-        Yaw angle gradient vector.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
-    """
-    qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    u = u_y / u_x
-
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
-    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
-    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
-
-    dyawda = 1.0 / (1.0 + u**2) * duda
-
-    return dyawda  # type: ignore[no-any-return]
-
-
 def _state_transition(
     dt: float, dtheta: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:

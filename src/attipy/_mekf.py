@@ -12,12 +12,11 @@ from ._kalman_fast import (
 )
 from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
-    _dyawda,
     _process_noise_cov,
     _state_transition,
     _state_transition_update,
 )
-from ._transforms import _nz_b_from_quat, _yaw_from_quat
+from ._transforms import _dyawda, _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
@@ -135,8 +134,8 @@ def _aiding_update_yaw(
     Update state and covariance with heading (yaw angle) aiding measurement.
     """
     if degrees:
-        yaw = DEG2RAD * yaw
-        var = DEG2RAD**2 * var
+        yaw *= DEG2RAD
+        var *= DEG2RAD**2
 
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
     dhdx[0:3] = _dyawda(q_nb)
@@ -257,9 +256,8 @@ class MEKF:
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
-        /,
-        *,
         dtheta_degrees: bool = False,
+        *,
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -302,12 +300,12 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dtheta = np.asarray(dtheta)
+        dtheta = np.array(dtheta, dtype=float)
 
         if dtheta_degrees:
-            dtheta = DEG2RAD * dtheta
+            dtheta *= DEG2RAD
 
-        dtheta = dtheta - self._dt * self._bg_b
+        dtheta -= self._dt * self._bg_b
 
         # Update state-space model
         _state_transition_update(self._phi, dtheta)
@@ -321,8 +319,8 @@ class MEKF:
         # Correct (a posteriori) state estimate using gravity reference vector aiding
         if gref:
             _aiding_update_gref(
-                np.asarray(dv),
-                np.asarray(gref_var),
+                np.asarray(dv, dtype=float),
+                np.asarray(gref_var, dtype=float),
                 self._dhdx_gref,
                 self._dx,
                 self._P,
