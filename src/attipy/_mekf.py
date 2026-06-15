@@ -320,8 +320,8 @@ class MEKF:
         # Correct (a posteriori) state estimate using gravity reference vector aiding
         if gref:
             _aiding_update_gref(
-                np.asarray(dv),
-                np.asarray(gref_var),
+                np.asarray(dv, dtype=float),
+                np.asarray(gref_var, dtype=float),
                 self._dhdx_gref,
                 self._dx,
                 self._P,
