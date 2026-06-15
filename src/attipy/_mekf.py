@@ -12,12 +12,11 @@ from ._kalman_fast import (
 )
 from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
-    _dyawda,
     _process_noise_cov,
     _state_transition,
     _state_transition_update,
 )
-from ._transforms import _nz_b_from_quat, _yaw_from_quat
+from ._transforms import _nz_b_from_quat, _yaw_from_quat, _dyawda
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
