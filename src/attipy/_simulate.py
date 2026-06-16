@@ -90,19 +90,11 @@ class DOF(ABC):
 
 class BeatDOF(DOF):
     """
-    1D beating sinusoidal DOF signal generator.
+    Beating signal generator.
 
     Defined as:
 
-        y = A * sin(f_beat / 2.0 * t) * cos(f_main * t + phi) + B
-
-    where,
-
-    - A      : Amplitude of the sine waves.
-    - w_main : Angular frequency of the main sine wave.
-    - w_beat : Angular frequency of the beat sine wave.
-    - phi    : Phase offset of the main sine wave.
-    - B      : Constant offset of the beat signal.
+        y = amp * sin(f_beat / 2.0 * t) * cos(f_main * t + phi) + offset
 
     Parameters
     ----------
