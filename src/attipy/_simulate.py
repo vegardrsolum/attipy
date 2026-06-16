@@ -176,7 +176,7 @@ class BeatDOF(DOF):
         dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -((w_beat / 2.0) ** 2) * np.sin(w_beat / 2.0 * t)
-        d2ydt2 = amp * (dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain)
+        d2ydt2 = amp * (d2beat * main + 2 * dbeat * dmain + beat * d2main)
 
         return d2ydt2  # type: ignore[no-any-return]
 
