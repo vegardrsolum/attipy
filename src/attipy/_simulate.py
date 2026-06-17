@@ -102,7 +102,7 @@ class BeatDOF(DOF):
         The main frequency of the sinusoidal signal, y(t).
     f_beat : float
         The beating frequency, which controls the variation in amplitude.
-    freq_hz : bool, default True.
+    freq_hz : bool, optional
         Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
     phase : float, optional
         Phase offset of the beat signal. Default is 0.0.
