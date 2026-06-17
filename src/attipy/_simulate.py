@@ -241,8 +241,8 @@ def pva_sim(
     NDArray[np.float64],
 ]:
     """
-    Generate position, velocity and attitude (PVA) signals, and corresponding IMU
-    signals (specific force and angular rate).
+    Generate synthetic, noise-free position, velocity and attitude (PVA) data,
+    and corresponding IMU (specific force and angular rate) data.
 
     The PVA signals are characterized as:
     - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
