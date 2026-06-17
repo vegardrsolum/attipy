@@ -90,28 +90,24 @@ class DOF(ABC):
 
 class BeatDOF(DOF):
     """
-    1D beating sinusoidal DOF signal generator.
+    Beating signal generator.
 
     Defined as:
 
-        y = A * sin(f_beat / 2.0 * t) * cos(f_main * t + phi) + B
-
-    where,
-
-    - A      : Amplitude of the sine waves.
-    - w_main : Angular frequency of the main sine wave.
-    - w_beat : Angular frequency of the beat sine wave.
-    - phi    : Phase offset of the main sine wave.
-    - B      : Constant offset of the beat signal.
+        y = amp * sin(w_beat / 2.0 * t) * cos(w_main * t + phase) + offset
 
     Parameters
     ----------
-    f_main : float
-        The main frequency of the sinusoidal signal, y(t).
-    f_beat : float
-        The beating frequency, which controls the variation in amplitude.
-    freq_hz : bool, default True.
-        Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
+    amp : float, optional
+        Amplitude of the beat signal. Default is 1.0.
+    freq_main : float, optional
+        Main frequency of the sinusoidal signal, y(t). Defaults to 0.1 rad/s.
+    freq_beat : float, optional
+        Beating frequency, controlling the variation in amplitude. Defaults to
+        0.01 rad/s.
+    freq_hz : bool, optional
+        Whether the frequencies, ``freq_main`` and ``freq_beat``, are given in Hz
+        or rad/s (default).
     phase : float, optional
         Phase offset of the beat signal. Default is 0.0.
     phase_degrees : bool, optional
@@ -176,7 +172,7 @@ class BeatDOF(DOF):
         dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -((w_beat / 2.0) ** 2) * np.sin(w_beat / 2.0 * t)
-        d2ydt2 = amp * (dbeat * dmain + d2beat * main + beat * d2main + dbeat * dmain)
+        d2ydt2 = amp * (d2beat * main + 2 * dbeat * dmain + beat * d2main)
 
         return d2ydt2  # type: ignore[no-any-return]
 
@@ -249,8 +245,8 @@ def pva_sim(
     NDArray[np.float64],
 ]:
     """
-    Generate position, velocity and attitude (PVA) signals, and corresponding IMU
-    signals (specific force and angular rate).
+    Generate synthetic, noise-free position, velocity and attitude (PVA) data,
+    and corresponding IMU (specific force and angular rate) data.
 
     The PVA signals are characterized as:
     - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
