@@ -94,16 +94,20 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(f_beat / 2.0 * t) * cos(f_main * t + phi) + offset
+        y = amp * sin(w_beat / 2.0 * t) * cos(w_main * t + phase) + offset
 
     Parameters
     ----------
-    f_main : float
-        The main frequency of the sinusoidal signal, y(t).
-    f_beat : float
-        The beating frequency, which controls the variation in amplitude.
+    amp : float, optional
+        Amplitude of the beat signal. Default is 1.0.
+    freq_main : float, optional
+        Main frequency of the sinusoidal signal, y(t). Defaults to 0.1 rad/s.
+    freq_beat : float, optional
+        Beating frequency, controlling the variation in amplitude. Defaults to
+        0.01 rad/s.
     freq_hz : bool, optional
-        Whether the frequencies, ``f_main`` and ``f_beat``, are in Hz or rad/s (default).
+        Whether the frequencies, ``freq_main`` and ``freq_beat``, are given in Hz
+        or rad/s (default).
     phase : float, optional
         Phase offset of the beat signal. Default is 0.0.
     phase_degrees : bool, optional
