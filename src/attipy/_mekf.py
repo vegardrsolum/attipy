@@ -246,7 +246,7 @@ class MEKF:
         return self._att_nb
 
     @property
-    def gyro_bias(self) -> NDArray[np.float64]:
+    def bias_gyro(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate in rad/s.
         """
