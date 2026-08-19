@@ -280,11 +280,11 @@ class MEKF:
             for units.
         gyro_degrees : bool, optional
             Specifies whether the gyroscope measurement is given in terms of degrees
-            or radians. Defaults to radians (``False``).
+            or radians. Defaults to radians.
         coning_sculling : bool, optional
             Specifies whether the IMU measurements are given as coning and sculling
             integrals (``True``) or as angular rate and specific force (``False``).
-            Defaults to ``False`` (angular rate and specific force).
+            Defaults to angular rate and specific force.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
