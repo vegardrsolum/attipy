@@ -183,8 +183,8 @@ class MEKF:
         Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
-        da is the attitude error, and dbg is the gyroscope bias error.
+        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, db), where
+        da is the attitude error, and db is the gyroscope bias error.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
