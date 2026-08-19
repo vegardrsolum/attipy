@@ -312,7 +312,7 @@ class MEKF:
             dtheta *= DEG2RAD
 
         if not coning_sculling:
-            # no need to scale the accelerometer measurement since it is normalized
+            # no need to convert dv to m/s since only its direction is used
             dtheta *= self._dt
 
         dtheta -= self._dt * self._bg_b
