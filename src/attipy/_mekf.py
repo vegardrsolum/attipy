@@ -311,6 +311,10 @@ class MEKF:
         if gyro_degrees:
             dtheta *= DEG2RAD
 
+        if not coning_sculling:
+            # no need to scale the accelerometer measurement since it is normalized
+            dtheta *= self._dt
+
         dtheta -= self._dt * self._bg_b
 
         # Update state-space model
