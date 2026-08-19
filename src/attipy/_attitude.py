@@ -126,15 +126,15 @@ class Attitude:
     @classmethod
     def from_matrix(cls, dcm: ArrayLike) -> Self:
         """
-        Initialize from a direction cosine matrix (DCM), R, that transforms vectors
-        from the body frame, {b}, to the navigation frame, {n}:
+        Initialize from a rotation matrix, R, that transforms vectors from the body
+        frame, {b}, to the navigation frame, {n}:
 
             v_n = R @ v_b
 
         Parameters
         ----------
         dcm : ArrayLike
-            Direction cosine matrix (rotation matrix), R. Element of SO(3).
+            Rotation matrix (direction cosine matrix), R. Element of SO(3).
 
         Returns
         -------
@@ -147,15 +147,15 @@ class Attitude:
 
     def as_matrix(self) -> NDArray[np.float64]:
         """
-        Represent the attitude as a direction cosine matrix (DCM), R, that transforms
-        vectors from the body frame, {b}, to the navigation frame, {n}:
+        Represent the attitude as a rotation matrix, R, that transforms vectors
+        from the body frame, {b}, to the navigation frame, {n}:
 
             v_n = R @ v_b
 
         Returns
         -------
         ndarray, shape (3, 3)
-            Direction cosine matrix (rotation matrix), R.
+            Rotation matrix (direction cosine matrix), R.
         """
         return _matrix_from_quat(self._q)  # type: ignore[no-any-return]
 

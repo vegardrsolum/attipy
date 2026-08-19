@@ -179,12 +179,12 @@ class MEKF:
         Initial attitude estimate given as an Attitude instance or a unit quaternion
         (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
         (i.e., no rotation).
-    bg0 : array_like, shape (3,), optional
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+    b0 : array_like, shape (3,), optional
+        Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, dbg), where
-        da is the attitude error, and dbg is the gyroscope bias error.
+        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, db), where
+        da is the attitude error, and db is the gyroscope bias error.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -202,7 +202,7 @@ class MEKF:
         self,
         fs: float,
         q0: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        bg0: ArrayLike = (0.0, 0.0, 0.0),
+        b0: ArrayLike = (0.0, 0.0, 0.0),
         *,
         P0: ArrayLike = _P0,
         gyro_noise_density: float = 0.0001,
@@ -223,7 +223,7 @@ class MEKF:
 
         # Initial state and covariance estimates
         self._att_nb = Attitude(q0) if not isinstance(q0, Attitude) else q0
-        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
@@ -246,7 +246,7 @@ class MEKF:
         return self._att_nb
 
     @property
-    def bias_gyro(self) -> NDArray[np.float64]:
+    def bias(self) -> NDArray[np.float64]:
         """
         Copy of the gyroscope bias estimate in rad/s.
         """
