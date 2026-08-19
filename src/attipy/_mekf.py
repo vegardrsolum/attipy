@@ -311,7 +311,7 @@ class MEKF:
             dtheta *= DEG2RAD
 
         if not increments:
-            # no need to convert dv to m/s since only its direction is used
+            # scaling of dv is not needed since only its direction is used
             dtheta *= self._dt
 
         dtheta -= self._dt * self._bg_b
