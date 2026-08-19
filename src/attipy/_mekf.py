@@ -259,7 +259,7 @@ class MEKF:
         /,
         *,
         gyro_degrees: bool = False,
-        coning_sculling: bool = False,
+        increments: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -272,19 +272,18 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Accelerometer measurement in m/s^2 (specific force) or m/s (sculling integral).
-            See ``coning_sculling`` parameter for units.
+            Accelerometer measurement as specific force (m/s^2) or velocity increment
+            (m/s), depending on ``increments``.
         dtheta : array_like, shape (3,)
-            Gyroscope measurement in rad/s or deg/s (angular rate), or rad or deg
-            (coning integral). See ``coning_sculling`` and ``gyro_degrees`` parameters
-            for units.
+            Gyroscope measurement as angular rate (rad/s or deg/s) or angle increment
+            (rad or deg), depending on ``increments`` and ``gyro_degrees``.
         gyro_degrees : bool, optional
             Specifies whether the gyroscope measurement is given in terms of degrees
             or radians. Defaults to radians.
-        coning_sculling : bool, optional
-            Specifies whether the IMU measurements are given as coning and sculling
-            integrals (``True``) or as angular rate and specific force (``False``).
-            Defaults to angular rate and specific force.
+        increments : bool, optional
+            Specifies whether the IMU measurements should be interpreted as velocity
+            and angle increments rather than specific force and angular rate. Defaults
+            to ``False``.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
@@ -311,7 +310,7 @@ class MEKF:
         if gyro_degrees:
             dtheta *= DEG2RAD
 
-        if not coning_sculling:
+        if not increments:
             # no need to convert dv to m/s since only its direction is used
             dtheta *= self._dt
 
