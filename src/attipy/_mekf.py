@@ -180,7 +180,7 @@ class MEKF:
         (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
         (i.e., no rotation).
     b0 : array_like, shape (3,), optional
-        Initial gyroscope bias estimate (bgx, bgy, bgz) in rad/s. Defaults to zero bias.
+        Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
         (1e-6 * eye(6)). The order of the (error) states is: dx = (da, db), where
