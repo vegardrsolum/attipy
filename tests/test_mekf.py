@@ -141,7 +141,7 @@ class Test_MEKF:
         np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
         np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
 
-    def test_update_coning_sculling(self, pva_sim):
+    def test_update_with_increments(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
         dt = 1.0 / fs
