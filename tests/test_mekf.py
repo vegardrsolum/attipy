@@ -163,7 +163,7 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, att)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
-            mekf.update(f_i * dt, w_i * dt, coning_sculling=True)
+            mekf.update(f_i * dt, w_i * dt, increments=True)
             euler_est.append(mekf.attitude.as_euler())
             bg_est.append(mekf.bias)
         euler_est = np.asarray(euler_est)
