@@ -256,8 +256,10 @@ class MEKF:
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
-        dtheta_degrees: bool = False,
+        /,
         *,
+        gyro_degrees: bool = False,
+        increments: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -270,15 +272,18 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Sculling integral in m/s. I.e., the integral of specific force, f, over
-            the sampling interval, dt. The simple approximation dv = f * dt can be
-            used if sculling-corrected integrals are not available.
+            Accelerometer measurement as specific force (m/s^2) or velocity increment
+            (m/s), depending on ``increments``.
         dtheta : array_like, shape (3,)
-            Coning integral (see ``dtheta_degrees`` parameter for units). I.e., the integral
-            of angular velocity, w, over the sampling interval, dt. The simple approximation
-            dtheta = w * dt can be used if coning-corrected integrals are not available.
-        dtheta_degrees : bool, optional
-            Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
+            Gyroscope measurement as angular rate (rad/s or deg/s) or angle increment
+            (rad or deg), depending on ``increments`` and ``gyro_degrees``.
+        gyro_degrees : bool, optional
+            Specifies whether the gyroscope measurement is given in terms of degrees
+            or radians. Defaults to radians.
+        increments : bool, optional
+            Specifies whether the IMU measurements should be interpreted as velocity
+            and angle increments rather than specific force and angular rate. Defaults
+            to ``False``.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
@@ -302,8 +307,12 @@ class MEKF:
         """
         dtheta = np.array(dtheta, dtype=float)
 
-        if dtheta_degrees:
+        if gyro_degrees:
             dtheta *= DEG2RAD
+
+        if not increments:
+            # scaling of dv is not needed since only its direction is used
+            dtheta *= self._dt
 
         dtheta -= self._dt * self._bg_b
 
