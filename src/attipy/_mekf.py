@@ -256,7 +256,9 @@ class MEKF:
         self,
         dv: ArrayLike,
         dtheta: ArrayLike,
-        dtheta_degrees: bool = False,
+        /,
+        gyro_degrees: bool = False,
+        coning_sculling: bool = False,
         *,
         yaw: float | None = None,
         yaw_var: float | None = None,
@@ -270,15 +272,15 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Sculling integral in m/s. I.e., the integral of specific force, f, over
-            the sampling interval, dt. The simple approximation dv = f * dt can be
-            used if sculling-corrected integrals are not available.
+            Accelerometer measurement in m/s^2 (specific force) or m/s (sculling integral).
+            See ``coning_sculling`` parameter for units.
         dtheta : array_like, shape (3,)
-            Coning integral (see ``dtheta_degrees`` parameter for units). I.e., the integral
-            of angular velocity, w, over the sampling interval, dt. The simple approximation
-            dtheta = w * dt can be used if coning-corrected integrals are not available.
-        dtheta_degrees : bool, optional
-            Specifies whether ``dtheta`` is given in degrees or radians. Defaults to radians.
+            Gyroscope measurement in rad/s or deg/s (angular rate) or rad or
+            deg (coning integral). See ``gyro_degrees`` and ``coning_sculling``
+            parameters for units.
+        gyro_degrees : bool, optional
+            Specifies whether the gyroscope measurement, ``dtheta``, is given in
+            degrees or radians. Default to radians.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
@@ -302,7 +304,7 @@ class MEKF:
         """
         dtheta = np.array(dtheta, dtype=float)
 
-        if dtheta_degrees:
+        if gyro_degrees:
             dtheta *= DEG2RAD
 
         dtheta -= self._dt * self._bg_b
