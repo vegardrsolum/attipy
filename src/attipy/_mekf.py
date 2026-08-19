@@ -275,12 +275,12 @@ class MEKF:
             Accelerometer measurement in m/s^2 (specific force) or m/s (sculling integral).
             See ``coning_sculling`` parameter for units.
         dtheta : array_like, shape (3,)
-            Gyroscope measurement in rad/s or deg/s (angular rate) or rad or
-            deg (coning integral). See ``gyro_degrees`` and ``coning_sculling``
-            parameters for units.
+            Gyroscope measurement in rad/s (angular rate) or rad (coning integral).
+            See ``coning_sculling`` and ``gyro_degrees`` parameters for units.
         gyro_degrees : bool, optional
-            Specifies whether the gyroscope measurement, ``dtheta``, is given in
-            degrees or radians. Default to radians.
+            Specifies whether the gyroscope measurement is given in degrees or degrees
+            per second, or in radians or radians per second (default). See also the
+            ``coning_sculling`` parameter for units.
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
