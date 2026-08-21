@@ -89,29 +89,3 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
         bg_b[k] += ddx[3:6]
 
     return q_nb, bg_b, P
-
-
-    # n_samples = len(q_buf)
-    # q_nb = [None] * n_samples
-    # bg_b = [None] * n_samples
-    # P = [None] * n_samples
-
-    # # Initialize with the last state
-    # q_nb[-1] = q_buf[-1]
-    # bg_b[-1] = b_buf[-1]
-    # P[-1] = P_buf[-1]
-
-    # for k in range(n_samples - 2, -1, -1):
-    #     # Compute the smoother gain
-    #     P_k = P_buf[k]
-    #     P_kp1 = P[k + 1]
-    #     phi_k = phi[k]
-    #     K_smooth = P_k @ phi_k.T @ np.linalg.inv(P_kp1)
-
-    #     # Update the smoothed state and covariance
-    #     dx_smooth = K_smooth @ (dx[k + 1] - phi_k @ dx[k])
-    #     q_nb[k] = _quat_from_rotvec(dx_smooth[:3]) @ q_buf[k]
-    #     bg_b[k] = b_buf[k] + dx_smooth[3:]
-    #     P[k] = P_k + K_smooth @ (P_kp1 - P_k) @ K_smooth.T
-
-    # return q_nb, bg_b, P
