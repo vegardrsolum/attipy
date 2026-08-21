@@ -1,5 +1,8 @@
 import numpy as np
 
+from ._statespace import _state_transition_update
+from ._kalman import _project_cov_ahead
+
 
 class RTSSmoother:
     """
@@ -41,7 +44,7 @@ class RTSSmoother:
             self._bg_b = np.array(self._b_buf)
             self._P = np.array(self._P_buf)
         elif n_samples != len(self._q_nb):
-            self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
+            q_nb, bg_b, P = _rts_backward_sweep(
                 self._q_buf,
                 self._b_buf,
                 self._P_buf,
@@ -51,3 +54,53 @@ class RTSSmoother:
                 self._mekf._Q,
                 self._mekf._dt,
             )
+            self._q_nb = np.array(q_nb, dtype="float64")
+            self._bg_b = np.array(bg_b, dtype="float64")
+            self._P = np.array(P, dtype="float64")
+
+
+def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q, dt):
+    """
+    Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
+    """
+
+    q_nb = q_nb.copy()
+    bg_b = bg_b.copy()
+    P = P.copy()
+
+    # Backward sweep
+    n = len(q_nb)
+    for k in range(n - 2, -1, -1):
+
+        # Update step k state space and calculate a priori covariance for step k + 1
+        _state_transition_update(phi_k, dtheta[k])
+        P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
+
+        # Smoothed error-state estimate and corresponding covariance
+        A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
+
+
+    # n_samples = len(q_buf)
+    # q_nb = [None] * n_samples
+    # bg_b = [None] * n_samples
+    # P = [None] * n_samples
+
+    # # Initialize with the last state
+    # q_nb[-1] = q_buf[-1]
+    # bg_b[-1] = b_buf[-1]
+    # P[-1] = P_buf[-1]
+
+    # for k in range(n_samples - 2, -1, -1):
+    #     # Compute the smoother gain
+    #     P_k = P_buf[k]
+    #     P_kp1 = P[k + 1]
+    #     phi_k = phi[k]
+    #     K_smooth = P_k @ phi_k.T @ np.linalg.inv(P_kp1)
+
+    #     # Update the smoothed state and covariance
+    #     dx_smooth = K_smooth @ (dx[k + 1] - phi_k @ dx[k])
+    #     q_nb[k] = _quat_from_rotvec(dx_smooth[:3]) @ q_buf[k]
+    #     bg_b[k] = b_buf[k] + dx_smooth[3:]
+    #     P[k] = P_k + K_smooth @ (P_kp1 - P_k) @ K_smooth.T
+
+    # return q_nb, bg_b, P
