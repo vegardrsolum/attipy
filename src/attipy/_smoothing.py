@@ -1,7 +1,6 @@
 import numpy as np
 
 from ._statespace import _state_transition_update
-from ._kalman import _project_cov_ahead
 
 
 class RTSSmoother:
