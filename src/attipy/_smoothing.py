@@ -1,8 +1,7 @@
 import numpy as np
 
+from ._quatops import _correct_quat_with_gibbs2
 from ._statespace import _state_transition_update
-from ._quatops import _correct_quat_with_rotvec, _correct_quat_with_gibbs2
-from ._transforms import _matrix_from_quat, _quat_from_matrix
 
 
 class RTSSmoother:
