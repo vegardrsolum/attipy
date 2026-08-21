@@ -175,10 +175,9 @@ class MEKF:
     ----------
     fs : float
         Sampling rate in Hz.
-    q0 : Attitude or array_like, shape (4,), optional
-        Initial attitude estimate given as an Attitude instance or a unit quaternion
-        (qw, qx, qy, qz). Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0)
-        (i.e., no rotation).
+    q0 : array_like, shape (4,), optional
+        Initial attitude estimate given as a unit quaternion (qw, qx, qy, qz).
+        Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
     b0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
@@ -201,7 +200,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
-        q0: Attitude | ArrayLike = (1.0, 0.0, 0.0, 0.0),
+        q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         b0: ArrayLike = (0.0, 0.0, 0.0),
         *,
         P0: ArrayLike = _P0,
@@ -222,7 +221,7 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = Attitude(q0) if not isinstance(q0, Attitude) else q0
+        self._att_nb = Attitude(q0)
         self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)

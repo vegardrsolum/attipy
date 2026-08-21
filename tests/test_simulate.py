@@ -202,8 +202,8 @@ class Test_pva_sim:
         assert w_b.shape == (10_000, 3)
 
         # Validate f and w by strapdown integration using MEKF (no aiding)
-        att0 = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs_expect, att0)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs_expect, q0)
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i, w_i, gref=False)

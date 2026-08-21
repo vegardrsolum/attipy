@@ -76,30 +76,28 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
 
     def test__init__nav_frame(self):
-        att = ap.Attitude((1.0, 0.0, 0.0, 0.0))
-
-        mekf_ned = ap.MEKF(10.0, att, nav_frame="NED")
+        mekf_ned = ap.MEKF(10.0, nav_frame="NED")
         assert mekf_ned._nz2vg == 1.0
 
-        mekf_enu = ap.MEKF(10.0, att, nav_frame="ENU")
+        mekf_enu = ap.MEKF(10.0, nav_frame="ENU")
         assert mekf_enu._nz2vg == -1.0
 
         with pytest.raises(ValueError):
-            ap.MEKF(10.0, att, nav_frame="invalid")
+            ap.MEKF(10.0, nav_frame="invalid")
 
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
         assert isinstance(mekf.attitude, ap.Attitude)
         np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
 
-    def test_bias(self, att):
-        mekf = ap.MEKF(10.0, att, b0=np.array([0.01, -0.02, 0.03]))
+    def test_bias(self):
+        mekf = ap.MEKF(10.0, b0=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
         np.testing.assert_allclose(mekf.bias, bg_expected)
         assert mekf.bias is not mekf._bg_b  # ensure it is a copy
 
-    def test_P(self, mekf, att):
-        mekf = ap.MEKF(10.0, att, P0=np.eye(6))
+    def test_P(self):
+        mekf = ap.MEKF(10.0, P0=np.eye(6))
         np.testing.assert_allclose(mekf.P, np.eye(6))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
@@ -120,8 +118,8 @@ class Test_MEKF:
         )
 
         # Estimate attitude using MEKF
-        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs, att)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i, w_i)
@@ -159,8 +157,8 @@ class Test_MEKF:
         )
 
         # Estimate attitude using MEKF
-        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs, att)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i * dt, w_i * dt, increments=True)
@@ -203,8 +201,8 @@ class Test_MEKF:
         yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
 
         # Estimate attitude using MEKF
-        att = ap.Attitude.from_euler(euler_nb[0], degrees=False)
-        mekf = ap.MEKF(fs, att)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(
