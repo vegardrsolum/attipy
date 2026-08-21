@@ -307,22 +307,22 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        self._dtheta[:] = dtheta
+        dtheta = np.array(dtheta)
 
         if gyro_degrees:
-            self._dtheta *= DEG2RAD
+            dtheta *= DEG2RAD
 
         if not increments:
             # scaling of dv is not needed since only its direction is used
-            self._dtheta *= self._dt
+            dtheta *= self._dt
 
-        self._dtheta -= self._dt * self._bg_b
+        dtheta -= self._dt * self._bg_b
 
         # Update state-space model
-        _state_transition_update(self._phi, self._dtheta)
+        _state_transition_update(self._phi, dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
-        _correct_quat_with_rotvec(self._att_nb._q, self._dtheta)
+        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
@@ -354,6 +354,10 @@ class MEKF:
                 self._att_nb._q,
                 self._tmp,
             )
+
+        # Store parameters needed for smoothing
+        self._error_state = self._dx.copy()
+        self._attitude_increment = dtheta
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
