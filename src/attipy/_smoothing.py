@@ -70,7 +70,7 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q, dt):
     P = P.copy()
 
     q_last_prior = q_nb[-2].copy()
-    q_last_prior = _correct_quat_with_rotvec(q_last_prior, dtheta[-1])
+    _correct_quat_with_rotvec(q_last_prior, dtheta[-1])
     q_last_post = q_nb[-1].copy()
 
     R_last_post = _matrix_from_quat(q_last_post)
