@@ -1,6 +1,8 @@
 import numpy as np
 
 from ._statespace import _state_transition_update
+from ._quatops import _correct_quat_with_rotvec, _correct_quat_with_gibbs2
+from ._transforms import _matrix_from_quat, _quat_from_matrix
 
 
 class RTSSmoother:
@@ -67,6 +69,20 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q, dt):
     bg_b = bg_b.copy()
     P = P.copy()
 
+    q_last_prior = q_nb[-2].copy()
+    q_last_prior = _correct_quat_with_rotvec(q_last_prior, dtheta[-1])
+    q_last_post = q_nb[-1].copy()
+
+    R_last_post = _matrix_from_quat(q_last_post)
+    R_last_prior = _matrix_from_quat(q_last_prior)
+    dR_last = R_last_post @ R_last_prior.T
+    dq_last = _quat_from_matrix(dR_last)
+    da_last = 2 * dq_last[1:4] / dq_last[0]
+
+    dx = dx.copy()
+    dx[0:3] = da_last
+    dx[3:6] = bg_b[-1] - bg_b[-2]
+
     # Backward sweep
     n = len(q_nb)
     for k in range(n - 2, -1, -1):
@@ -77,6 +93,13 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q, dt):
 
         # Smoothed error-state estimate and corresponding covariance
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
+        dx = A @ dx
+        P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
+
+        _correct_quat_with_gibbs2(q_nb[k], dx[0:3])
+        bg_b[k] += dx[3:6]
+
+    return q_nb, bg_b, P
 
 
     # n_samples = len(q_buf)
