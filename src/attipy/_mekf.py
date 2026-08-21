@@ -233,6 +233,8 @@ class MEKF:
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
 
+        self._dtheta = np.empty(3, dtype="float64")
+
     @property
     def P(self) -> NDArray[np.float64]:
         """
@@ -305,22 +307,22 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dtheta = np.array(dtheta, dtype=float)
+        self._dtheta[:] = dtheta
 
         if gyro_degrees:
-            dtheta *= DEG2RAD
+            self._dtheta *= DEG2RAD
 
         if not increments:
             # scaling of dv is not needed since only its direction is used
-            dtheta *= self._dt
+            self._dtheta *= self._dt
 
-        dtheta -= self._dt * self._bg_b
+        self._dtheta -= self._dt * self._bg_b
 
         # Update state-space model
-        _state_transition_update(self._phi, dtheta)
+        _state_transition_update(self._phi, self._dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
-        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
+        _correct_quat_with_rotvec(self._att_nb._q, self._dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
