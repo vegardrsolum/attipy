@@ -167,8 +167,7 @@ class Attitude:
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention) (roll, pitch, yaw), representing
-            rotations about the X, Y, and Z axes, respectively.
+            Set of three Euler angles (roll, pitch, yaw) (see Notes).
         degrees : bool, optional
             Specifies whether the Euler angles are given in degrees or radians (default).
 
@@ -179,25 +178,9 @@ class Attitude:
 
         Notes
         -----
-        The ZYX Euler angles describe how to transition from the 'navigation' frame
-        to the 'body' frame through three consecutive intrinsic and passive rotations
-        in the ZYX order.
-
-        Defined as:
-
-            R = R_z(yaw) @ R_y(pitch) @ R_x(roll)
-
-        where,
-
-        - yaw is a first rotation about the navigation frame's Z-axis.
-        - pitch is a second rotation about the intermediate Y-axis.
-        - roll is a final rotation about the second intermediate X-axis to arrive
-          at the body frame.
-
-        and R is the direction cosine matrix (transforming vectors from the body frame to
-        the navigation frame):
-
-            v_n = R @ v_b
+        Intrinsic, passive ZYX rotations from the navigation frame to the body
+        frame: first yaw about Z, then pitch about the intermediate Y-axis, and
+        then roll about the resulting X-axis.
         """
         theta = _asarray_check_euler(theta)
         if degrees:
@@ -207,7 +190,7 @@ class Attitude:
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Represent the attitude as a set of Euler angles (ZYX convention).
+        Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
@@ -218,12 +201,13 @@ class Attitude:
         Returns
         -------
         ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
-            rotations about the X, Y, and Z axes, respectively.
+            Set of three Euler angles (roll, pitch, yaw) (see Notes).
 
-        See Also
-        --------
-        from_euler : Convention details.
+        Notes
+        -----
+        Intrinsic, passive ZYX rotations from the navigation frame to the body
+        frame: first yaw about Z, then pitch about the intermediate Y-axis, and
+        then roll about the resulting X-axis.
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
