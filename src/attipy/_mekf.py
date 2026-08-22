@@ -13,8 +13,8 @@ from ._kalman_fast import (
 from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
     _process_noise_cov,
-    _state_transition,
-    _state_transition_update,
+    _state_transition_matrix,
+    _state_transition_matrix_update,
 )
 from ._transforms import _dyawda, _nz_b_from_quat, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
@@ -227,7 +227,7 @@ class MEKF:
         self._dx = np.zeros(6)
 
         # Discrete state-space model
-        self._phi = _state_transition(self._dt, np.zeros(3), self._gbc)
+        self._phi = _state_transition_matrix(self._dt, np.zeros(3), self._gbc)
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
@@ -316,7 +316,7 @@ class MEKF:
         dtheta -= self._dt * self._bg_b
 
         # Update state-space model
-        _state_transition_update(self._phi, dtheta)
+        _state_transition_matrix_update(self._phi, dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
         _correct_quat_with_rotvec(self._att_nb._q, dtheta)

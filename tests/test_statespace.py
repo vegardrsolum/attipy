@@ -6,8 +6,8 @@ from attipy._statespace import (
     _process_noise_cov,
     _process_noise_psd,
     _state_matrix,
-    _state_transition,
-    _state_transition_update,
+    _state_transition_matrix,
+    _state_transition_matrix_update,
     _wn_input_matrix,
 )
 from attipy._vectorops import _skew_symmetric
@@ -61,13 +61,13 @@ def test_process_noise_psd(gyro_noise_params):
     np.testing.assert_allclose(W_out, W)
 
 
-def test_state_transition(gyro_noise_params):
+def test_state_transition_matrix(gyro_noise_params):
     *_, gbc = gyro_noise_params
 
     dt = 0.1
     w_b = np.array([0.01, 0.02, 0.03])
 
-    phi_out = _state_transition(dt, dt * w_b, gbc)
+    phi_out = _state_transition_matrix(dt, dt * w_b, gbc)
 
     dfdx = _state_matrix(w_b, gbc)
     phi = np.eye(6) + dt * dfdx  # first order approximation
@@ -80,12 +80,12 @@ def test_state_transition_update(gyro_noise_params):
 
     dt = 0.1
     w_b = np.array([0.01, 0.02, 0.03])
-    phi = _state_transition(dt, dt * w_b, gbc)
+    phi = _state_transition_matrix(dt, dt * w_b, gbc)
 
     w_b_corr = np.array([0.015, 0.025, 0.035])
-    _state_transition_update(phi, dt * w_b_corr)
+    _state_transition_matrix_update(phi, dt * w_b_corr)
 
-    phi_expected = _state_transition(dt, dt * w_b_corr, gbc)
+    phi_expected = _state_transition_matrix(dt, dt * w_b_corr, gbc)
 
     np.testing.assert_allclose(phi, phi_expected)
 
