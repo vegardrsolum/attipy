@@ -162,12 +162,12 @@ class Attitude:
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Initialize from a set of Euler angles (ZYX convention) (see Notes).
+        Initialize from a set of Euler angles (ZYX convention).
 
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (roll, pitch, yaw) (see Notes).
+            Euler angles (roll, pitch, yaw) (see Notes).
         degrees : bool, optional
             Specifies whether the Euler angles are given in degrees or radians (default).
 
@@ -178,8 +178,9 @@ class Attitude:
 
         Notes
         -----
-        Intrinsic, passive ZYX rotations from the navigation frame to the body
-        frame: first yaw about Z, then pitch about the intermediate Y-axis, and
+        The Euler angles describe three intrinsic, passive rotations from the navigation
+        frame, {n}, to the body frame, {b}, in the ZYX order: first yaw about the
+        navigation frame's Z-axis, then pitch about the intermediate Y-axis, and
         then roll about the resulting X-axis.
         """
         theta = _asarray_check_euler(theta)
@@ -195,18 +196,19 @@ class Attitude:
         Parameters
         ----------
         degrees : bool, optional
-            Specifies whether the output Euler angles should be given in degrees
-            or radians (default).
+            Specifies whether the Euler angles should be given in degrees or radians
+            (default).
 
         Returns
         -------
         ndarray, shape (3,)
-            Set of three Euler angles (roll, pitch, yaw) (see Notes).
+            Euler angles (roll, pitch, yaw) (see Notes).
 
         Notes
         -----
-        Intrinsic, passive ZYX rotations from the navigation frame to the body
-        frame: first yaw about Z, then pitch about the intermediate Y-axis, and
+        The Euler angles describe three intrinsic, passive rotations from the navigation
+        frame, {n}, to the body frame, {b}, in the ZYX order: first yaw about the
+        navigation frame's Z-axis, then pitch about the intermediate Y-axis, and
         then roll about the resulting X-axis.
         """
         theta = _euler_zyx_from_quat(self._q)
