@@ -179,9 +179,9 @@ class Attitude:
         Notes
         -----
         The Euler angles describe three intrinsic, passive rotations from the navigation
-        frame to the body frame in the ZYX order: first yaw about the navigation
-        frame's Z-axis, then pitch about the intermediate Y-axis, and then roll
-        about the resulting X-axis.
+        frame, {n}, to the body frame, {b}, in the ZYX order: first yaw about the
+        navigation frame's Z-axis, then pitch about the intermediate Y-axis, and
+        then roll about the resulting X-axis.
         """
         theta = _asarray_check_euler(theta)
         if degrees:
@@ -207,9 +207,9 @@ class Attitude:
         Notes
         -----
         The Euler angles describe three intrinsic, passive rotations from the navigation
-        frame to the body frame in the ZYX order: first yaw about the navigation
-        frame's Z-axis, then pitch about the intermediate Y-axis, and then roll
-        about the resulting X-axis.
+        frame, {n}, to the body frame, {b}, in the ZYX order: first yaw about the
+        navigation frame's Z-axis, then pitch about the intermediate Y-axis, and
+        then roll about the resulting X-axis.
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:
