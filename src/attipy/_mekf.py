@@ -308,8 +308,9 @@ class MEKF:
         if gyro_degrees:
             dtheta *= DEG2RAD
 
+        # Convert rotation rate to attitude increment (rotation vector)
+        # (scaling of dv is not needed since only its direction is used)
         if not increments:
-            # scaling of dv is not needed since only its direction is used
             dtheta *= self._dt
 
         dtheta -= self._dt * self._bg_b
