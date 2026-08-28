@@ -59,12 +59,9 @@ def test_kalman_update_scalar_fast():
 
 def test_kalman_update_scalar_fast_joseph_form_stability():
     """
-    Repeated, highly informative, near-collinear measurement updates in single
-    precision are a worst case for cancellation error in the covariance update.
-    The Joseph form must keep the covariance matrix symmetric and (numerically)
-    positive semi-definite even under this stress, unlike the algebraically
-    equivalent but less stable P - K(Ph)^T shortcut, which drifts far from PSD
-    in the same scenario.
+    The Joseph form covariance update should stay symmetric and positive
+    semi-definite even under repeated, highly informative, near-collinear
+    measurement updates in single precision.
     """
     rng = np.random.default_rng(1)
     n = 6
