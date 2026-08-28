@@ -1,5 +1,7 @@
 import numpy as np
+from numpy.typing import NDArray
 
+from ._transforms import _euler_zyx_from_quat
 from ._quatops import _correct_quat_with_gibbs2
 from ._statespace import _state_transition_update
 
@@ -11,6 +13,7 @@ class RTSSmoother:
 
     def __init__(self, mekf):
         self._mekf = mekf
+        self._mekf._keep_smoothing_params = True
 
         # Forward sweep buffers
         self._q_buf = []
@@ -59,16 +62,47 @@ class RTSSmoother:
             self._bg_b = np.array(bg_b, dtype="float64")
             self._P = np.array(P, dtype="float64")
 
+    def quaternion(self) -> NDArray[np.float64]:
+        """
+        Smoothed quaternion estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 4)
+            Quaternion estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        return self._q_nb.copy()
+
+    def euler(self, degrees: bool = False):
+        """
+        Smoothed Euler angles estimates.
+
+        Returns
+        -------
+        np.ndarray, shape (N, 3)
+            Euler angles estimates for each of the N time steps where the smoother has
+            been updated with measurements.
+        """
+        self._smooth()
+        if self._q_nb.size == 0:
+            return np.empty((0, 3), dtype="float64")
+
+        theta = np.array([_euler_zyx_from_quat(q_i) for q_i in self._q_nb])
+
+        return np.degrees(theta) if degrees else theta
+
 
 def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
 
-    q_nb = q_nb.copy()
-    bg_b = bg_b.copy()
-    P = P.copy()
-    dx = dx.copy()
+    q_nb = np.array(q_nb, dtype="float64")
+    bg_b = np.array(bg_b, dtype="float64")
+    P = np.array(P, dtype="float64")
+    dx = np.array(dx, dtype="float64")
 
     # Backward sweep
     n = len(q_nb)
@@ -78,12 +112,13 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
         _state_transition_update(phi_k, dtheta[k + 1])
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
 
-        # Smoothed error-state estimate and corresponding covariance
+        # Smoothed error-state and error covariance matrix estimates
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
         ddx = A @ dx[k + 1]
         dx[k] += ddx
         P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
+        # Smoothed state estimates
         _correct_quat_with_gibbs2(q_nb[k], ddx[0:3])
         bg_b[k] += ddx[3:6]
 
