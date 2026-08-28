@@ -228,6 +228,20 @@ class Test_MEKF:
         bg_b = np.tile(bg_b, (len(bg_est), 1))
 
         warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_nb[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, bgz_rmse = rmse(bg_b[warmup:], bg_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.1
+        assert np.degrees(pitch_rmse) <= 0.1
+        assert np.degrees(yaw_rmse) <= 0.1
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+        assert np.degrees(bgz_rmse) <= 0.01
+
         np.testing.assert_allclose(
             euler_est[warmup:, :], euler_nb[warmup:, :], atol=0.005
         )
