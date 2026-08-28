@@ -156,7 +156,6 @@ class Test_MEKF:
     def test_update_with_increments(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
-        dt = 1.0 / fs
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
@@ -175,7 +174,7 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
-            mekf.update(f_i * dt, w_i * dt, increments=True)
+            mekf.update(f_i / fs, w_i / fs, increments=True)  # with increments
             euler_est.append(mekf.attitude.as_euler())
             bg_est.append(mekf.bias)
         euler_est = np.asarray(euler_est)
@@ -232,7 +231,7 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
-            mekf.update(
+            mekf.update(  # full aiding
                 f_i,
                 w_i,
                 increments=False,
