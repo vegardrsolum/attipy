@@ -29,6 +29,16 @@ class RTSSmoother:
         self._P = np.empty((0, 6, 6), dtype="float64")
 
     def update(self, *args, **kwargs):
+        """
+        Update state estimates with IMU and aiding measurements.
+
+        Parameters
+        ----------
+        *args : tuple
+            Arguments to pass to the MEKF update method.
+        **kwargs : dict
+            Keyword arguments to pass to the MEKF update method.
+        """
         self._mekf.update(*args, **kwargs)
         self._q_buf.append(self._mekf.attitude.as_quaternion())
         self._b_buf.append(self._mekf.bias)
@@ -36,8 +46,6 @@ class RTSSmoother:
         self._dx_buf.append(self._mekf._error_state.copy())
         self._dtheta_buf.append(self._mekf._attitude_increment.copy())
         return self
-
-    update.__doc__ = MEKF.update.__doc__.replace("MEKF", "RTSSmoother")
 
     def _smooth(self):
         n_samples = len(self._q_buf)
