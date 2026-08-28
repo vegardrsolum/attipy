@@ -1,9 +1,9 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from ._transforms import _euler_zyx_from_quat
 from ._quatops import _correct_quat_with_gibbs2
 from ._statespace import _state_transition_update
+from ._transforms import _euler_zyx_from_quat
 
 
 class RTSSmoother:
