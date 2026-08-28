@@ -1,3 +1,5 @@
+from typing import Self
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -12,7 +14,7 @@ class RTSSmoother:
     Fixed-interval smoothing for MEKF based on the Rauch-Tung-Striebel (RTS) algorithm.
     """
 
-    def __init__(self, mekf):
+    def __init__(self, mekf: MEKF) -> None:
         self._mekf = mekf
         self._mekf._keep_smoothing_params = True
 
@@ -28,7 +30,7 @@ class RTSSmoother:
         self._bg_b = np.empty((0, 3), dtype="float64")
         self._P = np.empty((0, 6, 6), dtype="float64")
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
 
@@ -47,7 +49,7 @@ class RTSSmoother:
         self._dtheta_buf.append(self._mekf._attitude_increment.copy())
         return self
 
-    def _smooth(self):
+    def _smooth(self) -> None:
         n_samples = len(self._q_buf)
 
         if n_samples == 0:
@@ -83,7 +85,7 @@ class RTSSmoother:
         self._smooth()
         return self._q_nb.copy()
 
-    def euler(self, degrees: bool = False):
+    def euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
         Smoothed Euler angles estimates.
 
