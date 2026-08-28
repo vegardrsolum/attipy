@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from pytest import fixture
+from scipy.signal import resample_poly
 
 import attipy as ap
 from attipy._mekf import _dyawda
@@ -220,12 +221,14 @@ class Test_MEKF:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        # Truncate 600 seconds from the beginning (so that filter has converged)
-        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler_nb[warmup:]
-        bg_expect = np.full(bg_est.shape, bg_b)[warmup:]
-        euler_out = euler_est[warmup:]
-        bg_out = bg_est[warmup:]
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bg_est = resample_poly(bg_est, 2, 1)[1:-1:2]
+        euler_nb = euler_nb[1:, :]
+        bg_b = np.tile(bg_b, (len(bg_est), 1))
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
-        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+        np.testing.assert_allclose(
+            euler_est[warmup:, :], euler_nb[warmup:, :], atol=0.005
+        )
+        np.testing.assert_allclose(bg_est[warmup:, :], bg_b[warmup:, :], atol=0.005)
