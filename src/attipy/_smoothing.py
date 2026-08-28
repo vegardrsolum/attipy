@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
+from ._mekf import MEKF
 from ._quatops import _correct_quat_with_gibbs2
 from ._statespace import _state_transition_update
 from ._transforms import _euler_zyx_from_quat
@@ -28,9 +29,6 @@ class RTSSmoother:
         self._P = np.empty((0, 6, 6), dtype="float64")
 
     def update(self, *args, **kwargs):
-        """
-        Update with IMU and aiding measurements.
-        """
         self._mekf.update(*args, **kwargs)
         self._q_buf.append(self._mekf.attitude.as_quaternion())
         self._b_buf.append(self._mekf.bias)
@@ -38,6 +36,8 @@ class RTSSmoother:
         self._dx_buf.append(self._mekf._error_state.copy())
         self._dtheta_buf.append(self._mekf._attitude_increment.copy())
         return self
+
+    update.__doc__ = MEKF.update.__doc__.replace("MEKF", "RTSSmoother")
 
     def _smooth(self):
         n_samples = len(self._q_buf)
