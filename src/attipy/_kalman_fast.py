@@ -51,10 +51,12 @@ def _kalman_update_scalar_fast(
     for i in range(n):
         x[i] += tmp[i] * ky
 
-    # Updated (a posteriori) covariance estimate (upper triangle + mirror)
+    # Updated (a posteriori) covariance estimate (Joseph form, upper triangle + mirror)
     for i in range(n):
+        k_i = tmp[i] * s_inv
         for j in range(i, n):
-            p = P[i, j] - tmp[i] * tmp[j] * s_inv
+            k_j = tmp[j] * s_inv
+            p = P[i, j] - k_i * tmp[j] - tmp[i] * k_j + s * k_i * k_j
             P[i, j] = p
             P[j, i] = p
 
