@@ -162,13 +162,12 @@ class Attitude:
     @classmethod
     def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
         """
-        Initialize from a set of Euler angles (ZYX convention) (see Notes).
+        Initialize from a set of Euler angles (ZYX convention).
 
         Parameters
         ----------
         theta : ArrayLike
-            Set of three Euler angles (ZYX convention) (roll, pitch, yaw), representing
-            rotations about the X, Y, and Z axes, respectively.
+            Euler angles (roll, pitch, yaw) (see Notes).
         degrees : bool, optional
             Specifies whether the Euler angles are given in degrees or radians (default).
 
@@ -179,25 +178,10 @@ class Attitude:
 
         Notes
         -----
-        The ZYX Euler angles describe how to transition from the 'navigation' frame
-        to the 'body' frame through three consecutive intrinsic and passive rotations
-        in the ZYX order.
-
-        Defined as:
-
-            R = R_z(yaw) @ R_y(pitch) @ R_x(roll)
-
-        where,
-
-        - yaw is a first rotation about the navigation frame's Z-axis.
-        - pitch is a second rotation about the intermediate Y-axis.
-        - roll is a final rotation about the second intermediate X-axis to arrive
-          at the body frame.
-
-        and R is the direction cosine matrix (transforming vectors from the body frame to
-        the navigation frame):
-
-            v_n = R @ v_b
+        The Euler angles describe three consecutive intrinsic and passive rotations
+        from the navigation frame, {n}, to the body frame, {b}, in the ZYX order:
+        first yaw about the navigation frame's Z-axis, then pitch about the intermediate
+        Y-axis, and finally roll about the resulting X-axis.
         """
         theta = _asarray_check_euler(theta)
         if degrees:
@@ -207,23 +191,25 @@ class Attitude:
 
     def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
         """
-        Represent the attitude as a set of Euler angles (ZYX convention).
+        Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
 
         Parameters
         ----------
         degrees : bool, optional
-            Specifies whether the output Euler angles should be given in degrees
-            or radians (default).
+            Specifies whether the Euler angles should be given in degrees or radians
+            (default).
 
         Returns
         -------
         ndarray, shape (3,)
-            The 3-element Euler (ZYX) angles (roll, pitch, yaw), representing
-            rotations about the X, Y, and Z axes, respectively.
+            Euler angles (roll, pitch, yaw) (see Notes).
 
-        See Also
-        --------
-        from_euler : Convention details.
+        Notes
+        -----
+        The Euler angles describe three consecutive intrinsic and passive rotations
+        from the navigation frame, {n}, to the body frame, {b}, in the ZYX order:
+        first yaw about the navigation frame's Z-axis, then pitch about the intermediate
+        Y-axis, and finally roll about the resulting X-axis.
         """
         theta = _euler_zyx_from_quat(self._q)
         if degrees:

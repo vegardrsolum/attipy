@@ -9,7 +9,7 @@ ATT_IDX = slice(0, 3)  # attitude error (2x Gibbs vector)
 BG_IDX = slice(3, 6)  # gyroscope bias error
 
 
-def _state_transition(
+def _state_transition_matrix(
     dt: float, dtheta: NDArray[np.float64], gbc: float
 ) -> NDArray[np.float64]:
     """
@@ -18,10 +18,6 @@ def _state_transition(
         phi = I + dt * dfdx
 
     where dfdx denotes the linearized state matrix.
-
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
 
     Parameters
     ----------
@@ -45,7 +41,7 @@ def _state_transition(
 
 
 @njit  # type: ignore[misc]
-def _state_transition_update(
+def _state_transition_matrix_update(
     phi: NDArray[np.float64],
     dtheta: NDArray[np.float64],
 ) -> None:
@@ -53,10 +49,6 @@ def _state_transition_update(
     Update the state transition matrix, phi, in place:
 
         phi[0:3, 0:3] = I - S(dtheta)
-
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
 
     Parameters
     ----------
@@ -90,10 +82,6 @@ def _process_noise_cov(
 
         Q = dt @ dfdw @ W @ dfdw.T
 
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-
     Parameters
     ----------
     dt : float
@@ -116,16 +104,9 @@ def _process_noise_cov(
     return Q
 
 
-def _state_matrix(
-    w_b: NDArray[np.float64],
-    gbc: float,
-) -> NDArray[np.float64]:
+def _state_matrix(w_b: NDArray[np.float64], gbc: float) -> NDArray[np.float64]:
     """
     Set up the linearized state matrix, dfdx.
-
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
 
     Parameters
     ----------
@@ -150,14 +131,6 @@ def _wn_input_matrix() -> NDArray[np.float64]:
     """
     Set up the linearized (white noise) input matrix, dfdw.
 
-    Assumes the following 6 states in order:
-    - Attitude (3)
-    - Gyro bias (3)
-
-    and the following 6 white noise inputs in order:
-    - Gyroscope white noise (3)
-    - Gyroscope bias white noise (3)
-
     Returns
     -------
     dfdw : ndarray, shape (6, 6)
@@ -172,10 +145,6 @@ def _wn_input_matrix() -> NDArray[np.float64]:
 def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64]:
     """
     Set up the white noise (process noise) power spectral density matrix, W.
-
-    Assumes the following 6 white noise inputs in order:
-    - Gyroscope white noise (3)
-    - Gyroscope bias white noise (3)
 
     Parameters
     ----------
