@@ -356,7 +356,7 @@ class MEKF:
 
         # Store parameters needed for smoothing
         self._error_state = self._dx.copy()
-        self._attitude_increment = dtheta
+        self._attitude_increment = dtheta.copy()
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
