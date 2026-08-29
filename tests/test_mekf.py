@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from pytest import fixture
+from scipy.signal import resample_poly
 
 import attipy as ap
 from attipy._mekf import _dyawda
@@ -128,21 +129,33 @@ class Test_MEKF:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        # Truncate 600 seconds from the beginning (so that filter has converged)
-        # Check roll and pitch only
-        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler_nb[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg_b)[warmup:, :2]
-        euler_out = euler_est[warmup:, :2]
-        bg_out = bg_est[warmup:, :2]
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bg_est = resample_poly(bg_est, 2, 1)[1:-1:2]
+        euler_nb = euler_nb[1:, :]
+        bg_b = np.tile(bg_b, (len(bg_est), 1))
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
-        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+
+        roll_rmse, pitch_rmse, _ = rmse(euler_nb[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, _ = rmse(bg_b[warmup:], bg_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.1
+        assert np.degrees(pitch_rmse) <= 0.1
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+
+        np.testing.assert_allclose(
+            euler_est[warmup:, :2], euler_nb[warmup:, :2], atol=0.005
+        )
+        np.testing.assert_allclose(bg_est[warmup:, :2], bg_b[warmup:, :2], atol=0.005)
 
     def test_update_with_increments(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
         fs = 10.24
-        dt = 1.0 / fs
 
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
@@ -161,22 +174,35 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
-            mekf.update(f_i * dt, w_i * dt, increments=True)
+            mekf.update(f_i / fs, w_i / fs, increments=True)  # with increments
             euler_est.append(mekf.attitude.as_euler())
             bg_est.append(mekf.bias)
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        # Truncate 600 seconds from the beginning (so that filter has converged)
-        # Check roll and pitch only
-        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler_nb[warmup:, :2]
-        bg_expect = np.full(bg_est.shape, bg_b)[warmup:, :2]
-        euler_out = euler_est[warmup:, :2]
-        bg_out = bg_est[warmup:, :2]
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bg_est = resample_poly(bg_est, 2, 1)[1:-1:2]
+        euler_nb = euler_nb[1:, :]
+        bg_b = np.tile(bg_b, (len(bg_est), 1))
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
-        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+
+        roll_rmse, pitch_rmse, _ = rmse(euler_nb[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, _ = rmse(bg_b[warmup:], bg_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.1
+        assert np.degrees(pitch_rmse) <= 0.1
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+
+        np.testing.assert_allclose(
+            euler_est[warmup:, :2], euler_nb[warmup:, :2], atol=0.005
+        )
+        np.testing.assert_allclose(bg_est[warmup:, :2], bg_b[warmup:, :2], atol=0.005)
 
     def test_update_full_aiding(self, pva_sim):
         *_, euler_nb, f_b, w_b = pva_sim
@@ -205,7 +231,7 @@ class Test_MEKF:
         mekf = ap.MEKF(fs, q0)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
-            mekf.update(
+            mekf.update(  # full aiding
                 f_i,
                 w_i,
                 increments=False,
@@ -220,12 +246,96 @@ class Test_MEKF:
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
-        # Truncate 600 seconds from the beginning (so that filter has converged)
-        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
-        euler_expect = euler_nb[warmup:]
-        bg_expect = np.full(bg_est.shape, bg_b)[warmup:]
-        euler_out = euler_est[warmup:]
-        bg_out = bg_est[warmup:]
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bg_est = resample_poly(bg_est, 2, 1)[1:-1:2]
+        euler_nb = euler_nb[1:, :]
+        bg_b = np.tile(bg_b, (len(bg_est), 1))
 
-        np.testing.assert_allclose(euler_out, euler_expect, atol=0.007)
-        np.testing.assert_allclose(bg_out, bg_expect, atol=0.005)
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+
+        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_nb[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, bgz_rmse = rmse(bg_b[warmup:], bg_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.1
+        assert np.degrees(pitch_rmse) <= 0.1
+        assert np.degrees(yaw_rmse) <= 0.1
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+        assert np.degrees(bgz_rmse) <= 0.01
+
+        np.testing.assert_allclose(
+            euler_est[warmup:, :], euler_nb[warmup:, :], atol=0.005
+        )
+        np.testing.assert_allclose(bg_est[warmup:, :], bg_b[warmup:, :], atol=0.005)
+
+    def test_update_full_aiding_increments(self, pva_sim):
+        *_, euler_nb, f_b, w_b = pva_sim
+        yaw = euler_nb[:, 2]
+        fs = 10.24
+
+        # Add IMU measurement noise
+        acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
+        gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
+        bg_b = (0.001, 0.002, 0.003)  # rad/s
+        rng = np.random.default_rng(42)
+        f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
+        w_meas = (
+            w_b
+            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
+            + bg_b
+        )
+
+        # Add velocity and heading measurement noise
+        yaw_var = 0.0001  # rad^2
+        rng = np.random.default_rng(42)
+        yaw_meas = yaw + np.sqrt(yaw_var) * rng.standard_normal(yaw.shape)
+
+        # Estimate attitude using MEKF
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
+        euler_est, bg_est = [], []
+        for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
+            mekf.update(
+                f_i / fs,
+                w_i / fs,
+                increments=True,
+                gyro_degrees=False,
+                yaw=y_i,
+                yaw_var=yaw_var,
+                gref=True,
+                gref_var=0.001 * np.ones(3),
+            )
+            euler_est.append(mekf.attitude.as_euler())
+            bg_est.append(mekf.bias)
+        euler_est = np.asarray(euler_est)
+        bg_est = np.asarray(bg_est)
+
+        # Half-sample shift (compensates for the time shift introduced by Euler integration)
+        euler_est = resample_poly(euler_est, 2, 1)[1:-1:2]
+        bg_est = resample_poly(bg_est, 2, 1)[1:-1:2]
+        euler_nb = euler_nb[1:, :]
+        bg_b = np.tile(bg_b, (len(bg_est), 1))
+
+        def rmse(ref, est):
+            return np.sqrt(np.mean((ref - est) ** 2, axis=0))
+
+        warmup = int(fs * 600.0)  # truncate 600 seconds from the beginning
+
+        roll_rmse, pitch_rmse, yaw_rmse = rmse(euler_nb[warmup:], euler_est[warmup:])
+        bgx_rmse, bgy_rmse, bgz_rmse = rmse(bg_b[warmup:], bg_est[warmup:])
+
+        assert np.degrees(roll_rmse) <= 0.1
+        assert np.degrees(pitch_rmse) <= 0.1
+        assert np.degrees(yaw_rmse) <= 0.1
+        assert np.degrees(bgx_rmse) <= 0.01
+        assert np.degrees(bgy_rmse) <= 0.01
+        assert np.degrees(bgz_rmse) <= 0.01
+
+        np.testing.assert_allclose(
+            euler_est[warmup:, :], euler_nb[warmup:, :], atol=0.005
+        )
+        np.testing.assert_allclose(bg_est[warmup:, :], bg_b[warmup:, :], atol=0.005)
