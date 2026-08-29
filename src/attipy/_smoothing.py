@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 
 from ._mekf import MEKF
 from ._quatops import _correct_quat_with_gibbs2
-from ._statespace import _state_transition_update
+from ._statespace import _state_transition_matrix_update
 from ._transforms import _euler_zyx_from_quat
 
 
@@ -119,7 +119,7 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
     for k in range(n - 2, -1, -1):
 
         # Update step k state space and calculate a priori covariance for step k + 1
-        _state_transition_update(phi_k, dtheta[k + 1])
+        _state_transition_matrix_update(phi_k, dtheta[k + 1])
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
 
         # Smoothed error-state and error covariance matrix estimates
