@@ -59,18 +59,15 @@ class FixedIntervalSmoother:
             self._bg_b = np.array(self._b_buf)
             self._P = np.array(self._P_buf)
         elif n_samples != len(self._q_nb):
-            q_nb, bg_b, P = _rts_backward_sweep(
-                self._q_buf,
-                self._b_buf,
-                self._P_buf,
-                self._dtheta_buf,
-                self._dx_buf,
+            self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
+                np.array(self._q_buf),
+                np.array(self._b_buf),
+                np.array(self._P_buf),
+                np.asarray(self._dtheta_buf),
+                np.array(self._dx_buf),
                 self._mekf._phi,
                 self._mekf._Q,
             )
-            self._q_nb = np.array(q_nb, dtype="float64")
-            self._bg_b = np.array(bg_b, dtype="float64")
-            self._P = np.array(P, dtype="float64")
 
     def quaternion(self) -> NDArray[np.float64]:
         """
