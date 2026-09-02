@@ -52,9 +52,7 @@ class FixedIntervalSmoother:
     def _smooth(self) -> None:
         n_samples = len(self._q_buf)
 
-        if n_samples == 0:
-            pass
-        elif n_samples == 1:
+        if n_samples == 1:
             self._q_nb = np.array(self._q_buf)
             self._bg_b = np.array(self._b_buf)
             self._P = np.array(self._P_buf)
