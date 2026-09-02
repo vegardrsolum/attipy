@@ -16,6 +16,7 @@ class FixedIntervalSmoother:
 
     def __init__(self, mekf: MEKF) -> None:
         self._mekf = mekf
+        self._mekf._store_smoothing_params = True
 
         # Forward sweep buffers
         self._q_buf = []

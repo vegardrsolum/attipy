@@ -224,6 +224,7 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
+        self._store_smoothing_params = False
 
         # Discrete state-space model
         self._phi = _state_transition_matrix(self._dt, np.zeros(3), self._gbc)
@@ -352,8 +353,9 @@ class MEKF:
                 self._tmp,
             )
 
-        self._dx_copy = self._dx.copy()  # needed for smoothing
-        self._dtheta_copy = dtheta  # needed for smoothing
+        if self._store_smoothing_params:
+            self._dx_copy = self._dx.copy()
+            self._dtheta_copy = dtheta
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
