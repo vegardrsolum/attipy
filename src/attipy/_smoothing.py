@@ -106,11 +106,6 @@ def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
 
-    q_nb = np.array(q_nb, dtype="float64")
-    bg_b = np.array(bg_b, dtype="float64")
-    P = np.array(P, dtype="float64")
-    dx = np.array(dx, dtype="float64")
-
     # Backward sweep
     n = len(q_nb)
     for k in range(n - 2, -1, -1):
