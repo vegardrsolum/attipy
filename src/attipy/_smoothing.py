@@ -16,7 +16,6 @@ class FixedIntervalSmoother:
 
     def __init__(self, mekf: MEKF) -> None:
         self._mekf = mekf
-        self._mekf._keep_smoothing_params = True
 
         # Forward sweep buffers
         self._q_buf = []
@@ -45,8 +44,8 @@ class FixedIntervalSmoother:
         self._q_buf.append(self._mekf.attitude.as_quaternion())
         self._b_buf.append(self._mekf.bias)
         self._P_buf.append(self._mekf.P)
-        self._dx_buf.append(self._mekf._error_state.copy())
-        self._dtheta_buf.append(self._mekf._attitude_increment.copy())
+        self._dx_buf.append(self._mekf._dx_copy)
+        self._dtheta_buf.append(self._mekf._dtheta_copy)
         return self
 
     def _smooth(self) -> None:

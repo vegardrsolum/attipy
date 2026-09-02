@@ -231,8 +231,6 @@ class MEKF:
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
 
-        self._dtheta = np.empty(3, dtype="float64")
-
     @property
     def P(self) -> NDArray[np.float64]:
         """
@@ -305,7 +303,7 @@ class MEKF:
         MEKF
             A reference to the instance itself after the update.
         """
-        dtheta = np.array(dtheta)
+        dtheta = np.array(dtheta, dtype=float)
 
         if gyro_degrees:
             dtheta *= DEG2RAD
@@ -354,9 +352,8 @@ class MEKF:
                 self._tmp,
             )
 
-        # Store parameters needed for smoothing
-        self._error_state = self._dx.copy()
-        self._attitude_increment = dtheta
+        self._dx_copy = self._dx.copy()  # needed for smoothing
+        self._dtheta_copy = dtheta  # needed for smoothing
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
