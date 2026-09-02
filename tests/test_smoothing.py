@@ -4,7 +4,7 @@ from scipy.signal import resample_poly
 import attipy as ap
 
 
-class Test_RTSSmoother:
+class Test_FixedIntervalSmoother:
 
     def test_update(self, pva_sim):
         _, _, _, euler_nb, f_b, w_b = pva_sim
@@ -31,7 +31,7 @@ class Test_RTSSmoother:
         # Estimate attitude using MEKF (forward filter), and smooth with the RTS smoother
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
         mekf = ap.MEKF(fs, q0)
-        smoother = ap.RTSSmoother(mekf)
+        smoother = ap.FixedIntervalSmoother(mekf)
 
         euler_fwd = []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):

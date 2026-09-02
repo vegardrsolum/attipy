@@ -9,7 +9,7 @@ from ._statespace import _state_transition_matrix_update
 from ._transforms import _euler_zyx_from_quat
 
 
-class RTSSmoother:
+class FixedIntervalSmoother:
     """
     Fixed-interval smoothing for MEKF based on the Rauch-Tung-Striebel (RTS) algorithm.
     """
