@@ -50,19 +50,13 @@ class FixedIntervalSmoother:
         return self
 
     def _smooth(self) -> None:
-        n_samples = len(self._q_buf)
-
-        if n_samples == 1:
-            self._q_nb = np.array(self._q_buf)
-            self._bg_b = np.array(self._b_buf)
-            self._P = np.array(self._P_buf)
-        elif n_samples != len(self._q_nb):
+        if len(self._q_buf) != len(self._q_nb):
             self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
-                np.array(self._q_buf),
-                np.array(self._b_buf),
-                np.array(self._P_buf),
-                np.asarray(self._dtheta_buf),
-                np.array(self._dx_buf),
+                np.asarray(self._q_buf, copy=True),
+                np.asarray(self._b_buf, copy=True),
+                np.asarray(self._P_buf, copy=True),
+                np.asarray(self._dx_buf, copy=True),
+                self._dtheta_buf,
                 self._mekf._phi,
                 self._mekf._Q,
             )
@@ -99,7 +93,7 @@ class FixedIntervalSmoother:
         return np.degrees(theta) if degrees else theta
 
 
-def _rts_backward_sweep(q_nb, bg_b, P, dtheta, dx, phi_k, Q):
+def _rts_backward_sweep(q_nb, bg_b, P, dx, dtheta, phi_k, Q):
     """
     Perform a backward sweep with the Rauch-Tung-Striebel (RTS) algorithm.
     """
