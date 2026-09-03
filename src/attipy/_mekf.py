@@ -213,6 +213,7 @@ class MEKF:
         self._nav_frame = nav_frame.lower()
         self._nz2vg = _nz2vg(self._nav_frame)
         self._tmp = np.empty((6, 6))  # preallocated workspace
+        self._store_smoothing_params = False
 
         # IMU noise parameters
         self._arw = gyro_noise_density  # angular random walk
@@ -224,7 +225,6 @@ class MEKF:
         self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
-        self._store_smoothing_params = False
 
         # Discrete state-space model
         self._phi = _state_transition_matrix(self._dt, np.zeros(3), self._gbc)
