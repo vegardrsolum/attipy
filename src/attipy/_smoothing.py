@@ -52,10 +52,10 @@ class FixedIntervalSmoother:
     def _smooth(self) -> None:
         if len(self._q_buf) != len(self._q_nb):
             self._q_nb, self._bg_b, self._P = _rts_backward_sweep(
-                np.asarray(self._q_buf, copy=True),
-                np.asarray(self._b_buf, copy=True),
-                np.asarray(self._P_buf, copy=True),
-                np.asarray(self._dx_buf, copy=True),
+                np.array(self._q_buf),
+                np.array(self._b_buf),
+                np.array(self._P_buf),
+                np.array(self._dx_buf),
                 self._dtheta_buf,
                 self._mekf._phi,
                 self._mekf._Q,
