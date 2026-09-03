@@ -102,8 +102,10 @@ def _rts_backward_sweep(q_nb, bg_b, P, dx, dtheta, phi_k, Q):
     n = len(q_nb)
     for k in range(n - 2, -1, -1):
 
-        # Update step k state space and calculate a priori covariance for step k + 1
+        # Update state transition matrix for step k
         _state_transition_matrix_update(phi_k, dtheta[k + 1])
+
+        # Calculate a priori error covariance for step k + 1
         P_prior_kp1 = phi_k @ P[k] @ phi_k.T + Q
 
         # Smoothed error-state and error covariance matrix estimates
