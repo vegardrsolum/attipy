@@ -110,12 +110,12 @@ def _rts_backward_sweep(q_nb, bg_b, P, dx, dtheta, phi_k, Q):
 
         # Smoothed error-state and error covariance matrix estimates
         A = P[k] @ phi_k.T @ np.linalg.inv(P_prior_kp1)
-        ddx = A @ dx[k + 1]
-        dx[k] += ddx
+        ddx_k = A @ dx[k + 1]
+        dx[k] += ddx_k
         P[k] += A @ (P[k + 1] - P_prior_kp1) @ A.T
 
         # Smoothed state estimates
-        _correct_quat_with_gibbs2(q_nb[k], ddx[0:3])
-        bg_b[k] += ddx[3:6]
+        _correct_quat_with_gibbs2(q_nb[k], ddx_k[0:3])
+        bg_b[k] += ddx_k[3:6]
 
     return q_nb, bg_b, P
