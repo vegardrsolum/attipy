@@ -231,6 +231,24 @@ class MEKF:
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
 
+    def level(self, f: ArrayLike) -> None:
+        """
+        Set the tilt estimate (roll and pitch angles) based on an accelerometer
+        measurement and the known direction of gravity (leveling). The yaw angle
+        is left unchanged.
+
+        Assumes that the body is stationary or undergoing negligible linear acceleration.
+
+        Parameters
+        ----------
+        f : array_like, shape (3,)
+            Specific force vector measurement in (m/s^2).
+        """
+        f_b = np.asarray_chkfinite(f).reshape(3)
+        roll, pitch = _roll_pitch_from_acc(f_b, nav_frame=self._nav_frame)
+        yaw = _yaw_from_quat(self._att_nb._q)
+        self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
+
     @property
     def P(self) -> NDArray[np.float64]:
         """
