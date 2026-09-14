@@ -94,6 +94,17 @@ class Test_MEKF:
         with pytest.raises(ValueError):
             ap.MEKF(10.0, nav_frame="invalid")
 
+    @pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
+    def test_level(self, nav_frame):
+        att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random
+        mekf = ap.MEKF(10.0, nav_frame=nav_frame)
+        g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
+        f_b = -att.as_matrix().T @ g_n
+        mekf.level(f_b)
+        np.testing.assert_allclose(
+            mekf.attitude.as_euler(degrees=False)[:2], att.as_euler(degrees=False)[:2]
+        )
+
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
         assert isinstance(mekf.attitude, ap.Attitude)
