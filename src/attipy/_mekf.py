@@ -59,7 +59,7 @@ def _roll_pitch_from_acc(
     ndarray, shape (2,)
         Roll and pitch Euler angles (roll, pitch) in radians.
     """
-    fx, fy, fz = f_b
+    fx, fy, fz = np.asarray(f_b)
 
     if nav_frame.lower() == "ned":
         roll = np.arctan2(-fy, -fz)
@@ -286,8 +286,7 @@ class MEKF:
         f : array_like, shape (3,)
             Specific force vector measurement in (m/s^2).
         """
-        f_b = np.asarray_chkfinite(f).reshape(3)
-        roll, pitch = _roll_pitch_from_acc(f_b, nav_frame=self._nav_frame)
+        roll, pitch = _roll_pitch_from_acc(f, nav_frame=self._nav_frame)
         yaw = _yaw_from_quat(self._att_nb._q)
         self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
 
