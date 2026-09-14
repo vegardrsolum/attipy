@@ -47,7 +47,7 @@ f_meas = f + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f.shape)
 w_meas = w + bg + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w.shape)
 yaw_meas = euler[:, 2] + yaw_std * rng.standard_normal(euler[:, 2].shape)
 
-# Initialize MEKF and perform initial attitude alignment
+# Initialize MEKF and perform initial tilt and yaw alignment
 mekf = ap.MEKF(fs)
 mekf.level(f_meas[0])
 mekf.align_yaw(yaw_meas[0])
