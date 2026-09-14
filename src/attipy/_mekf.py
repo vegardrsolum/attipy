@@ -290,6 +290,22 @@ class MEKF:
         yaw = _yaw_from_quat(self._att_nb._q)
         self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
 
+    def align_yaw(self, yaw: float, degrees: bool = False) -> None:
+        """
+        Yaw angle alignment.
+
+        Parameters
+        ----------
+        yaw : float
+            Desired yaw angle.
+        degrees : bool, optional
+            Specifies whether the yaw angle is given in degrees or radians (default).
+        """
+        if degrees:
+            yaw = np.radians(yaw)
+        roll, pitch, _ = self._att_nb.as_euler(degrees=False)
+        self._att_nb._q = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
+
     @property
     def P(self) -> NDArray[np.float64]:
         """
