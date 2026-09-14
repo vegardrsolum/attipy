@@ -105,6 +105,14 @@ class Test_MEKF:
             mekf.attitude.as_euler(degrees=False)[:2], att.as_euler(degrees=False)[:2]
         )
 
+    @pytest.mark.parametrize("degrees", [True, False])
+    def test_align_yaw(self, degrees):
+        mekf = ap.MEKF(10.0)
+        yaw = 45.0 if degrees else np.radians(45.0)
+        mekf.align_yaw(yaw, degrees=degrees)
+        _, _, yaw_est = mekf.attitude.as_euler(degrees=degrees)
+        assert np.isclose(yaw_est, yaw)
+
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
         assert isinstance(mekf.attitude, ap.Attitude)

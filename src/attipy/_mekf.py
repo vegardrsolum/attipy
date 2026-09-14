@@ -59,7 +59,7 @@ def _roll_pitch_from_acc(
     ndarray, shape (2,)
         Roll and pitch Euler angles (roll, pitch) in radians.
     """
-    fx, fy, fz = f_b
+    fx, fy, fz = np.asarray(f_b).reshape(3)
 
     if nav_frame.lower() == "ned":
         roll = np.arctan2(-fy, -fz)
@@ -286,10 +286,25 @@ class MEKF:
         f : array_like, shape (3,)
             Specific force vector measurement in (m/s^2).
         """
-        f_b = np.asarray_chkfinite(f).reshape(3)
-        roll, pitch = _roll_pitch_from_acc(f_b, nav_frame=self._nav_frame)
+        roll, pitch = _roll_pitch_from_acc(f, nav_frame=self._nav_frame)
         yaw = _yaw_from_quat(self._att_nb._q)
         self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
+
+    def align_yaw(self, yaw: float, degrees: bool = False) -> None:
+        """
+        Yaw angle alignment.
+
+        Parameters
+        ----------
+        yaw : float
+            Desired yaw angle.
+        degrees : bool, optional
+            Specifies whether the yaw angle is given in degrees or radians (default).
+        """
+        if degrees:
+            yaw = np.radians(yaw)
+        roll, pitch, _ = self._att_nb.as_euler(degrees=False)
+        self._att_nb._q = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -323,7 +338,7 @@ class MEKF:
         yaw_degrees: bool = False,
         gref: bool = True,
         gref_var: ArrayLike = (0.001, 0.001, 0.001),
-    ) -> Self:
+    ) -> None:
         """
         Update state estimates with IMU and aiding measurements.
 
@@ -357,11 +372,6 @@ class MEKF:
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for gravity reference vector aiding. Defaults to (0.001, 0.001, 0.001).
-
-        Returns
-        -------
-        MEKF
-            A reference to the instance itself after the update.
         """
         dtheta = np.array(dtheta, dtype=float)
 
@@ -414,5 +424,3 @@ class MEKF:
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
-
-        return self
