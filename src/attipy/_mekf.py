@@ -338,7 +338,7 @@ class MEKF:
         yaw_degrees: bool = False,
         gref: bool = True,
         gref_var: ArrayLike = (0.001, 0.001, 0.001),
-    ) -> Self:
+    ) -> None:
         """
         Update state estimates with IMU and aiding measurements.
 
@@ -372,11 +372,6 @@ class MEKF:
         gref_var : array_like, shape (3,), optional
             Variance of gravity reference vector measurement noise (dimensionless).
             Required for gravity reference vector aiding. Defaults to (0.001, 0.001, 0.001).
-
-        Returns
-        -------
-        MEKF
-            A reference to the instance itself after the update.
         """
         dtheta = np.array(dtheta, dtype=float)
 
@@ -429,5 +424,3 @@ class MEKF:
 
         # Reset state (regulating error-state to zero)
         _reset(self._att_nb._q, self._bg_b, self._dx)
-
-        return self
