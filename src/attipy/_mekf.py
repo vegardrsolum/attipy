@@ -31,6 +31,46 @@ _P0 = (
 )
 
 
+def _roll_pitch_from_acc(f_b: NDArray[np.float64], nav_frame: str) -> NDArray[np.float64]:
+    """
+    Estimate roll and pitch Euler angles from a specific force measurement.
+
+    Assumes that the body is stationary or undergoing negligible linear acceleration,
+    such that:
+    
+        f_b ≈ -R_bn @ g_n
+    
+    where f_b is the specific force measured by the accelerometer, R_bn is the
+    rotation matrix (from navigation to body frame), and g_n is the gravity
+    vector expressed in the navigation frame.
+
+    Parameters
+    ----------
+    f_b: ndarray, shape (3,)
+        Specific force measurement vector (fx, fy, fz).
+    nav_frame : {'NED', 'ENU'}
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) or 'ENU' (East-North-Up).
+
+    Returns
+    -------
+    ndarray, shape (2,)
+        Roll and pitch Euler angles (roll, pitch) in radians.
+    """
+    fx, fy, fz = f_b
+
+    if nav_frame.lower() == "ned":
+        roll = np.arctan2(-fy, -fz)
+        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    elif nav_frame.lower() == "enu":
+        roll = np.arctan2(fy, fz)
+        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+
+    return np.array([roll, pitch])
+
+
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
     """
     Gravity vector expressed in the navigation frame ('NED' or 'ENU').
