@@ -59,7 +59,7 @@ def _roll_pitch_from_acc(
     ndarray, shape (2,)
         Roll and pitch Euler angles (roll, pitch) in radians.
     """
-    fx, fy, fz = np.asarray(f_b)
+    fx, fy, fz = np.asarray(f_b).reshape(3)
 
     if nav_frame.lower() == "ned":
         roll = np.arctan2(-fy, -fz)
