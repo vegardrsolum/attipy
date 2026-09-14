@@ -16,7 +16,7 @@ from ._statespace import (
     _state_transition_matrix,
     _state_transition_matrix_update,
 )
-from ._transforms import _dyawda, _nz_b_from_quat, _yaw_from_quat
+from ._transforms import _dyawda, _nz_b_from_quat, _quat_from_euler_zyx, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
