@@ -4,9 +4,17 @@ from pytest import fixture
 from scipy.signal import resample_poly
 
 import attipy as ap
-from attipy._mekf import _dyawda
+from attipy._mekf import _roll_pitch_from_acc
 from attipy._transforms import _quat_from_euler_zyx
-from attipy._vectorops import _skew_symmetric
+
+
+@pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
+def test_roll_pitch_from_acc(nav_frame):
+    att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random attitude
+    g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
+    f_b = -att.as_matrix().T @ g_n
+    roll_pitch = _roll_pitch_from_acc(f_b, nav_frame=nav_frame)
+    np.testing.assert_allclose(roll_pitch, att.as_euler(degrees=False)[:2])
 
 
 class Test_MEKF:
@@ -85,6 +93,17 @@ class Test_MEKF:
 
         with pytest.raises(ValueError):
             ap.MEKF(10.0, nav_frame="invalid")
+
+    @pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
+    def test_level(self, nav_frame):
+        att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random
+        mekf = ap.MEKF(10.0, nav_frame=nav_frame)
+        g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
+        f_b = -att.as_matrix().T @ g_n
+        mekf.level(f_b)
+        np.testing.assert_allclose(
+            mekf.attitude.as_euler(degrees=False)[:2], att.as_euler(degrees=False)[:2]
+        )
 
     def test_attitude(self, mekf):
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])

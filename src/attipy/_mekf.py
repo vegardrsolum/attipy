@@ -16,7 +16,7 @@ from ._statespace import (
     _state_transition_matrix,
     _state_transition_matrix_update,
 )
-from ._transforms import _dyawda, _nz_b_from_quat, _yaw_from_quat
+from ._transforms import _dyawda, _nz_b_from_quat, _quat_from_euler_zyx, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
@@ -29,6 +29,48 @@ _P0 = (
     (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
     (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
 )
+
+
+def _roll_pitch_from_acc(
+    f_b: NDArray[np.float64], nav_frame: str
+) -> NDArray[np.float64]:
+    """
+    Estimate roll and pitch Euler angles from a specific force measurement.
+
+    Assumes that the body is stationary or undergoing negligible linear acceleration,
+    such that:
+
+        f_b ≈ -R_bn @ g_n
+
+    where f_b is the specific force measured by the accelerometer, R_bn is the
+    rotation matrix (from navigation to body frame), and g_n is the gravity
+    vector expressed in the navigation frame.
+
+    Parameters
+    ----------
+    f_b: ndarray, shape (3,)
+        Specific force measurement vector (fx, fy, fz).
+    nav_frame : {'NED', 'ENU'}
+        Specifies the assumed inertial-like navigation frame. Should be 'NED'
+        (North-East-Down) or 'ENU' (East-North-Up).
+
+    Returns
+    -------
+    ndarray, shape (2,)
+        Roll and pitch Euler angles (roll, pitch) in radians.
+    """
+    fx, fy, fz = f_b
+
+    if nav_frame.lower() == "ned":
+        roll = np.arctan2(-fy, -fz)
+        pitch = np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    elif nav_frame.lower() == "enu":
+        roll = np.arctan2(fy, fz)
+        pitch = -np.arctan2(fx, np.sqrt(fy**2 + fz**2))
+    else:
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+
+    return np.array([roll, pitch])
 
 
 def _gravity_nav(g: float, nav_frame: str) -> NDArray[np.float64]:
@@ -230,6 +272,24 @@ class MEKF:
         self._Q = _process_noise_cov(self._dt, self._arw, self._gbs, self._gbc)
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
+
+    def level(self, f: ArrayLike) -> None:
+        """
+        Set the tilt estimate (roll and pitch angles) based on an accelerometer
+        measurement and the known direction of gravity (leveling). The yaw angle
+        is left unchanged.
+
+        Assumes that the body is stationary or undergoing negligible linear acceleration.
+
+        Parameters
+        ----------
+        f : array_like, shape (3,)
+            Specific force vector measurement in (m/s^2).
+        """
+        f_b = np.asarray_chkfinite(f).reshape(3)
+        roll, pitch = _roll_pitch_from_acc(f_b, nav_frame=self._nav_frame)
+        yaw = _yaw_from_quat(self._att_nb._q)
+        self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
 
     @property
     def P(self) -> NDArray[np.float64]:
