@@ -31,15 +31,17 @@ _P0 = (
 )
 
 
-def _roll_pitch_from_acc(f_b: NDArray[np.float64], nav_frame: str) -> NDArray[np.float64]:
+def _roll_pitch_from_acc(
+    f_b: NDArray[np.float64], nav_frame: str
+) -> NDArray[np.float64]:
     """
     Estimate roll and pitch Euler angles from a specific force measurement.
 
     Assumes that the body is stationary or undergoing negligible linear acceleration,
     such that:
-    
+
         f_b ≈ -R_bn @ g_n
-    
+
     where f_b is the specific force measured by the accelerometer, R_bn is the
     rotation matrix (from navigation to body frame), and g_n is the gravity
     vector expressed in the navigation frame.
