@@ -177,6 +177,76 @@ class BeatDOF(DOF):
         return d2ydt2  # type: ignore[no-any-return]
 
 
+class RampUpDOF(DOF):
+    """
+    Ramp-up wrapper for a DOF signal generator.
+
+    Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
+
+        y_rampup = w(t) * y(t)
+
+    The window is zero before the ramp-up starts, increases smoothly from 0 to 1
+    during the ramp-up period, and stays at 1 afterwards:
+
+        w(t) = 6 * x**5 - 15 * x**4 + 10 * x**3
+
+    where ``x = (t - start) / duration`` clipped to [0, 1]. The window has
+    vanishing first and second derivatives at both ends of the ramp-up period,
+    so that the ramped signal and its two first time derivatives are continuous.
+
+    Parameters
+    ----------
+    dof : DOF
+        Underlying DOF signal generator to ramp up.
+    duration : float
+        Duration of the ramp-up period in seconds. Must be positive.
+    start : float, optional
+        Time in seconds at which the ramp-up starts. The signal, and its two
+        first time derivatives, are zero before this time. Default is 0.0.
+    """
+
+    def __init__(self, dof: DOF, duration: float, start: float = 0.0) -> None:
+        if duration <= 0.0:
+            raise ValueError("'duration' must be positive.")
+
+        self._dof = dof
+        self._duration = float(duration)
+        self._start = float(start)
+
+    def _window(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        """
+        Ramp-up window, w(t), and its two first time derivatives.
+        """
+        duration = self._duration
+        x = np.clip((t - self._start) / duration, 0.0, 1.0)
+
+        w = x**3 * (10.0 - 15.0 * x + 6.0 * x**2)
+        dw = 30.0 * x**2 * (1.0 - x) ** 2 / duration
+        d2w = 60.0 * x * (1.0 - 3.0 * x + 2.0 * x**2) / duration**2
+
+        return w, dw, d2w
+
+    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        w, _, _ = self._window(t)
+        y = self._dof._y(t)
+        return w * y
+
+    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        w, dw, _ = self._window(t)
+        y = self._dof._y(t)
+        dydt = self._dof._dydt(t)
+        return dw * y + w * dydt
+
+    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+        w, dw, d2w = self._window(t)
+        y = self._dof._y(t)
+        dydt = self._dof._dydt(t)
+        d2ydt2 = self._dof._d2ydt2(t)
+        return d2w * y + 2.0 * dw * dydt + w * d2ydt2
+
+
 def _specific_force_body(
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
@@ -236,6 +306,8 @@ def pva_sim(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
+    rampup: float | None = None,
+    rampup_start: float = 0.0,
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -254,6 +326,10 @@ def pva_sim(
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
 
+    Optionally, the motion can be ramped up smoothly from rest (see ``rampup``
+    and ``rampup_start``). This provides an initial stationary period, which is
+    useful for letting an estimator converge before the body starts moving.
+
     Parameters
     ----------
     fs : float, optional
@@ -269,6 +345,19 @@ def pva_sim(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
+    rampup : float or None, optional
+        Duration in seconds of the ramp-up period. If given, all DOF signals are
+        scaled by a smooth window which is zero before ``rampup_start``,
+        increases from 0 to 1 during the ramp-up period, and stays at 1
+        afterwards. The body is thus at rest (i.e., at the origin with zero
+        attitude, and with zero acceleration and angular rate) until
+        ``rampup_start``, and in full motion from ``rampup_start + rampup``
+        onwards. If None (default), no ramp-up is applied, and the body is in
+        full motion from the start.
+    rampup_start : float, optional
+        Time in seconds at which the ramp-up starts, i.e., the duration of the
+        initial stationary period. Defaults to 0.0. Ignored if ``rampup`` is
+        None.
 
     Returns
     -------
@@ -290,12 +379,23 @@ def pva_sim(
 
     # DOF signals
     phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-    px_sig = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
-    py_sig = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
-    pz_sig = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
-    roll_sig = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
-    pitch_sig = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
-    yaw_sig = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
+    px_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
+    py_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
+    pz_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
+    roll_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
+    pitch_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
+    yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
+
+    # Optional ramp-up from rest, providing an initial stationary period
+    if rampup is not None:
+        if rampup_start < 0.0:
+            raise ValueError("'rampup_start' must be non-negative.")
+        px_sig = RampUpDOF(px_sig, rampup, start=rampup_start)
+        py_sig = RampUpDOF(py_sig, rampup, start=rampup_start)
+        pz_sig = RampUpDOF(pz_sig, rampup, start=rampup_start)
+        roll_sig = RampUpDOF(roll_sig, rampup, start=rampup_start)
+        pitch_sig = RampUpDOF(pitch_sig, rampup, start=rampup_start)
+        yaw_sig = RampUpDOF(yaw_sig, rampup, start=rampup_start)
 
     # Time
     dt = 1.0 / fs

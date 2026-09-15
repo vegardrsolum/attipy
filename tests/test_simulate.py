@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._simulate import DOF, BeatDOF
+from attipy._simulate import DOF, BeatDOF, RampUpDOF
 
 
 @pytest.fixture
@@ -156,6 +156,106 @@ class Test_BeatDOF:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
+class Test_RampUpDOF:
+    @pytest.fixture
+    def beat(self):
+        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, offset=1.0)
+
+    @pytest.fixture
+    def rampup(self, beat):
+        return RampUpDOF(beat, 4.0, start=2.0)
+
+    def test__init__(self, beat):
+        rampup = RampUpDOF(beat, 4.0, start=2.0)
+
+        assert isinstance(rampup, DOF)
+        assert rampup._dof is beat
+        assert rampup._duration == 4.0
+        assert rampup._start == 2.0
+
+    def test__init__default(self, beat):
+        rampup = RampUpDOF(beat, 4.0)
+
+        assert rampup._start == 0.0
+
+    def test__init__raises(self, beat):
+        with pytest.raises(ValueError):
+            RampUpDOF(beat, 0.0)
+
+        with pytest.raises(ValueError):
+            RampUpDOF(beat, -1.0)
+
+    def test_window(self, rampup):
+        t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
+        w, dw, d2w = rampup._window(t)
+
+        np.testing.assert_allclose(w, [0.0, 0.0, 0.5, 1.0, 1.0])
+        np.testing.assert_allclose(dw, [0.0, 0.0, 30.0 * 0.5**4 / 4.0, 0.0, 0.0])
+        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0], atol=1e-12)
+
+    def test_y(self, rampup, beat, t):
+        y = rampup.y(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+
+        np.testing.assert_allclose(y, w * beat.y(t))
+
+    def test_dydt(self, rampup, beat, t):
+        dydt = rampup.dydt(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
+
+        np.testing.assert_allclose(dydt, dw * beat.y(t) + w * beat.dydt(t))
+
+    def test_d2ydt2(self, rampup, beat, t):
+        d2ydt2 = rampup.d2ydt2(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
+        d2w = (120.0 * x**3 - 180.0 * x**2 + 60.0 * x) / 4.0**2
+
+        d2ydt2_expect = d2w * beat.y(t) + 2.0 * dw * beat.dydt(t) + w * beat.d2ydt2(t)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test_at_rest_before_start(self, rampup):
+        t = np.linspace(0.0, 2.0, 100)
+        y, dydt, d2ydt2 = rampup(t)
+
+        np.testing.assert_allclose(y, np.zeros(100))
+        np.testing.assert_allclose(dydt, np.zeros(100))
+        np.testing.assert_allclose(d2ydt2, np.zeros(100))
+
+    def test_unaffected_after_rampup(self, rampup, beat):
+        t = np.linspace(6.0, 20.0, 100)
+        y, dydt, d2ydt2 = rampup(t)
+        y_expect, dydt_expect, d2ydt2_expect = beat(t)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test_derivatives_by_finite_difference(self, rampup):
+        t = np.linspace(0.0, 20.0, 400_001)
+        y, dydt, d2ydt2 = rampup(t)
+        dt = t[1] - t[0]
+
+        dydt_fd = (y[2:] - y[:-2]) / (2.0 * dt)
+        d2ydt2_fd = (dydt[2:] - dydt[:-2]) / (2.0 * dt)
+
+        # Central differences are inaccurate where the jerk is discontinuous,
+        # i.e., at the two ends of the ramp-up period.
+        t_mid = t[1:-1]
+        valid = (np.abs(t_mid - 2.0) > dt) & (np.abs(t_mid - 6.0) > dt)
+
+        np.testing.assert_allclose(dydt[1:-1][valid], dydt_fd[valid], atol=1e-6)
+        np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
+
+
 class Test_pva_sim:
     def test_default(self):
         t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim()
@@ -249,3 +349,53 @@ class Test_pva_sim:
         g = 5.0
         *_, f, _ = ap.pva_sim(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
+
+    def test_rampup_none(self):
+        out = ap.pva_sim()
+        out_none = ap.pva_sim(rampup=None)
+
+        for arr, arr_none in zip(out, out_none):
+            np.testing.assert_allclose(arr, arr_none)
+
+    def test_rampup(self):
+        fs, n = 10.0, 5000
+        rampup, rampup_start = 120.0, 60.0
+        g = 9.80665
+
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(
+            fs=fs, n=n, g=g, rampup=rampup, rampup_start=rampup_start
+        )
+
+        # Stationary (i.e., at rest at the origin) before the ramp-up starts
+        before = t < rampup_start
+        assert before.sum() > 0
+        np.testing.assert_allclose(p_n[before], 0.0)
+        np.testing.assert_allclose(v_n[before], 0.0)
+        np.testing.assert_allclose(euler_nb[before], 0.0)
+        np.testing.assert_allclose(w_b[before], 0.0)
+        np.testing.assert_allclose(
+            f_b[before], np.tile([0.0, 0.0, -g], (before.sum(), 1))
+        )
+
+        # Unaffected by the ramp-up once it is completed
+        after = t >= rampup_start + rampup
+        assert after.sum() > 0
+        *out_expect, _ = ap.pva_sim(fs=fs, n=n, g=g)
+        for arr, arr_expect in zip((p_n, v_n, euler_nb, f_b), out_expect[1:]):
+            np.testing.assert_allclose(arr[after], arr_expect[after], atol=1e-12)
+
+    def test_rampup_start_default(self):
+        t, *_, w_b = ap.pva_sim(rampup=120.0)
+
+        assert t[0] == 0.0
+        np.testing.assert_allclose(w_b[0], 0.0)
+
+    def test_rampup_raises(self):
+        with pytest.raises(ValueError):
+            ap.pva_sim(rampup=0.0)
+
+        with pytest.raises(ValueError):
+            ap.pva_sim(rampup=-1.0)
+
+        with pytest.raises(ValueError):
+            ap.pva_sim(rampup=120.0, rampup_start=-1.0)
