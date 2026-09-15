@@ -328,6 +328,9 @@ def pva_sim(
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
 
+    Optionally, a ramp-up period can be applied to gradually increase the amplitude
+    of the signals from zero to their full values.
+
     Parameters
     ----------
     fs : float, optional
