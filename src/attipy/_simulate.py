@@ -177,13 +177,13 @@ class BeatDOF(DOF):
         return d2ydt2  # type: ignore[no-any-return]
 
 
-class RampUpDOF(DOF):
+class RampUp(DOF):
     """
-    Ramp-up wrapper for a DOF signal generator.
+    Ramp-up wrapper for DOF signals.
 
     Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
 
-        y_rampup = w(t) * y(t)
+        y_rampup(t) = w(t) * y(t)
 
     The window is zero before the ramp-up starts, increases smoothly from 0 to 1
     during the ramp-up period, and stays at 1 afterwards:
@@ -328,10 +328,6 @@ def pva_sim(
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
 
-    Optionally, the motion can be ramped up smoothly from rest (see ``rampup``
-    and ``rampup_start``). This provides an initial stationary period, which is
-    useful for letting an estimator converge before the body starts moving.
-
     Parameters
     ----------
     fs : float, optional
@@ -348,18 +344,12 @@ def pva_sim(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     rampup : float or None, optional
-        Duration in seconds of the ramp-up period. If given, all DOF signals are
-        scaled by a smooth window which is zero before ``rampup_start``,
-        increases from 0 to 1 during the ramp-up period, and stays at 1
-        afterwards. The body is thus at rest (i.e., at the origin with zero
-        attitude, and with zero acceleration and angular rate) until
-        ``rampup_start``, and in full motion from ``rampup_start + rampup``
-        onwards. If None (default), no ramp-up is applied, and the body is in
-        full motion from the start.
+        Duration in seconds of the ramp-up period. If ``None`` (default), no ramp-up
+        is applied.
     rampup_start : float, optional
         Time in seconds at which the ramp-up starts, i.e., the duration of the
         initial stationary period. Defaults to 0.0. Ignored if ``rampup`` is
-        None.
+        ``None``.
 
     Returns
     -------
@@ -389,12 +379,12 @@ def pva_sim(
     yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
 
     if rampup is not None:
-        px_sig = RampUpDOF(px_sig, rampup, start=rampup_start)
-        py_sig = RampUpDOF(py_sig, rampup, start=rampup_start)
-        pz_sig = RampUpDOF(pz_sig, rampup, start=rampup_start)
-        roll_sig = RampUpDOF(roll_sig, rampup, start=rampup_start)
-        pitch_sig = RampUpDOF(pitch_sig, rampup, start=rampup_start)
-        yaw_sig = RampUpDOF(yaw_sig, rampup, start=rampup_start)
+        px_sig = RampUp(px_sig, rampup, start=rampup_start)
+        py_sig = RampUp(py_sig, rampup, start=rampup_start)
+        pz_sig = RampUp(pz_sig, rampup, start=rampup_start)
+        roll_sig = RampUp(roll_sig, rampup, start=rampup_start)
+        pitch_sig = RampUp(pitch_sig, rampup, start=rampup_start)
+        yaw_sig = RampUp(yaw_sig, rampup, start=rampup_start)
 
     # Time
     dt = 1.0 / fs

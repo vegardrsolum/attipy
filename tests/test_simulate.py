@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._simulate import DOF, BeatDOF, RampUpDOF
+from attipy._simulate import DOF, BeatDOF, RampUp
 
 
 @pytest.fixture
@@ -156,17 +156,17 @@ class Test_BeatDOF:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_RampUpDOF:
+class Test_RampUp:
     @pytest.fixture
     def beat(self):
         return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, offset=1.0)
 
     @pytest.fixture
     def rampup(self, beat):
-        return RampUpDOF(beat, 4.0, start=2.0)
+        return RampUp(beat, 4.0, start=2.0)
 
     def test__init__(self, beat):
-        rampup = RampUpDOF(beat, 4.0, start=2.0)
+        rampup = RampUp(beat, 4.0, start=2.0)
 
         assert isinstance(rampup, DOF)
         assert rampup._dof is beat
@@ -174,16 +174,16 @@ class Test_RampUpDOF:
         assert rampup._start == 2.0
 
     def test__init__default(self, beat):
-        rampup = RampUpDOF(beat, 4.0)
+        rampup = RampUp(beat, 4.0)
 
         assert rampup._start == 0.0
 
     def test__init__raises(self, beat):
         with pytest.raises(ValueError):
-            RampUpDOF(beat, 0.0)
+            RampUp(beat, 0.0)
 
         with pytest.raises(ValueError):
-            RampUpDOF(beat, -1.0)
+            RampUp(beat, -1.0)
 
     def test_window(self, rampup):
         t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
