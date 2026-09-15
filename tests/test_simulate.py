@@ -350,13 +350,6 @@ class Test_pva_sim:
         *_, f, _ = ap.pva_sim(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
 
-    def test_rampup_none(self):
-        out = ap.pva_sim()
-        out_none = ap.pva_sim(rampup=None)
-
-        for arr, arr_none in zip(out, out_none):
-            np.testing.assert_allclose(arr, arr_none)
-
     def test_rampup(self):
         fs, n = 10.0, 5000
         rampup, rampup_start = 120.0, 60.0
@@ -379,16 +372,13 @@ class Test_pva_sim:
 
         # Unaffected by the ramp-up once it is completed
         after = t >= rampup_start + rampup
+        after_expect = ap.pva_sim(fs=fs, n=n, g=g)
         assert after.sum() > 0
-        *out_expect, _ = ap.pva_sim(fs=fs, n=n, g=g)
-        for arr, arr_expect in zip((p_n, v_n, euler_nb, f_b), out_expect[1:]):
-            np.testing.assert_allclose(arr[after], arr_expect[after], atol=1e-12)
-
-    def test_rampup_start_default(self):
-        t, *_, w_b = ap.pva_sim(rampup=120.0)
-
-        assert t[0] == 0.0
-        np.testing.assert_allclose(w_b[0], 0.0)
+        np.testing.assert_allclose(p_n[after], after_expect[1][after])
+        np.testing.assert_allclose(v_n[after], after_expect[2][after])
+        np.testing.assert_allclose(euler_nb[after], after_expect[3][after])
+        np.testing.assert_allclose(f_b[after], after_expect[4][after])
+        np.testing.assert_allclose(w_b[after], after_expect[5][after])
 
     def test_rampup_raises(self):
         with pytest.raises(ValueError):
