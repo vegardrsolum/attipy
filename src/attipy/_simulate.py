@@ -208,6 +208,8 @@ class RampUpDOF(DOF):
     def __init__(self, dof: DOF, duration: float, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
+        if start < 0.0:
+            raise ValueError("'start' must be non-negative.")
 
         self._dof = dof
         self._duration = float(duration)
@@ -386,10 +388,7 @@ def pva_sim(
     pitch_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
     yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
 
-    # Optional ramp-up from rest, providing an initial stationary period
     if rampup is not None:
-        if rampup_start < 0.0:
-            raise ValueError("'rampup_start' must be non-negative.")
         px_sig = RampUpDOF(px_sig, rampup, start=rampup_start)
         py_sig = RampUpDOF(py_sig, rampup, start=rampup_start)
         pz_sig = RampUpDOF(pz_sig, rampup, start=rampup_start)
