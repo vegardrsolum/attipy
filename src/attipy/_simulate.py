@@ -344,12 +344,10 @@ def pva_sim(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     rampup : float or None, optional
-        Duration in seconds of the ramp-up period. If ``None`` (default), no ramp-up
-        is applied.
+        Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
     rampup_start : float, optional
-        Time in seconds at which the ramp-up starts, i.e., the duration of the
-        initial stationary period. Defaults to 0.0. Ignored if ``rampup`` is
-        ``None``.
+        Start time of the ramp-up period in seconds, i.e., the duration of the initial
+        stationary period. Defaults to 0.0 seconds.
 
     Returns
     -------
