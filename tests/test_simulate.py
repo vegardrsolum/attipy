@@ -191,7 +191,7 @@ class Test_RampUp:
 
         np.testing.assert_allclose(w, [0.0, 0.0, 0.5, 1.0, 1.0])
         np.testing.assert_allclose(dw, [0.0, 0.0, 30.0 * 0.5**4 / 4.0, 0.0, 0.0])
-        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0], atol=1e-12)
+        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0])
 
     def test_y(self, rampup, beat, t):
         y = rampup.y(t)
@@ -226,9 +226,9 @@ class Test_RampUp:
         t = np.linspace(0.0, 2.0, 100)
         y, dydt, d2ydt2 = rampup(t)
 
-        np.testing.assert_allclose(y, np.zeros(100))
-        np.testing.assert_allclose(dydt, np.zeros(100))
-        np.testing.assert_allclose(d2ydt2, np.zeros(100))
+        np.testing.assert_allclose(y, 0.0)
+        np.testing.assert_allclose(dydt, 0.0)
+        np.testing.assert_allclose(d2ydt2, 0.0)
 
     def test_unaffected_after_rampup(self, rampup, beat):
         t = np.linspace(6.0, 20.0, 100)
