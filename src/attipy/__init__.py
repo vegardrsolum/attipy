@@ -1,5 +1,6 @@
+from . import simulate
 from ._attitude import Attitude
 from ._mekf import MEKF
-from ._simulate import imu, pva_sim
+from .simulate._simulate import pva_sim
 
-__all__ = ["MEKF", "Attitude", "imu", "pva_sim"]
+__all__ = ["MEKF", "Attitude", "pva_sim", "simulate"]

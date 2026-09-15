@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._mekf import _gravity_nav
-from ._transforms import _matrix_from_euler_zyx
+from .._mekf import _gravity_nav
+from .._transforms import _matrix_from_euler_zyx
 
 
 class DOF(ABC):

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._simulate import DOF, BeatDOF, RampUp
+from attipy.simulate._simulate import DOF, BeatDOF, RampUp
 
 
 @pytest.fixture
