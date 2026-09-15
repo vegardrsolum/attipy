@@ -415,3 +415,118 @@ def pva_sim(
         w_b = np.degrees(w_b)
 
     return t, pos, vel, euler, f_b, w_b
+
+
+def imu(
+    fs: float = 10.0,
+    n: int = 10_000,
+    degrees: bool = False,
+    g: float = 9.80665,
+    nav_frame: str = "NED",
+    rampup: float | None = None,
+    rampup_start: float = 0.0,
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
+    """
+    Generate synthetic, noise-free position, velocity and attitude (PVA) data,
+    and corresponding IMU (specific force and angular rate) data.
+
+    The PVA signals are characterized as:
+    - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
+    - Position amplitude is +/- 1 meter.
+    - Attitude (Euler angle) amplitude is +/- 0.1 radians.
+    - Phases are assigned to provide variation across all axes.
+
+    Optionally, a ramp-up period can be applied to gradually increase the amplitude
+    of the signals from zero to their full values.
+
+    Parameters
+    ----------
+    fs : float, optional
+        Sampling frequency in Hz. Defaults to 10.0 Hz.
+    n : int, optional
+        Number of samples to generate. Defaults to 10 000.
+    degrees : bool, optional
+        Specifies whether to return the Euler angles and the angular velocities
+        in degrees and degrees per second or radians and radians per second (default).
+    g : float, optional
+        The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
+        of 9.80665 m/s^2.
+    nav_frame : {'NED', 'ENU'}, optional
+        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
+        (East-North-Up). Defaults to 'NED'.
+    rampup : float or None, optional
+        Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
+    rampup_start : float, optional
+        Start time of the ramp-up period in seconds, i.e., the duration of the initial
+        stationary period. Defaults to 0.0 seconds.
+
+    Returns
+    -------
+    t : ndarray, shape (n,)
+        Time in seconds.
+    p_n : ndarray, shape (n, 3)
+        Position timeseries in m.
+    v_n : ndarray, shape (n, 3)
+        Velocity timeseries in m/s.
+    euler_nb : ndarray, shape (n, 3)
+        Euler angle timeseries in radians (default) or degrees.
+    f_b : ndarray, shape (n, 3)
+        Specific force timeseries in m/s^2.
+    w_b : ndarray, shape (n, 3)
+        Angular rate timeseries in rad/s (default) or deg/s.
+    """
+
+    f_main, f_beat = 0.1, 0.01
+
+    # DOF signals
+    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
+    px_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
+    py_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
+    pz_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
+    roll_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
+    pitch_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
+    yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
+
+    if rampup is not None:
+        px_sig = RampUp(px_sig, rampup, start=rampup_start)
+        py_sig = RampUp(py_sig, rampup, start=rampup_start)
+        pz_sig = RampUp(pz_sig, rampup, start=rampup_start)
+        roll_sig = RampUp(roll_sig, rampup, start=rampup_start)
+        pitch_sig = RampUp(pitch_sig, rampup, start=rampup_start)
+        yaw_sig = RampUp(yaw_sig, rampup, start=rampup_start)
+
+    # Time
+    dt = 1.0 / fs
+    t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
+
+    # DOF timeseries and corresponding accelerations and rotation rates
+    px, px_dot, px_ddot = px_sig(t)
+    py, py_dot, py_ddot = py_sig(t)
+    pz, pz_dot, pz_ddot = pz_sig(t)
+    roll, roll_dot, _ = roll_sig(t)
+    pitch, pitch_dot, _ = pitch_sig(t)
+    yaw, yaw_dot, _ = yaw_sig(t)
+
+    pos = np.column_stack([px, py, pz])
+    vel = np.column_stack([px_dot, py_dot, pz_dot])
+    acc = np.column_stack([px_ddot, py_ddot, pz_ddot])
+    euler = np.column_stack([roll, pitch, yaw])
+    euler_dot = np.column_stack([roll_dot, pitch_dot, yaw_dot])
+
+    # IMU measurements (i.e., specific force and angular velocity in body frame)
+    g_n = _gravity_nav(g, nav_frame.lower())
+    f_b = _specific_force_body(acc, euler, g_n)
+    w_b = _angular_velocity_body(euler, euler_dot)
+
+    if degrees:
+        euler = np.degrees(euler)
+        w_b = np.degrees(w_b)
+
+    return t, pos, vel, euler, f_b, w_b
