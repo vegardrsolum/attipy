@@ -328,9 +328,6 @@ def pva_sim(
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
 
-    Optionally, a ramp-up period can be applied to gradually increase the amplitude
-    of the signals from zero to their full values.
-
     Parameters
     ----------
     fs : float, optional
@@ -346,11 +343,6 @@ def pva_sim(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
-    rampup : float or None, optional
-        Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
-    rampup_start : float, optional
-        Start time of the ramp-up period in seconds, i.e., the duration of the initial
-        stationary period. Defaults to 0.0 seconds.
 
     Returns
     -------
@@ -378,14 +370,6 @@ def pva_sim(
     roll_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
     pitch_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
     yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
-
-    if rampup is not None:
-        px_sig = RampUp(px_sig, rampup, start=rampup_start)
-        py_sig = RampUp(py_sig, rampup, start=rampup_start)
-        pz_sig = RampUp(pz_sig, rampup, start=rampup_start)
-        roll_sig = RampUp(roll_sig, rampup, start=rampup_start)
-        pitch_sig = RampUp(pitch_sig, rampup, start=rampup_start)
-        yaw_sig = RampUp(yaw_sig, rampup, start=rampup_start)
 
     # Time
     dt = 1.0 / fs
