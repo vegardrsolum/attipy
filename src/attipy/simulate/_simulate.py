@@ -471,7 +471,7 @@ def trajectory(
         Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
     rampup_start : float, optional
         Start time of the ramp-up period in seconds, i.e., the duration of the initial
-        stationary period. Defaults to 0.0 seconds.
+        stationary period before the ramp-up begins. Defaults to 0.0 seconds.
 
     Returns
     -------
