@@ -13,16 +13,25 @@ class DOF(ABC):
     """
 
     @abstractmethod
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        """
+        Signal, y(t), and its two first time derivatives, dy(t)/dt and d2y(t)/dt2.
+        """
+        ...
+
     def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        raise NotImplementedError("Not implemented.")
+        y, _, _ = self._evaluate(t)
+        return y
 
-    @abstractmethod
     def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        raise NotImplementedError("Not implemented.")
+        _, dydt, _ = self._evaluate(t)
+        return dydt
 
-    @abstractmethod
     def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        raise NotImplementedError("Not implemented.")
+        _, _, d2ydt2 = self._evaluate(t)
+        return d2ydt2
 
     def y(self, t: ArrayLike) -> NDArray[np.float64]:
         """
@@ -81,11 +90,7 @@ class DOF(ABC):
             Second time derivative, d2y(t)/dt2, of DOF signal.
         """
         t = np.asarray_chkfinite(t)
-        y = self._y(t)
-        dydt = self._dydt(t)
-        d2ydt2 = self._d2ydt2(t)
-
-        return y, dydt, d2ydt2
+        return self._evaluate(t)
 
 
 class BeatDOF(DOF):
@@ -133,48 +138,31 @@ class BeatDOF(DOF):
         self._phase = np.deg2rad(phase) if phase_degrees else phase
         self._offset = offset
 
-    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         amp = self._amp
         w_main = self._w_main
         w_beat = self._w_beat
         phase = self._phase
         offset = self._offset
 
-        main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
+        arg_main = w_main * t + phase
+        arg_beat = w_beat / 2.0 * t
+
+        main = np.cos(arg_main)
+        dmain = -w_main * np.sin(arg_main)
+        d2main = -(w_main**2) * main
+
+        beat = np.sin(arg_beat)
+        dbeat = w_beat / 2.0 * np.cos(arg_beat)
+        d2beat = -((w_beat / 2.0) ** 2) * beat
+
         y = amp * beat * main + offset
-        return y  # type: ignore[no-any-return]
-
-    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        amp = self._amp
-        w_main = self._w_main
-        w_beat = self._w_beat
-        phase = self._phase
-
-        main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-
         dydt = amp * (dbeat * main + beat * dmain)
-        return dydt  # type: ignore[no-any-return]
+        d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
 
-    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-
-        amp = self._amp
-        w_main = self._w_main
-        w_beat = self._w_beat
-        phase = self._phase
-
-        main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = w_beat / 2.0 * np.cos(w_beat / 2.0 * t)
-        d2main = -(w_main**2) * np.cos(w_main * t + phase)
-        d2beat = -((w_beat / 2.0) ** 2) * np.sin(w_beat / 2.0 * t)
-        d2ydt2 = amp * (d2beat * main + 2 * dbeat * dmain + beat * d2main)
-
-        return d2ydt2  # type: ignore[no-any-return]
+        return y, dydt, d2ydt2
 
 
 class RampUp(DOF):
@@ -230,23 +218,17 @@ class RampUp(DOF):
 
         return w, dw, d2w
 
-    def _y(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        w, _, _ = self._window(t)
-        y = self._dof._y(t)
-        return w * y
-
-    def _dydt(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
-        w, dw, _ = self._window(t)
-        y = self._dof._y(t)
-        dydt = self._dof._dydt(t)
-        return dw * y + w * dydt
-
-    def _d2ydt2(self, t: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         w, dw, d2w = self._window(t)
-        y = self._dof._y(t)
-        dydt = self._dof._dydt(t)
-        d2ydt2 = self._dof._d2ydt2(t)
-        return d2w * y + 2.0 * dw * dydt + w * d2ydt2
+        y, dydt, d2ydt2 = self._dof._evaluate(t)
+
+        y_ramped = w * y
+        dydt_ramped = dw * y + w * dydt
+        d2ydt2_ramped = d2w * y + 2.0 * dw * dydt + w * d2ydt2
+
+        return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
 def _specific_force_body(

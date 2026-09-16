@@ -21,14 +21,8 @@ class Test_DOF:
     def some_dof(self):
         class SomeDOF(DOF):
 
-            def _y(self, t):
-                return np.ones_like(t)
-
-            def _dydt(self, t):
-                return 2 * np.ones_like(t)
-
-            def _d2ydt2(self, t):
-                return 3 * np.ones_like(t)
+            def _evaluate(self, t):
+                return np.ones_like(t), 2 * np.ones_like(t), 3 * np.ones_like(t)
 
         return SomeDOF()
 
@@ -49,6 +43,12 @@ class Test_DOF:
         np.testing.assert_allclose(y, np.ones(100))
         np.testing.assert_allclose(dydt, 2 * np.ones(100))
         np.testing.assert_allclose(dy2dt2, 3 * np.ones(100))
+
+    def test_evaluate_is_the_only_required_method(self, some_dof, t):
+        # _y, _dydt and _d2ydt2 are provided by the base class
+        np.testing.assert_allclose(some_dof.y(t), some_dof(t)[0])
+        np.testing.assert_allclose(some_dof.dydt(t), some_dof(t)[1])
+        np.testing.assert_allclose(some_dof.d2ydt2(t), some_dof(t)[2])
 
 
 class Test_BeatDOF:
