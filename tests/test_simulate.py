@@ -318,6 +318,13 @@ class Test_motion_from_dofs:
         np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
 
+    @pytest.mark.parametrize("num_dofs", [0, 1, 3, 5, 7, 12])
+    def test_wrong_number_of_dofs_raises(self, num_dofs):
+        dofs = [BeatDOF() for _ in range(num_dofs)]
+
+        with pytest.raises(ValueError):
+            _motion_from_dofs(dofs, np.zeros(4))
+
 
 class Test_imu_from_motion:
     @pytest.fixture

@@ -323,6 +323,9 @@ def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
     euler_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
     """
+    if len(dofs) != 6:
+        raise ValueError("'dofs' must contain exactly six DOF signal generators.")
+
     pos_sig = [dof(t) for dof in dofs[:3]]
     att_sig = [dof(t) for dof in dofs[3:]]
 
