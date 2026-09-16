@@ -42,6 +42,11 @@ class DOF(ABC):
         ----------
         t : array_like, shape (n,)
             Time vector in seconds.
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            DOF signal y(t).
         """
         t = np.asarray_chkfinite(t)
         return self._y(t)
@@ -54,6 +59,11 @@ class DOF(ABC):
         ----------
         t : array_like, shape (n,)
             Time vector in seconds.
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            Time derivative, dy(t)/dt, of DOF signal.
         """
         t = np.asarray_chkfinite(t)
         return self._dydt(t)
@@ -66,6 +76,11 @@ class DOF(ABC):
         ----------
         t : array_like, shape (n,)
             Time vector in seconds.
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            Second time derivative, d2y(t)/dt2, of DOF signal.
         """
         t = np.asarray_chkfinite(t)
         return self._d2ydt2(t)
@@ -379,7 +394,16 @@ def _imu_from_motion(
 
 def _beat_dofs() -> list[DOF]:
     """
-    Beat DOF signals.
+    Beating sinusoidal DOF signals.
+
+    The signals have a 0.1 Hz main frequency and a 0.01 Hz beat frequency, an
+    amplitude of 1 m in position and 0.1 radians in attitude, and phases spread
+    evenly over the six degrees of freedom to provide variation across all axes.
+
+    Returns
+    -------
+    list of DOF, length 6
+        Signal generators for x, y, z, roll, pitch and yaw.
     """
     f_main, f_beat = 0.1, 0.01
     pos_amp, att_amp = 1.0, 0.1
