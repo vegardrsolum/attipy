@@ -7,6 +7,9 @@ from attipy.simulate._simulate import (
     DOF,
     BeatDOF,
     RampUp,
+    _angular_velocity_body,
+    _imu_from_motion,
+    _motion_from_dofs,
     _specific_force_body,
 )
 
@@ -288,6 +291,55 @@ class Test_specific_force_body:
             ]
         )
         np.testing.assert_allclose(f_b, expected)
+
+
+class Test_motion_from_dofs:
+    def test_dof_order_maps_to_columns(self):
+        class ConstDOF(DOF):
+            def __init__(self, value):
+                self._value = value
+
+            def _evaluate(self, t):
+                ones = np.ones_like(t)
+                return (
+                    self._value * ones,
+                    10.0 * self._value * ones,
+                    100.0 * self._value * ones,
+                )
+
+        t = np.zeros(4)
+        dofs = [ConstDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)]
+
+        pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
+
+        np.testing.assert_allclose(pos, np.tile([1.0, 2.0, 3.0], (4, 1)))
+        np.testing.assert_allclose(vel, np.tile([10.0, 20.0, 30.0], (4, 1)))
+        np.testing.assert_allclose(acc, np.tile([100.0, 200.0, 300.0], (4, 1)))
+        np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
+        np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
+
+
+class Test_imu_from_motion:
+    @pytest.fixture
+    def motion(self):
+        rng = np.random.default_rng(0)
+        acc = rng.standard_normal((20, 3))
+        euler = 0.3 * rng.standard_normal((20, 3))
+        euler_dot = 0.1 * rng.standard_normal((20, 3))
+        return acc, euler, euler_dot
+
+    def test_matches_underlying_conversions(self, motion):
+        acc, euler, euler_dot = motion
+
+        f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
+
+        g_n = np.array([0.0, 0.0, -9.81])
+        np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
+        np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
+
+    def test_nav_frame_raises(self, motion):
+        with pytest.raises(ValueError):
+            _imu_from_motion(*motion, g=9.80665, nav_frame="invalid")
 
 
 class Test_trajectory:

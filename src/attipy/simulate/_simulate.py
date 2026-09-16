@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -280,6 +281,110 @@ def _angular_velocity_body(
     return w_b
 
 
+def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
+    """
+    Sample six DOF signal generators into rigid body motion timeseries.
+
+    Parameters
+    ----------
+    dofs : sequence of DOF, length 6
+        Signal generators for the six degrees of freedom, in the following order:
+        x, y, z, roll, pitch and yaw. The first three describe the position in the
+        navigation frame, the last three the attitude of the body frame.
+    t : ndarray, shape (n,)
+        Time in seconds.
+
+    Returns
+    -------
+    pos : ndarray, shape (n, 3)
+        Position timeseries in m.
+    vel : ndarray, shape (n, 3)
+        Velocity timeseries in m/s.
+    acc : ndarray, shape (n, 3)
+        Acceleration timeseries in m/s^2.
+    euler : ndarray, shape (n, 3)
+        Euler angle (roll, pitch, yaw) timeseries in radians.
+    euler_dot : ndarray, shape (n, 3)
+        Euler angle rate timeseries in radians per second.
+    """
+    pos_sig = [dof(t) for dof in dofs[:3]]
+    att_sig = [dof(t) for dof in dofs[3:]]
+
+    pos = np.column_stack([y for y, _, _ in pos_sig])
+    vel = np.column_stack([dydt for _, dydt, _ in pos_sig])
+    acc = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
+    euler = np.column_stack([y for y, _, _ in att_sig])
+    euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
+
+    return pos, vel, acc, euler, euler_dot
+
+
+def _imu_from_motion(
+    acc: NDArray[np.float64],
+    euler: NDArray[np.float64],
+    euler_dot: NDArray[np.float64],
+    g: float,
+    nav_frame: str,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Noise-free IMU measurements corresponding to a given rigid body motion.
+
+    Parameters
+    ----------
+    acc : ndarray, shape (n, 3)
+        Acceleration timeseries in m/s^2, expressed in the navigation frame.
+    euler : ndarray, shape (n, 3)
+        Euler angle (roll, pitch, yaw) timeseries in radians.
+    euler_dot : ndarray, shape (n, 3)
+        Euler angle rate timeseries in radians per second.
+    g : float
+        The gravitational acceleration in m/s^2.
+    nav_frame : {'NED', 'ENU'}
+        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
+        (East-North-Up).
+
+    Returns
+    -------
+    f_b : ndarray, shape (n, 3)
+        Specific force timeseries in m/s^2, expressed in the body frame.
+    w_b : ndarray, shape (n, 3)
+        Angular rate timeseries in rad/s, expressed in the body frame.
+    """
+    g_n = _gravity_nav(g, nav_frame.lower())
+
+    f_b = _specific_force_body(acc, euler, g_n)
+    w_b = _angular_velocity_body(euler, euler_dot)
+
+    return f_b, w_b
+
+
+def _beat_dofs() -> list[DOF]:
+    """
+    Beat DOF signals.
+    """
+    f_main, f_beat = 0.1, 0.01
+    pos_amp, att_amp = 1.0, 0.1
+
+    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
+
+    px = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[0])
+    py = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[1])
+    pz = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[2])
+    r = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[3])
+    p = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[4])
+    y = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[5])
+
+    dofs = [px, py, pz, r, p, y]
+
+    return dofs
+
+
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
@@ -346,47 +451,18 @@ def trajectory(
         Angular rate timeseries in rad/s (default) or deg/s.
     """
 
-    f_main, f_beat = 0.1, 0.01
-
-    # DOF signals
-    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-    px_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
-    py_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
-    pz_sig: DOF = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
-    roll_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
-    pitch_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
-    yaw_sig: DOF = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
+    dofs = _beat_dofs()
 
     if rampup is not None:
-        px_sig = RampUp(px_sig, rampup, start=rampup_start)
-        py_sig = RampUp(py_sig, rampup, start=rampup_start)
-        pz_sig = RampUp(pz_sig, rampup, start=rampup_start)
-        roll_sig = RampUp(roll_sig, rampup, start=rampup_start)
-        pitch_sig = RampUp(pitch_sig, rampup, start=rampup_start)
-        yaw_sig = RampUp(yaw_sig, rampup, start=rampup_start)
+        dofs = [RampUp(dof, rampup, start=rampup_start) for dof in dofs]
 
     # Time
     dt = 1.0 / fs
-    t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
+    t = dt * np.arange(n, dtype=np.float64)
 
-    # DOF timeseries and corresponding accelerations and rotation rates
-    px, px_dot, px_ddot = px_sig(t)
-    py, py_dot, py_ddot = py_sig(t)
-    pz, pz_dot, pz_ddot = pz_sig(t)
-    roll, roll_dot, _ = roll_sig(t)
-    pitch, pitch_dot, _ = pitch_sig(t)
-    yaw, yaw_dot, _ = yaw_sig(t)
-
-    pos = np.column_stack([px, py, pz])
-    vel = np.column_stack([px_dot, py_dot, pz_dot])
-    acc = np.column_stack([px_ddot, py_ddot, pz_ddot])
-    euler = np.column_stack([roll, pitch, yaw])
-    euler_dot = np.column_stack([roll_dot, pitch_dot, yaw_dot])
-
-    # IMU measurements (i.e., specific force and angular velocity in body frame)
-    g_n = _gravity_nav(g, nav_frame.lower())
-    f_b = _specific_force_body(acc, euler, g_n)
-    w_b = _angular_velocity_body(euler, euler_dot)
+    # Motion, and the IMU measurements it gives rise to
+    pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
+    f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g, nav_frame)
 
     if degrees:
         euler = np.degrees(euler)
