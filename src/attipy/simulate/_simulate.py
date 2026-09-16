@@ -380,7 +380,7 @@ def _beat_dofs() -> list[DOF]:
     p = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[4])
     y = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[5])
 
-    dofs = [px, py, pz, r, p, y]
+    dofs: list[DOF] = [px, py, pz, r, p, y]
 
     return dofs
 
@@ -433,7 +433,7 @@ def trajectory(
         Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
     rampup_start : float, optional
         Start time of the ramp-up period in seconds, i.e., the duration of the initial
-        stationary period. Defaults to 0.0 seconds.
+        stationary period. Defaults to 0.0 seconds. Ignored if ``rampup`` is ``None``.
 
     Returns
     -------
@@ -458,7 +458,7 @@ def trajectory(
 
     # Time
     dt = 1.0 / fs
-    t = dt * np.arange(n, dtype=np.float64)
+    t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # Motion, and the IMU measurements it gives rise to
     pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
