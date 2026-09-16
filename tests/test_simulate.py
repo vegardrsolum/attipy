@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy.simulate._simulate import DOF, BeatDOF, RampUp
+from attipy._transforms import _matrix_from_euler_zyx
+from attipy.simulate._simulate import (
+    DOF,
+    BeatDOF,
+    RampUp,
+    _specific_force_body,
+)
 
 
 @pytest.fixture
@@ -254,6 +260,34 @@ class Test_RampUp:
 
         np.testing.assert_allclose(dydt[1:-1][valid], dydt_fd[valid], atol=1e-6)
         np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
+
+
+class Test_specific_force_body:
+    def test_at_rest_and_level(self):
+        g = 9.80665
+        acc = np.zeros((5, 3))
+        euler = np.zeros((5, 3))
+        g_n = np.array([0.0, 0.0, g])
+
+        f_b = _specific_force_body(acc, euler, g_n)
+
+        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, -g], (5, 1)))
+
+    def test_matches_per_sample_rotation(self):
+        rng = np.random.default_rng(0)
+        acc = rng.standard_normal((100, 3))
+        euler = rng.uniform(-np.pi, np.pi, size=(100, 3))
+        g_n = np.array([0.0, 0.0, 9.80665])
+
+        f_b = _specific_force_body(acc, euler, g_n)
+
+        expected = np.array(
+            [
+                _matrix_from_euler_zyx(euler_i).T.dot(acc_i - g_n)
+                for acc_i, euler_i in zip(acc, euler)
+            ]
+        )
+        np.testing.assert_allclose(f_b, expected)
 
 
 class Test_trajectory:

@@ -8,6 +8,7 @@ from attipy._transforms import (
     _dyawda,
     _euler_zyx_from_quat,
     _matrix_from_euler_zyx,
+    _matrix_from_euler_zyx_batch,
     _matrix_from_quat,
     _nz_b_from_quat,
     _quat_from_euler_zyx,
@@ -51,6 +52,24 @@ def test_quat_from_euler_zyx(att):
 def test_matrix_from_euler_zyx(att):
     result = _matrix_from_euler_zyx(np.array(att["euler_rad"]))
     np.testing.assert_allclose(result, att["matrix"], atol=1e-14)
+
+
+def test_matrix_from_euler_zyx_batch():
+    euler = np.array([att["euler_rad"] for att in _ATTITUDES])
+    result = _matrix_from_euler_zyx_batch(euler)
+    expected = np.array([att["matrix"] for att in _ATTITUDES])
+
+    assert result.shape == (len(_ATTITUDES), 3, 3)
+    np.testing.assert_allclose(result, expected, atol=1e-14)
+
+
+def test_matrix_from_euler_zyx_batch_matches_scalar():
+    rng = np.random.default_rng(0)
+    euler = rng.uniform(-np.pi, np.pi, size=(50, 3))
+    result = _matrix_from_euler_zyx_batch(euler)
+
+    for dcm_i, euler_i in zip(result, euler):
+        np.testing.assert_allclose(dcm_i, _matrix_from_euler_zyx(euler_i))
 
 
 @pytest.mark.parametrize("att", _ATTITUDES)

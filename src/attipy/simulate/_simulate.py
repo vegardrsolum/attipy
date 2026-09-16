@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from .._mekf import _gravity_nav
-from .._transforms import _matrix_from_euler_zyx
+from .._transforms import _matrix_from_euler_zyx_batch
 
 
 class DOF(ABC):
@@ -266,12 +266,8 @@ def _specific_force_body(
     g_n : ndarray, shape (3,)
         Gravity vector expressed in the navigation frame.
     """
-    n = acc.shape[0]
-    f_b = np.zeros((n, 3))
-
-    for i in range(n):
-        R_i = _matrix_from_euler_zyx(euler[i])
-        f_b[i] = R_i.T.dot(acc[i] - g_n)
+    R_nb = _matrix_from_euler_zyx_batch(euler)
+    f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, acc - g_n)
 
     return f_b
 
