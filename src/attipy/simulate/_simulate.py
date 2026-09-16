@@ -115,7 +115,7 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(w_beat / 2.0 * t) * cos(w_main * t + phase) + offset
+        y = amp * sin(w_beat / 2.0 * t) * cos(w_main * t + phase)
 
     Parameters
     ----------
@@ -134,8 +134,6 @@ class BeatDOF(DOF):
     phase_degrees : bool, optional
         If True, interpret `phase` in degrees. If False, interpret in radians.
         Default is False.
-    offset : float, optional
-        Offset of the beat signal. Default is 0.0.
     """
 
     def __init__(
@@ -146,13 +144,11 @@ class BeatDOF(DOF):
         freq_hz: bool = False,
         phase: float = 0.0,
         phase_degrees: bool = False,
-        offset: float = 0.0,
     ) -> None:
         self._amp = amp
         self._w_main = 2.0 * np.pi * freq_main if freq_hz else freq_main
         self._w_beat = 2.0 * np.pi * freq_beat if freq_hz else freq_beat
         self._phase = np.deg2rad(phase) if phase_degrees else phase
-        self._offset = offset
 
     def _evaluate(
         self, t: NDArray[np.float64]
@@ -161,7 +157,6 @@ class BeatDOF(DOF):
         w_main = self._w_main
         w_beat = self._w_beat
         phase = self._phase
-        offset = self._offset
 
         arg_main = w_main * t + phase
         arg_beat = w_beat / 2.0 * t
@@ -174,7 +169,7 @@ class BeatDOF(DOF):
         dbeat = w_beat / 2.0 * np.cos(arg_beat)
         d2beat = -((w_beat / 2.0) ** 2) * beat
 
-        y = amp * beat * main + offset
+        y = amp * beat * main
         dydt = amp * (dbeat * main + beat * dmain)
         d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
 
