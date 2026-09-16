@@ -443,6 +443,28 @@ class Test_trajectory:
         *_, f, _ = ap.simulate.trajectory(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
 
+    def test_fs_raises(self):
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(fs=0.0)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(fs=-10.0)
+
+    def test_n_raises(self):
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=0)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=-5)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=10.7)
+
+    def test_n_accepts_whole_valued_float(self):
+        t, *_ = ap.simulate.trajectory(n=100.0)
+
+        assert len(t) == 100
+
     def test_rampup(self):
         fs, n = 10.0, 5000
         rampup, rampup_start = 120.0, 60.0
