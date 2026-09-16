@@ -248,6 +248,11 @@ def _specific_force_body(
         Euler angles (roll, pitch, yaw) in radians.
     g_n : ndarray, shape (3,)
         Gravity vector expressed in the navigation frame.
+
+    Returns
+    -------
+    ndarray, shape (n, 3)
+        Specific force in meters per second squared, expressed in the body frame.
     """
     R_nb = _matrix_from_euler_zyx_batch(euler)
     f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, acc - g_n)
@@ -268,6 +273,11 @@ def _angular_velocity_body(
     euler_dot : ndarray, shape (n, 3)
         Time derivatives of Euler angles (roll_dot, pitch_dot, yaw_dot)
         in radians per second.
+
+    Returns
+    -------
+    ndarray, shape (n, 3)
+        Angular velocity in radians per second, expressed in the body frame.
     """
     roll, pitch, _ = euler.T
     roll_dot, pitch_dot, yaw_dot = euler_dot.T
