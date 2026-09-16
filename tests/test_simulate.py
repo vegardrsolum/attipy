@@ -482,3 +482,6 @@ class Test_trajectory:
 
         with pytest.raises(ValueError):
             ap.simulate.trajectory(rampup=120.0, rampup_start=-1.0)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(rampup_start=60.0)

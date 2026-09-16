@@ -446,7 +446,7 @@ def trajectory(
         Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
     rampup_start : float, optional
         Start time of the ramp-up period in seconds, i.e., the duration of the initial
-        stationary period. Defaults to 0.0 seconds. Ignored if ``rampup`` is ``None``.
+        stationary period. Defaults to 0.0 seconds.
 
     Returns
     -------
@@ -463,6 +463,9 @@ def trajectory(
     w_b : ndarray, shape (n, 3)
         Angular rate timeseries in rad/s (default) or deg/s.
     """
+
+    if rampup is None and rampup_start != 0.0:
+        raise ValueError("'rampup_start' requires 'rampup' to be given.")
 
     dofs = _beat_dofs()
 
