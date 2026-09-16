@@ -401,7 +401,7 @@ def pva_sim(
     return t, pos, vel, euler, f_b, w_b
 
 
-def imu(
+def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,

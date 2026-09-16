@@ -1,3 +1,3 @@
-from ._simulate import imu
+from ._simulate import trajectory
 
-__all__ = ["imu"]
+__all__ = ["trajectory"]

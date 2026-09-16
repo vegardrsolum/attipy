@@ -256,9 +256,9 @@ class Test_RampUp:
         np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
 
 
-class Test_pva_sim:
+class Test_trajectory:
     def test_default(self):
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim()
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory()
 
         # Expected DOF signals
         pos_amp = 1.0
@@ -316,7 +316,7 @@ class Test_pva_sim:
     def test_fs_n(self):
         fs = 20.0
         n = 5000
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(fs=fs, n=n)
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(fs=fs, n=n)
 
         assert t.shape == (n,)
         assert p_n.shape == (n, 3)
@@ -327,27 +327,27 @@ class Test_pva_sim:
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
     def test_degrees(self):
-        *_, euler_deg, _, _ = ap.pva_sim(degrees=True)
-        *_, euler_rad, _, _ = ap.pva_sim(degrees=False)
+        *_, euler_deg, _, _ = ap.simulate.trajectory(degrees=True)
+        *_, euler_rad, _, _ = ap.simulate.trajectory(degrees=False)
 
         np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
 
     def test_nav_frame(self):
 
         # NED
-        *_, f_ned, _ = ap.pva_sim(nav_frame="NED")
+        *_, f_ned, _ = ap.simulate.trajectory(nav_frame="NED")
         assert -10.0 < f_ned.mean(axis=0)[2] < -9.5
 
         # ENU
-        *_, f_enu, _ = ap.pva_sim(nav_frame="ENU")
+        *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
         with pytest.raises(ValueError):
-            ap.pva_sim(nav_frame="invalid")
+            ap.simulate.trajectory(nav_frame="invalid")
 
     def test_g(self):
         g = 5.0
-        *_, f, _ = ap.pva_sim(g=g)
+        *_, f, _ = ap.simulate.trajectory(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
 
     def test_rampup(self):
@@ -355,7 +355,7 @@ class Test_pva_sim:
         rampup, rampup_start = 120.0, 60.0
         g = 9.80665
 
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
             fs=fs, n=n, g=g, rampup=rampup, rampup_start=rampup_start
         )
 
@@ -372,7 +372,7 @@ class Test_pva_sim:
 
         # Unaffected by the ramp-up once it is completed
         after = t >= rampup_start + rampup
-        after_expect = ap.pva_sim(fs=fs, n=n, g=g)
+        after_expect = ap.simulate.trajectory(fs=fs, n=n, g=g)
         assert after.sum() > 0
         np.testing.assert_allclose(p_n[after], after_expect[1][after])
         np.testing.assert_allclose(v_n[after], after_expect[2][after])
@@ -382,10 +382,10 @@ class Test_pva_sim:
 
     def test_rampup_raises(self):
         with pytest.raises(ValueError):
-            ap.pva_sim(rampup=0.0)
+            ap.simulate.trajectory(rampup=0.0)
 
         with pytest.raises(ValueError):
-            ap.pva_sim(rampup=-1.0)
+            ap.simulate.trajectory(rampup=-1.0)
 
         with pytest.raises(ValueError):
-            ap.pva_sim(rampup=120.0, rampup_start=-1.0)
+            ap.simulate.trajectory(rampup=120.0, rampup_start=-1.0)
