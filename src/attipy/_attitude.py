@@ -104,7 +104,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q))
+        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q

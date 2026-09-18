@@ -14,14 +14,9 @@ class Test_FixedIntervalSmoother:
         # Add IMU measurement noise
         acc_noise_density = 0.001  # (m/s^2) / sqrt(Hz)
         gyro_noise_density = 0.0001  # (rad/s) / sqrt(Hz)
-        bg_b = (0.001, 0.002, 0.003)  # rad/s
         rng = np.random.default_rng(42)
         f_meas = f_b + acc_noise_density * np.sqrt(fs) * rng.standard_normal(f_b.shape)
-        w_meas = (
-            w_b
-            + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
-            + bg_b
-        )
+        w_meas = w_b + gyro_noise_density * np.sqrt(fs) * rng.standard_normal(w_b.shape)
 
         # Add heading measurement noise
         yaw_var = 0.0001  # rad^2
@@ -30,11 +25,19 @@ class Test_FixedIntervalSmoother:
 
         # Estimate attitude using MEKF (forward filter), and smooth with the RTS smoother
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs, q0)
-        smoother = ap.FixedIntervalSmoother(mekf)
+        mekf = ap.MEKF(fs, q0=q0)
+        smoother = ap.FixedIntervalSmoother(ap.MEKF(fs, q0=q0))
 
         euler_fwd = []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
+            mekf.update(  # full aiding
+                f_i,
+                w_i,
+                yaw=y_i,
+                yaw_var=yaw_var,
+                gref=True,
+                gref_var=0.001 * np.ones(3),
+            )
             smoother.update(  # full aiding
                 f_i,
                 w_i,
@@ -43,7 +46,7 @@ class Test_FixedIntervalSmoother:
                 gref=True,
                 gref_var=0.001 * np.ones(3),
             )
-            euler_fwd.append(smoother._mekf.attitude.as_euler())
+            euler_fwd.append(mekf.attitude.as_euler())
         euler_fwd = np.asarray(euler_fwd)
         euler_smth = smoother.euler()
 
