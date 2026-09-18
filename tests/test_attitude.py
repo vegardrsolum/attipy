@@ -25,6 +25,13 @@ class Test_Attitude:
         with pytest.raises(ValueError):
             Attitude([1.0, 1.0, 0.0, 0.0])
 
+    def test__init__copies_input(self):
+        q = np.array([1.0, 0.0, 0.0, 0.0])
+        att = Attitude(q)
+        assert att._q is not q
+        q[:] = [0.0, 1.0, 0.0, 0.0]
+        np.testing.assert_allclose(att._q, [1.0, 0.0, 0.0, 0.0])
+
     def test__repr__(self):
         q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
         att = Attitude(q)
