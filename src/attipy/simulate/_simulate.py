@@ -456,9 +456,9 @@ def trajectory(
     px = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
     py = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
     pz = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
-    r = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[3])
-    p = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[4])
-    y = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[5])
+    r = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
+    p = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
+    y = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
     dofs: list[DOF] = [px, py, pz, r, p, y]
 
     # Time
