@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._simulate import DOF, BeatDOF
+from attipy._transforms import _matrix_from_euler_zyx
+from attipy.simulate._simulate import (
+    DOF,
+    BeatDOF,
+    RampUp,
+    _angular_velocity_body,
+    _imu_from_motion,
+    _motion_from_dofs,
+    _specific_force_body,
+)
 
 
 @pytest.fixture
@@ -15,14 +24,8 @@ class Test_DOF:
     def some_dof(self):
         class SomeDOF(DOF):
 
-            def _y(self, t):
-                return np.ones_like(t)
-
-            def _dydt(self, t):
-                return 2 * np.ones_like(t)
-
-            def _d2ydt2(self, t):
-                return 3 * np.ones_like(t)
+            def _evaluate(self, t):
+                return np.ones_like(t), 2 * np.ones_like(t), 3 * np.ones_like(t)
 
         return SomeDOF()
 
@@ -44,11 +47,17 @@ class Test_DOF:
         np.testing.assert_allclose(dydt, 2 * np.ones(100))
         np.testing.assert_allclose(dy2dt2, 3 * np.ones(100))
 
+    def test_evaluate_is_the_only_required_method(self, some_dof, t):
+        # _y, _dydt and _d2ydt2 are provided by the base class
+        np.testing.assert_allclose(some_dof.y(t), some_dof(t)[0])
+        np.testing.assert_allclose(some_dof.dydt(t), some_dof(t)[1])
+        np.testing.assert_allclose(some_dof.d2ydt2(t), some_dof(t)[2])
+
 
 class Test_BeatDOF:
     @pytest.fixture
     def beat(self):
-        dof = BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, freq_hz=False, offset=1.0)
+        dof = BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, freq_hz=False)
         return dof
 
     def test__init__(self):
@@ -59,7 +68,6 @@ class Test_BeatDOF:
             freq_hz=True,
             phase=4.0,
             phase_degrees=True,
-            offset=5.0,
         )
 
         assert isinstance(beat, DOF)
@@ -67,7 +75,6 @@ class Test_BeatDOF:
         assert beat._w_main == pytest.approx(2.0 * np.pi * 2.0)
         assert beat._w_beat == pytest.approx(2.0 * np.pi * 0.2)
         assert beat._phase == pytest.approx((np.pi / 180.0) * 4.0)
-        assert beat._offset == 5.0
 
     def test__init__default(self):
         beat_dof = BeatDOF()
@@ -77,7 +84,6 @@ class Test_BeatDOF:
         assert beat_dof._w_main == pytest.approx(0.1)
         assert beat_dof._w_beat == pytest.approx(0.01)
         assert beat_dof._phase == pytest.approx(0.0)
-        assert beat_dof._offset == 0.0
 
     def test_y(self, beat, t):
         y = beat.y(t)
@@ -86,12 +92,11 @@ class Test_BeatDOF:
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
-        offset = beat._offset
 
         main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
+        beat_ = np.sin(w_beat / 2.0 * t)
 
-        y_expect = amp * beat * main + offset
+        y_expect = amp * beat_ * main
 
         np.testing.assert_allclose(y, y_expect)
 
@@ -104,11 +109,11 @@ class Test_BeatDOF:
         phase = beat._phase
 
         main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
+        beat_ = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
 
-        dydt_expect = amp * (dbeat * main + beat * dmain)
+        dydt_expect = amp * (dbeat * main + beat_ * dmain)
 
         np.testing.assert_allclose(dydt, dydt_expect)
 
@@ -121,13 +126,13 @@ class Test_BeatDOF:
         phase = beat._phase
 
         main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
+        beat_ = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
 
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
@@ -138,27 +143,210 @@ class Test_BeatDOF:
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
-        offset = beat._offset
 
         main = np.cos(w_main * t + phase)
-        beat = np.sin(w_beat / 2.0 * t)
+        beat_ = np.sin(w_beat / 2.0 * t)
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
 
-        y_expect = amp * beat * main + offset
-        dydt_expect = amp * (dbeat * main + beat * dmain)
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+        y_expect = amp * beat_ * main
+        dydt_expect = amp * (dbeat * main + beat_ * dmain)
+        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_pva_sim:
+class Test_RampUp:
+    @pytest.fixture
+    def beat(self):
+        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1)
+
+    @pytest.fixture
+    def rampup(self, beat):
+        return RampUp(beat, 4.0, start=2.0)
+
+    def test__init__(self, beat):
+        rampup = RampUp(beat, 4.0, start=2.0)
+
+        assert isinstance(rampup, DOF)
+        assert rampup._dof is beat
+        assert rampup._duration == 4.0
+        assert rampup._start == 2.0
+
+    def test__init__default(self, beat):
+        rampup = RampUp(beat, 4.0)
+
+        assert rampup._start == 0.0
+
+    def test__init__raises(self, beat):
+        with pytest.raises(ValueError):
+            RampUp(beat, 0.0)
+
+        with pytest.raises(ValueError):
+            RampUp(beat, -1.0)
+
+    def test_window(self, rampup):
+        t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
+        w, dw, d2w = rampup._window(t)
+
+        np.testing.assert_allclose(w, [0.0, 0.0, 0.5, 1.0, 1.0])
+        np.testing.assert_allclose(dw, [0.0, 0.0, 30.0 * 0.5**4 / 4.0, 0.0, 0.0])
+        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0])
+
+    def test_y(self, rampup, beat, t):
+        y = rampup.y(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+
+        np.testing.assert_allclose(y, w * beat.y(t))
+
+    def test_dydt(self, rampup, beat, t):
+        dydt = rampup.dydt(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
+
+        np.testing.assert_allclose(dydt, dw * beat.y(t) + w * beat.dydt(t))
+
+    def test_d2ydt2(self, rampup, beat, t):
+        d2ydt2 = rampup.d2ydt2(t)
+
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
+        d2w = (120.0 * x**3 - 180.0 * x**2 + 60.0 * x) / 4.0**2
+
+        d2ydt2_expect = d2w * beat.y(t) + 2.0 * dw * beat.dydt(t) + w * beat.d2ydt2(t)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test_at_rest_before_start(self, rampup):
+        t = np.linspace(0.0, 2.0, 100)
+        y, dydt, d2ydt2 = rampup(t)
+
+        np.testing.assert_allclose(y, 0.0)
+        np.testing.assert_allclose(dydt, 0.0)
+        np.testing.assert_allclose(d2ydt2, 0.0)
+
+    def test_unaffected_after_rampup(self, rampup, beat):
+        t = np.linspace(6.0, 20.0, 100)
+        y, dydt, d2ydt2 = rampup(t)
+        y_expect, dydt_expect, d2ydt2_expect = beat(t)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test_derivatives_by_finite_difference(self, rampup):
+        t = np.linspace(0.0, 20.0, 400_001)
+        y, dydt, d2ydt2 = rampup(t)
+        dt = t[1] - t[0]
+
+        dydt_fd = (y[2:] - y[:-2]) / (2.0 * dt)
+        d2ydt2_fd = (dydt[2:] - dydt[:-2]) / (2.0 * dt)
+
+        # Central differences are inaccurate where the jerk is discontinuous,
+        # i.e., at the two ends of the ramp-up period.
+        t_mid = t[1:-1]
+        valid = (np.abs(t_mid - 2.0) > dt) & (np.abs(t_mid - 6.0) > dt)
+
+        np.testing.assert_allclose(dydt[1:-1][valid], dydt_fd[valid], atol=1e-6)
+        np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
+
+
+class Test_specific_force_body:
+    def test_at_rest_and_level(self):
+        g = 9.81
+        acc = np.zeros((5, 3))
+        euler = np.zeros((5, 3))
+        g_n = np.array([0.0, 0.0, g])
+
+        f_b = _specific_force_body(acc, euler, g_n)
+
+        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, -g], (5, 1)))
+
+    def test_matches_per_sample_rotation(self):
+        rng = np.random.default_rng(0)
+        acc = rng.standard_normal((100, 3))
+        euler = rng.uniform(-np.pi, np.pi, size=(100, 3))
+        g_n = np.array([0.0, 0.0, 9.81])
+
+        f_b = _specific_force_body(acc, euler, g_n)
+
+        expected = np.array(
+            [
+                _matrix_from_euler_zyx(euler_i).T.dot(acc_i - g_n)
+                for acc_i, euler_i in zip(acc, euler)
+            ]
+        )
+        np.testing.assert_allclose(f_b, expected)
+
+
+class Test_motion_from_dofs:
+    def test_dof_order_maps_to_columns(self):
+        class SomeDOF(DOF):
+            def __init__(self, value):
+                self._value = value
+
+            def _evaluate(self, t):
+                ones = np.ones_like(t)
+                return (
+                    self._value * ones,
+                    10.0 * self._value * ones,
+                    100.0 * self._value * ones,
+                )
+
+        t = np.zeros(4)
+        dofs = [SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)]
+
+        pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
+
+        np.testing.assert_allclose(pos, np.tile([1.0, 2.0, 3.0], (4, 1)))
+        np.testing.assert_allclose(vel, np.tile([10.0, 20.0, 30.0], (4, 1)))
+        np.testing.assert_allclose(acc, np.tile([100.0, 200.0, 300.0], (4, 1)))
+        np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
+        np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
+
+    @pytest.mark.parametrize("num_dofs", [0, 1, 3, 5, 7, 12])
+    def test_wrong_number_of_dofs_raises(self, num_dofs):
+        dofs = [BeatDOF() for _ in range(num_dofs)]
+
+        with pytest.raises(ValueError):
+            _motion_from_dofs(dofs, np.zeros(4))
+
+
+class Test_imu_from_motion:
+    @pytest.fixture
+    def motion(self):
+        rng = np.random.default_rng(0)
+        acc = rng.standard_normal((20, 3))
+        euler = 0.3 * rng.standard_normal((20, 3))
+        euler_dot = 0.1 * rng.standard_normal((20, 3))
+        return acc, euler, euler_dot
+
+    def test_matches_underlying_conversions(self, motion):
+        acc, euler, euler_dot = motion
+
+        f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
+
+        g_n = np.array([0.0, 0.0, -9.81])
+        np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
+        np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
+
+    def test_nav_frame_raises(self, motion):
+        with pytest.raises(ValueError):
+            _imu_from_motion(*motion, g=9.80665, nav_frame="invalid")
+
+
+class Test_trajectory:
     def test_default(self):
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim()
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory()
 
         # Expected DOF signals
         pos_amp = 1.0
@@ -216,7 +404,7 @@ class Test_pva_sim:
     def test_fs_n(self):
         fs = 20.0
         n = 5000
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.pva_sim(fs=fs, n=n)
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(fs=fs, n=n)
 
         assert t.shape == (n,)
         assert p_n.shape == (n, 3)
@@ -227,25 +415,47 @@ class Test_pva_sim:
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
     def test_degrees(self):
-        *_, euler_deg, _, _ = ap.pva_sim(degrees=True)
-        *_, euler_rad, _, _ = ap.pva_sim(degrees=False)
+        *_, euler_deg, _, _ = ap.simulate.trajectory(degrees=True)
+        *_, euler_rad, _, _ = ap.simulate.trajectory(degrees=False)
 
         np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
 
     def test_nav_frame(self):
 
         # NED
-        *_, f_ned, _ = ap.pva_sim(nav_frame="NED")
+        *_, f_ned, _ = ap.simulate.trajectory(nav_frame="NED")
         assert -10.0 < f_ned.mean(axis=0)[2] < -9.5
 
         # ENU
-        *_, f_enu, _ = ap.pva_sim(nav_frame="ENU")
+        *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
         with pytest.raises(ValueError):
-            ap.pva_sim(nav_frame="invalid")
+            ap.simulate.trajectory(nav_frame="invalid")
 
     def test_g(self):
         g = 5.0
-        *_, f, _ = ap.pva_sim(g=g)
+        *_, f, _ = ap.simulate.trajectory(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
+
+    def test_fs_raises(self):
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(fs=0.0)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(fs=-10.0)
+
+    def test_n_raises(self):
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=0)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=-5)
+
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(n=10.7)
+
+    def test_n_accepts_whole_valued_float(self):
+        t, *_ = ap.simulate.trajectory(n=100.0)
+
+        assert len(t) == 100

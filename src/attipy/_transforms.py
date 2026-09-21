@@ -183,6 +183,52 @@ def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     return dcm
 
 
+def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+    """
+    Compute the direction cosine matrices (rotation matrices) from Euler angles.
+
+    Vectorized equivalent of :func:`_matrix_from_euler_zyx`, evaluating a sequence
+    of Euler angles at once.
+
+    Parameters
+    ----------
+    theta : numpy.ndarray, shape (n, 3)
+        Vectors of Euler angles in radians (ZYX convention), given as rows. Each row
+        contains the following three Euler angles in order:
+            - Roll (roll): Rotation about the x-axis.
+            - Pitch (pitch): Rotation about the y-axis.
+            - Yaw (yaw): Rotation about the z-axis.
+
+    Returns
+    -------
+    numpy.ndarray, shape (n, 3, 3)
+        Rotation matrices.
+    """
+    roll, pitch, yaw = theta.T
+
+    cy = np.cos(yaw)
+    sy = np.sin(yaw)
+    cp = np.cos(pitch)
+    sp = np.sin(pitch)
+    cr = np.cos(roll)
+    sr = np.sin(roll)
+
+    r00 = cy * cp
+    r01 = -sy * cr + cy * sp * sr
+    r02 = sy * sr + cy * sp * cr
+
+    r10 = sy * cp
+    r11 = cy * cr + sy * sp * sr
+    r12 = -cy * sr + sy * sp * cr
+
+    r20 = -sp
+    r21 = cp * sr
+    r22 = cp * cr
+
+    dcm = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+    return np.moveaxis(dcm, -1, 0)
+
+
 @njit  # type: ignore[misc]
 def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """

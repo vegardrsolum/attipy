@@ -39,7 +39,7 @@ bg = (0.001, 0.002, 0.003)   # gyroscope bias in rad/s
 yaw_std = 0.01               # heading noise standard deviation in rad
 
 # Position, velocity, attitude and IMU reference signals
-t, pos, vel, euler, f, w = ap.pva_sim(fs)
+t, pos, vel, euler, f, w = ap.simulate.trajectory(fs)
 
 # IMU and heading measurements (with noise)
 rng = np.random.default_rng(42)
