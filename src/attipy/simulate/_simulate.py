@@ -387,44 +387,12 @@ def _imu_from_motion(
     return f_b, w_b
 
 
-def _beat_dofs() -> list[DOF]:
-    """
-    Beating sinusoidal DOF signals.
-
-    The signals have a 0.1 Hz main frequency and a 0.01 Hz beat frequency, an
-    amplitude of 1 m in position and 0.1 radians in attitude, and phases spread
-    evenly over the six degrees of freedom to provide variation across all axes.
-
-    Returns
-    -------
-    list of DOF, length 6
-        Signal generators for x, y, z, roll, pitch and yaw.
-    """
-    f_main, f_beat = 0.1, 0.01
-    pos_amp, att_amp = 1.0, 0.1
-
-    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-
-    px = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[0])
-    py = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[1])
-    pz = BeatDOF(pos_amp, f_main, f_beat, freq_hz=True, phase=phases[2])
-    r = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[3])
-    p = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[4])
-    y = BeatDOF(att_amp, f_main, f_beat, freq_hz=True, phase=phases[5])
-
-    dofs: list[DOF] = [px, py, pz, r, p, y]
-
-    return dofs
-
-
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-    rampup: float | None = None,
-    rampup_start: float = 0.0,
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -443,9 +411,6 @@ def trajectory(
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
 
-    Optionally, a ramp-up period can be applied to gradually increase the amplitude
-    of the signals from zero to their full values.
-
     Parameters
     ----------
     fs : float, optional
@@ -462,12 +427,6 @@ def trajectory(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
-    rampup : float or None, optional
-        Ramp-up duration in seconds. If ``None`` (default), no ramp-up is applied.
-    rampup_start : float, optional
-        Start time of the ramp-up period in seconds, i.e., the duration of the initial
-        stationary period before the ramp-up begins. Requires ``rampup`` to be given.
-        Defaults to 0.0 seconds.
 
     Returns
     -------
@@ -491,13 +450,17 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
-    if rampup is None and rampup_start != 0.0:
-        raise ValueError("'rampup_start' requires 'rampup' to be given.")
 
-    dofs = _beat_dofs()
-
-    if rampup is not None:
-        dofs = [RampUp(dof, rampup, start=rampup_start) for dof in dofs]
+    # DOF signals
+    f_main, f_beat = 0.1, 0.01
+    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
+    px = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
+    py = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
+    pz = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
+    r = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[3])
+    p = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[4])
+    y = BeatDOF(0.01, f_main, f_beat, freq_hz=True, phase=phases[5])
+    dofs: list[DOF] = [px, py, pz, r, p, y]
 
     # Time
     dt = 1.0 / fs
