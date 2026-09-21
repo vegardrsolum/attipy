@@ -290,7 +290,7 @@ class Test_specific_force_body:
 
 class Test_motion_from_dofs:
     def test_dof_order_maps_to_columns(self):
-        class ConstDOF(DOF):
+        class SomeDOF(DOF):
             def __init__(self, value):
                 self._value = value
 
@@ -303,7 +303,7 @@ class Test_motion_from_dofs:
                 )
 
         t = np.zeros(4)
-        dofs = [ConstDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)]
+        dofs = [SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)]
 
         pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
 
