@@ -11,7 +11,23 @@ from ._transforms import _euler_zyx_from_quat
 
 class FixedIntervalSmoother:
     """
-    Fixed-interval smoothing for MEKF based on the Rauch-Tung-Striebel (RTS) algorithm.
+    Fixed-interval smoothing for MEKF.
+
+    This class wraps an instance of MEKF, and maintains a time-ordered buffer
+    of state and error covariance estimates as measurements are processed via
+    the ``update()`` method. A backward sweep over the buffered data using the
+    Rauch-Tung-Striebel (RTS) algorithm [1] is performed to refine the filter
+    estimates.
+
+    Parameters
+    ----------
+    mekf : MEKF
+        The underlying MEKF instance used for forward filtering.
+
+    References
+    ----------
+    [1] R. G. Brown and P. Y. C. Hwang, "Random signals and applied Kalman
+        filtering with MATLAB exercises", 4th ed. Wiley, pp. 208-212, 2012.
     """
 
     def __init__(self, mekf: MEKF) -> None:
