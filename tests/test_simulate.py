@@ -262,7 +262,7 @@ class Test_RampUp:
 
 class Test_specific_force_body:
     def test_at_rest_and_level(self):
-        g = 9.80665
+        g = 9.81
         acc = np.zeros((5, 3))
         euler = np.zeros((5, 3))
         g_n = np.array([0.0, 0.0, g])
@@ -275,7 +275,7 @@ class Test_specific_force_body:
         rng = np.random.default_rng(0)
         acc = rng.standard_normal((100, 3))
         euler = rng.uniform(-np.pi, np.pi, size=(100, 3))
-        g_n = np.array([0.0, 0.0, 9.80665])
+        g_n = np.array([0.0, 0.0, 9.81])
 
         f_b = _specific_force_body(acc, euler, g_n)
 
