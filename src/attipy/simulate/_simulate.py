@@ -465,13 +465,12 @@ def trajectory(
     if n <= 0:
         raise ValueError("'n' must be positive.")
 
-    dofs = _beating_dofs()
-
     # Time
     dt = 1.0 / fs
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
-    # Motion, and the IMU measurements it gives rise to
+    # PVA and IMU signals
+    dofs = _beating_dofs()
     pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
     f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g, nav_frame)
 
