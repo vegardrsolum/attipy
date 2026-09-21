@@ -129,8 +129,8 @@ class Test_MEKF:
         np.testing.assert_allclose(mekf.P, np.eye(6))
         assert mekf.P is not mekf._P  # ensure it is a copy
 
-    def test_update(self, trajectory):
-        _, _, _, euler_nb, f_b, w_b = trajectory
+    def test_update(self, benchmark_trajectory):
+        _, _, _, euler_nb, f_b, w_b = benchmark_trajectory
         fs = 10.24
 
         # Add IMU measurement noise
@@ -180,8 +180,8 @@ class Test_MEKF:
         )
         np.testing.assert_allclose(bg_est[warmup:, :2], bg_b[warmup:, :2], atol=0.005)
 
-    def test_update_with_increments(self, trajectory):
-        _, _, _, euler_nb, f_b, w_b = trajectory
+    def test_update_with_increments(self, benchmark_trajectory):
+        _, _, _, euler_nb, f_b, w_b = benchmark_trajectory
         fs = 10.24
 
         # Add IMU measurement noise
@@ -231,8 +231,8 @@ class Test_MEKF:
         )
         np.testing.assert_allclose(bg_est[warmup:, :2], bg_b[warmup:, :2], atol=0.005)
 
-    def test_update_full_aiding(self, trajectory):
-        *_, euler_nb, f_b, w_b = trajectory
+    def test_update_full_aiding(self, benchmark_trajectory):
+        *_, euler_nb, f_b, w_b = benchmark_trajectory
         yaw = euler_nb[:, 2]
         fs = 10.24
 
@@ -299,8 +299,8 @@ class Test_MEKF:
         )
         np.testing.assert_allclose(bg_est[warmup:, :], bg_b[warmup:, :], atol=0.005)
 
-    def test_update_full_aiding_increments(self, trajectory):
-        *_, euler_nb, f_b, w_b = trajectory
+    def test_update_full_aiding_increments(self, benchmark_trajectory):
+        *_, euler_nb, f_b, w_b = benchmark_trajectory
         yaw = euler_nb[:, 2]
         fs = 10.24
 
