@@ -253,7 +253,7 @@ def _specific_force_body(
     Parameters
     ----------
     acc : ndarray, shape (n, 3)
-        Acceleration (x_ddot, y_ddot, z_ddot) in meters per second squared.
+        Acceleration (ax, ay, az) in meters per second squared.
     euler : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
     g_n : ndarray, shape (3,)
