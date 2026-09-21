@@ -416,8 +416,8 @@ def trajectory(
     NDArray[np.float64],
 ]:
     """
-    Generate synthetic, noise-free position, velocity and attitude (PVA) data,
-    and corresponding IMU (specific force and angular rate) data.
+    Generate synthetic, noise-free position, velocity and attitude (PVA) signals,
+    and corresponding IMU (specific force and angular rate) signals.
 
     The PVA signals are characterized as:
     - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
