@@ -386,6 +386,21 @@ def _imu_from_motion(
     return f_b, w_b
 
 
+def _beating_dofs():
+    """
+    Beating DOF signals.
+    """
+    f_main, f_beat = 0.1, 0.01
+    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
+    px = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
+    py = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
+    pz = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
+    r = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
+    p = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
+    y = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
+    return px, py, pz, r, p, y
+
+
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
@@ -450,16 +465,7 @@ def trajectory(
     if n <= 0:
         raise ValueError("'n' must be positive.")
 
-    # DOF signals
-    f_main, f_beat = 0.1, 0.01
-    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-    px = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
-    py = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
-    pz = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
-    r = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
-    p = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
-    y = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
-    dofs: list[DOF] = [px, py, pz, r, p, y]
+    dofs = _beating_dofs()
 
     # Time
     dt = 1.0 / fs
