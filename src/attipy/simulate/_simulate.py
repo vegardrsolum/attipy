@@ -315,8 +315,7 @@ def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
     ----------
     dofs : sequence of DOF, length 6
         Signal generators for the six degrees of freedom, in the following order:
-        x, y, z, roll, pitch and yaw. The first three describe the position in the
-        navigation frame, the last three the attitude of the body frame.
+        x, y, z, roll, pitch and yaw.
     t : ndarray, shape (n,)
         Time in seconds.
 
