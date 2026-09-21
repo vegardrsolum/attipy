@@ -33,18 +33,24 @@ class FixedIntervalSmoother:
     def __init__(self, mekf: MEKF) -> None:
         self._mekf = mekf
         self._mekf._store_smoothing_params = True
+        self.clear()
 
-        # Forward sweep buffers
-        self._q_buf = []
-        self._b_buf = []
-        self._P_buf = []
-        self._dx_buf = []
-        self._dtheta_buf = []
+    def clear(self) -> None:
+        """
+        Clear the internal buffers of state and covariance estimates. This resets
+        the smoother, and prepares it for a new interval of measurements.
+        """
+        # Forward pass buffers
+        self._q_buf: list[NDArray[np.float64]] = []
+        self._b_buf: list[NDArray[np.float64]] = []
+        self._P_buf: list[NDArray[np.float64]] = []
+        self._dx_buf: list[NDArray[np.float64]] = []
+        self._dtheta_buf: list[NDArray[np.float64]] = []
 
         # Smoothed state and covariance estimates
         self._q_nb = np.empty((0, 4), dtype="float64")
         self._bg_b = np.empty((0, 3), dtype="float64")
-        self._P = np.empty((0, 6, 6), dtype="float64")
+        self._P = np.empty((0, *self._mekf._P.shape), dtype="float64")
 
     def update(self, *args: Any, **kwargs: Any) -> Self:
         """
