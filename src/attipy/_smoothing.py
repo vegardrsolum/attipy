@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -30,7 +30,7 @@ class FixedIntervalSmoother:
         self._bg_b = np.empty((0, 3), dtype="float64")
         self._P = np.empty((0, 6, 6), dtype="float64")
 
-    def update(self, *args, **kwargs) -> Self:
+    def update(self, *args: Any, **kwargs: Any) -> Self:
         """
         Update state estimates with IMU and aiding measurements.
 
@@ -57,19 +57,19 @@ class FixedIntervalSmoother:
                 np.array(self._P_buf),
                 np.array(self._dx_buf),
                 self._dtheta_buf,
-                self._mekf._phi,
+                self._mekf._phi.copy(),
                 self._mekf._Q,
             )
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Smoothed quaternion estimates.
+        Smoothed unit quaternion estimates.
 
         Returns
         -------
         np.ndarray, shape (N, 4)
-            Quaternion estimates for each of the N time steps where the smoother has
-            been updated with measurements.
+            Quaternion estimates for each of the N time steps where the smoother
+            has been updated with measurements.
         """
         self._smooth()
         return self._q_nb.copy()
@@ -81,8 +81,8 @@ class FixedIntervalSmoother:
         Returns
         -------
         np.ndarray, shape (N, 3)
-            Euler angles estimates for each of the N time steps where the smoother has
-            been updated with measurements.
+            Euler angles estimates for each of the N time steps where the smoother
+            has been updated with measurements.
         """
         self._smooth()
         if self._q_nb.size == 0:
