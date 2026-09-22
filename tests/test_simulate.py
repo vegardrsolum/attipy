@@ -9,6 +9,7 @@ from attipy.simulate._simulate import (
     ConstantDOF,
     RampUp,
     _angular_velocity_body,
+    _dofs_from_motion,
     _imu_from_motion,
     _motion_from_dofs,
     _specific_force_body,
@@ -373,6 +374,29 @@ class Test_motion_from_dofs:
             _motion_from_dofs(dofs, np.zeros(4))
 
 
+class Test_dofs_from_motion:
+    def test_beating(self):
+        dofs = _dofs_from_motion("beating")
+
+        assert len(dofs) == 6
+        assert all(isinstance(dof, BeatDOF) for dof in dofs)
+
+    def test_stationary(self):
+        dofs = _dofs_from_motion("stationary")
+
+        assert len(dofs) == 6
+        assert all(isinstance(dof, ConstantDOF) for dof in dofs)
+        assert all(dof._value == 0.0 for dof in dofs)
+
+    @pytest.mark.parametrize("motion", ["beating", "BEATING", "Stationary"])
+    def test_case_insensitive(self, motion):
+        assert len(_dofs_from_motion(motion)) == 6
+
+    def test_raises(self):
+        with pytest.raises(ValueError):
+            _dofs_from_motion("invalid")
+
+
 class Test_imu_from_motion:
     @pytest.fixture
     def motion(self):
@@ -489,6 +513,38 @@ class Test_trajectory:
         g = 5.0
         *_, f, _ = ap.simulate.trajectory(g=g)
         assert -6.0 < f.mean(axis=0)[2] < -4
+
+    def test_motion_default_is_beating(self):
+        beating = ap.simulate.trajectory(n=100, motion="beating")
+        default = ap.simulate.trajectory(n=100)
+
+        for out, out_expect in zip(default, beating):
+            np.testing.assert_allclose(out, out_expect)
+
+    def test_motion_stationary(self):
+        n = 100
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion="stationary"
+        )
+
+        assert t.shape == (n,)
+        np.testing.assert_allclose(p_n, np.zeros((n, 3)))
+        np.testing.assert_allclose(v_n, np.zeros((n, 3)))
+        np.testing.assert_allclose(euler_nb, np.zeros((n, 3)))
+        np.testing.assert_allclose(w_b, np.zeros((n, 3)))
+
+        # Level and at rest -> specific force balances gravity
+        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, -9.80665], (n, 1)))
+
+    def test_motion_stationary_nav_frame(self):
+        n = 100
+        *_, f_b, _ = ap.simulate.trajectory(n=n, motion="stationary", nav_frame="ENU")
+
+        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, 9.80665], (n, 1)))
+
+    def test_motion_raises(self):
+        with pytest.raises(ValueError):
+            ap.simulate.trajectory(motion="invalid")
 
     def test_fs_raises(self):
         with pytest.raises(ValueError):

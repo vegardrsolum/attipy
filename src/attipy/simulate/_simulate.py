@@ -413,7 +413,7 @@ def _imu_from_motion(
     return f_b, w_b
 
 
-def _beating_dofs():
+def _beating_dofs() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     """
     Beating DOF signals.
     """
@@ -428,12 +428,49 @@ def _beating_dofs():
     return px, py, pz, r, p, y
 
 
+def _stationary_dofs() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    """
+    Stationary (standstill) DOF signals.
+    """
+    px = ConstantDOF(0.0)
+    py = ConstantDOF(0.0)
+    pz = ConstantDOF(0.0)
+    r = ConstantDOF(0.0)
+    p = ConstantDOF(0.0)
+    y = ConstantDOF(0.0)
+    return px, py, pz, r, p, y
+
+
+def _dofs_from_motion(motion: str) -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    """
+    DOF signal generators for a given motion type.
+
+    Parameters
+    ----------
+    motion : {'beating', 'stationary'}
+        Specifies the motion type.
+
+    Returns
+    -------
+    tuple of DOF, length 6
+        Signal generators for the six degrees of freedom, in the following order:
+        x, y, z, roll, pitch and yaw.
+    """
+    if motion.lower() == "beating":
+        return _beating_dofs()
+    elif motion.lower() == "stationary":
+        return _stationary_dofs()
+    else:
+        raise ValueError(f"Unknown motion type: {motion}.")
+
+
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
+    motion: str = "beating",
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -446,11 +483,18 @@ def trajectory(
     Generate synthetic, noise-free position, velocity and attitude (PVA) signals,
     and corresponding IMU (specific force and angular rate) signals.
 
-    The PVA signals are characterized as:
+    The motion type is selected with the ``motion`` parameter.
+
+    For 'beating' motion, the PVA signals are characterized as:
     - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
     - Position amplitude is +/- 1 meter.
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
+
+    For 'stationary' motion, the PVA signals are characterized as:
+    - Position, velocity and attitude are constant and equal to zero, so that the
+      body is at rest and level in the navigation frame.
+    - The specific force is due to gravity only, and the angular rate is zero.
 
     Parameters
     ----------
@@ -468,6 +512,9 @@ def trajectory(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
+    motion : {'beating', 'stationary'}, optional
+        Specifies the motion type. Either 'beating' (default) for a beating
+        sinusoidal motion, or 'stationary' for a standstill motion.
 
     Returns
     -------
@@ -497,7 +544,7 @@ def trajectory(
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # PVA and IMU signals
-    dofs = _beating_dofs()
+    dofs = _dofs_from_motion(motion)
     pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
     f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g, nav_frame)
 
