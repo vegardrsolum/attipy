@@ -111,7 +111,7 @@ class DOF(ABC):
 
 class BeatDOF(DOF):
     """
-    Beating signal generator.
+    Beating DOF signal generator.
 
     Defined as:
 
@@ -172,6 +172,33 @@ class BeatDOF(DOF):
         y = amp * beat * main
         dydt = amp * (dbeat * main + beat * dmain)
         d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+
+        return y, dydt, d2ydt2
+
+
+class ConstantDOF(DOF):
+    """
+    Constant DOF signal generator.
+
+    Defined as:
+
+        y = value
+
+    Parameters
+    ----------
+    value : float, optional
+        Constant value of the signal, y(t). Default is 0.0.
+    """
+
+    def __init__(self, value: float = 0.0) -> None:
+        self._value = value
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y = np.full_like(t, self._value, dtype=np.float64)
+        dydt = np.zeros_like(y)
+        d2ydt2 = np.zeros_like(y)
 
         return y, dydt, d2ydt2
 

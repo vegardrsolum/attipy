@@ -6,6 +6,7 @@ from attipy._transforms import _matrix_from_euler_zyx
 from attipy.simulate._simulate import (
     DOF,
     BeatDOF,
+    ConstantDOF,
     RampUp,
     _angular_velocity_body,
     _imu_from_motion,
@@ -154,6 +155,57 @@ class Test_BeatDOF:
         y_expect = amp * beat_ * main
         dydt_expect = amp * (dbeat * main + beat_ * dmain)
         d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+
+class Test_ConstantDOF:
+    @pytest.fixture
+    def constant(self):
+        dof = ConstantDOF(value=2.0)
+        return dof
+
+    def test__init__(self):
+        constant = ConstantDOF(value=3.0)
+
+        assert isinstance(constant, DOF)
+        assert constant._value == 3.0
+
+    def test__init__default(self):
+        constant = ConstantDOF()
+
+        assert isinstance(constant, DOF)
+        assert constant._value == 0.0
+
+    def test_y(self, constant, t):
+        y = constant.y(t)
+
+        y_expect = 2.0 * np.ones_like(t)
+
+        np.testing.assert_allclose(y, y_expect)
+
+    def test_dydt(self, constant, t):
+        dydt = constant.dydt(t)
+
+        dydt_expect = np.zeros_like(t)
+
+        np.testing.assert_allclose(dydt, dydt_expect)
+
+    def test_d2ydt2(self, constant, t):
+        d2ydt2 = constant.d2ydt2(t)
+
+        d2ydt2_expect = np.zeros_like(t)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test__call__(self, constant, t):
+        y, dydt, d2ydt2 = constant(t)
+
+        y_expect = 2.0 * np.ones_like(t)
+        dydt_expect = np.zeros_like(t)
+        d2ydt2_expect = np.zeros_like(t)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
