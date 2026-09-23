@@ -415,6 +415,25 @@ def _imu_from_motion(
 
 
 class MotionType(NamedTuple):
+    """
+    Rigid body motion type defined by six independent DOF signal generators.
+
+    Parameters
+    ----------
+    x : DOF, optional
+        Position along the x-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    y : DOF, optional
+        Position along the y-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    z : DOF, optional
+        Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    roll : DOF, optional
+        Roll angle in radians. Defaults to ``ConstantDOF(0.0)``.
+    pitch : DOF, optional
+        Pitch angle in radians. Defaults to ``ConstantDOF(0.0)``.
+    yaw : DOF, optional
+        Yaw angle in radians. Defaults to ``ConstantDOF(0.0)``.
+    """
+
     x: DOF = ConstantDOF(0.0)
     y: DOF = ConstantDOF(0.0)
     z: DOF = ConstantDOF(0.0)
