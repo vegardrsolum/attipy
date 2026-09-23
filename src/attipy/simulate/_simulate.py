@@ -433,6 +433,13 @@ _BEAT6DOF = MotionType(
 )
 
 
+_BEAT3DOF = MotionType(
+    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
+    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
+    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
+)
+
+
 _STATIONARY = MotionType()
 
 
@@ -485,10 +492,11 @@ def trajectory(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
-    motion_type : {'beat-6dof', 'stationary'} or MotionType, optional
+    motion_type : {'beat-6dof', 'beat-3dof', 'stationary'} or MotionType, optional
         Specifies the motion type. Either 'beat-6dof' (default) for a beating
-        sinusoidal motion, 'stationary' for a standstill motion, or a custom
-        MotionType instance.
+        sinusoidal motion in all six degrees of freedom, 'beat-3dof' for a beating
+        sinusoidal motion in roll, pitch and yaw, 'stationary' for a standstill
+        motion, or a custom MotionType instance.
 
     Returns
     -------
@@ -515,6 +523,8 @@ def trajectory(
 
     if motion_type == "beat-6dof":
         dofs = _BEAT6DOF
+    elif motion_type == "beat-3dof":
+        dofs = _BEAT3DOF
     elif motion_type == "stationary":
         dofs = _STATIONARY
     elif isinstance(motion_type, MotionType):
