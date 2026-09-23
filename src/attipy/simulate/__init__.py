@@ -1,3 +1,3 @@
-from ._simulate import trajectory
+from ._simulate import BeatDOF, ConstantDOF, MotionType, trajectory
 
-__all__ = ["trajectory"]
+__all__ = ["BeatDOF", "ConstantDOF", "MotionType", "trajectory"]
