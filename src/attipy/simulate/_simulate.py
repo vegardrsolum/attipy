@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from typing import NamedTuple
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -413,55 +414,26 @@ def _imu_from_motion(
     return f_b, w_b
 
 
-def _beating_dofs() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
-    """
-    Beating DOF signals.
-    """
-    f_main, f_beat = 0.1, 0.01
-    phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-    px = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[0])
-    py = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[1])
-    pz = BeatDOF(1.0, f_main, f_beat, freq_hz=True, phase=phases[2])
-    r = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[3])
-    p = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[4])
-    y = BeatDOF(0.1, f_main, f_beat, freq_hz=True, phase=phases[5])
-    return px, py, pz, r, p, y
+class MotionType(NamedTuple):
+    x: DOF = ConstantDOF(0.0)
+    y: DOF = ConstantDOF(0.0)
+    z: DOF = ConstantDOF(0.0)
+    roll: DOF = ConstantDOF(0.0)
+    pitch: DOF = ConstantDOF(0.0)
+    yaw: DOF = ConstantDOF(0.0)
 
 
-def _stationary_dofs() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
-    """
-    Stationary (standstill) DOF signals.
-    """
-    px = ConstantDOF(0.0)
-    py = ConstantDOF(0.0)
-    pz = ConstantDOF(0.0)
-    r = ConstantDOF(0.0)
-    p = ConstantDOF(0.0)
-    y = ConstantDOF(0.0)
-    return px, py, pz, r, p, y
+_BEAT6DOF = MotionType(
+    x=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=0.0),
+    y=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi / 3),
+    z=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3),
+    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
+    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
+    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
+)
 
 
-def _dofs_from_motion(motion: str) -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
-    """
-    DOF signal generators for a given motion type.
-
-    Parameters
-    ----------
-    motion : {'beating', 'stationary'}
-        Specifies the motion type.
-
-    Returns
-    -------
-    tuple of DOF, length 6
-        Signal generators for the six degrees of freedom, in the following order:
-        x, y, z, roll, pitch and yaw.
-    """
-    if motion.lower() == "beating":
-        return _beating_dofs()
-    elif motion.lower() == "stationary":
-        return _stationary_dofs()
-    else:
-        raise ValueError(f"Unknown motion type: {motion}.")
+_STATIONARY = MotionType()
 
 
 def trajectory(
@@ -470,7 +442,7 @@ def trajectory(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-    motion: str = "beating",
+    motion_type: str = "beat-6dof",
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -483,10 +455,11 @@ def trajectory(
     Generate synthetic, noise-free position, velocity and attitude (PVA) signals,
     and corresponding IMU (specific force and angular rate) signals.
 
-    The motion type is selected with the ``motion`` parameter.
+    The motion type is selected with the ``motion_type`` parameter.
 
-    For 'beating' motion, the PVA signals are characterized as:
-    - Beating sinusoidal motion (0.1 Hz main frequency and 0.01 Hz beat frequency).
+    For 'beat-6dof' motion, the PVA signals are characterized as:
+    - Beating sinusoidal motion in all six degrees of freedom (0.1 Hz main frequency
+      and 0.01 Hz beat frequency).
     - Position amplitude is +/- 1 meter.
     - Attitude (Euler angle) amplitude is +/- 0.1 radians.
     - Phases are assigned to provide variation across all axes.
@@ -512,9 +485,10 @@ def trajectory(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
-    motion : {'beating', 'stationary'}, optional
-        Specifies the motion type. Either 'beating' (default) for a beating
-        sinusoidal motion, or 'stationary' for a standstill motion.
+    motion_type : {'beat-6dof', 'stationary'} or MotionType, optional
+        Specifies the motion type. Either 'beat-6dof' (default) for a beating
+        sinusoidal motion, 'stationary' for a standstill motion, or a custom
+        MotionType instance.
 
     Returns
     -------
@@ -539,12 +513,20 @@ def trajectory(
     if n <= 0:
         raise ValueError("'n' must be positive.")
 
+    if motion_type == "beat-6dof":
+        dofs = _BEAT6DOF
+    elif motion_type == "stationary":
+        dofs = _STATIONARY
+    elif isinstance(motion_type, MotionType):
+        dofs = motion_type
+    else:
+        raise ValueError(f"Unknown motion type: {motion_type}.")
+
     # Time
     dt = 1.0 / fs
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # PVA and IMU signals
-    dofs = _dofs_from_motion(motion)
     pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
     f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g, nav_frame)
 
