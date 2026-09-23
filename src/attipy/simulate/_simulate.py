@@ -498,8 +498,8 @@ def trajectory(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     motion_type : {'beat-6dof', 'beat-3dof', 'stationary'} or MotionType, optional
-        Specifies the type of motion. Should be a custom ``MotionType`` instance
-        or a string specifying one of the predefined types:
+        Specifies the type of motion to generate. Should be a custom ``MotionType``
+        instance or a string specifying one of the predefined types:
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
         - 'stationary': Standstill motion.
