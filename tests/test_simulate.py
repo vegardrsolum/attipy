@@ -7,6 +7,7 @@ from attipy.simulate._simulate import (  # _dofs_from_motion,
     DOF,
     BeatDOF,
     ConstantDOF,
+    MotionType,
     RampUp,
     _angular_velocity_body,
     _imu_from_motion,
@@ -355,7 +356,7 @@ class Test_motion_from_dofs:
                 )
 
         t = np.zeros(4)
-        dofs = [SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)]
+        dofs = MotionType(*[SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)])
 
         pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
 
@@ -365,12 +366,26 @@ class Test_motion_from_dofs:
         np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
 
-    @pytest.mark.parametrize("num_dofs", [0, 1, 3, 5, 7, 12])
-    def test_wrong_number_of_dofs_raises(self, num_dofs):
-        dofs = [BeatDOF() for _ in range(num_dofs)]
+    def test_degrees_converts_angular_dofs(self):
+        t = np.linspace(0.0, 10.0, 100)
+        dofs = {
+            "x": BeatDOF(1.0, 0.1, 0.01),
+            "roll": ConstantDOF(30.0),
+            "pitch": BeatDOF(5.0, 0.1, 0.01),
+            "yaw": BeatDOF(10.0, 0.2, 0.02),
+        }
 
-        with pytest.raises(ValueError):
-            _motion_from_dofs(dofs, np.zeros(4))
+        out_deg = _motion_from_dofs(MotionType(**dofs, degrees=True), t)
+        out_rad = _motion_from_dofs(MotionType(**dofs), t)
+
+        pos_deg, vel_deg, acc_deg, euler_deg, euler_dot_deg = out_deg
+        pos_rad, vel_rad, acc_rad, euler_rad, euler_dot_rad = out_rad
+
+        np.testing.assert_allclose(pos_deg, pos_rad)
+        np.testing.assert_allclose(vel_deg, vel_rad)
+        np.testing.assert_allclose(acc_deg, acc_rad)
+        np.testing.assert_allclose(euler_deg, np.radians(euler_rad))
+        np.testing.assert_allclose(euler_dot_deg, np.radians(euler_dot_rad))
 
 
 # class Test_dofs_from_motion:

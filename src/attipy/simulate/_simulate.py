@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from typing import NamedTuple
 
 import numpy as np
@@ -270,6 +269,60 @@ class RampUp(DOF):
         return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
+class MotionType(NamedTuple):
+    """
+    Rigid body motion type defined by six independent DOF signal generators.
+
+    Parameters
+    ----------
+    x : DOF, optional
+        Position along the x-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    y : DOF, optional
+        Position along the y-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    z : DOF, optional
+        Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    roll : DOF, optional
+        Roll angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+    pitch : DOF, optional
+        Pitch angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+    yaw : DOF, optional
+        Yaw angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+    degrees : bool, optional
+        Specifies whether the angular DOF signals, ``roll``, ``pitch`` and ``yaw``,
+        are given in degrees or radians (default).
+    """
+
+    x: DOF = ConstantDOF(0.0)
+    y: DOF = ConstantDOF(0.0)
+    z: DOF = ConstantDOF(0.0)
+    roll: DOF = ConstantDOF(0.0)
+    pitch: DOF = ConstantDOF(0.0)
+    yaw: DOF = ConstantDOF(0.0)
+    degrees: bool = False
+
+
+_BEAT6DOF = MotionType(
+    x=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=0.0),
+    y=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi / 3),
+    z=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3),
+    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
+    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
+    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
+    degrees=False,
+)
+
+
+_BEAT3DOF = MotionType(
+    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
+    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
+    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
+    degrees=False,
+)
+
+
+_STATIONARY = MotionType()
+
+
 def _specific_force_body(
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
@@ -329,7 +382,7 @@ def _angular_velocity_body(
     return w_b
 
 
-def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
+def _motion_from_dofs(dofs: MotionType, t: NDArray[np.float64]) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
     NDArray[np.float64],
@@ -341,9 +394,8 @@ def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
 
     Parameters
     ----------
-    dofs : sequence of DOF, length 6
-        Signal generators for the six degrees of freedom, in the following order:
-        x, y, z, roll, pitch and yaw.
+    dofs : MotionType
+        The motion type to generate.
     t : ndarray, shape (n,)
         Time in seconds.
 
@@ -360,17 +412,18 @@ def _motion_from_dofs(dofs: Sequence[DOF], t: NDArray[np.float64]) -> tuple[
     euler_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
     """
-    if len(dofs) != 6:
-        raise ValueError("'dofs' must contain exactly six DOF signal generators.")
-
-    pos_sig = [dof(t) for dof in dofs[:3]]
-    att_sig = [dof(t) for dof in dofs[3:]]
+    pos_sig = [dof(t) for dof in (dofs.x, dofs.y, dofs.z)]
+    att_sig = [dof(t) for dof in (dofs.roll, dofs.pitch, dofs.yaw)]
 
     pos = np.column_stack([y for y, _, _ in pos_sig])
     vel = np.column_stack([dydt for _, dydt, _ in pos_sig])
     acc = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
     euler = np.column_stack([y for y, _, _ in att_sig])
     euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
+
+    if dofs.degrees:
+        euler = np.radians(euler)
+        euler_dot = np.radians(euler_dot)
 
     return pos, vel, acc, euler, euler_dot
 
@@ -412,54 +465,6 @@ def _imu_from_motion(
     w_b = _angular_velocity_body(euler, euler_dot)
 
     return f_b, w_b
-
-
-class MotionType(NamedTuple):
-    """
-    Rigid body motion type defined by six independent DOF signal generators.
-
-    Parameters
-    ----------
-    x : DOF, optional
-        Position along the x-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    y : DOF, optional
-        Position along the y-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    z : DOF, optional
-        Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    roll : DOF, optional
-        Roll angle in radians. Defaults to ``ConstantDOF(0.0)``.
-    pitch : DOF, optional
-        Pitch angle in radians. Defaults to ``ConstantDOF(0.0)``.
-    yaw : DOF, optional
-        Yaw angle in radians. Defaults to ``ConstantDOF(0.0)``.
-    """
-
-    x: DOF = ConstantDOF(0.0)
-    y: DOF = ConstantDOF(0.0)
-    z: DOF = ConstantDOF(0.0)
-    roll: DOF = ConstantDOF(0.0)
-    pitch: DOF = ConstantDOF(0.0)
-    yaw: DOF = ConstantDOF(0.0)
-
-
-_BEAT6DOF = MotionType(
-    x=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=0.0),
-    y=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi / 3),
-    z=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3),
-    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
-    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
-    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
-)
-
-
-_BEAT3DOF = MotionType(
-    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
-    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
-    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
-)
-
-
-_STATIONARY = MotionType()
 
 
 def trajectory(
