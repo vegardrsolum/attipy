@@ -462,20 +462,6 @@ def trajectory(
     Generate synthetic, noise-free position, velocity and attitude (PVA) signals,
     and corresponding IMU (specific force and angular rate) signals.
 
-    The motion type is selected with the ``motion_type`` parameter.
-
-    For 'beat-6dof' motion, the PVA signals are characterized as:
-    - Beating sinusoidal motion in all six degrees of freedom (0.1 Hz main frequency
-      and 0.01 Hz beat frequency).
-    - Position amplitude is +/- 1 meter.
-    - Attitude (Euler angle) amplitude is +/- 0.1 radians.
-    - Phases are assigned to provide variation across all axes.
-
-    For 'stationary' motion, the PVA signals are characterized as:
-    - Position, velocity and attitude are constant and equal to zero, so that the
-      body is at rest and level in the navigation frame.
-    - The specific force is due to gravity only, and the angular rate is zero.
-
     Parameters
     ----------
     fs : float, optional
@@ -493,10 +479,11 @@ def trajectory(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     motion_type : {'beat-6dof', 'beat-3dof', 'stationary'} or MotionType, optional
-        Specifies the motion type. Either 'beat-6dof' (default) for a beating
-        sinusoidal motion in all six degrees of freedom, 'beat-3dof' for a beating
-        sinusoidal motion in roll, pitch and yaw, 'stationary' for a standstill
-        motion, or a custom MotionType instance.
+        Specifies the type of motion. Should be a custom ``MotionType`` instance
+        or a string specifying one of the predefined types:
+        - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
+        - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+        - 'stationary': Standstill motion.
 
     Returns
     -------
