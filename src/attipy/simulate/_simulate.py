@@ -508,7 +508,7 @@ def trajectory(
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
         - 'stationary': No motion; all degrees of freedom remain constant (zero).
-        or a custom ``MotionType`` instance.
+        Alternatively, a custom ``MotionType`` instance can be provided.
 
     Returns
     -------
