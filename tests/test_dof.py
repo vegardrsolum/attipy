@@ -219,8 +219,9 @@ class Test_RampUp:
         assert rampup._start == 2.0
 
     def test__init__default(self, beat):
-        rampup = RampUp(beat, 4.0)
+        rampup = RampUp(beat)
 
+        assert rampup._duration == 100.0
         assert rampup._start == 0.0
 
     def test__init__raises(self, beat):

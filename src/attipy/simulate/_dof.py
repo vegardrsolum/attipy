@@ -227,14 +227,15 @@ class RampUp(DOF):
     ----------
     dof : DOF
         Underlying DOF signal generator to ramp up.
-    duration : float
-        Duration of the ramp-up period in seconds. Must be positive.
+    duration : float, optional
+        Duration of the ramp-up period in seconds. Must be positive. Defaults to
+        100.0 seconds.
     start : float, optional
         Time in seconds at which the ramp-up starts. The signal, and its two
         first time derivatives, are zero before this time. Default is 0.0.
     """
 
-    def __init__(self, dof: DOF, duration: float, start: float = 0.0) -> None:
+    def __init__(self, dof: DOF, duration: float = 100.0, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
         if start < 0.0:
