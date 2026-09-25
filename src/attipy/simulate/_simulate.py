@@ -13,6 +13,8 @@ class Motion:
     """
     Rigid body motion defined by six independent DOF signal generators.
 
+    Defaults to a standstill/stationary motion with all DOFs set to zero.
+
     Parameters
     ----------
     x : DOF, optional
