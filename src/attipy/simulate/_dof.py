@@ -206,6 +206,57 @@ class ConstantDOF(DOF):
         return y, dydt, d2ydt2
 
 
+class SineDOF(DOF):
+    """
+    Sinusoidal DOF signal generator.
+
+    Defined as:
+
+        y = amp * sin(w * t + phase)
+
+    Parameters
+    ----------
+    amp : float, optional
+        Amplitude of the sinusoidal signal. Default is 1.0.
+    freq : float, optional
+        Frequency of the sinusoidal signal, y(t), in rad/s (default) or Hz,
+        depending on `freq_hz`. Defaults to 0.1.
+    freq_hz : bool, optional
+        Whether the frequency, ``freq``, is given in Hz or rad/s (default).
+    phase : float, optional
+        Phase offset of the sinusoidal signal. Default is 0.0.
+    phase_degrees : bool, optional
+        Whether the phase, ``phase``, is given in degrees (True) or radians (False).
+        Defaults to ``False``.
+    """
+
+    def __init__(
+        self,
+        amp: float = 1.0,
+        freq: float = 0.1,
+        freq_hz: bool = False,
+        phase: float = 0.0,
+        phase_degrees: bool = False,
+    ) -> None:
+        self._amp = amp
+        self._w = 2.0 * np.pi * freq if freq_hz else freq
+        self._phase = np.radians(phase) if phase_degrees else phase
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        amp = self._amp
+        w = self._w
+
+        arg = w * t + self._phase
+
+        y = amp * np.sin(arg)
+        dydt = amp * w * np.cos(arg)
+        d2ydt2 = -(w**2) * y
+
+        return y, dydt, d2ydt2
+
+
 class RampUp(DOF):
     """
     Ramp-up wrapper for DOF signals.

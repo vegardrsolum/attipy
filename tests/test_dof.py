@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from attipy.simulate._dof import DOF, BeatDOF, ConstantDOF, RampUp
+from attipy.simulate._dof import DOF, BeatDOF, ConstantDOF, RampUp, SineDOF
 
 
 @pytest.fixture
@@ -195,6 +195,67 @@ class Test_ConstantDOF:
         y_expect = 2.0 * np.ones_like(t)
         dydt_expect = np.zeros_like(t)
         d2ydt2_expect = np.zeros_like(t)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+
+class Test_SineDOF:
+    @pytest.fixture
+    def sine(self):
+        dof = SineDOF(amp=2.0, freq=1.0, freq_hz=False, phase=0.5)
+        return dof
+
+    def test__init__(self):
+        sine = SineDOF(
+            amp=3.0,
+            freq=2.0,
+            freq_hz=True,
+            phase=4.0,
+            phase_degrees=True,
+        )
+
+        assert isinstance(sine, DOF)
+        assert sine._amp == 3.0
+        assert sine._w == pytest.approx(2.0 * np.pi * 2.0)
+        assert sine._phase == pytest.approx((np.pi / 180.0) * 4.0)
+
+    def test__init__default(self):
+        sine = SineDOF()
+
+        assert isinstance(sine, DOF)
+        assert sine._amp == 1.0
+        assert sine._w == pytest.approx(0.1)
+        assert sine._phase == pytest.approx(0.0)
+
+    def test_y(self, sine, t):
+        y = sine.y(t)
+
+        y_expect = 2.0 * np.sin(1.0 * t + 0.5)
+
+        np.testing.assert_allclose(y, y_expect)
+
+    def test_dydt(self, sine, t):
+        dydt = sine.dydt(t)
+
+        dydt_expect = 2.0 * 1.0 * np.cos(1.0 * t + 0.5)
+
+        np.testing.assert_allclose(dydt, dydt_expect)
+
+    def test_d2ydt2(self, sine, t):
+        d2ydt2 = sine.d2ydt2(t)
+
+        d2ydt2_expect = -2.0 * 1.0**2 * np.sin(1.0 * t + 0.5)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test__call__(self, sine, t):
+        y, dydt, d2ydt2 = sine(t)
+
+        y_expect = 2.0 * np.sin(1.0 * t + 0.5)
+        dydt_expect = 2.0 * 1.0 * np.cos(1.0 * t + 0.5)
+        d2ydt2_expect = -2.0 * 1.0**2 * np.sin(1.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
