@@ -88,29 +88,6 @@ class Test_sample_motion:
         np.testing.assert_allclose(euler_dot_deg, np.radians(euler_dot_rad))
 
 
-# class Test_dofs_from_motion:
-#     def test_beating(self):
-#         dofs = _dofs_from_motion("beating")
-
-#         assert len(dofs) == 6
-#         assert all(isinstance(dof, BeatDOF) for dof in dofs)
-
-#     def test_stationary(self):
-#         dofs = _dofs_from_motion("stationary")
-
-#         assert len(dofs) == 6
-#         assert all(isinstance(dof, ConstantDOF) for dof in dofs)
-#         assert all(dof._value == 0.0 for dof in dofs)
-
-#     @pytest.mark.parametrize("motion", ["beating", "BEATING", "Stationary"])
-#     def test_case_insensitive(self, motion):
-#         assert len(_dofs_from_motion(motion)) == 6
-
-#     def test_raises(self):
-#         with pytest.raises(ValueError):
-#             _dofs_from_motion("invalid")
-
-
 class Test_imu_from_kinematics:
     @pytest.fixture
     def kinematics(self):
