@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import attipy as ap
 from attipy._statespace import (
     _process_noise_cov,
     _process_noise_psd,
