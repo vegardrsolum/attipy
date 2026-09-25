@@ -13,8 +13,6 @@ class Motion:
     """
     Rigid body motion defined by six independent DOF signal generators.
 
-    All parameters are keyword-only. Instances are immutable.
-
     Parameters
     ----------
     x : DOF, optional
@@ -24,11 +22,11 @@ class Motion:
     z : DOF, optional
         Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
     roll : DOF, optional
-        Roll angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+        Roll Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
     pitch : DOF, optional
-        Pitch angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+        Pitch Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
     yaw : DOF, optional
-        Yaw angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+        Yaw Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
     degrees : bool, optional
         Specifies whether the angular DOF signals, ``roll``, ``pitch`` and ``yaw``,
         are given in degrees or radians (default).
