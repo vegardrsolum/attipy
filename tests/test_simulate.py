@@ -558,6 +558,91 @@ class Test_trajectory:
 
         np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, 9.80665], (n, 1)))
 
+    def test_motion_beat_3dof(self):
+        n = 100
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion_type="beat-3dof"
+        )
+
+        # Expected attitude DOF signals
+        r, *_ = BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi)(t)
+        p, *_ = BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3)(t)
+        y, *_ = BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3)(t)
+
+        # No translation
+        np.testing.assert_allclose(p_n, np.zeros((n, 3)))
+        np.testing.assert_allclose(v_n, np.zeros((n, 3)))
+
+        # Beating attitude
+        np.testing.assert_allclose(euler_nb[:, 0], r)
+        np.testing.assert_allclose(euler_nb[:, 1], p)
+        np.testing.assert_allclose(euler_nb[:, 2], y)
+        assert np.any(np.abs(w_b) > 0.0)
+
+        # No translation -> specific force is gravity only
+        np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
+
+    def test_motion_custom(self):
+        n = 100
+        x = BeatDOF(2.0, 0.2, 0.02, freq_hz=True)
+        motion = MotionType(x=x, yaw=ConstantDOF(0.5))
+
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion_type=motion
+        )
+
+        px, vx, ax = x(t)
+
+        # Position and velocity along x only
+        np.testing.assert_allclose(p_n[:, 0], px)
+        np.testing.assert_allclose(v_n[:, 0], vx)
+        np.testing.assert_allclose(p_n[:, 1:], np.zeros((n, 2)))
+        np.testing.assert_allclose(v_n[:, 1:], np.zeros((n, 2)))
+
+        # Constant yaw, level attitude
+        np.testing.assert_allclose(euler_nb[:, :2], np.zeros((n, 2)))
+        np.testing.assert_allclose(euler_nb[:, 2], 0.5)
+        np.testing.assert_allclose(w_b, np.zeros((n, 3)))
+
+        # Acceleration along x is rotated by yaw in the horizontal plane
+        np.testing.assert_allclose(f_b[:, 0], np.cos(0.5) * ax, atol=1e-12)
+        np.testing.assert_allclose(f_b[:, 1], -np.sin(0.5) * ax, atol=1e-12)
+        np.testing.assert_allclose(f_b[:, 2], -9.80665)
+
+    def test_motion_custom_degrees(self):
+        n = 100
+        amp_deg = 5.0
+
+        motion_deg = MotionType(
+            roll=BeatDOF(amp_deg, 0.1, 0.01, freq_hz=True),
+            pitch=BeatDOF(amp_deg, 0.2, 0.01, freq_hz=True),
+            degrees=True,
+        )
+        motion_rad = MotionType(
+            roll=BeatDOF(np.radians(amp_deg), 0.1, 0.01, freq_hz=True),
+            pitch=BeatDOF(np.radians(amp_deg), 0.2, 0.01, freq_hz=True),
+            degrees=False,
+        )
+
+        out_deg = ap.simulate.trajectory(n=n, motion_type=motion_deg, degrees=True)
+        out_rad = ap.simulate.trajectory(n=n, motion_type=motion_rad, degrees=False)
+
+        t, p_deg, v_deg, euler_deg, f_deg, w_deg = out_deg
+        _, p_rad, v_rad, euler_rad, f_rad, w_rad = out_rad
+
+        # Degrees in -> degrees out reproduces the input signals
+        roll, *_ = motion_deg.roll(t)
+        pitch, *_ = motion_deg.pitch(t)
+        np.testing.assert_allclose(euler_deg[:, 0], roll)
+        np.testing.assert_allclose(euler_deg[:, 1], pitch)
+
+        # Equivalent to the same motion specified in radians
+        np.testing.assert_allclose(p_deg, p_rad)
+        np.testing.assert_allclose(v_deg, v_rad)
+        np.testing.assert_allclose(f_deg, f_rad)
+        np.testing.assert_allclose(np.radians(euler_deg), euler_rad)
+        np.testing.assert_allclose(np.radians(w_deg), w_rad)
+
     def test_motion_raises(self):
         with pytest.raises(ValueError):
             ap.simulate.trajectory(motion_type="invalid")
