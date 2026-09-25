@@ -7,11 +7,11 @@ from attipy.simulate._simulate import (  # _dofs_from_motion,
     DOF,
     BeatDOF,
     ConstantDOF,
-    MotionType,
+    Motion,
     RampUp,
     _angular_velocity_body,
-    _imu_from_motion,
-    _motion_from_dofs,
+    _imu_from_kinematics,
+    _sample_motion,
     _specific_force_body,
 )
 
@@ -341,7 +341,7 @@ class Test_specific_force_body:
         np.testing.assert_allclose(f_b, expected)
 
 
-class Test_motion_from_dofs:
+class Test_sample_motion:
     def test_dof_order_maps_to_columns(self):
         class SomeDOF(DOF):
             def __init__(self, value):
@@ -356,9 +356,9 @@ class Test_motion_from_dofs:
                 )
 
         t = np.zeros(4)
-        dofs = MotionType(*[SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)])
+        dofs = Motion(*[SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)])
 
-        pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
+        pos, vel, acc, euler, euler_dot = _sample_motion(dofs, t)
 
         np.testing.assert_allclose(pos, np.tile([1.0, 2.0, 3.0], (4, 1)))
         np.testing.assert_allclose(vel, np.tile([10.0, 20.0, 30.0], (4, 1)))
@@ -375,8 +375,8 @@ class Test_motion_from_dofs:
             "yaw": BeatDOF(10.0, 0.2, 0.02),
         }
 
-        out_deg = _motion_from_dofs(MotionType(**dofs, degrees=True), t)
-        out_rad = _motion_from_dofs(MotionType(**dofs), t)
+        out_deg = _sample_motion(Motion(**dofs, degrees=True), t)
+        out_rad = _sample_motion(Motion(**dofs), t)
 
         pos_deg, vel_deg, acc_deg, euler_deg, euler_dot_deg = out_deg
         pos_rad, vel_rad, acc_rad, euler_rad, euler_dot_rad = out_rad
@@ -411,27 +411,27 @@ class Test_motion_from_dofs:
 #             _dofs_from_motion("invalid")
 
 
-class Test_imu_from_motion:
+class Test_imu_from_kinematics:
     @pytest.fixture
-    def motion(self):
+    def kinematics(self):
         rng = np.random.default_rng(0)
         acc = rng.standard_normal((20, 3))
         euler = 0.3 * rng.standard_normal((20, 3))
         euler_dot = 0.1 * rng.standard_normal((20, 3))
         return acc, euler, euler_dot
 
-    def test_matches_underlying_conversions(self, motion):
-        acc, euler, euler_dot = motion
+    def test_matches_underlying_conversions(self, kinematics):
+        acc, euler, euler_dot = kinematics
 
-        f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
+        f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
 
         g_n = np.array([0.0, 0.0, -9.81])
         np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
         np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
 
-    def test_nav_frame_raises(self, motion):
+    def test_nav_frame_raises(self, kinematics):
         with pytest.raises(ValueError):
-            _imu_from_motion(*motion, g=9.80665, nav_frame="invalid")
+            _imu_from_kinematics(*kinematics, g=9.80665, nav_frame="invalid")
 
 
 class Test_trajectory:
@@ -529,7 +529,7 @@ class Test_trajectory:
         assert -6.0 < f.mean(axis=0)[2] < -4
 
     def test_motion_default_is_beating(self):
-        beating = ap.simulate.trajectory(n=100, motion_type="beat-6dof")
+        beating = ap.simulate.trajectory(n=100, motion="beat-6dof")
         default = ap.simulate.trajectory(n=100)
 
         for out, out_expect in zip(default, beating):
@@ -538,7 +538,7 @@ class Test_trajectory:
     def test_motion_stationary(self):
         n = 100
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion_type="stationary"
+            n=n, motion="stationary"
         )
 
         assert t.shape == (n,)
@@ -552,16 +552,14 @@ class Test_trajectory:
 
     def test_motion_stationary_nav_frame(self):
         n = 100
-        *_, f_b, _ = ap.simulate.trajectory(
-            n=n, motion_type="stationary", nav_frame="ENU"
-        )
+        *_, f_b, _ = ap.simulate.trajectory(n=n, motion="stationary", nav_frame="ENU")
 
         np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, 9.80665], (n, 1)))
 
     def test_motion_beat_3dof(self):
         n = 100
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion_type="beat-3dof"
+            n=n, motion="beat-3dof"
         )
 
         # Expected attitude DOF signals
@@ -585,11 +583,9 @@ class Test_trajectory:
     def test_motion_custom(self):
         n = 100
         x = BeatDOF(2.0, 0.2, 0.02, freq_hz=True)
-        motion = MotionType(x=x, yaw=ConstantDOF(0.5))
+        motion = Motion(x=x, yaw=ConstantDOF(0.5))
 
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion_type=motion
-        )
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(n=n, motion=motion)
 
         px, vx, ax = x(t)
 
@@ -613,19 +609,19 @@ class Test_trajectory:
         n = 100
         amp_deg = 5.0
 
-        motion_deg = MotionType(
+        motion_deg = Motion(
             roll=BeatDOF(amp_deg, 0.1, 0.01, freq_hz=True),
             pitch=BeatDOF(amp_deg, 0.2, 0.01, freq_hz=True),
             degrees=True,
         )
-        motion_rad = MotionType(
+        motion_rad = Motion(
             roll=BeatDOF(np.radians(amp_deg), 0.1, 0.01, freq_hz=True),
             pitch=BeatDOF(np.radians(amp_deg), 0.2, 0.01, freq_hz=True),
             degrees=False,
         )
 
-        out_deg = ap.simulate.trajectory(n=n, motion_type=motion_deg, degrees=True)
-        out_rad = ap.simulate.trajectory(n=n, motion_type=motion_rad, degrees=False)
+        out_deg = ap.simulate.trajectory(n=n, motion=motion_deg, degrees=True)
+        out_rad = ap.simulate.trajectory(n=n, motion=motion_rad, degrees=False)
 
         t, p_deg, v_deg, euler_deg, f_deg, w_deg = out_deg
         _, p_rad, v_rad, euler_rad, f_rad, w_rad = out_rad
@@ -645,7 +641,7 @@ class Test_trajectory:
 
     def test_motion_raises(self):
         with pytest.raises(ValueError):
-            ap.simulate.trajectory(motion_type="invalid")
+            ap.simulate.trajectory(motion="invalid")
 
     def test_fs_raises(self):
         with pytest.raises(ValueError):

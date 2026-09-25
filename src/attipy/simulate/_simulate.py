@@ -269,9 +269,9 @@ class RampUp(DOF):
         return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
-class MotionType(NamedTuple):
+class Motion(NamedTuple):
     """
-    Rigid body motion type defined by six independent DOF signal generators.
+    Rigid body motion defined by six independent DOF signal generators.
 
     Parameters
     ----------
@@ -301,7 +301,7 @@ class MotionType(NamedTuple):
     degrees: bool = False
 
 
-_BEAT6DOF = MotionType(
+_BEAT6DOF = Motion(
     x=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=0.0),
     y=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=np.pi / 3),
     z=BeatDOF(1.0, 0.1, 0.01, freq_hz=True, phase=2 * np.pi / 3),
@@ -312,7 +312,7 @@ _BEAT6DOF = MotionType(
 )
 
 
-_BEAT3DOF = MotionType(
+_BEAT3DOF = Motion(
     roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
     pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
     yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
@@ -320,7 +320,7 @@ _BEAT3DOF = MotionType(
 )
 
 
-_STATIONARY = MotionType()
+_STATIONARY = Motion()
 
 
 def _specific_force_body(
@@ -382,7 +382,7 @@ def _angular_velocity_body(
     return w_b
 
 
-def _motion_from_dofs(dofs: MotionType, t: NDArray[np.float64]) -> tuple[
+def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
     NDArray[np.float64],
@@ -394,8 +394,8 @@ def _motion_from_dofs(dofs: MotionType, t: NDArray[np.float64]) -> tuple[
 
     Parameters
     ----------
-    dofs : MotionType
-        The motion type to generate.
+    motion : Motion
+        Rigid body motion to sample.
     t : ndarray, shape (n,)
         Time in seconds.
 
@@ -412,8 +412,8 @@ def _motion_from_dofs(dofs: MotionType, t: NDArray[np.float64]) -> tuple[
     euler_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
     """
-    pos_sig = [dof(t) for dof in (dofs.x, dofs.y, dofs.z)]
-    att_sig = [dof(t) for dof in (dofs.roll, dofs.pitch, dofs.yaw)]
+    pos_sig = [dof(t) for dof in (motion.x, motion.y, motion.z)]
+    att_sig = [dof(t) for dof in (motion.roll, motion.pitch, motion.yaw)]
 
     pos = np.column_stack([y for y, _, _ in pos_sig])
     vel = np.column_stack([dydt for _, dydt, _ in pos_sig])
@@ -421,14 +421,14 @@ def _motion_from_dofs(dofs: MotionType, t: NDArray[np.float64]) -> tuple[
     euler = np.column_stack([y for y, _, _ in att_sig])
     euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
 
-    if dofs.degrees:
+    if motion.degrees:
         euler = np.radians(euler)
         euler_dot = np.radians(euler_dot)
 
     return pos, vel, acc, euler, euler_dot
 
 
-def _imu_from_motion(
+def _imu_from_kinematics(
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
     euler_dot: NDArray[np.float64],
@@ -436,7 +436,7 @@ def _imu_from_motion(
     nav_frame: str,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Noise-free IMU measurements corresponding to a given rigid body motion.
+    Noise-free IMU measurements corresponding to given rigid body kinematics.
 
     Parameters
     ----------
@@ -473,7 +473,7 @@ def trajectory(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-    motion_type: str | MotionType = "beat-6dof",
+    motion: str | Motion = "beat-6dof",
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -502,7 +502,7 @@ def trajectory(
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
-    motion_type : str or MotionType, optional
+    motion : str or Motion, optional
         Specifies the type of motion to generate. Either a string specifying one
         of the predefined types of motion:
 
@@ -510,7 +510,7 @@ def trajectory(
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
 
-        or a custom ``MotionType`` instance. Defaults to 'beat-6dof'.
+        or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
 
     Returns
     -------
@@ -535,24 +535,22 @@ def trajectory(
     if n <= 0:
         raise ValueError("'n' must be positive.")
 
-    if motion_type == "beat-6dof":
-        dofs = _BEAT6DOF
-    elif motion_type == "beat-3dof":
-        dofs = _BEAT3DOF
-    elif motion_type == "stationary":
-        dofs = _STATIONARY
-    elif isinstance(motion_type, MotionType):
-        dofs = motion_type
-    else:
-        raise ValueError(f"Unknown motion type: {motion_type}.")
+    if motion == "beat-6dof":
+        motion = _BEAT6DOF
+    elif motion == "beat-3dof":
+        motion = _BEAT3DOF
+    elif motion == "stationary":
+        motion = _STATIONARY
+    elif not isinstance(motion, Motion):
+        raise ValueError(f"Unknown motion type: {motion}.")
 
     # Time
     dt = 1.0 / fs
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # PVA and IMU signals
-    pos, vel, acc, euler, euler_dot = _motion_from_dofs(dofs, t)
-    f_b, w_b = _imu_from_motion(acc, euler, euler_dot, g, nav_frame)
+    pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
+    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
 
     if degrees:
         euler = np.degrees(euler)
