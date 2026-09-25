@@ -503,7 +503,7 @@ def trajectory(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     motion_type : str or MotionType, optional
-        Specifies the type of motion to generate. Should a string specifying one
+        Specifies the type of motion to generate. Either a string specifying one
         of the predefined types of motion:
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
