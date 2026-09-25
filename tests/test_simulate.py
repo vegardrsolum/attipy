@@ -316,9 +316,18 @@ class Test_trajectory:
         np.testing.assert_allclose(np.radians(euler_deg), euler_rad)
         np.testing.assert_allclose(np.radians(w_deg), w_rad)
 
-    def test_motion_raises(self):
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(motion="invalid")
+    @pytest.mark.parametrize("motion", ["BEAT-6DOF", "Beat-3dof", "Stationary"])
+    def test_motion_case_insensitive(self, motion):
+        out = ap.simulate.trajectory(n=10, motion=motion)
+        out_expect = ap.simulate.trajectory(n=10, motion=motion.lower())
+
+        for arr, arr_expect in zip(out, out_expect):
+            np.testing.assert_allclose(arr, arr_expect)
+
+    @pytest.mark.parametrize("motion", ["invalid", None, 1.0, np.array([1, 2])])
+    def test_motion_raises(self, motion):
+        with pytest.raises(ValueError, match="Unknown motion type"):
+            ap.simulate.trajectory(motion=motion)
 
     def test_fs_raises(self):
         with pytest.raises(ValueError):

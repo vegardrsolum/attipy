@@ -62,6 +62,13 @@ _BEAT3DOF = Motion(
 _STATIONARY = Motion()
 
 
+_MOTION_PRESETS = {
+    "beat-6dof": _BEAT6DOF,
+    "beat-3dof": _BEAT3DOF,
+    "stationary": _STATIONARY,
+}
+
+
 def _specific_force_body(
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
@@ -274,14 +281,11 @@ def trajectory(
     if n <= 0:
         raise ValueError("'n' must be positive.")
 
-    if motion == "beat-6dof":
-        motion = _BEAT6DOF
-    elif motion == "beat-3dof":
-        motion = _BEAT3DOF
-    elif motion == "stationary":
-        motion = _STATIONARY
-    elif not isinstance(motion, Motion):
-        raise ValueError(f"Unknown motion type: {motion}.")
+    if not isinstance(motion, Motion):
+        try:
+            motion = _MOTION_PRESETS[motion.lower()]
+        except (KeyError, AttributeError):
+            raise ValueError(f"Unknown motion type: {motion!r}")
 
     # Time
     dt = 1.0 / fs
