@@ -473,7 +473,7 @@ def trajectory(
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
-    motion_type: str = "beat-6dof",
+    motion_type: str | MotionType = "beat-6dof",
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
