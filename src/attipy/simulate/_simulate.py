@@ -505,9 +505,11 @@ def trajectory(
     motion_type : str or MotionType, optional
         Specifies the type of motion to generate. Either a string specifying one
         of the predefined types of motion:
+
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+
         or a custom ``MotionType`` instance. Defaults to 'beat-6dof'.
 
     Returns
