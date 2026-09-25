@@ -13,6 +13,51 @@ from attipy.simulate._simulate import (
 )
 
 
+class Test_Motion:
+    NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
+
+    def test__init__(self):
+        dofs = {name: ConstantDOF(float(i)) for i, name in enumerate(self.NAMES)}
+        motion = Motion(**dofs, degrees=True)
+
+        for name in self.NAMES:
+            assert getattr(motion, name) is dofs[name]
+        assert motion.degrees is True
+
+    def test__init__default(self):
+        t = np.linspace(0.0, 10.0, 100)
+        motion = Motion()
+
+        for name in self.NAMES:
+            dof = getattr(motion, name)
+            assert isinstance(dof, ConstantDOF)
+            np.testing.assert_allclose(dof.y(t), np.zeros_like(t))
+        assert motion.degrees is False
+
+    def test__init__defaults_not_shared(self):
+        assert Motion().x is not Motion().x
+
+    def test__init__keyword_only(self):
+        with pytest.raises(TypeError):
+            Motion(ConstantDOF())
+
+    @pytest.mark.parametrize("name", NAMES)
+    def test__init__non_dof_raises(self, name):
+        with pytest.raises(TypeError, match=f"'{name}'"):
+            Motion(**{name: 1.0})
+
+    @pytest.mark.parametrize("name", NAMES + ("degrees",))
+    def test_frozen(self, name):
+        motion = Motion()
+
+        with pytest.raises(AttributeError):
+            setattr(motion, name, ConstantDOF())
+
+    def test_not_iterable(self):
+        with pytest.raises(TypeError):
+            iter(Motion())
+
+
 class Test_specific_force_body:
     def test_at_rest_and_level(self):
         g = 9.81
@@ -56,7 +101,9 @@ class Test_sample_motion:
                 )
 
         t = np.zeros(4)
-        dofs = Motion(*[SomeDOF(value) for value in (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)])
+        names = ("x", "y", "z", "roll", "pitch", "yaw")
+        values = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+        dofs = Motion(**{name: SomeDOF(v) for name, v in zip(names, values)})
 
         pos, vel, acc, euler, euler_dot = _sample_motion(dofs, t)
 

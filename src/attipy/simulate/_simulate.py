@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from numpy.typing import NDArray
@@ -8,9 +8,12 @@ from .._transforms import _matrix_from_euler_zyx_batch
 from ._dof import DOF, BeatDOF, ConstantDOF
 
 
-class Motion(NamedTuple):
+@dataclass(frozen=True, kw_only=True, slots=True)
+class Motion:
     """
     Rigid body motion defined by six independent DOF signal generators.
+
+    All parameters are keyword-only. Instances are immutable.
 
     Parameters
     ----------
@@ -31,13 +34,18 @@ class Motion(NamedTuple):
         are given in degrees or radians (default).
     """
 
-    x: DOF = ConstantDOF(0.0)
-    y: DOF = ConstantDOF(0.0)
-    z: DOF = ConstantDOF(0.0)
-    roll: DOF = ConstantDOF(0.0)
-    pitch: DOF = ConstantDOF(0.0)
-    yaw: DOF = ConstantDOF(0.0)
+    x: DOF = field(default_factory=ConstantDOF)
+    y: DOF = field(default_factory=ConstantDOF)
+    z: DOF = field(default_factory=ConstantDOF)
+    roll: DOF = field(default_factory=ConstantDOF)
+    pitch: DOF = field(default_factory=ConstantDOF)
+    yaw: DOF = field(default_factory=ConstantDOF)
     degrees: bool = False
+
+    def __post_init__(self) -> None:
+        for name in ("x", "y", "z", "roll", "pitch", "yaw"):
+            if not isinstance(getattr(self, name), DOF):
+                raise TypeError(f"'{name}' must be a DOF instance.")
 
 
 _BEAT6DOF = Motion(
@@ -51,7 +59,8 @@ _BEAT6DOF = Motion(
 )
 
 
-_BEAT3DOF = _BEAT6DOF._replace(
+_BEAT3DOF = replace(
+    _BEAT6DOF,
     x=ConstantDOF(0.0),
     y=ConstantDOF(0.0),
     z=ConstantDOF(0.0),
