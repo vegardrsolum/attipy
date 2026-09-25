@@ -7,6 +7,13 @@ from numpy.typing import ArrayLike, NDArray
 class DOF(ABC):
     """
     Abstract base class for degree of freedom (DOF) signal generators.
+
+    A DOF signal generator produces a signal, y(t), and its two first time
+    derivatives, dy(t)/dt and d2y(t)/dt2.
+
+    Subclasses must implement ``_evaluate(t)``, which receives the time vector,
+    ``t``, as an ndarray of shape (n,), and returns the tuple ``(y, dydt, d2ydt2)``,
+    with each element an ndarray of shape (n,).
     """
 
     @abstractmethod
