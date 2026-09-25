@@ -51,11 +51,10 @@ _BEAT6DOF = Motion(
 )
 
 
-_BEAT3DOF = Motion(
-    roll=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=np.pi),
-    pitch=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=4 * np.pi / 3),
-    yaw=BeatDOF(0.1, 0.1, 0.01, freq_hz=True, phase=5 * np.pi / 3),
-    degrees=False,
+_BEAT3DOF = _BEAT6DOF._replace(
+    x=ConstantDOF(0.0),
+    y=ConstantDOF(0.0),
+    z=ConstantDOF(0.0),
 )
 
 
