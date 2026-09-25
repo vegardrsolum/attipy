@@ -291,10 +291,7 @@ def trajectory(
         try:
             motion = _MOTION_PRESETS[motion.lower()]
         except (KeyError, AttributeError):
-            raise ValueError(
-                f"Unknown motion type: {motion!r}. Expected one of "
-                f"{set(_MOTION_PRESETS)} or a Motion instance."
-            ) from None
+            raise ValueError(f"Unknown motion type: {motion!r}.") from None
 
     # Time
     dt = 1.0 / fs
