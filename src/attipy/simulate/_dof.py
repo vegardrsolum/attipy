@@ -1,3 +1,4 @@
+import numbers
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -322,3 +323,96 @@ class RampUp(DOF):
         d2ydt2_ramped = d2w * y + 2.0 * dw * dydt + w * d2ydt2
 
         return y_ramped, dydt_ramped, d2ydt2_ramped
+
+
+def _as_dof(other: object) -> "DOF":
+    """
+    Convert an operand to a DOF signal generator.
+
+    DOF instances are returned as they are, and real numbers are wrapped in a
+    ``ConstantDOF``. Any other operand gives ``NotImplemented``, so that Python
+    raises a ``TypeError`` for unsupported operand types.
+    """
+    if isinstance(other, DOF):
+        return other
+    if isinstance(other, numbers.Real):
+        return ConstantDOF(float(other))
+    return NotImplemented
+
+
+class _Sum(DOF):
+    """
+    Sum of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to add together.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+        if not all(isinstance(dof, DOF) for dof in dofs):
+            raise TypeError("All arguments must be DOF instances.")
+
+        self._dofs = dofs
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y = np.zeros_like(t, dtype=np.float64)
+        dydt = np.zeros_like(y)
+        d2ydt2 = np.zeros_like(y)
+
+        for dof in self._dofs:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            y += y_i
+            dydt += dydt_i
+            d2ydt2 += d2ydt2_i
+
+        return y, dydt, d2ydt2
+
+
+class _Product(DOF):
+    """
+    Product of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
+
+    The time derivatives are found by repeated use of the product rule.
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to multiply together.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+        if not all(isinstance(dof, DOF) for dof in dofs):
+            raise TypeError("All arguments must be DOF instances.")
+
+        self._dofs = dofs
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y = np.ones_like(t, dtype=np.float64)
+        dydt = np.zeros_like(y)
+        d2ydt2 = np.zeros_like(y)
+
+        for dof in self._dofs:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            d2ydt2 = d2ydt2 * y_i + 2.0 * dydt * dydt_i + y * d2ydt2_i
+            dydt = dydt * y_i + y * dydt_i
+            y = y * y_i
+
+        return y, dydt, d2ydt2
