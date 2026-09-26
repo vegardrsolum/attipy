@@ -204,7 +204,7 @@ class Test_ConstantDOF:
 class Test_SineDOF:
     @pytest.fixture
     def sine(self):
-        dof = SineDOF(amp=2.0, freq=1.0, freq_hz=False, phase=0.5)
+        dof = SineDOF(amp=2.0, freq=3.0, freq_hz=False, phase=0.5)
         return dof
 
     def test__init__(self):
@@ -232,30 +232,30 @@ class Test_SineDOF:
     def test_y(self, sine, t):
         y = sine.y(t)
 
-        y_expect = 2.0 * np.sin(1.0 * t + 0.5)
+        y_expect = 2.0 * np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
 
     def test_dydt(self, sine, t):
         dydt = sine.dydt(t)
 
-        dydt_expect = 2.0 * 1.0 * np.cos(1.0 * t + 0.5)
+        dydt_expect = 2.0 * 3.0 * np.cos(3.0 * t + 0.5)
 
         np.testing.assert_allclose(dydt, dydt_expect)
 
     def test_d2ydt2(self, sine, t):
         d2ydt2 = sine.d2ydt2(t)
 
-        d2ydt2_expect = -2.0 * 1.0**2 * np.sin(1.0 * t + 0.5)
+        d2ydt2_expect = -2.0 * 3.0**2 * np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
     def test__call__(self, sine, t):
         y, dydt, d2ydt2 = sine(t)
 
-        y_expect = 2.0 * np.sin(1.0 * t + 0.5)
-        dydt_expect = 2.0 * 1.0 * np.cos(1.0 * t + 0.5)
-        d2ydt2_expect = -2.0 * 1.0**2 * np.sin(1.0 * t + 0.5)
+        y_expect = 2.0 * np.sin(3.0 * t + 0.5)
+        dydt_expect = 2.0 * 3.0 * np.cos(3.0 * t + 0.5)
+        d2ydt2_expect = -2.0 * 3.0**2 * np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
