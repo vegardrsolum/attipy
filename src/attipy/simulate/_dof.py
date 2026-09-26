@@ -415,8 +415,8 @@ class _Sum(DOF):
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         y = np.zeros_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y)
-        d2ydt2 = np.zeros_like(y)
+        dydt = np.zeros_like(y, dtype=np.float64)
+        d2ydt2 = np.zeros_like(y, dtype=np.float64)
 
         for dof in self._dofs:
             y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
@@ -463,8 +463,8 @@ class _Product(DOF):
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         y = np.ones_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y)
-        d2ydt2 = np.zeros_like(y)
+        dydt = np.zeros_like(y, dtype=np.float64)
+        d2ydt2 = np.zeros_like(y, dtype=np.float64)
 
         for dof in self._dofs:
             y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
