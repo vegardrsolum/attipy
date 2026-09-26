@@ -185,8 +185,8 @@ class BeatDOF(DOF):
     def __init__(
         self,
         omega: float = 0.1,
-        *,
         omega_beat: float = 0.01,
+        *,
         amp: float = 1.0,
         phase: float = 0.0,
         hz: bool = False,

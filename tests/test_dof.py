@@ -86,7 +86,7 @@ class Test_BeatDOF:
 
     def test__init__keyword_only(self):
         with pytest.raises(TypeError):
-            BeatDOF(1.0, 0.1)
+            BeatDOF(1.0, 0.1, 2.0)
 
     def test_y(self, beat, t):
         y = beat.y(t)
