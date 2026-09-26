@@ -542,7 +542,7 @@ class Test__Sum:
             d2ydt2, beat.d2ydt2(t) + constant.d2ydt2(t) + sine.d2ydt2(t)
         )
 
-    @pytest.mark.parametrize("other", ["a", None, [1.0], 1j])
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test__add__operator_raises(self, beat, other):
         with pytest.raises(TypeError):
             beat + other
@@ -587,7 +587,7 @@ class Test__Sum:
         np.testing.assert_allclose(dydt, -beat.dydt(t))
         np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
 
-    @pytest.mark.parametrize("other", ["a", None, [1.0], 1j])
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test__sub__operator_raises(self, beat, other):
         with pytest.raises(TypeError):
             beat - other
@@ -758,7 +758,7 @@ class Test__Product:
         np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
         np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
 
-    @pytest.mark.parametrize("other", ["a", None, [1.0], 1j])
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test__mul__operator_raises(self, beat, other):
         with pytest.raises(TypeError):
             beat * other
