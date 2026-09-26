@@ -51,7 +51,6 @@ class Motion:
 _W_MAIN = 2.0 * np.pi * 0.1  # 0.1 Hz
 _W_BEAT = 2.0 * np.pi * 0.01  # 0.01 Hz
 
-
 _BEAT6DOF = Motion(
     x=BeatDOF(_W_MAIN, _W_BEAT, phase=0.0),
     y=BeatDOF(_W_MAIN, _W_BEAT, phase=np.pi / 3),

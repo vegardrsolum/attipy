@@ -162,9 +162,6 @@ class BeatDOF(DOF):
 
         y = sin(w_beat / 2.0 * t) * cos(w * t + phase)
 
-    The signal has unit amplitude. Scale it by multiplying with a constant, e.g.,
-    ``2.0 * BeatDOF(...)``.
-
     Parameters
     ----------
     omega : float, optional
@@ -174,14 +171,13 @@ class BeatDOF(DOF):
         Beating angular frequency, w_beat, controlling the variation in amplitude,
         in rad/s. Defaults to 0.01 rad/s.
     phase : float, optional
-        Phase offset of the beat signal in radians. Default is 0.0.
+        Phase offset of the beat signal in radians. Defaults to 0.0 radians.
     """
 
     def __init__(
         self,
         omega: float = 0.1,
         omega_beat: float = 0.01,
-        *,
         phase: float = 0.0,
     ) -> None:
         self._w_main = omega
@@ -224,7 +220,7 @@ class ConstantDOF(DOF):
     Parameters
     ----------
     value : float, optional
-        Constant value of the signal, y(t). Default is 0.0.
+        Constant value of the signal, y(t). Defaults to 0.0.
     """
 
     def __init__(self, value: float = 0.0) -> None:
@@ -257,13 +253,12 @@ class SineDOF(DOF):
         Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
         to 1.0 rad/s.
     phase : float, optional
-        Phase offset of the sinusoidal signal in radians. Default is 0.0.
+        Phase offset of the sinusoidal signal in radians. Defaults to 0.0 radians.
     """
 
     def __init__(
         self,
         omega: float = 1.0,
-        *,
         phase: float = 0.0,
     ) -> None:
         self._w = omega

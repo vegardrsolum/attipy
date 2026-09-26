@@ -79,10 +79,6 @@ class Test_BeatDOF:
         assert beat_dof._w_beat == pytest.approx(0.01)
         assert beat_dof._phase == pytest.approx(0.0)
 
-    def test__init__keyword_only(self):
-        with pytest.raises(TypeError):
-            BeatDOF(1.0, 0.1, 2.0)
-
     def test_y(self, beat, t):
         y = beat.y(t)
         w_main = beat._w_main
@@ -223,10 +219,6 @@ class Test_SineDOF:
         assert isinstance(sine, DOF)
         assert sine._w == pytest.approx(1.0)
         assert sine._phase == pytest.approx(0.0)
-
-    def test__init__keyword_only(self):
-        with pytest.raises(TypeError):
-            SineDOF(1.0, 2.0)
 
     def test_y(self, sine, t):
         y = sine.y(t)
