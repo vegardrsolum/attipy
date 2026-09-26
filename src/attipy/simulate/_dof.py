@@ -398,16 +398,18 @@ class _Sum(DOF):
     def __init__(self, *dofs: DOF) -> None:
         if not dofs:
             raise ValueError("At least one DOF must be given.")
-        if not all(isinstance(dof, DOF) for dof in dofs):
-            raise TypeError("All arguments must be DOF instances.")
 
-        flat: list[DOF] = []
+        dofs_flat: list[DOF] = []
         for dof in dofs:
             if isinstance(dof, _Sum):
-                flat.extend(dof._dofs)
+                dofs_flat.extend(dof._dofs)
+            elif isinstance(dof, DOF):
+                dofs_flat.append(dof)
             else:
-                flat.append(dof)
-        self._dofs = tuple(flat)
+                raise TypeError(
+                    f"All arguments must be DOF instances, got {type(dof).__name__}."
+                )
+        self._dofs = tuple(dofs_flat)
 
     def _evaluate(
         self, t: NDArray[np.float64]
@@ -444,16 +446,18 @@ class _Product(DOF):
     def __init__(self, *dofs: DOF) -> None:
         if not dofs:
             raise ValueError("At least one DOF must be given.")
-        if not all(isinstance(dof, DOF) for dof in dofs):
-            raise TypeError("All arguments must be DOF instances.")
 
-        flat: list[DOF] = []
+        dofs_flat: list[DOF] = []
         for dof in dofs:
             if isinstance(dof, _Product):
-                flat.extend(dof._dofs)
+                dofs_flat.extend(dof._dofs)
+            elif isinstance(dof, DOF):
+                dofs_flat.append(dof)
             else:
-                flat.append(dof)
-        self._dofs = tuple(flat)
+                raise TypeError(
+                    f"All arguments must be DOF instances, got {type(dof).__name__}."
+                )
+        self._dofs = tuple(dofs_flat)
 
     def _evaluate(
         self, t: NDArray[np.float64]
