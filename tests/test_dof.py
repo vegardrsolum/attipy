@@ -563,9 +563,9 @@ class Test__Sum:
     def test__sub__self(self, beat, t):
         y, dydt, d2ydt2 = (beat - beat)(t)
 
-        np.testing.assert_allclose(y, 0.0, atol=1e-12)
-        np.testing.assert_allclose(dydt, 0.0, atol=1e-12)
-        np.testing.assert_allclose(d2ydt2, 0.0, atol=1e-12)
+        np.testing.assert_allclose(y, 0.0)
+        np.testing.assert_allclose(dydt, 0.0)
+        np.testing.assert_allclose(d2ydt2, 0.0)
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0)])
     def test__sub__operator_scalar(self, beat, value, t):
