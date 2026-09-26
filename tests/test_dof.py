@@ -56,19 +56,17 @@ class Test_DOF:
 class Test_BeatDOF:
     @pytest.fixture
     def beat(self):
-        dof = BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0)
+        dof = BeatDOF(omega=1.0, omega_beat=0.1)
         return dof
 
     def test__init__(self):
         beat = BeatDOF(
             omega=2.0,
             omega_beat=0.2,
-            amp=3.0,
             phase=4.0,
         )
 
         assert isinstance(beat, DOF)
-        assert beat._amp == 3.0
         assert beat._w_main == pytest.approx(2.0)
         assert beat._w_beat == pytest.approx(0.2)
         assert beat._phase == pytest.approx(4.0)
@@ -77,7 +75,6 @@ class Test_BeatDOF:
         beat_dof = BeatDOF()
 
         assert isinstance(beat_dof, DOF)
-        assert beat_dof._amp == 1.0
         assert beat_dof._w_main == pytest.approx(0.1)
         assert beat_dof._w_beat == pytest.approx(0.01)
         assert beat_dof._phase == pytest.approx(0.0)
@@ -88,8 +85,6 @@ class Test_BeatDOF:
 
     def test_y(self, beat, t):
         y = beat.y(t)
-
-        amp = beat._amp
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
@@ -97,14 +92,12 @@ class Test_BeatDOF:
         main = np.cos(w_main * t + phase)
         beat_ = np.sin(w_beat / 2.0 * t)
 
-        y_expect = amp * beat_ * main
+        y_expect = beat_ * main
 
         np.testing.assert_allclose(y, y_expect)
 
     def test_dydt(self, beat, t):
         dydt = beat.dydt(t)
-
-        amp = beat._amp
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
@@ -114,14 +107,12 @@ class Test_BeatDOF:
         dmain = -w_main * np.sin(w_main * t + phase)
         dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
 
-        dydt_expect = amp * (dbeat * main + beat_ * dmain)
+        dydt_expect = dbeat * main + beat_ * dmain
 
         np.testing.assert_allclose(dydt, dydt_expect)
 
     def test_d2ydt2(self, beat, t):
         d2ydt2 = beat.d2ydt2(t)
-
-        amp = beat._amp
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
@@ -133,14 +124,12 @@ class Test_BeatDOF:
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
 
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
+        d2ydt2_expect = d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
     def test__call__(self, beat, t):
         y, dydt, d2ydt2 = beat(t)
-
-        amp = beat._amp
         w_main = beat._w_main
         w_beat = beat._w_beat
         phase = beat._phase
@@ -152,9 +141,9 @@ class Test_BeatDOF:
         d2main = -(w_main**2) * np.cos(w_main * t + phase)
         d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
 
-        y_expect = amp * beat_ * main
-        dydt_expect = amp * (dbeat * main + beat_ * dmain)
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
+        y_expect = beat_ * main
+        dydt_expect = dbeat * main + beat_ * dmain
+        d2ydt2_expect = d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
@@ -215,18 +204,16 @@ class Test_ConstantDOF:
 class Test_SineDOF:
     @pytest.fixture
     def sine(self):
-        dof = SineDOF(omega=3.0, amp=2.0, phase=0.5)
+        dof = SineDOF(omega=3.0, phase=0.5)
         return dof
 
     def test__init__(self):
         sine = SineDOF(
             omega=2.0,
-            amp=3.0,
             phase=4.0,
         )
 
         assert isinstance(sine, DOF)
-        assert sine._amp == 3.0
         assert sine._w == pytest.approx(2.0)
         assert sine._phase == pytest.approx(4.0)
 
@@ -234,7 +221,6 @@ class Test_SineDOF:
         sine = SineDOF()
 
         assert isinstance(sine, DOF)
-        assert sine._amp == 1.0
         assert sine._w == pytest.approx(1.0)
         assert sine._phase == pytest.approx(0.0)
 
@@ -245,30 +231,30 @@ class Test_SineDOF:
     def test_y(self, sine, t):
         y = sine.y(t)
 
-        y_expect = 2.0 * np.sin(3.0 * t + 0.5)
+        y_expect = np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
 
     def test_dydt(self, sine, t):
         dydt = sine.dydt(t)
 
-        dydt_expect = 2.0 * 3.0 * np.cos(3.0 * t + 0.5)
+        dydt_expect = 3.0 * np.cos(3.0 * t + 0.5)
 
         np.testing.assert_allclose(dydt, dydt_expect)
 
     def test_d2ydt2(self, sine, t):
         d2ydt2 = sine.d2ydt2(t)
 
-        d2ydt2_expect = -2.0 * 3.0**2 * np.sin(3.0 * t + 0.5)
+        d2ydt2_expect = -(3.0**2) * np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
     def test__call__(self, sine, t):
         y, dydt, d2ydt2 = sine(t)
 
-        y_expect = 2.0 * np.sin(3.0 * t + 0.5)
-        dydt_expect = 2.0 * 3.0 * np.cos(3.0 * t + 0.5)
-        d2ydt2_expect = -2.0 * 3.0**2 * np.sin(3.0 * t + 0.5)
+        y_expect = np.sin(3.0 * t + 0.5)
+        dydt_expect = 3.0 * np.cos(3.0 * t + 0.5)
+        d2ydt2_expect = -(3.0**2) * np.sin(3.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
@@ -278,7 +264,7 @@ class Test_SineDOF:
 class Test_RampUp:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def rampup(self, beat):
@@ -398,7 +384,7 @@ class Test__as_dof:
 class Test__Sum:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
@@ -406,7 +392,7 @@ class Test__Sum:
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, amp=0.5, phase=0.3)
+        return SineDOF(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_sum(self, beat, constant, sine):
@@ -612,7 +598,7 @@ class Test__Sum:
 class Test__Product:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
@@ -620,7 +606,7 @@ class Test__Product:
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, amp=0.5, phase=0.3)
+        return SineDOF(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_product(self, beat, constant, sine):

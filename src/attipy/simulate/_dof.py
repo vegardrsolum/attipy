@@ -160,7 +160,10 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(w_beat / 2.0 * t) * cos(w * t + phase)
+        y = sin(w_beat / 2.0 * t) * cos(w * t + phase)
+
+    The signal has unit amplitude. Scale it by multiplying with a constant, e.g.,
+    ``2.0 * BeatDOF(...)``.
 
     Parameters
     ----------
@@ -170,8 +173,6 @@ class BeatDOF(DOF):
     omega_beat : float, optional
         Beating angular frequency, w_beat, controlling the variation in amplitude,
         in rad/s. Defaults to 0.01 rad/s.
-    amp : float, optional
-        Amplitude of the beat signal. Default is 1.0.
     phase : float, optional
         Phase offset of the beat signal in radians. Default is 0.0.
     """
@@ -181,10 +182,8 @@ class BeatDOF(DOF):
         omega: float = 0.1,
         omega_beat: float = 0.01,
         *,
-        amp: float = 1.0,
         phase: float = 0.0,
     ) -> None:
-        self._amp = amp
         self._w_main = omega
         self._w_beat = omega_beat
         self._phase = phase
@@ -192,7 +191,6 @@ class BeatDOF(DOF):
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
         w_main = self._w_main
         w_beat = self._w_beat
         phase = self._phase
@@ -208,9 +206,9 @@ class BeatDOF(DOF):
         dbeat = w_beat / 2.0 * np.cos(arg_beat)
         d2beat = -((w_beat / 2.0) ** 2) * beat
 
-        y = amp * beat * main
-        dydt = amp * (dbeat * main + beat * dmain)
-        d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+        y = beat * main
+        dydt = dbeat * main + beat * dmain
+        d2ydt2 = d2beat * main + 2.0 * dbeat * dmain + beat * d2main
 
         return y, dydt, d2ydt2
 
@@ -248,15 +246,16 @@ class SineDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(w * t + phase)
+        y = sin(w * t + phase)
+
+    The signal has unit amplitude. Scale it by multiplying with a constant, e.g.,
+    ``2.0 * SineDOF(...)``.
 
     Parameters
     ----------
     omega : float, optional
         Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
         to 1.0 rad/s.
-    amp : float, optional
-        Amplitude of the sinusoidal signal. Default is 1.0.
     phase : float, optional
         Phase offset of the sinusoidal signal in radians. Default is 0.0.
     """
@@ -265,23 +264,20 @@ class SineDOF(DOF):
         self,
         omega: float = 1.0,
         *,
-        amp: float = 1.0,
         phase: float = 0.0,
     ) -> None:
-        self._amp = amp
         self._w = omega
         self._phase = phase
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
         w = self._w
 
         arg = w * t + self._phase
 
-        y = amp * np.sin(arg)
-        dydt = amp * w * np.cos(arg)
+        y = np.sin(arg)
+        dydt = w * np.cos(arg)
         d2ydt2 = -(w**2) * y
 
         return y, dydt, d2ydt2
