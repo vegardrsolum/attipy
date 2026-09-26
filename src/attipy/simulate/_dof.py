@@ -160,45 +160,33 @@ class BeatDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(w_beat / 2.0 * t) * cos(w_main * t + phase)
+        y = sin(w_beat / 2.0 * t) * cos(w * t + phase)
 
     Parameters
     ----------
-    amp : float, optional
-        Amplitude of the beat signal. Default is 1.0.
-    freq_main : float, optional
-        Main frequency of the sinusoidal signal, y(t). Defaults to 0.1 rad/s.
-    freq_beat : float, optional
-        Beating frequency, controlling the variation in amplitude. Defaults to
-        0.01 rad/s.
-    freq_hz : bool, optional
-        Whether the frequencies, ``freq_main`` and ``freq_beat``, are given in Hz
-        or rad/s (default).
+    omega : float, optional
+        Main angular frequency, w, of the sinusoidal signal, y(t), in rad/s.
+        Defaults to 0.1 rad/s.
+    omega_beat : float, optional
+        Beating angular frequency, w_beat, controlling the variation in amplitude,
+        in rad/s. Defaults to 0.01 rad/s.
     phase : float, optional
-        Phase offset of the beat signal. Default is 0.0.
-    phase_degrees : bool, optional
-        If True, interpret `phase` in degrees. If False, interpret in radians.
-        Default is False.
+        Phase offset of the beat signal in radians. Defaults to 0.0 radians.
     """
 
     def __init__(
         self,
-        amp: float = 1.0,
-        freq_main: float = 0.1,
-        freq_beat: float = 0.01,
-        freq_hz: bool = False,
+        omega: float = 0.1,
+        omega_beat: float = 0.01,
         phase: float = 0.0,
-        phase_degrees: bool = False,
     ) -> None:
-        self._amp = amp
-        self._w_main = 2.0 * np.pi * freq_main if freq_hz else freq_main
-        self._w_beat = 2.0 * np.pi * freq_beat if freq_hz else freq_beat
-        self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._w_main = omega
+        self._w_beat = omega_beat
+        self._phase = phase
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
         w_main = self._w_main
         w_beat = self._w_beat
         phase = self._phase
@@ -214,9 +202,9 @@ class BeatDOF(DOF):
         dbeat = w_beat / 2.0 * np.cos(arg_beat)
         d2beat = -((w_beat / 2.0) ** 2) * beat
 
-        y = amp * beat * main
-        dydt = amp * (dbeat * main + beat * dmain)
-        d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+        y = beat * main
+        dydt = dbeat * main + beat * dmain
+        d2ydt2 = d2beat * main + 2.0 * dbeat * dmain + beat * d2main
 
         return y, dydt, d2ydt2
 
@@ -232,7 +220,7 @@ class ConstantDOF(DOF):
     Parameters
     ----------
     value : float, optional
-        Constant value of the signal, y(t). Default is 0.0.
+        Constant value of the signal, y(t). Defaults to 0.0.
     """
 
     def __init__(self, value: float = 0.0) -> None:
@@ -254,46 +242,37 @@ class SineDOF(DOF):
 
     Defined as:
 
-        y = amp * sin(w * t + phase)
+        y = sin(w * t + phase)
+
+    The signal has unit amplitude. Scale it by multiplying with a constant, e.g.,
+    ``2.0 * SineDOF(...)``.
 
     Parameters
     ----------
-    amp : float, optional
-        Amplitude of the sinusoidal signal. Default is 1.0.
-    freq : float, optional
-        Frequency of the sinusoidal signal, y(t), in rad/s (default) or Hz,
-        depending on `freq_hz`. Defaults to 1.0.
-    freq_hz : bool, optional
-        Whether the frequency, ``freq``, is given in Hz or rad/s (default).
+    omega : float, optional
+        Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
+        to 1.0 rad/s.
     phase : float, optional
-        Phase offset of the sinusoidal signal. Default is 0.0.
-    phase_degrees : bool, optional
-        Whether the phase, ``phase``, is given in degrees (True) or radians (False).
-        Defaults to ``False``.
+        Phase offset of the sinusoidal signal in radians. Defaults to 0.0 radians.
     """
 
     def __init__(
         self,
-        amp: float = 1.0,
-        freq: float = 1.0,
-        freq_hz: bool = False,
+        omega: float = 1.0,
         phase: float = 0.0,
-        phase_degrees: bool = False,
     ) -> None:
-        self._amp = amp
-        self._w = 2.0 * np.pi * freq if freq_hz else freq
-        self._phase = np.radians(phase) if phase_degrees else phase
+        self._w = omega
+        self._phase = phase
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
         w = self._w
 
         arg = w * t + self._phase
 
-        y = amp * np.sin(arg)
-        dydt = amp * w * np.cos(arg)
+        y = np.sin(arg)
+        dydt = w * np.cos(arg)
         d2ydt2 = -(w**2) * y
 
         return y, dydt, d2ydt2
