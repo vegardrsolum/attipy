@@ -1,3 +1,4 @@
+import numbers
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -15,6 +16,8 @@ class DOF(ABC):
     ``t``, as an ndarray of shape (n,), and returns the tuple ``(y, dydt, d2ydt2)``,
     with each element an ndarray of shape (n,).
     """
+
+    __array_ufunc__ = None
 
     @abstractmethod
     def _evaluate(
@@ -110,6 +113,45 @@ class DOF(ABC):
         """
         t = np.asarray_chkfinite(t)
         return self._evaluate(t)
+
+    def __add__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Sum(self, other_dof)
+
+    def __radd__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Sum(other_dof, self)
+
+    def __mul__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Product(self, other_dof)
+
+    def __rmul__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Product(other_dof, self)
+
+    def __neg__(self) -> "DOF":
+        return _Product(ConstantDOF(-1.0), self)
+
+    def __sub__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Sum(self, -other_dof)
+
+    def __rsub__(self, other: "DOF | float") -> "DOF":
+        other_dof = _as_dof(other)
+        if other_dof is None:
+            return NotImplemented
+        return _Sum(other_dof, -self)
 
 
 class BeatDOF(DOF):
@@ -322,3 +364,112 @@ class RampUp(DOF):
         d2ydt2_ramped = d2w * y + 2.0 * dw * dydt + w * d2ydt2
 
         return y_ramped, dydt_ramped, d2ydt2_ramped
+
+
+def _as_dof(other: object) -> "DOF | None":
+    """
+    Convert an operand to a DOF signal generator.
+
+    DOF instances are returned as they are, and real numbers are wrapped in a
+    ``ConstantDOF``. Any other operand gives ``None``, so that the calling
+    operator can return ``NotImplemented`` for unsupported operand types.
+    """
+    if isinstance(other, DOF):
+        return other
+    if isinstance(other, numbers.Real):
+        return ConstantDOF(float(other))
+    return None
+
+
+class _Sum(DOF):
+    """
+    Sum of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to add together.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+
+        dofs_flat: list[DOF] = []
+        for dof in dofs:
+            if isinstance(dof, _Sum):
+                dofs_flat.extend(dof._dofs)
+            elif isinstance(dof, DOF):
+                dofs_flat.append(dof)
+            else:
+                raise TypeError(
+                    f"All arguments must be DOF instances, got {type(dof).__name__}."
+                )
+        self._dofs = tuple(dofs_flat)
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y = np.zeros_like(t, dtype=np.float64)
+        dydt = np.zeros_like(y, dtype=np.float64)
+        d2ydt2 = np.zeros_like(y, dtype=np.float64)
+
+        for dof in self._dofs:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            y += y_i
+            dydt += dydt_i
+            d2ydt2 += d2ydt2_i
+
+        return y, dydt, d2ydt2
+
+
+class _Product(DOF):
+    """
+    Product of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
+
+    The time derivatives are found by repeated use of the product rule.
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to multiply together.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+
+        dofs_flat: list[DOF] = []
+        for dof in dofs:
+            if isinstance(dof, _Product):
+                dofs_flat.extend(dof._dofs)
+            elif isinstance(dof, DOF):
+                dofs_flat.append(dof)
+            else:
+                raise TypeError(
+                    f"All arguments must be DOF instances, got {type(dof).__name__}."
+                )
+        self._dofs = tuple(dofs_flat)
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y = np.ones_like(t, dtype=np.float64)
+        dydt = np.zeros_like(y, dtype=np.float64)
+        d2ydt2 = np.zeros_like(y, dtype=np.float64)
+
+        for dof in self._dofs:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            d2ydt2 = d2ydt2 * y_i + 2.0 * dydt * dydt_i + y * d2ydt2_i
+            dydt = dydt * y_i + y * dydt_i
+            y = y * y_i
+
+        return y, dydt, d2ydt2
