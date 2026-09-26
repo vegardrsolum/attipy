@@ -401,7 +401,9 @@ class _Sum(DOF):
         if not all(isinstance(dof, DOF) for dof in dofs):
             raise TypeError("All arguments must be DOF instances.")
 
-        self._dofs = dofs
+        self._dofs = tuple(
+            d for dof in dofs for d in (dof._dofs if isinstance(dof, _Sum) else (dof,))
+        )
 
     def _evaluate(
         self, t: NDArray[np.float64]
@@ -441,7 +443,11 @@ class _Product(DOF):
         if not all(isinstance(dof, DOF) for dof in dofs):
             raise TypeError("All arguments must be DOF instances.")
 
-        self._dofs = dofs
+        self._dofs = tuple(
+            d
+            for dof in dofs
+            for d in (dof._dofs if isinstance(dof, _Product) else (dof,))
+        )
 
     def _evaluate(
         self, t: NDArray[np.float64]

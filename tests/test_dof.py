@@ -498,6 +498,15 @@ class Test__Sum:
             d2ydt2, beat.d2ydt2(t) + constant.d2ydt2(t) + sine.d2ydt2(t)
         )
 
+    def test_flattens_nested(self, beat, constant, sine):
+        assert _Sum(_Sum(beat, constant), sine)._dofs == (beat, constant, sine)
+        assert _Sum(beat, _Sum(constant, sine))._dofs == (beat, constant, sine)
+        assert (beat + constant + sine)._dofs == (beat, constant, sine)
+
+    def test_does_not_flatten_product(self, beat, constant, sine):
+        product = _Product(constant, sine)
+        assert _Sum(beat, product)._dofs == (beat, product)
+
     def test__add__operator(self, beat, constant, sine, t):
         dof_sum = beat + constant + sine
         y, dydt, d2ydt2 = dof_sum(t)
@@ -725,6 +734,15 @@ class Test__Product:
         np.testing.assert_allclose(y, expect[0])
         np.testing.assert_allclose(dydt, expect[1])
         np.testing.assert_allclose(d2ydt2, expect[2])
+
+    def test_flattens_nested(self, beat, constant, sine):
+        assert _Product(_Product(beat, constant), sine)._dofs == (beat, constant, sine)
+        assert _Product(beat, _Product(constant, sine))._dofs == (beat, constant, sine)
+        assert (beat * constant * sine)._dofs == (beat, constant, sine)
+
+    def test_does_not_flatten_sum(self, beat, constant, sine):
+        dof_sum = _Sum(constant, sine)
+        assert _Product(beat, dof_sum)._dofs == (beat, dof_sum)
 
     def test__mul__operator(self, beat, constant, sine, expect, t):
         dof_product = beat * constant * sine
