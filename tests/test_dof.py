@@ -56,15 +56,15 @@ class Test_DOF:
 class Test_BeatDOF:
     @pytest.fixture
     def beat(self):
-        dof = BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1, freq_hz=False)
+        dof = BeatDOF(1.0, omega_beat=0.1, amp=2.0, hz=False)
         return dof
 
     def test__init__(self):
         beat = BeatDOF(
+            2.0,
+            omega_beat=0.2,
             amp=3.0,
-            freq_main=2.0,
-            freq_beat=0.2,
-            freq_hz=True,
+            hz=True,
             phase=4.0,
             phase_degrees=True,
         )
@@ -83,6 +83,10 @@ class Test_BeatDOF:
         assert beat_dof._w_main == pytest.approx(0.1)
         assert beat_dof._w_beat == pytest.approx(0.01)
         assert beat_dof._phase == pytest.approx(0.0)
+
+    def test__init__keyword_only(self):
+        with pytest.raises(TypeError):
+            BeatDOF(1.0, 0.1)
 
     def test_y(self, beat, t):
         y = beat.y(t)
@@ -213,15 +217,15 @@ class Test_ConstantDOF:
 class Test_SineDOF:
     @pytest.fixture
     def sine(self):
-        dof = SineDOF(amp=2.0, freq=3.0, freq_hz=False, phase=0.5)
+        dof = SineDOF(3.0, amp=2.0, phase=0.5, hz=False)
         return dof
 
     def test__init__(self):
         sine = SineDOF(
+            omega=2.0,
             amp=3.0,
-            freq=2.0,
-            freq_hz=True,
             phase=4.0,
+            hz=True,
             phase_degrees=True,
         )
 
@@ -237,6 +241,10 @@ class Test_SineDOF:
         assert sine._amp == 1.0
         assert sine._w == pytest.approx(1.0)
         assert sine._phase == pytest.approx(0.0)
+
+    def test__init__keyword_only(self):
+        with pytest.raises(TypeError):
+            SineDOF(1.0, 2.0)
 
     def test_y(self, sine, t):
         y = sine.y(t)
@@ -274,7 +282,7 @@ class Test_SineDOF:
 class Test_RampUp:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1)
+        return BeatDOF(1.0, omega_beat=0.1, amp=2.0)
 
     @pytest.fixture
     def rampup(self, beat):
@@ -394,7 +402,7 @@ class Test__as_dof:
 class Test__Sum:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1)
+        return BeatDOF(1.0, omega_beat=0.1, amp=2.0)
 
     @pytest.fixture
     def constant(self):
@@ -402,7 +410,7 @@ class Test__Sum:
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(amp=0.5, freq=1.5, phase=0.3)
+        return SineDOF(1.5, amp=0.5, phase=0.3)
 
     @pytest.fixture
     def dof_sum(self, beat, constant, sine):
@@ -608,7 +616,7 @@ class Test__Sum:
 class Test__Product:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(amp=2.0, freq_main=1.0, freq_beat=0.1)
+        return BeatDOF(1.0, omega_beat=0.1, amp=2.0)
 
     @pytest.fixture
     def constant(self):
@@ -616,7 +624,7 @@ class Test__Product:
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(amp=0.5, freq=1.5, phase=0.3)
+        return SineDOF(1.5, amp=0.5, phase=0.3)
 
     @pytest.fixture
     def dof_product(self, beat, constant, sine):
