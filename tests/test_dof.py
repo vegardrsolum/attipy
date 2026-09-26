@@ -387,8 +387,8 @@ class Test__as_dof:
         np.testing.assert_allclose(dof.y(t), 2.0)
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test_not_implemented(self, other):
-        assert _as_dof(other) is NotImplemented
+    def test_unsupported(self, other):
+        assert _as_dof(other) is None
 
 
 class Test__Sum:

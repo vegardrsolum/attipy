@@ -113,43 +113,43 @@ class DOF(ABC):
         return self._evaluate(t)
 
     def __add__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Sum(self, other)
+        return _Sum(self, other_dof)
 
     def __radd__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Sum(other, self)
+        return _Sum(other_dof, self)
 
     def __mul__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Product(self, other)
+        return _Product(self, other_dof)
 
     def __rmul__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Product(other, self)
+        return _Product(other_dof, self)
 
     def __neg__(self) -> "DOF":
         return _Product(ConstantDOF(-1.0), self)
 
     def __sub__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Sum(self, -other)
+        return _Sum(self, -other_dof)
 
     def __rsub__(self, other: "DOF | float") -> "DOF":
-        other = _as_dof(other)
-        if other is NotImplemented:
+        other_dof = _as_dof(other)
+        if other_dof is None:
             return NotImplemented
-        return _Sum(other, -self)
+        return _Sum(other_dof, -self)
 
 
 class BeatDOF(DOF):
@@ -364,19 +364,19 @@ class RampUp(DOF):
         return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
-def _as_dof(other: object) -> "DOF":
+def _as_dof(other: object) -> "DOF | None":
     """
     Convert an operand to a DOF signal generator.
 
     DOF instances are returned as they are, and real numbers are wrapped in a
-    ``ConstantDOF``. Any other operand gives ``NotImplemented``, so that Python
-    raises a ``TypeError`` for unsupported operand types.
+    ``ConstantDOF``. Any other operand gives ``None``, so that the calling
+    operator can return ``NotImplemented`` for unsupported operand types.
     """
     if isinstance(other, DOF):
         return other
     if isinstance(other, numbers.Real):
         return ConstantDOF(float(other))
-    return NotImplemented
+    return None
 
 
 class _Sum(DOF):
