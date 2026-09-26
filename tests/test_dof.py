@@ -56,7 +56,7 @@ class Test_DOF:
 class Test_BeatDOF:
     @pytest.fixture
     def beat(self):
-        dof = BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0, hz=False)
+        dof = BeatDOF(omega=1.0, omega_beat=0.1, amp=2.0)
         return dof
 
     def test__init__(self):
@@ -64,16 +64,14 @@ class Test_BeatDOF:
             omega=2.0,
             omega_beat=0.2,
             amp=3.0,
-            hz=True,
             phase=4.0,
-            phase_degrees=True,
         )
 
         assert isinstance(beat, DOF)
         assert beat._amp == 3.0
-        assert beat._w_main == pytest.approx(2.0 * np.pi * 2.0)
-        assert beat._w_beat == pytest.approx(2.0 * np.pi * 0.2)
-        assert beat._phase == pytest.approx((np.pi / 180.0) * 4.0)
+        assert beat._w_main == pytest.approx(2.0)
+        assert beat._w_beat == pytest.approx(0.2)
+        assert beat._phase == pytest.approx(4.0)
 
     def test__init__default(self):
         beat_dof = BeatDOF()
@@ -217,7 +215,7 @@ class Test_ConstantDOF:
 class Test_SineDOF:
     @pytest.fixture
     def sine(self):
-        dof = SineDOF(omega=3.0, amp=2.0, phase=0.5, hz=False)
+        dof = SineDOF(omega=3.0, amp=2.0, phase=0.5)
         return dof
 
     def test__init__(self):
@@ -225,14 +223,12 @@ class Test_SineDOF:
             omega=2.0,
             amp=3.0,
             phase=4.0,
-            hz=True,
-            phase_degrees=True,
         )
 
         assert isinstance(sine, DOF)
         assert sine._amp == 3.0
-        assert sine._w == pytest.approx(2.0 * np.pi * 2.0)
-        assert sine._phase == pytest.approx((np.pi / 180.0) * 4.0)
+        assert sine._w == pytest.approx(2.0)
+        assert sine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
         sine = SineDOF()

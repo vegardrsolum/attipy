@@ -165,21 +165,15 @@ class BeatDOF(DOF):
     Parameters
     ----------
     omega : float, optional
-        Main frequency, w, of the sinusoidal signal, y(t), in rad/s (default) or
-        Hz, depending on ``hz``. Defaults to 0.1.
+        Main angular frequency, w, of the sinusoidal signal, y(t), in rad/s.
+        Defaults to 0.1 rad/s.
     omega_beat : float, optional
-        Beating frequency, w_beat, controlling the variation in amplitude, in
-        rad/s (default) or Hz, depending on ``hz``. Defaults to 0.01.
+        Beating angular frequency, w_beat, controlling the variation in amplitude,
+        in rad/s. Defaults to 0.01 rad/s.
     amp : float, optional
         Amplitude of the beat signal. Default is 1.0.
     phase : float, optional
-        Phase offset of the beat signal. Default is 0.0.
-    hz : bool, optional
-        Whether the frequencies, ``omega`` and ``omega_beat``, are given in Hz
-        or rad/s (default).
-    phase_degrees : bool, optional
-        Whether the phase, ``phase``, is given in degrees (True) or radians (False).
-        Defaults to ``False``.
+        Phase offset of the beat signal in radians. Default is 0.0.
     """
 
     def __init__(
@@ -189,13 +183,11 @@ class BeatDOF(DOF):
         *,
         amp: float = 1.0,
         phase: float = 0.0,
-        hz: bool = False,
-        phase_degrees: bool = False,
     ) -> None:
         self._amp = amp
-        self._w_main = 2.0 * np.pi * omega if hz else omega
-        self._w_beat = 2.0 * np.pi * omega_beat if hz else omega_beat
-        self._phase = np.deg2rad(phase) if phase_degrees else phase
+        self._w_main = omega
+        self._w_beat = omega_beat
+        self._phase = phase
 
     def _evaluate(
         self, t: NDArray[np.float64]
@@ -261,17 +253,12 @@ class SineDOF(DOF):
     Parameters
     ----------
     omega : float, optional
-        Frequency, w, of the sinusoidal signal, y(t), in rad/s (default) or Hz,
-        depending on ``hz``. Defaults to 1.0.
+        Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
+        to 1.0 rad/s.
     amp : float, optional
         Amplitude of the sinusoidal signal. Default is 1.0.
     phase : float, optional
-        Phase offset of the sinusoidal signal. Default is 0.0.
-    hz : bool, optional
-        Whether the frequency, ``omega``, is given in Hz or rad/s (default).
-    phase_degrees : bool, optional
-        Whether the phase, ``phase``, is given in degrees (True) or radians (False).
-        Defaults to ``False``.
+        Phase offset of the sinusoidal signal in radians. Default is 0.0.
     """
 
     def __init__(
@@ -280,12 +267,10 @@ class SineDOF(DOF):
         *,
         amp: float = 1.0,
         phase: float = 0.0,
-        hz: bool = False,
-        phase_degrees: bool = False,
     ) -> None:
         self._amp = amp
-        self._w = 2.0 * np.pi * omega if hz else omega
-        self._phase = np.radians(phase) if phase_degrees else phase
+        self._w = omega
+        self._phase = phase
 
     def _evaluate(
         self, t: NDArray[np.float64]

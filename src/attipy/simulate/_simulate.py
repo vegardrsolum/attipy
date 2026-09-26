@@ -49,12 +49,18 @@ class Motion:
 
 
 _BEAT6DOF = Motion(
-    x=BeatDOF(0.1, omega_beat=0.01, amp=1.0, hz=True, phase=0.0),
-    y=BeatDOF(0.1, omega_beat=0.01, amp=1.0, hz=True, phase=np.pi / 3),
-    z=BeatDOF(0.1, omega_beat=0.01, amp=1.0, hz=True, phase=2 * np.pi / 3),
-    roll=BeatDOF(0.1, omega_beat=0.01, amp=0.1, hz=True, phase=np.pi),
-    pitch=BeatDOF(0.1, omega_beat=0.01, amp=0.1, hz=True, phase=4 * np.pi / 3),
-    yaw=BeatDOF(0.1, omega_beat=0.01, amp=0.1, hz=True, phase=5 * np.pi / 3),
+    x=BeatDOF(2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=1.0, phase=0.0),
+    y=BeatDOF(2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=1.0, phase=np.pi / 3),
+    z=BeatDOF(
+        2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=1.0, phase=2 * np.pi / 3
+    ),
+    roll=BeatDOF(2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=0.1, phase=np.pi),
+    pitch=BeatDOF(
+        2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=0.1, phase=4 * np.pi / 3
+    ),
+    yaw=BeatDOF(
+        2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01, amp=0.1, phase=5 * np.pi / 3
+    ),
     degrees=False,
 )
 
