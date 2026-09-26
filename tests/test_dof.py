@@ -235,7 +235,7 @@ class Test_SineDOF:
 
         assert isinstance(sine, DOF)
         assert sine._amp == 1.0
-        assert sine._w == pytest.approx(0.1)
+        assert sine._w == pytest.approx(1.0)
         assert sine._phase == pytest.approx(0.0)
 
     def test_y(self, sine, t):

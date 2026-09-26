@@ -262,7 +262,7 @@ class SineDOF(DOF):
         Amplitude of the sinusoidal signal. Default is 1.0.
     freq : float, optional
         Frequency of the sinusoidal signal, y(t), in rad/s (default) or Hz,
-        depending on `freq_hz`. Defaults to 0.1.
+        depending on `freq_hz`. Defaults to 1.0.
     freq_hz : bool, optional
         Whether the frequency, ``freq``, is given in Hz or rad/s (default).
     phase : float, optional
@@ -275,7 +275,7 @@ class SineDOF(DOF):
     def __init__(
         self,
         amp: float = 1.0,
-        freq: float = 0.1,
+        freq: float = 1.0,
         freq_hz: bool = False,
         phase: float = 0.0,
         phase_degrees: bool = False,
