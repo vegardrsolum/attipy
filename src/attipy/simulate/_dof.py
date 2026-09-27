@@ -165,7 +165,7 @@ class BeatDOF(DOF):
     Parameters
     ----------
     amp : float, optional
-        Amplitude, amp, of the beat signal. Defaults to 1.0.
+        Amplitude of the beat signal. Defaults to 1.0.
     omega : float, optional
         Main angular frequency, w, of the sinusoidal signal, y(t), in rad/s.
         Defaults to 0.1 rad/s.
@@ -252,7 +252,7 @@ class SineDOF(DOF):
     Parameters
     ----------
     amp : float, optional
-        Amplitude, amp, of the sinusoidal signal. Defaults to 1.0.
+        Amplitude of the sinusoidal signal. Defaults to 1.0.
     omega : float, optional
         Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
         to 1.0 rad/s.
