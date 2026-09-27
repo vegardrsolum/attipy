@@ -114,45 +114,6 @@ class DOF(ABC):
         t = np.asarray_chkfinite(t)
         return self._evaluate(t)
 
-    def __add__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Sum(self, other_dof)
-
-    def __radd__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Sum(other_dof, self)
-
-    def __mul__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Product(self, other_dof)
-
-    def __rmul__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Product(other_dof, self)
-
-    def __neg__(self) -> "DOF":
-        return _Product(ConstantDOF(-1.0), self)
-
-    def __sub__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Sum(self, -other_dof)
-
-    def __rsub__(self, other: "DOF | float") -> "DOF":
-        other_dof = _as_dof(other)
-        if other_dof is None:
-            return NotImplemented
-        return _Sum(other_dof, -self)
-
 
 class BeatDOF(DOF):
     """
