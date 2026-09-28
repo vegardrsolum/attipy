@@ -322,9 +322,6 @@ class _Composite(DOF):
 
     @classmethod
     def _flatten(cls, dofs: Iterable[DOF]) -> tuple[DOF, ...]:
-        """
-        Flatten nested composites of the same type into a single tuple of DOFs.
-        """
         dofs_flat: list[DOF] = []
         for dof in dofs:
             if isinstance(dof, cls):
