@@ -400,50 +400,48 @@ class _Product(_Composite):
         return y, dydt, d2ydt2
 
 
-def add(*dofs: DOF | float) -> DOF:
+def add(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
     """
-    Add DOF signals together.
+    Add two DOF signals together.
 
     Defined as:
 
-        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
+        y(t) = y_1(t) + y_2(t)
 
     Parameters
     ----------
-    *dofs : DOF or float
-        DOF signal generators to add together. Real numbers are treated as
-        constant DOF signals.
+    dof1, dof2 : DOF or float
+        DOFs to be added. Real numbers are treated as constant DOF signals.
 
     Returns
     -------
     DOF
         DOF signal generator for the sum.
     """
-    return _Sum(*(_as_dof(dof) for dof in dofs))
+    return _Sum(_as_dof(dof1), _as_dof(dof2))
 
 
-def multiply(*dofs: DOF | float) -> DOF:
+def multiply(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
     """
-    Multiply DOF signals together.
+    Multiply two DOF signals together.
 
     Defined as:
 
-        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
+        y(t) = y_1(t) * y_2(t)
 
-    The time derivatives are found by repeated use of the product rule.
+    The time derivatives are found by the product rule.
 
     Parameters
     ----------
-    *dofs : DOF or float
-        DOF signal generators to multiply together. Real numbers are treated as
-        constant DOF signals.
+    dof1, dof2 : DOF or float
+        DOFs to be multiplied. Real numbers are treated as constant DOF signals.
 
     Returns
     -------
     DOF
         DOF signal generator for the product.
     """
-    return _Product(*(_as_dof(dof) for dof in dofs))
+    return _Product(_as_dof(dof1), _as_dof(dof2))
 
 
 def ramp_up(dof: DOF | float, duration: float = 100.0, start: float = 0.0) -> DOF:

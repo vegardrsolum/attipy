@@ -753,13 +753,6 @@ class Test_add:
         np.testing.assert_allclose(dydt, beat.dydt(t) + sine.dydt(t))
         np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) + sine.d2ydt2(t))
 
-    def test_single(self, beat, t):
-        y, dydt, d2ydt2 = add(beat)(t)
-
-        np.testing.assert_allclose(y, beat.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
-
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
     def test_real(self, beat, value, t):
         y, dydt, d2ydt2 = add(value, beat)(t)
@@ -791,9 +784,14 @@ class Test_add:
         np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t) + sine.dydt(t))
         np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t) + sine.d2ydt2(t))
 
-    def test_raises_empty(self):
-        with pytest.raises(ValueError):
-            add()
+    @pytest.mark.parametrize("n", [0, 1, 3])
+    def test_raises_wrong_number_of_args(self, beat, n):
+        with pytest.raises(TypeError):
+            add(*[beat] * n)
+
+    def test_raises_keyword_args(self, beat, sine):
+        with pytest.raises(TypeError):
+            add(dof1=beat, dof2=sine)
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test_raises_type(self, beat, other):
@@ -820,13 +818,6 @@ class Test_multiply:
         np.testing.assert_allclose(y, a * b)
         np.testing.assert_allclose(dydt, da * b + a * db)
         np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + a * d2b)
-
-    def test_single(self, beat, t):
-        y, dydt, d2ydt2 = multiply(beat)(t)
-
-        np.testing.assert_allclose(y, beat.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
     def test_real(self, beat, value, t):
@@ -870,9 +861,14 @@ class Test_multiply:
         np.testing.assert_allclose(dydt, da * b + (a + 1.0) * db)
         np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + (a + 1.0) * d2b)
 
-    def test_raises_empty(self):
-        with pytest.raises(ValueError):
-            multiply()
+    @pytest.mark.parametrize("n", [0, 1, 3])
+    def test_raises_wrong_number_of_args(self, beat, n):
+        with pytest.raises(TypeError):
+            multiply(*[beat] * n)
+
+    def test_raises_keyword_args(self, beat, sine):
+        with pytest.raises(TypeError):
+            multiply(dof1=beat, dof2=sine)
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test_raises_type(self, beat, other):
