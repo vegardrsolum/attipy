@@ -342,17 +342,19 @@ class _Sum(_Composite):
     Parameters
     ----------
     *dofs : DOF
-        DOF signal generators to add together.
+        DOFs to be added.
     """
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        y = np.zeros_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y, dtype=np.float64)
-        d2ydt2 = np.zeros_like(y, dtype=np.float64)
+        y, dydt, d2ydt2 = self._dofs[0]._evaluate(t)
 
-        for dof in self._dofs:
+        y = y.copy()
+        dydt = dydt.copy()
+        d2ydt2 = d2ydt2.copy()
+
+        for dof in self._dofs[1:]:
             y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
             y += y_i
             dydt += dydt_i
@@ -374,17 +376,15 @@ class _Product(_Composite):
     Parameters
     ----------
     *dofs : DOF
-        DOF signal generators to multiply together.
+        DOFs to be multiplied.
     """
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        y = np.ones_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y, dtype=np.float64)
-        d2ydt2 = np.zeros_like(y, dtype=np.float64)
+        y, dydt, d2ydt2 = self._dofs[0]._evaluate(t)
 
-        for dof in self._dofs:
+        for dof in self._dofs[1:]:
             y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
             d2ydt2 = d2ydt2 * y_i + 2.0 * dydt * dydt_i + y * d2ydt2_i
             dydt = dydt * y_i + y * dydt_i
