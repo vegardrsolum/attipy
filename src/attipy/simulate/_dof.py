@@ -1,5 +1,6 @@
 import numbers
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -113,7 +114,7 @@ class DOF(ABC):
         return self._evaluate(t)
 
 
-class BeatDOF(DOF):
+class Beat(DOF):
     """
     Beating DOF signal generator.
 
@@ -137,6 +138,7 @@ class BeatDOF(DOF):
 
     def __init__(
         self,
+        *,
         amp: float = 1.0,
         omega: float = 0.1,
         omega_beat: float = 0.01,
@@ -173,7 +175,7 @@ class BeatDOF(DOF):
         return y, dydt, d2ydt2
 
 
-class ConstantDOF(DOF):
+class Constant(DOF):
     """
     Constant DOF signal generator.
 
@@ -200,7 +202,7 @@ class ConstantDOF(DOF):
         return y, dydt, d2ydt2
 
 
-class SineDOF(DOF):
+class Sine(DOF):
     """
     Sinusoidal DOF signal generator.
 
@@ -221,6 +223,7 @@ class SineDOF(DOF):
 
     def __init__(
         self,
+        *,
         amp: float = 1.0,
         omega: float = 1.0,
         phase: float = 0.0,
@@ -244,9 +247,203 @@ class SineDOF(DOF):
         return y, dydt, d2ydt2
 
 
-class RampUp(DOF):
+class SmootherStep(DOF):
     """
-    Ramp-up wrapper for DOF signals.
+    Smootherstep DOF signal generator.
+
+    Smooth step from 0 to 1, defined as:
+
+        y = 6 * x**5 - 15 * x**4 + 10 * x**3
+
+    where ``x = (t - start) / duration`` clipped to [0, 1]. The signal is zero
+    before ``start``, increases smoothly from 0 to 1 during the step period, and
+    stays at 1 afterwards. The first and second time derivatives vanish at both
+    ends of the step period, so that the signal and its two first time
+    derivatives are continuous.
+
+    Parameters
+    ----------
+    duration : float, optional
+        Duration of the step period in seconds. Must be positive. Defaults to
+        100.0 seconds.
+    start : float, optional
+        Time in seconds at which the step starts. Must be non-negative. Defaults
+        to 0.0 seconds.
+    """
+
+    def __init__(self, *, duration: float = 100.0, start: float = 0.0) -> None:
+        if duration <= 0.0:
+            raise ValueError("'duration' must be positive.")
+        if start < 0.0:
+            raise ValueError("'start' must be non-negative.")
+
+        self._duration = float(duration)
+        self._start = float(start)
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        duration = self._duration
+        x = np.clip((t - self._start) / duration, 0.0, 1.0)
+
+        w = x**3 * (10.0 - 15.0 * x + 6.0 * x**2)
+        dw = 30.0 * x**2 * (1.0 - x) ** 2 / duration
+        d2w = 60.0 * x * (1.0 - 3.0 * x + 2.0 * x**2) / duration**2
+
+        return w, dw, d2w
+
+
+def _as_dof(other: object, /) -> DOF:
+    """
+    Convert an argument to a DOF signal generator.
+
+    DOF instances are returned as they are, and real numbers are wrapped in a
+    ``Constant``. Any other argument raises a ``TypeError``.
+    """
+    if isinstance(other, DOF):
+        return other
+    if isinstance(other, numbers.Real):
+        return Constant(float(other))
+    raise TypeError(
+        f"Arguments must be DOF instances or real numbers, got {type(other).__name__}."
+    )
+
+
+class _Composite(DOF):
+    """
+    Abstract base class for composite DOFs.
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to combine.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+        self._dofs = self._flatten(dofs)
+
+    @classmethod
+    def _flatten(cls, dofs: Iterable[DOF]) -> tuple[DOF, ...]:
+        dofs_flat: list[DOF] = []
+        for dof in dofs:
+            if isinstance(dof, cls):
+                dofs_flat.extend(dof._dofs)
+            else:
+                dofs_flat.append(dof)
+        return tuple(dofs_flat)
+
+
+class _Sum(_Composite):
+    """
+    Sum of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOFs to be added.
+    """
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y, dydt, d2ydt2 = self._dofs[0]._evaluate(t)
+
+        y = y.copy()
+        dydt = dydt.copy()
+        d2ydt2 = d2ydt2.copy()
+
+        for dof in self._dofs[1:]:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            y += y_i
+            dydt += dydt_i
+            d2ydt2 += d2ydt2_i
+
+        return y, dydt, d2ydt2
+
+
+class _Product(_Composite):
+    """
+    Product of DOF signals.
+
+    Defined as:
+
+        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
+
+    The time derivatives are found by repeated use of the product rule.
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOFs to be multiplied.
+    """
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        y, dydt, d2ydt2 = self._dofs[0]._evaluate(t)
+
+        for dof in self._dofs[1:]:
+            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
+            d2ydt2 = d2ydt2 * y_i + 2.0 * dydt * dydt_i + y * d2ydt2_i
+            dydt = dydt * y_i + y * dydt_i
+            y = y * y_i
+
+        return y, dydt, d2ydt2
+
+
+def add(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
+    """
+    Add two DOF signals together.
+
+    Defined as:
+
+        y(t) = y_1(t) + y_2(t)
+
+    Parameters
+    ----------
+    dof1, dof2 : DOF or float
+        DOFs to be added. Real numbers are treated as constant DOF signals.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the sum.
+    """
+    return _Sum(_as_dof(dof1), _as_dof(dof2))
+
+
+def multiply(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
+    """
+    Multiply two DOF signals together.
+
+    Defined as:
+
+        y(t) = y_1(t) * y_2(t)
+
+    The time derivatives are found by the product rule.
+
+    Parameters
+    ----------
+    dof1, dof2 : DOF or float
+        DOFs to be multiplied. Real numbers are treated as constant DOF signals.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the product.
+    """
+    return _Product(_as_dof(dof1), _as_dof(dof2))
+
+
+def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0) -> DOF:
+    """
+    Ramp up a DOF signal.
 
     Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
 
@@ -261,207 +458,23 @@ class RampUp(DOF):
     vanishing first and second derivatives at both ends of the ramp-up period,
     so that the ramped signal and its two first time derivatives are continuous.
 
+    This is equivalent to ``multiply(SmootherStep(duration=duration, start=start), dof)``.
+
     Parameters
     ----------
-    dof : DOF
-        Underlying DOF signal generator to ramp up.
+    dof : DOF or float
+        Underlying DOF signal generator to ramp up. A real number is treated as
+        a constant DOF signal.
     duration : float, optional
         Duration of the ramp-up period in seconds. Must be positive. Defaults to
         100.0 seconds.
     start : float, optional
         Time in seconds at which the ramp-up starts. The signal, and its two
-        first time derivatives, are zero before this time. Default is 0.0.
-    """
-
-    def __init__(self, dof: DOF, duration: float = 100.0, start: float = 0.0) -> None:
-        if duration <= 0.0:
-            raise ValueError("'duration' must be positive.")
-        if start < 0.0:
-            raise ValueError("'start' must be non-negative.")
-
-        self._dof = dof
-        self._duration = float(duration)
-        self._start = float(start)
-
-    def _window(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Ramp-up window, w(t), and its two first time derivatives.
-        """
-        duration = self._duration
-        x = np.clip((t - self._start) / duration, 0.0, 1.0)
-
-        w = x**3 * (10.0 - 15.0 * x + 6.0 * x**2)
-        dw = 30.0 * x**2 * (1.0 - x) ** 2 / duration
-        d2w = 60.0 * x * (1.0 - 3.0 * x + 2.0 * x**2) / duration**2
-
-        return w, dw, d2w
-
-    def _evaluate(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        w, dw, d2w = self._window(t)
-        y, dydt, d2ydt2 = self._dof._evaluate(t)
-
-        y_ramped = w * y
-        dydt_ramped = dw * y + w * dydt
-        d2ydt2_ramped = d2w * y + 2.0 * dw * dydt + w * d2ydt2
-
-        return y_ramped, dydt_ramped, d2ydt2_ramped
-
-
-def _as_dof(other: object) -> DOF:
-    """
-    Convert an argument to a DOF signal generator.
-
-    DOF instances are returned as they are, and real numbers are wrapped in a
-    ``ConstantDOF``. Any other argument raises a ``TypeError``.
-    """
-    if isinstance(other, DOF):
-        return other
-    if isinstance(other, numbers.Real):
-        return ConstantDOF(float(other))
-    raise TypeError(
-        f"Arguments must be DOF instances or real numbers, got {type(other).__name__}."
-    )
-
-
-class _Sum(DOF):
-    """
-    Sum of DOF signals.
-
-    Defined as:
-
-        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
-
-    Parameters
-    ----------
-    *dofs : DOF
-        DOF signal generators to add together.
-    """
-
-    def __init__(self, *dofs: DOF) -> None:
-        if not dofs:
-            raise ValueError("At least one DOF must be given.")
-
-        dofs_flat: list[DOF] = []
-        for dof in dofs:
-            if isinstance(dof, _Sum):
-                dofs_flat.extend(dof._dofs)
-            elif isinstance(dof, DOF):
-                dofs_flat.append(dof)
-            else:
-                raise TypeError(
-                    f"All arguments must be DOF instances, got {type(dof).__name__}."
-                )
-        self._dofs = tuple(dofs_flat)
-
-    def _evaluate(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        y = np.zeros_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y, dtype=np.float64)
-        d2ydt2 = np.zeros_like(y, dtype=np.float64)
-
-        for dof in self._dofs:
-            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
-            y += y_i
-            dydt += dydt_i
-            d2ydt2 += d2ydt2_i
-
-        return y, dydt, d2ydt2
-
-
-class _Product(DOF):
-    """
-    Product of DOF signals.
-
-    Defined as:
-
-        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
-
-    The time derivatives are found by repeated use of the product rule.
-
-    Parameters
-    ----------
-    *dofs : DOF
-        DOF signal generators to multiply together.
-    """
-
-    def __init__(self, *dofs: DOF) -> None:
-        if not dofs:
-            raise ValueError("At least one DOF must be given.")
-
-        dofs_flat: list[DOF] = []
-        for dof in dofs:
-            if isinstance(dof, _Product):
-                dofs_flat.extend(dof._dofs)
-            elif isinstance(dof, DOF):
-                dofs_flat.append(dof)
-            else:
-                raise TypeError(
-                    f"All arguments must be DOF instances, got {type(dof).__name__}."
-                )
-        self._dofs = tuple(dofs_flat)
-
-    def _evaluate(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        y = np.ones_like(t, dtype=np.float64)
-        dydt = np.zeros_like(y, dtype=np.float64)
-        d2ydt2 = np.zeros_like(y, dtype=np.float64)
-
-        for dof in self._dofs:
-            y_i, dydt_i, d2ydt2_i = dof._evaluate(t)
-            d2ydt2 = d2ydt2 * y_i + 2.0 * dydt * dydt_i + y * d2ydt2_i
-            dydt = dydt * y_i + y * dydt_i
-            y = y * y_i
-
-        return y, dydt, d2ydt2
-
-
-def add(*dofs: DOF | float) -> DOF:
-    """
-    Add DOF signals together.
-
-    Defined as:
-
-        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
-
-    Parameters
-    ----------
-    *dofs : DOF or float
-        DOF signal generators to add together. Real numbers are treated as
-        constant DOF signals.
+        first time derivatives, are zero before this time. Defaults to 0.0.
 
     Returns
     -------
     DOF
-        DOF signal generator for the sum.
+        DOF signal generator for the ramped-up signal.
     """
-    return _Sum(*(_as_dof(dof) for dof in dofs))
-
-
-def multiply(*dofs: DOF | float) -> DOF:
-    """
-    Multiply DOF signals together.
-
-    Defined as:
-
-        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
-
-    The time derivatives are found by repeated use of the product rule.
-
-    Parameters
-    ----------
-    *dofs : DOF or float
-        DOF signal generators to multiply together. Real numbers are treated as
-        constant DOF signals.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the product.
-    """
-    return _Product(*(_as_dof(dof) for dof in dofs))
+    return multiply(SmootherStep(duration=duration, start=start), dof)

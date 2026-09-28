@@ -3,7 +3,7 @@ import pytest
 
 import attipy as ap
 from attipy._transforms import _matrix_from_euler_zyx
-from attipy.simulate._dof import DOF, BeatDOF, ConstantDOF
+from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
     Motion,
     _angular_velocity_body,
@@ -17,12 +17,11 @@ class Test_Motion:
     NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
     def test__init__(self):
-        dofs = {name: ConstantDOF(float(i)) for i, name in enumerate(self.NAMES)}
-        motion = Motion(**dofs, degrees=True)
+        dofs = {name: Constant(float(i)) for i, name in enumerate(self.NAMES)}
+        motion = Motion(**dofs)
 
         for name in self.NAMES:
             assert getattr(motion, name) is dofs[name]
-        assert motion.degrees is True
 
     def test__init__default(self):
         t = np.linspace(0.0, 10.0, 100)
@@ -30,28 +29,27 @@ class Test_Motion:
 
         for name in self.NAMES:
             dof = getattr(motion, name)
-            assert isinstance(dof, ConstantDOF)
+            assert isinstance(dof, Constant)
             np.testing.assert_allclose(dof.y(t), np.zeros_like(t))
-        assert motion.degrees is False
 
     def test__init__defaults_not_shared(self):
         assert Motion().x is not Motion().x
 
     def test__init__keyword_only(self):
         with pytest.raises(TypeError):
-            Motion(ConstantDOF())
+            Motion(Constant())
 
     @pytest.mark.parametrize("name", NAMES)
     def test__init__non_dof_raises(self, name):
         with pytest.raises(TypeError, match=f"'{name}'"):
             Motion(**{name: 1.0})
 
-    @pytest.mark.parametrize("name", NAMES + ("degrees",))
+    @pytest.mark.parametrize("name", NAMES)
     def test_frozen(self, name):
         motion = Motion()
 
         with pytest.raises(AttributeError):
-            setattr(motion, name, ConstantDOF())
+            setattr(motion, name, Constant())
 
     def test_not_iterable(self):
         with pytest.raises(TypeError):
@@ -113,27 +111,6 @@ class Test_sample_motion:
         np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
 
-    def test_degrees_converts_angular_dofs(self):
-        t = np.linspace(0.0, 10.0, 100)
-        dofs = {
-            "x": BeatDOF(omega=0.1, omega_beat=0.01),
-            "roll": ConstantDOF(30.0),
-            "pitch": BeatDOF(amp=5.0, omega=0.1, omega_beat=0.01),
-            "yaw": BeatDOF(amp=10.0, omega=0.2, omega_beat=0.02),
-        }
-
-        out_deg = _sample_motion(Motion(**dofs, degrees=True), t)
-        out_rad = _sample_motion(Motion(**dofs), t)
-
-        pos_deg, vel_deg, acc_deg, euler_deg, euler_dot_deg = out_deg
-        pos_rad, vel_rad, acc_rad, euler_rad, euler_dot_rad = out_rad
-
-        np.testing.assert_allclose(pos_deg, pos_rad)
-        np.testing.assert_allclose(vel_deg, vel_rad)
-        np.testing.assert_allclose(acc_deg, acc_rad)
-        np.testing.assert_allclose(euler_deg, np.radians(euler_rad))
-        np.testing.assert_allclose(euler_dot_deg, np.radians(euler_dot_rad))
-
 
 class Test_imu_from_kinematics:
     @pytest.fixture
@@ -165,12 +142,12 @@ class Test_trajectory:
         # Expected DOF signals
         phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
         beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        px, vx, _ = BeatDOF(amp=1.0, phase=phases[0], **beat_kwargs)(t)
-        py, vy, _ = BeatDOF(amp=1.0, phase=phases[1], **beat_kwargs)(t)
-        pz, vz, _ = BeatDOF(amp=1.0, phase=phases[2], **beat_kwargs)(t)
-        r, *_ = BeatDOF(amp=0.1, phase=phases[3], **beat_kwargs)(t)
-        p, *_ = BeatDOF(amp=0.1, phase=phases[4], **beat_kwargs)(t)
-        y, *_ = BeatDOF(amp=0.1, phase=phases[5], **beat_kwargs)(t)
+        px, vx, _ = Beat(amp=1.0, phase=phases[0], **beat_kwargs)(t)
+        py, vy, _ = Beat(amp=1.0, phase=phases[1], **beat_kwargs)(t)
+        pz, vz, _ = Beat(amp=1.0, phase=phases[2], **beat_kwargs)(t)
+        r, *_ = Beat(amp=0.1, phase=phases[3], **beat_kwargs)(t)
+        p, *_ = Beat(amp=0.1, phase=phases[4], **beat_kwargs)(t)
+        y, *_ = Beat(amp=0.1, phase=phases[5], **beat_kwargs)(t)
 
         # Time
         fs_expect = 10.0
@@ -287,9 +264,9 @@ class Test_trajectory:
 
         # Expected attitude DOF signals
         beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        r, *_ = BeatDOF(amp=0.1, phase=np.pi, **beat_kwargs)(t)
-        p, *_ = BeatDOF(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
-        y, *_ = BeatDOF(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
+        r, *_ = Beat(amp=0.1, phase=np.pi, **beat_kwargs)(t)
+        p, *_ = Beat(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
+        y, *_ = Beat(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
 
         # No translation
         np.testing.assert_allclose(p_n, np.zeros((n, 3)))
@@ -306,8 +283,8 @@ class Test_trajectory:
 
     def test_motion_custom(self):
         n = 100
-        x = BeatDOF(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
-        motion = Motion(x=x, yaw=ConstantDOF(0.5))
+        x = Beat(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
+        motion = Motion(x=x, yaw=Constant(0.5))
 
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(n=n, motion=motion)
 
@@ -328,46 +305,6 @@ class Test_trajectory:
         np.testing.assert_allclose(f_b[:, 0], np.cos(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 1], -np.sin(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 2], -9.80665)
-
-    def test_motion_custom_degrees(self):
-        n = 100
-        amp_deg = 5.0
-
-        def roll(amp):
-            return BeatDOF(amp=amp, omega=2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01)
-
-        def pitch(amp):
-            return BeatDOF(amp=amp, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.01)
-
-        motion_deg = Motion(
-            roll=roll(amp_deg),
-            pitch=pitch(amp_deg),
-            degrees=True,
-        )
-        motion_rad = Motion(
-            roll=roll(np.radians(amp_deg)),
-            pitch=pitch(np.radians(amp_deg)),
-            degrees=False,
-        )
-
-        out_deg = ap.simulate.trajectory(n=n, motion=motion_deg, degrees=True)
-        out_rad = ap.simulate.trajectory(n=n, motion=motion_rad, degrees=False)
-
-        t, p_deg, v_deg, euler_deg, f_deg, w_deg = out_deg
-        _, p_rad, v_rad, euler_rad, f_rad, w_rad = out_rad
-
-        # Degrees in -> degrees out reproduces the input signals
-        roll, *_ = motion_deg.roll(t)
-        pitch, *_ = motion_deg.pitch(t)
-        np.testing.assert_allclose(euler_deg[:, 0], roll)
-        np.testing.assert_allclose(euler_deg[:, 1], pitch)
-
-        # Equivalent to the same motion specified in radians
-        np.testing.assert_allclose(p_deg, p_rad)
-        np.testing.assert_allclose(v_deg, v_rad)
-        np.testing.assert_allclose(f_deg, f_rad)
-        np.testing.assert_allclose(np.radians(euler_deg), euler_rad)
-        np.testing.assert_allclose(np.radians(w_deg), w_rad)
 
     @pytest.mark.parametrize("motion", ["BEAT-6DOF", "Beat-3dof", "Stationary"])
     def test_motion_case_insensitive(self, motion):
