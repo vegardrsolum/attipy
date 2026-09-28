@@ -12,6 +12,7 @@ from attipy.simulate._dof import (
     _Product,
     _Sum,
     add,
+    from_psd,
     multiply,
     ramp_up,
 )
@@ -878,6 +879,7 @@ class Test_public_api:
         assert dof.Sine is Sine
         assert dof.SmootherStep is SmootherStep
         assert dof.add is add
+        assert dof.from_psd is from_psd
         assert dof.multiply is multiply
         assert dof.ramp_up is ramp_up
         assert sorted(dof.__all__) == sorted(
@@ -888,6 +890,7 @@ class Test_public_api:
                 "Sine",
                 "SmootherStep",
                 "add",
+                "from_psd",
                 "multiply",
                 "ramp_up",
             ]
@@ -901,3 +904,109 @@ class Test_public_api:
         )
 
         np.testing.assert_allclose(motion.x.y(t), 2.0 * Beat().y(t) + 0.5)
+
+
+class Test_from_psd:
+    @pytest.fixture
+    def freq(self):
+        return np.linspace(0.0, 1.0, 101)
+
+    @pytest.fixture
+    def psd(self, freq):
+        return np.exp(-(((freq - 0.2) / 0.05) ** 2))
+
+    def test_returns_sum_of_sines(self, freq, psd):
+        dof = from_psd(freq, psd, 10, seed=1)
+
+        assert isinstance(dof, _Sum)
+        assert len(dof._dofs) == 10
+        assert all(isinstance(dof_k, Sine) for dof_k in dof._dofs)
+
+    def test_components(self, freq, psd):
+        dof = from_psd(freq, psd, 4, seed=1)
+
+        df = 0.25
+        freq_expect = np.array([0.125, 0.375, 0.625, 0.875])
+        amp_expect = np.sqrt(2.0 * np.interp(freq_expect, freq, psd) * df)
+
+        np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
+        np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
+        assert all(0.0 <= s._phase < 2.0 * np.pi for s in dof._dofs)
+
+    def test_single_component(self, t):
+        dof = from_psd([0.0, 2.0], [0.5, 0.5], 1, seed=1)
+
+        # Component at 1 Hz with variance equal to the area under the PSD
+        sine = dof._dofs[0]
+        assert sine._w == pytest.approx(2.0 * np.pi)
+        assert sine._amp**2 / 2.0 == pytest.approx(1.0)
+
+    def test_seed(self, freq, psd, t):
+        y1 = from_psd(freq, psd, 20, seed=1).y(t)
+        y2 = from_psd(freq, psd, 20, seed=1).y(t)
+        y3 = from_psd(freq, psd, 20, seed=2).y(t)
+
+        np.testing.assert_allclose(y1, y2)
+        assert not np.allclose(y1, y3)
+
+    def test_seed_generator(self, freq, psd, t):
+        y1 = from_psd(freq, psd, 20, seed=np.random.default_rng(1)).y(t)
+        y2 = from_psd(freq, psd, 20, seed=1).y(t)
+
+        np.testing.assert_allclose(y1, y2)
+
+    def test_variance(self, freq, psd):
+        dof = from_psd(freq, psd, 200, seed=1)
+
+        t = np.arange(0.0, 10_000.0, 0.1)
+        var_expect = np.trapezoid(psd, freq)
+
+        assert np.var(dof.y(t)) == pytest.approx(var_expect, rel=0.05)
+
+    def test_welch(self, freq, psd):
+        from scipy.signal import welch
+
+        dof = from_psd(freq, psd, 500, seed=1)
+
+        fs = 2.0
+        t = np.arange(0.0, 20_000.0, 1.0 / fs)
+        freq_out, psd_out = welch(dof.y(t), fs=fs, nperseg=1024)
+
+        np.testing.assert_allclose(
+            psd_out, np.interp(freq_out, freq, psd), atol=0.05 * psd.max()
+        )
+
+    def test_derivatives_by_finite_difference(self, freq, psd):
+        dof = from_psd(freq, psd, 20, seed=1)
+
+        t = np.linspace(0.0, 20.0, 20_001)
+        dt = t[1] - t[0]
+        y, dydt, d2ydt2 = dof(t)
+
+        np.testing.assert_allclose(np.gradient(y, dt), dydt, atol=1e-3)
+        np.testing.assert_allclose(np.gradient(dydt, dt), d2ydt2, atol=1e-2)
+
+    def test_list_input(self):
+        dof = from_psd([0.0, 1.0, 2.0], [1.0, 2.0, 1.0], 3, seed=1)
+        assert len(dof._dofs) == 3
+
+    @pytest.mark.parametrize(
+        "freq, psd",
+        [
+            ([0.0], [1.0]),  # too few values
+            ([[0.0, 1.0]], [[1.0, 1.0]]),  # not 1D
+            ([0.0, 1.0], [1.0, 1.0, 1.0]),  # shape mismatch
+            ([-1.0, 1.0], [1.0, 1.0]),  # negative frequency
+            ([0.0, 1.0, 1.0], [1.0, 1.0, 1.0]),  # not strictly increasing
+            ([1.0, 0.0], [1.0, 1.0]),  # decreasing
+            ([0.0, 1.0], [1.0, -1.0]),  # negative psd
+        ],
+    )
+    def test_raises_input(self, freq, psd):
+        with pytest.raises(ValueError):
+            from_psd(freq, psd, 10)
+
+    @pytest.mark.parametrize("n_components", [0, -1, 1.5])
+    def test_raises_n_components(self, freq, psd, n_components):
+        with pytest.raises(ValueError):
+            from_psd(freq, psd, n_components)

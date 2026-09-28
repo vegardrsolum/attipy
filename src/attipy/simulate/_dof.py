@@ -478,3 +478,76 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
         DOF signal generator for the ramped-up signal.
     """
     return multiply(SmootherStep(duration=duration, start=start), dof)
+
+
+def from_psd(
+    freq: ArrayLike,
+    psd: ArrayLike,
+    n_components: int,
+    *,
+    seed: int | np.random.Generator | None = None,
+) -> DOF:
+    """
+    DOF signal realization of a one-sided power spectral density (PSD).
+
+    The signal is a sum of sinusoidal components with random phases:
+
+        y(t) = sum_k amp_k * sin(w_k * t + phase_k)
+
+    The frequency range spanned by ``freq`` is divided into ``n_components``
+    equally wide bins, and one component is placed at the center frequency,
+    f_k, of each bin. The amplitudes are given by:
+
+        amp_k = sqrt(2 * S(f_k) * df)
+
+    where S(f_k) is the PSD linearly interpolated at f_k, and df is the bin
+    width. The variance of the signal thus approximates the area under the PSD.
+    The phases, phase_k, are drawn independently from a uniform distribution on
+    [0, 2 * pi).
+
+    The PSD is expected to be one-sided, e.g., as returned by
+    ``scipy.signal.welch``.
+
+    Parameters
+    ----------
+    freq : array_like, shape (m,)
+        Frequencies in Hz. Must be non-negative and strictly increasing, with at
+        least two values.
+    psd : array_like, shape (m,)
+        One-sided power spectral density at the given frequencies, in units of
+        y**2 / Hz. Must be non-negative.
+    n_components : int
+        Number of sinusoidal components. Must be positive.
+    seed : int or numpy.random.Generator, optional
+        Seed, or random number generator, used to draw the random phases.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the signal realization of the PSD.
+    """
+    freq = np.asarray_chkfinite(freq, dtype=np.float64)
+    psd = np.asarray_chkfinite(psd, dtype=np.float64)
+
+    if freq.ndim != 1 or freq.size < 2:
+        raise ValueError("'freq' must be a 1D array with at least two values.")
+    if psd.shape != freq.shape:
+        raise ValueError("'psd' must have the same shape as 'freq'.")
+    if freq[0] < 0.0 or np.any(np.diff(freq) <= 0.0):
+        raise ValueError("'freq' must be non-negative and strictly increasing.")
+    if np.any(psd < 0.0):
+        raise ValueError("'psd' must be non-negative.")
+    if not isinstance(n_components, numbers.Integral) or n_components < 1:
+        raise ValueError("'n_components' must be a positive integer.")
+
+    df = (freq[-1] - freq[0]) / n_components
+    freq_k = freq[0] + df * (np.arange(n_components) + 0.5)
+    amp_k = np.sqrt(2.0 * np.interp(freq_k, freq, psd) * df)
+    phase_k = np.random.default_rng(seed).uniform(0.0, 2.0 * np.pi, n_components)
+
+    return _Sum(
+        *(
+            Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
+            for amp, f, phase in zip(amp_k, freq_k, phase_k)
+        )
+    )
