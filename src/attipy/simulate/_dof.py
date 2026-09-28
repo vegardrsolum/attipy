@@ -311,19 +311,20 @@ class RampUp(DOF):
         return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
-def _as_dof(other: object) -> "DOF | None":
+def _as_dof(other: object) -> DOF:
     """
-    Convert an operand to a DOF signal generator.
+    Convert an argument to a DOF signal generator.
 
     DOF instances are returned as they are, and real numbers are wrapped in a
-    ``ConstantDOF``. Any other operand gives ``None``, so that the calling
-    operator can return ``NotImplemented`` for unsupported operand types.
+    ``ConstantDOF``. Any other argument raises a ``TypeError``.
     """
     if isinstance(other, DOF):
         return other
     if isinstance(other, numbers.Real):
         return ConstantDOF(float(other))
-    return None
+    raise TypeError(
+        f"Arguments must be DOF instances or real numbers, got {type(other).__name__}."
+    )
 
 
 class _Sum(DOF):
@@ -418,3 +419,49 @@ class _Product(DOF):
             y = y * y_i
 
         return y, dydt, d2ydt2
+
+
+def add(*dofs: DOF | float) -> DOF:
+    """
+    Add DOF signals together.
+
+    Defined as:
+
+        y(t) = y_1(t) + y_2(t) + ... + y_n(t)
+
+    Parameters
+    ----------
+    *dofs : DOF or float
+        DOF signal generators to add together. Real numbers are treated as
+        constant DOF signals.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the sum.
+    """
+    return _Sum(*(_as_dof(dof) for dof in dofs))
+
+
+def multiply(*dofs: DOF | float) -> DOF:
+    """
+    Multiply DOF signals together.
+
+    Defined as:
+
+        y(t) = y_1(t) * y_2(t) * ... * y_n(t)
+
+    The time derivatives are found by repeated use of the product rule.
+
+    Parameters
+    ----------
+    *dofs : DOF or float
+        DOF signal generators to multiply together. Real numbers are treated as
+        constant DOF signals.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the product.
+    """
+    return _Product(*(_as_dof(dof) for dof in dofs))

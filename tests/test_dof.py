@@ -10,6 +10,8 @@ from attipy.simulate._dof import (
     _as_dof,
     _Product,
     _Sum,
+    add,
+    multiply,
 )
 
 
@@ -383,8 +385,9 @@ class Test__as_dof:
         np.testing.assert_allclose(dof.y(t), 2.0)
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test_unsupported(self, other):
-        assert _as_dof(other) is None
+    def test_unsupported_raises(self, other):
+        with pytest.raises(TypeError):
+            _as_dof(other)
 
 
 class Test__Sum:
@@ -651,3 +654,148 @@ class Test__Product:
 
         np.testing.assert_allclose(dydt[1:-1], dydt_fd, atol=1e-6)
         np.testing.assert_allclose(d2ydt2[1:-1], d2ydt2_fd, atol=1e-6)
+
+
+class Test_add:
+    @pytest.fixture
+    def beat(self):
+        return BeatDOF(omega=1.0, omega_beat=0.1)
+
+    @pytest.fixture
+    def sine(self):
+        return SineDOF(omega=1.5, phase=0.3)
+
+    def test_dofs(self, beat, sine, t):
+        dof_sum = add(beat, sine)
+        y, dydt, d2ydt2 = dof_sum(t)
+
+        assert isinstance(dof_sum, DOF)
+        np.testing.assert_allclose(y, beat.y(t) + sine.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t) + sine.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) + sine.d2ydt2(t))
+
+    def test_single(self, beat, t):
+        y, dydt, d2ydt2 = add(beat)(t)
+
+        np.testing.assert_allclose(y, beat.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
+
+    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
+    def test_real(self, beat, value, t):
+        y, dydt, d2ydt2 = add(value, beat)(t)
+
+        np.testing.assert_allclose(y, 2.0 + beat.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
+
+    def test_reals_only(self, t):
+        y, dydt, d2ydt2 = add(1.0, 2.0)(t)
+
+        np.testing.assert_allclose(y, 3.0)
+        np.testing.assert_allclose(dydt, 0.0)
+        np.testing.assert_allclose(d2ydt2, 0.0)
+
+    def test_nested(self, beat, sine, t):
+        dof_sum = add(add(beat, 1.0), sine)
+        y, dydt, d2ydt2 = dof_sum(t)
+
+        assert len(dof_sum._dofs) == 3
+        np.testing.assert_allclose(y, beat.y(t) + 1.0 + sine.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t) + sine.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) + sine.d2ydt2(t))
+
+    def test_multiply_nested(self, beat, sine, t):
+        y, dydt, d2ydt2 = add(multiply(2.0, beat), sine)(t)
+
+        np.testing.assert_allclose(y, 2.0 * beat.y(t) + sine.y(t))
+        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t) + sine.dydt(t))
+        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t) + sine.d2ydt2(t))
+
+    def test_raises_empty(self):
+        with pytest.raises(ValueError):
+            add()
+
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
+    def test_raises_type(self, beat, other):
+        with pytest.raises(TypeError):
+            add(beat, other)
+
+
+class Test_multiply:
+    @pytest.fixture
+    def beat(self):
+        return BeatDOF(omega=1.0, omega_beat=0.1)
+
+    @pytest.fixture
+    def sine(self):
+        return SineDOF(omega=1.5, phase=0.3)
+
+    def test_dofs(self, beat, sine, t):
+        dof_product = multiply(beat, sine)
+        y, dydt, d2ydt2 = dof_product(t)
+        a, da, d2a = beat(t)
+        b, db, d2b = sine(t)
+
+        assert isinstance(dof_product, DOF)
+        np.testing.assert_allclose(y, a * b)
+        np.testing.assert_allclose(dydt, da * b + a * db)
+        np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + a * d2b)
+
+    def test_single(self, beat, t):
+        y, dydt, d2ydt2 = multiply(beat)(t)
+
+        np.testing.assert_allclose(y, beat.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
+
+    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
+    def test_real(self, beat, value, t):
+        y, dydt, d2ydt2 = multiply(value, beat)(t)
+
+        np.testing.assert_allclose(y, 2.0 * beat.y(t))
+        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
+
+    def test_negate(self, beat, t):
+        y, dydt, d2ydt2 = multiply(-1.0, beat)(t)
+
+        np.testing.assert_allclose(y, -beat.y(t))
+        np.testing.assert_allclose(dydt, -beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
+
+    def test_reals_only(self, t):
+        y, dydt, d2ydt2 = multiply(2.0, 3.0)(t)
+
+        np.testing.assert_allclose(y, 6.0)
+        np.testing.assert_allclose(dydt, 0.0)
+        np.testing.assert_allclose(d2ydt2, 0.0)
+
+    def test_nested(self, beat, sine, t):
+        dof_product = multiply(multiply(2.0, beat), sine)
+        y, dydt, d2ydt2 = dof_product(t)
+        a, da, d2a = beat(t)
+        b, db, d2b = sine(t)
+
+        assert len(dof_product._dofs) == 3
+        np.testing.assert_allclose(y, 2.0 * a * b)
+        np.testing.assert_allclose(dydt, 2.0 * (da * b + a * db))
+        np.testing.assert_allclose(d2ydt2, 2.0 * (d2a * b + 2.0 * da * db + a * d2b))
+
+    def test_add_nested(self, beat, sine, t):
+        y, dydt, d2ydt2 = multiply(add(beat, 1.0), sine)(t)
+        a, da, d2a = beat(t)
+        b, db, d2b = sine(t)
+
+        np.testing.assert_allclose(y, (a + 1.0) * b)
+        np.testing.assert_allclose(dydt, da * b + (a + 1.0) * db)
+        np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + (a + 1.0) * d2b)
+
+    def test_raises_empty(self):
+        with pytest.raises(ValueError):
+            multiply()
+
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
+    def test_raises_type(self, beat, other):
+        with pytest.raises(TypeError):
+            multiply(beat, other)
