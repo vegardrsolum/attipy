@@ -1,5 +1,6 @@
 import numbers
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -306,7 +307,38 @@ def _as_dof(other: object) -> DOF:
     )
 
 
-class _Sum(DOF):
+class _Composite(DOF):
+    """
+    Abstract base class for composite DOFs.
+
+    Parameters
+    ----------
+    *dofs : DOF
+        DOF signal generators to combine.
+    """
+
+    def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
+
+        self._dofs = self._flatten(dofs)
+
+    @classmethod
+    def _flatten(cls, dofs: Iterable[DOF]) -> tuple[DOF, ...]:
+        dofs_flat: list[DOF] = []
+        for dof in dofs:
+            if isinstance(dof, cls):
+                dofs_flat.extend(dof._dofs)
+            elif isinstance(dof, DOF):
+                dofs_flat.append(dof)
+            else:
+                raise TypeError(
+                    f"All arguments must be DOF instances, got {type(dof).__name__}."
+                )
+        return tuple(dofs_flat)
+
+
+class _Sum(_Composite):
     """
     Sum of DOF signals.
 
@@ -319,22 +351,6 @@ class _Sum(DOF):
     *dofs : DOF
         DOF signal generators to add together.
     """
-
-    def __init__(self, *dofs: DOF) -> None:
-        if not dofs:
-            raise ValueError("At least one DOF must be given.")
-
-        dofs_flat: list[DOF] = []
-        for dof in dofs:
-            if isinstance(dof, _Sum):
-                dofs_flat.extend(dof._dofs)
-            elif isinstance(dof, DOF):
-                dofs_flat.append(dof)
-            else:
-                raise TypeError(
-                    f"All arguments must be DOF instances, got {type(dof).__name__}."
-                )
-        self._dofs = tuple(dofs_flat)
 
     def _evaluate(
         self, t: NDArray[np.float64]
@@ -352,7 +368,7 @@ class _Sum(DOF):
         return y, dydt, d2ydt2
 
 
-class _Product(DOF):
+class _Product(_Composite):
     """
     Product of DOF signals.
 
@@ -367,22 +383,6 @@ class _Product(DOF):
     *dofs : DOF
         DOF signal generators to multiply together.
     """
-
-    def __init__(self, *dofs: DOF) -> None:
-        if not dofs:
-            raise ValueError("At least one DOF must be given.")
-
-        dofs_flat: list[DOF] = []
-        for dof in dofs:
-            if isinstance(dof, _Product):
-                dofs_flat.extend(dof._dofs)
-            elif isinstance(dof, DOF):
-                dofs_flat.append(dof)
-            else:
-                raise TypeError(
-                    f"All arguments must be DOF instances, got {type(dof).__name__}."
-                )
-        self._dofs = tuple(dofs_flat)
 
     def _evaluate(
         self, t: NDArray[np.float64]
