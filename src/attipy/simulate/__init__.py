@@ -1,4 +1,4 @@
-from ._dof import DOF, BeatDOF, ConstantDOF, RampUp, SineDOF
+from ._dof import DOF, BeatDOF, ConstantDOF, RampUp, SineDOF, add, multiply
 from ._simulate import Motion, trajectory
 
 __all__ = [
@@ -8,5 +8,7 @@ __all__ = [
     "Motion",
     "RampUp",
     "SineDOF",
+    "add",
+    "multiply",
     "trajectory",
 ]
