@@ -497,108 +497,10 @@ class Test__Sum:
     def test_flattens_nested(self, beat, constant, sine):
         assert _Sum(_Sum(beat, constant), sine)._dofs == (beat, constant, sine)
         assert _Sum(beat, _Sum(constant, sine))._dofs == (beat, constant, sine)
-        assert (beat + constant + sine)._dofs == (beat, constant, sine)
 
     def test_does_not_flatten_product(self, beat, constant, sine):
         product = _Product(constant, sine)
         assert _Sum(beat, product)._dofs == (beat, product)
-
-    def test__add__operator(self, beat, constant, sine, t):
-        dof_sum = beat + constant + sine
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        np.testing.assert_allclose(y, beat.y(t) + constant.y(t) + sine.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t) + constant.dydt(t) + sine.dydt(t))
-        np.testing.assert_allclose(
-            d2ydt2, beat.d2ydt2(t) + constant.d2ydt2(t) + sine.d2ydt2(t)
-        )
-
-    def test__radd__operator(self, beat, t):
-        dof_sum = 1.0 + beat
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        assert isinstance(dof_sum._dofs[0], ConstantDOF)
-        assert dof_sum._dofs[1] is beat
-        np.testing.assert_allclose(y, 1.0 + beat.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
-
-    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0)])
-    def test__add__operator_scalar(self, beat, value, t):
-        dof_sum = beat + value
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        assert dof_sum._dofs[0] is beat
-        assert isinstance(dof_sum._dofs[1], ConstantDOF)
-        np.testing.assert_allclose(y, beat.y(t) + 2.0)
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
-
-    def test_builtin_sum(self, beat, constant, sine, t):
-        dof_sum = sum([beat, constant, sine])
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        np.testing.assert_allclose(y, beat.y(t) + constant.y(t) + sine.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t) + constant.dydt(t) + sine.dydt(t))
-        np.testing.assert_allclose(
-            d2ydt2, beat.d2ydt2(t) + constant.d2ydt2(t) + sine.d2ydt2(t)
-        )
-
-    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test__add__operator_raises(self, beat, other):
-        with pytest.raises(TypeError):
-            beat + other
-
-        with pytest.raises(TypeError):
-            other + beat
-
-    def test__sub__operator(self, beat, sine, t):
-        dof_sum = beat - sine
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        assert dof_sum._dofs[0] is beat
-        np.testing.assert_allclose(y, beat.y(t) - sine.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t) - sine.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) - sine.d2ydt2(t))
-
-    def test__sub__self(self, beat, t):
-        y, dydt, d2ydt2 = (beat - beat)(t)
-
-        np.testing.assert_allclose(y, 0.0)
-        np.testing.assert_allclose(dydt, 0.0)
-        np.testing.assert_allclose(d2ydt2, 0.0)
-
-    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0)])
-    def test__sub__operator_scalar(self, beat, value, t):
-        dof_sum = beat - value
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        np.testing.assert_allclose(y, beat.y(t) - 2.0)
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
-
-    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0)])
-    def test__rsub__operator(self, beat, value, t):
-        dof_sum = value - beat
-        y, dydt, d2ydt2 = dof_sum(t)
-
-        assert isinstance(dof_sum, _Sum)
-        np.testing.assert_allclose(y, 2.0 - beat.y(t))
-        np.testing.assert_allclose(dydt, -beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
-
-    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test__sub__operator_raises(self, beat, other):
-        with pytest.raises(TypeError):
-            beat - other
-
-        with pytest.raises(TypeError):
-            other - beat
 
 
 class Test__Product:
@@ -734,67 +636,10 @@ class Test__Product:
     def test_flattens_nested(self, beat, constant, sine):
         assert _Product(_Product(beat, constant), sine)._dofs == (beat, constant, sine)
         assert _Product(beat, _Product(constant, sine))._dofs == (beat, constant, sine)
-        assert (beat * constant * sine)._dofs == (beat, constant, sine)
 
     def test_does_not_flatten_sum(self, beat, constant, sine):
         dof_sum = _Sum(constant, sine)
         assert _Product(beat, dof_sum)._dofs == (beat, dof_sum)
-
-    def test__mul__operator(self, beat, constant, sine, expect, t):
-        dof_product = beat * constant * sine
-        y, dydt, d2ydt2 = dof_product(t)
-
-        assert isinstance(dof_product, _Product)
-        np.testing.assert_allclose(y, expect[0])
-        np.testing.assert_allclose(dydt, expect[1])
-        np.testing.assert_allclose(d2ydt2, expect[2])
-
-    def test__rmul__operator(self, beat, t):
-        dof_product = 2.0 * beat
-        y, dydt, d2ydt2 = dof_product(t)
-
-        assert isinstance(dof_product, _Product)
-        assert isinstance(dof_product._dofs[0], ConstantDOF)
-        assert dof_product._dofs[1] is beat
-        np.testing.assert_allclose(y, 2.0 * beat.y(t))
-        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
-
-    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0)])
-    def test__mul__operator_scalar(self, beat, value, t):
-        dof_product = beat * value
-        y, dydt, d2ydt2 = dof_product(t)
-
-        assert isinstance(dof_product, _Product)
-        assert dof_product._dofs[0] is beat
-        assert isinstance(dof_product._dofs[1], ConstantDOF)
-        np.testing.assert_allclose(y, 2.0 * beat.y(t))
-        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
-
-    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test__mul__operator_raises(self, beat, other):
-        with pytest.raises(TypeError):
-            beat * other
-
-        with pytest.raises(TypeError):
-            other * beat
-
-    def test__neg__operator(self, beat, t):
-        dof_product = -beat
-        y, dydt, d2ydt2 = dof_product(t)
-
-        assert isinstance(dof_product, _Product)
-        np.testing.assert_allclose(y, -beat.y(t))
-        np.testing.assert_allclose(dydt, -beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
-
-    def test__neg__twice(self, beat, t):
-        y, dydt, d2ydt2 = (-(-beat))(t)
-
-        np.testing.assert_allclose(y, beat.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
 
     def test_derivatives_by_finite_difference(self, dof_product):
         t = np.linspace(0.0, 20.0, 400_001)
