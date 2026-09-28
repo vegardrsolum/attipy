@@ -17,8 +17,6 @@ class DOF(ABC):
     with each element an ndarray of shape (n,).
     """
 
-    __array_ufunc__ = None
-
     @abstractmethod
     def _evaluate(
         self, t: NDArray[np.float64]
