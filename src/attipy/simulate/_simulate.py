@@ -13,7 +13,7 @@ class Motion:
     """
     Rigid body motion defined by six independent DOF signal generators.
 
-    Defaults to a standstill/stationary motion with all DOFs set to zero.
+    Defaults to a stationary/standstill motion with all DOFs set to zero.
 
     Parameters
     ----------
@@ -24,14 +24,11 @@ class Motion:
     z : dof.DOF, optional
         Position along the z-axis in meters. Defaults to ``dof.Constant(0.0)``.
     roll : dof.DOF, optional
-        Roll Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
+        Roll Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
     pitch : dof.DOF, optional
-        Pitch Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
+        Pitch Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
     yaw : dof.DOF, optional
-        Yaw Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
-    degrees : bool, optional
-        Specifies whether the angular DOF signals, ``roll``, ``pitch`` and ``yaw``,
-        are given in degrees or radians (default).
+        Yaw Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
     """
 
     x: DOF = field(default_factory=Constant)
@@ -40,7 +37,6 @@ class Motion:
     roll: DOF = field(default_factory=Constant)
     pitch: DOF = field(default_factory=Constant)
     yaw: DOF = field(default_factory=Constant)
-    degrees: bool = False
 
     def __post_init__(self) -> None:
         for name in ("x", "y", "z", "roll", "pitch", "yaw"):
@@ -58,7 +54,6 @@ _BEAT6DOF = Motion(
     roll=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi),
     pitch=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=4 * np.pi / 3),
     yaw=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=5 * np.pi / 3),
-    degrees=False,
 )
 
 
@@ -177,10 +172,6 @@ def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
     acc = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
     euler = np.column_stack([y for y, _, _ in att_sig])
     euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
-
-    if motion.degrees:
-        euler = np.radians(euler)
-        euler_dot = np.radians(euler_dot)
 
     return pos, vel, acc, euler, euler_dot
 

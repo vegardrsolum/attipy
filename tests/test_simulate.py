@@ -18,11 +18,10 @@ class Test_Motion:
 
     def test__init__(self):
         dofs = {name: Constant(float(i)) for i, name in enumerate(self.NAMES)}
-        motion = Motion(**dofs, degrees=True)
+        motion = Motion(**dofs)
 
         for name in self.NAMES:
             assert getattr(motion, name) is dofs[name]
-        assert motion.degrees is True
 
     def test__init__default(self):
         t = np.linspace(0.0, 10.0, 100)
@@ -32,7 +31,6 @@ class Test_Motion:
             dof = getattr(motion, name)
             assert isinstance(dof, Constant)
             np.testing.assert_allclose(dof.y(t), np.zeros_like(t))
-        assert motion.degrees is False
 
     def test__init__defaults_not_shared(self):
         assert Motion().x is not Motion().x
@@ -46,7 +44,7 @@ class Test_Motion:
         with pytest.raises(TypeError, match=f"'{name}'"):
             Motion(**{name: 1.0})
 
-    @pytest.mark.parametrize("name", NAMES + ("degrees",))
+    @pytest.mark.parametrize("name", NAMES)
     def test_frozen(self, name):
         motion = Motion()
 
@@ -112,27 +110,6 @@ class Test_sample_motion:
         np.testing.assert_allclose(acc, np.tile([100.0, 200.0, 300.0], (4, 1)))
         np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
-
-    def test_degrees_converts_angular_dofs(self):
-        t = np.linspace(0.0, 10.0, 100)
-        dofs = {
-            "x": Beat(omega=0.1, omega_beat=0.01),
-            "roll": Constant(30.0),
-            "pitch": Beat(amp=5.0, omega=0.1, omega_beat=0.01),
-            "yaw": Beat(amp=10.0, omega=0.2, omega_beat=0.02),
-        }
-
-        out_deg = _sample_motion(Motion(**dofs, degrees=True), t)
-        out_rad = _sample_motion(Motion(**dofs), t)
-
-        pos_deg, vel_deg, acc_deg, euler_deg, euler_dot_deg = out_deg
-        pos_rad, vel_rad, acc_rad, euler_rad, euler_dot_rad = out_rad
-
-        np.testing.assert_allclose(pos_deg, pos_rad)
-        np.testing.assert_allclose(vel_deg, vel_rad)
-        np.testing.assert_allclose(acc_deg, acc_rad)
-        np.testing.assert_allclose(euler_deg, np.radians(euler_rad))
-        np.testing.assert_allclose(euler_dot_deg, np.radians(euler_dot_rad))
 
 
 class Test_imu_from_kinematics:
@@ -328,46 +305,6 @@ class Test_trajectory:
         np.testing.assert_allclose(f_b[:, 0], np.cos(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 1], -np.sin(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 2], -9.80665)
-
-    def test_motion_custom_degrees(self):
-        n = 100
-        amp_deg = 5.0
-
-        def roll(amp):
-            return Beat(amp=amp, omega=2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01)
-
-        def pitch(amp):
-            return Beat(amp=amp, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.01)
-
-        motion_deg = Motion(
-            roll=roll(amp_deg),
-            pitch=pitch(amp_deg),
-            degrees=True,
-        )
-        motion_rad = Motion(
-            roll=roll(np.radians(amp_deg)),
-            pitch=pitch(np.radians(amp_deg)),
-            degrees=False,
-        )
-
-        out_deg = ap.simulate.trajectory(n=n, motion=motion_deg, degrees=True)
-        out_rad = ap.simulate.trajectory(n=n, motion=motion_rad, degrees=False)
-
-        t, p_deg, v_deg, euler_deg, f_deg, w_deg = out_deg
-        _, p_rad, v_rad, euler_rad, f_rad, w_rad = out_rad
-
-        # Degrees in -> degrees out reproduces the input signals
-        roll, *_ = motion_deg.roll(t)
-        pitch, *_ = motion_deg.pitch(t)
-        np.testing.assert_allclose(euler_deg[:, 0], roll)
-        np.testing.assert_allclose(euler_deg[:, 1], pitch)
-
-        # Equivalent to the same motion specified in radians
-        np.testing.assert_allclose(p_deg, p_rad)
-        np.testing.assert_allclose(v_deg, v_rad)
-        np.testing.assert_allclose(f_deg, f_rad)
-        np.testing.assert_allclose(np.radians(euler_deg), euler_rad)
-        np.testing.assert_allclose(np.radians(w_deg), w_rad)
 
     @pytest.mark.parametrize("motion", ["BEAT-6DOF", "Beat-3dof", "Stationary"])
     def test_motion_case_insensitive(self, motion):
