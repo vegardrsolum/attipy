@@ -320,6 +320,8 @@ class _Composite(DOF):
     """
 
     def __init__(self, *dofs: DOF) -> None:
+        if not dofs:
+            raise ValueError("At least one DOF must be given.")
         self._dofs = self._flatten(dofs)
 
     @classmethod

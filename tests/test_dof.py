@@ -492,6 +492,10 @@ class Test__Sum:
         assert isinstance(dof_sum, DOF)
         assert dof_sum._dofs == (beat, constant, sine)
 
+    def test__init__raises_empty(self):
+        with pytest.raises(ValueError):
+            _Sum()
+
     def test_single(self, beat, t):
         dof_sum = _Sum(beat)
         y, dydt, d2ydt2 = dof_sum(t)
@@ -616,6 +620,10 @@ class Test__Product:
 
         assert isinstance(dof_product, DOF)
         assert dof_product._dofs == (beat, constant, sine)
+
+    def test__init__raises_empty(self):
+        with pytest.raises(ValueError):
+            _Product()
 
     def test_single(self, beat, t):
         dof_product = _Product(beat)
