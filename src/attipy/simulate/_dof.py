@@ -318,23 +318,19 @@ class _Composite(DOF):
     """
 
     def __init__(self, *dofs: DOF) -> None:
-        if not dofs:
-            raise ValueError("At least one DOF must be given.")
-
         self._dofs = self._flatten(dofs)
 
     @classmethod
     def _flatten(cls, dofs: Iterable[DOF]) -> tuple[DOF, ...]:
+        """
+        Flatten nested composites of the same type into a single tuple of DOFs.
+        """
         dofs_flat: list[DOF] = []
         for dof in dofs:
             if isinstance(dof, cls):
                 dofs_flat.extend(dof._dofs)
-            elif isinstance(dof, DOF):
-                dofs_flat.append(dof)
             else:
-                raise TypeError(
-                    f"All arguments must be DOF instances, got {type(dof).__name__}."
-                )
+                dofs_flat.append(dof)
         return tuple(dofs_flat)
 
 
