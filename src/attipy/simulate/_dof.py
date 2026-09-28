@@ -468,7 +468,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
         100.0 seconds.
     start : float, optional
         Time in seconds at which the ramp-up starts. The signal, and its two
-        first time derivatives, are zero before this time. Default is 0.0.
+        first time derivatives, are zero before this time. Defaults to 0.0.
 
     Returns
     -------
