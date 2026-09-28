@@ -949,6 +949,40 @@ class Test_from_psd:
         np.testing.assert_allclose(y1, y2)
         assert not np.allclose(y1, y3)
 
+    @pytest.mark.parametrize("jitter", [0.5, 1.0])
+    def test_jitter(self, freq, psd, jitter):
+        dof = from_psd(freq, psd, 4, jitter=jitter, seed=1)
+
+        df = 0.25
+        freq_center = np.array([0.125, 0.375, 0.625, 0.875])
+        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
+        amp_expect = np.sqrt(2.0 * np.interp(freq_k, freq, psd) * df)
+
+        assert not np.allclose(freq_k, freq_center)
+        assert np.all(np.abs(freq_k - freq_center) <= 0.5 * jitter * df)
+        np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
+
+    def test_jitter_does_not_change_phases(self, freq, psd):
+        dof1 = from_psd(freq, psd, 10, seed=1)
+        dof2 = from_psd(freq, psd, 10, jitter=1.0, seed=1)
+
+        np.testing.assert_allclose(
+            [s._phase for s in dof1._dofs], [s._phase for s in dof2._dofs]
+        )
+
+    def test_jitter_variance(self, freq, psd):
+        dof = from_psd(freq, psd, 200, jitter=1.0, seed=1)
+
+        t = np.arange(0.0, 10_000.0, 0.1)
+        var_expect = np.trapezoid(psd, freq)
+
+        assert np.var(dof.y(t)) == pytest.approx(var_expect, rel=0.05)
+
+    @pytest.mark.parametrize("jitter", [-0.1, 1.1])
+    def test_raises_jitter(self, freq, psd, jitter):
+        with pytest.raises(ValueError):
+            from_psd(freq, psd, 10, jitter=jitter)
+
     def test_seed_generator(self, freq, psd, t):
         y1 = from_psd(freq, psd, 20, seed=np.random.default_rng(1)).y(t)
         y2 = from_psd(freq, psd, 20, seed=1).y(t)
