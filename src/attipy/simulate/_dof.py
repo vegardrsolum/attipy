@@ -244,51 +244,42 @@ class Sine(DOF):
         return y, dydt, d2ydt2
 
 
-class RampUp(DOF):
+class SmootherStep(DOF):
     """
-    Ramp-up wrapper for DOF signals.
+    Smootherstep DOF signal generator.
 
-    Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
+    Smooth step from 0 to 1, defined as:
 
-        y_rampup(t) = w(t) * y(t)
+        y = 6 * x**5 - 15 * x**4 + 10 * x**3
 
-    The window is zero before the ramp-up starts, increases smoothly from 0 to 1
-    during the ramp-up period, and stays at 1 afterwards:
-
-        w(t) = 6 * x**5 - 15 * x**4 + 10 * x**3
-
-    where ``x = (t - start) / duration`` clipped to [0, 1]. The window has
-    vanishing first and second derivatives at both ends of the ramp-up period,
-    so that the ramped signal and its two first time derivatives are continuous.
+    where ``x = (t - start) / duration`` clipped to [0, 1]. The signal is zero
+    before ``start``, increases smoothly from 0 to 1 during the step period, and
+    stays at 1 afterwards. The first and second time derivatives vanish at both
+    ends of the step period, so that the signal and its two first time
+    derivatives are continuous.
 
     Parameters
     ----------
-    dof : DOF
-        Underlying DOF signal generator to ramp up.
     duration : float, optional
-        Duration of the ramp-up period in seconds. Must be positive. Defaults to
+        Duration of the step period in seconds. Must be positive. Defaults to
         100.0 seconds.
     start : float, optional
-        Time in seconds at which the ramp-up starts. The signal, and its two
-        first time derivatives, are zero before this time. Default is 0.0.
+        Time in seconds at which the step starts. Must be non-negative. Defaults
+        to 0.0 seconds.
     """
 
-    def __init__(self, dof: DOF, duration: float = 100.0, start: float = 0.0) -> None:
+    def __init__(self, duration: float = 100.0, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
         if start < 0.0:
             raise ValueError("'start' must be non-negative.")
 
-        self._dof = dof
         self._duration = float(duration)
         self._start = float(start)
 
-    def _window(
+    def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Ramp-up window, w(t), and its two first time derivatives.
-        """
         duration = self._duration
         x = np.clip((t - self._start) / duration, 0.0, 1.0)
 
@@ -297,18 +288,6 @@ class RampUp(DOF):
         d2w = 60.0 * x * (1.0 - 3.0 * x + 2.0 * x**2) / duration**2
 
         return w, dw, d2w
-
-    def _evaluate(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        w, dw, d2w = self._window(t)
-        y, dydt, d2ydt2 = self._dof._evaluate(t)
-
-        y_ramped = w * y
-        dydt_ramped = dw * y + w * dydt
-        d2ydt2_ramped = d2w * y + 2.0 * dw * dydt + w * d2ydt2
-
-        return y_ramped, dydt_ramped, d2ydt2_ramped
 
 
 def _as_dof(other: object) -> DOF:
@@ -465,3 +444,42 @@ def multiply(*dofs: DOF | float) -> DOF:
         DOF signal generator for the product.
     """
     return _Product(*(_as_dof(dof) for dof in dofs))
+
+
+def ramp_up(dof: DOF | float, duration: float = 100.0, start: float = 0.0) -> DOF:
+    """
+    Ramp up a DOF signal.
+
+    Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
+
+        y_rampup(t) = w(t) * y(t)
+
+    The window is zero before the ramp-up starts, increases smoothly from 0 to 1
+    during the ramp-up period, and stays at 1 afterwards:
+
+        w(t) = 6 * x**5 - 15 * x**4 + 10 * x**3
+
+    where ``x = (t - start) / duration`` clipped to [0, 1]. The window has
+    vanishing first and second derivatives at both ends of the ramp-up period,
+    so that the ramped signal and its two first time derivatives are continuous.
+
+    This is equivalent to ``multiply(SmootherStep(duration, start), dof)``.
+
+    Parameters
+    ----------
+    dof : DOF or float
+        Underlying DOF signal generator to ramp up. A real number is treated as
+        a constant DOF signal.
+    duration : float, optional
+        Duration of the ramp-up period in seconds. Must be positive. Defaults to
+        100.0 seconds.
+    start : float, optional
+        Time in seconds at which the ramp-up starts. The signal, and its two
+        first time derivatives, are zero before this time. Default is 0.0.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the ramped-up signal.
+    """
+    return multiply(SmootherStep(duration=duration, start=start), dof)

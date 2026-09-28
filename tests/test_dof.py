@@ -6,13 +6,14 @@ from attipy.simulate._dof import (
     DOF,
     Beat,
     Constant,
-    RampUp,
     Sine,
+    SmootherStep,
     _as_dof,
     _Product,
     _Sum,
     add,
     multiply,
+    ramp_up,
 )
 
 
@@ -270,72 +271,126 @@ class Test_Sine:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_RampUp:
+class Test_SmootherStep:
+    @pytest.fixture
+    def step(self):
+        return SmootherStep(4.0, start=2.0)
+
+    @pytest.fixture
+    def expect(self, t):
+        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
+        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
+        d2w = (120.0 * x**3 - 180.0 * x**2 + 60.0 * x) / 4.0**2
+        return w, dw, d2w
+
+    def test__init__(self):
+        step = SmootherStep(4.0, start=2.0)
+
+        assert isinstance(step, DOF)
+        assert step._duration == 4.0
+        assert step._start == 2.0
+
+    def test__init__default(self):
+        step = SmootherStep()
+
+        assert step._duration == 100.0
+        assert step._start == 0.0
+
+    @pytest.mark.parametrize("duration", [0.0, -1.0])
+    def test__init__raises_duration(self, duration):
+        with pytest.raises(ValueError):
+            SmootherStep(duration)
+
+    def test__init__raises_start(self):
+        with pytest.raises(ValueError):
+            SmootherStep(4.0, start=-1.0)
+
+    def test_values(self, step):
+        t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
+        w, dw, d2w = step(t)
+
+        np.testing.assert_allclose(w, [0.0, 0.0, 0.5, 1.0, 1.0])
+        np.testing.assert_allclose(dw, [0.0, 0.0, 30.0 * 0.5**4 / 4.0, 0.0, 0.0])
+        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0])
+
+    def test_y(self, step, expect, t):
+        np.testing.assert_allclose(step.y(t), expect[0])
+
+    def test_dydt(self, step, expect, t):
+        np.testing.assert_allclose(step.dydt(t), expect[1])
+
+    def test_d2ydt2(self, step, expect, t):
+        np.testing.assert_allclose(step.d2ydt2(t), expect[2], atol=1e-12)
+
+    def test_derivatives_by_finite_difference(self, step):
+        t = np.linspace(0.0, 20.0, 400_001)
+        w, dw, d2w = step(t)
+        dt = t[1] - t[0]
+
+        dw_fd = (w[2:] - w[:-2]) / (2.0 * dt)
+        d2w_fd = (dw[2:] - dw[:-2]) / (2.0 * dt)
+
+        # Central differences are inaccurate where the jerk is discontinuous,
+        # i.e., at the two ends of the step period.
+        t_mid = t[1:-1]
+        valid = (np.abs(t_mid - 2.0) > dt) & (np.abs(t_mid - 6.0) > dt)
+
+        np.testing.assert_allclose(dw[1:-1][valid], dw_fd[valid], atol=1e-6)
+        np.testing.assert_allclose(d2w[1:-1][valid], d2w_fd[valid], atol=1e-6)
+
+
+class Test_ramp_up:
     @pytest.fixture
     def beat(self):
         return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def rampup(self, beat):
-        return RampUp(beat, 4.0, start=2.0)
+        return ramp_up(beat, 4.0, start=2.0)
 
-    def test__init__(self, beat):
-        rampup = RampUp(beat, 4.0, start=2.0)
-
-        assert isinstance(rampup, DOF)
-        assert rampup._dof is beat
-        assert rampup._duration == 4.0
-        assert rampup._start == 2.0
-
-    def test__init__default(self, beat):
-        rampup = RampUp(beat)
-
-        assert rampup._duration == 100.0
-        assert rampup._start == 0.0
-
-    def test__init__raises(self, beat):
-        with pytest.raises(ValueError):
-            RampUp(beat, 0.0)
-
-        with pytest.raises(ValueError):
-            RampUp(beat, -1.0)
-
-    def test_window(self, rampup):
-        t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
-        w, dw, d2w = rampup._window(t)
-
-        np.testing.assert_allclose(w, [0.0, 0.0, 0.5, 1.0, 1.0])
-        np.testing.assert_allclose(dw, [0.0, 0.0, 30.0 * 0.5**4 / 4.0, 0.0, 0.0])
-        np.testing.assert_allclose(d2w, [0.0, 0.0, 0.0, 0.0, 0.0])
-
-    def test_y(self, rampup, beat, t):
-        y = rampup.y(t)
-
-        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
-        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
-
-        np.testing.assert_allclose(y, w * beat.y(t))
-
-    def test_dydt(self, rampup, beat, t):
-        dydt = rampup.dydt(t)
-
-        x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
-        w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
-        dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
-
-        np.testing.assert_allclose(dydt, dw * beat.y(t) + w * beat.dydt(t))
-
-    def test_d2ydt2(self, rampup, beat, t):
-        d2ydt2 = rampup.d2ydt2(t)
-
+    @pytest.fixture
+    def window(self, t):
         x = np.clip((t - 2.0) / 4.0, 0.0, 1.0)
         w = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
         dw = (30.0 * x**4 - 60.0 * x**3 + 30.0 * x**2) / 4.0
         d2w = (120.0 * x**3 - 180.0 * x**2 + 60.0 * x) / 4.0**2
+        return w, dw, d2w
 
+    def test_ramp_times_dof(self, rampup, beat):
+        assert isinstance(rampup, DOF)
+        assert isinstance(rampup, _Product)
+        assert len(rampup._dofs) == 2
+        assert isinstance(rampup._dofs[0], SmootherStep)
+        assert rampup._dofs[1] is beat
+
+    def test_keywords(self, beat):
+        ramp = ramp_up(beat, duration=4.0, start=2.0)._dofs[0]
+
+        assert ramp._duration == 4.0
+        assert ramp._start == 2.0
+
+    def test_default(self, beat):
+        ramp = ramp_up(beat)._dofs[0]
+
+        assert ramp._duration == 100.0
+        assert ramp._start == 0.0
+
+    def test_y(self, rampup, beat, window, t):
+        w, _, _ = window
+
+        np.testing.assert_allclose(rampup.y(t), w * beat.y(t))
+
+    def test_dydt(self, rampup, beat, window, t):
+        w, dw, _ = window
+
+        np.testing.assert_allclose(rampup.dydt(t), dw * beat.y(t) + w * beat.dydt(t))
+
+    def test_d2ydt2(self, rampup, beat, window, t):
+        w, dw, d2w = window
         d2ydt2_expect = d2w * beat.y(t) + 2.0 * dw * beat.dydt(t) + w * beat.d2ydt2(t)
 
-        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+        np.testing.assert_allclose(rampup.d2ydt2(t), d2ydt2_expect, atol=1e-12)
 
     def test_at_rest_before_start(self, rampup):
         t = np.linspace(0.0, 2.0, 100)
@@ -369,6 +424,29 @@ class Test_RampUp:
 
         np.testing.assert_allclose(dydt[1:-1][valid], dydt_fd[valid], atol=1e-6)
         np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
+
+    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
+    def test_real(self, value, window, t):
+        w, dw, d2w = window
+        y, dydt, d2ydt2 = ramp_up(value, 4.0, start=2.0)(t)
+
+        np.testing.assert_allclose(y, 2.0 * w)
+        np.testing.assert_allclose(dydt, 2.0 * dw)
+        np.testing.assert_allclose(d2ydt2, 2.0 * d2w, atol=1e-12)
+
+    @pytest.mark.parametrize("duration", [0.0, -1.0])
+    def test_raises_duration(self, beat, duration):
+        with pytest.raises(ValueError):
+            ramp_up(beat, duration)
+
+    def test_raises_start(self, beat):
+        with pytest.raises(ValueError):
+            ramp_up(beat, 4.0, start=-1.0)
+
+    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
+    def test_raises_type(self, other):
+        with pytest.raises(TypeError):
+            ramp_up(other)
 
 
 class Test__as_dof:
@@ -809,19 +887,29 @@ class Test_public_api:
         assert dof.DOF is DOF
         assert dof.Beat is Beat
         assert dof.Constant is Constant
-        assert dof.RampUp is RampUp
         assert dof.Sine is Sine
+        assert dof.SmootherStep is SmootherStep
         assert dof.add is add
         assert dof.multiply is multiply
+        assert dof.ramp_up is ramp_up
         assert sorted(dof.__all__) == sorted(
-            ["DOF", "Beat", "Constant", "RampUp", "Sine", "add", "multiply"]
+            [
+                "DOF",
+                "Beat",
+                "Constant",
+                "Sine",
+                "SmootherStep",
+                "add",
+                "multiply",
+                "ramp_up",
+            ]
         )
 
     def test_usage(self):
         t = np.linspace(0.0, 10.0, 100)
         motion = ap.simulate.Motion(
             x=ap.simulate.dof.add(ap.simulate.dof.Beat(amp=2.0), 0.5),
-            yaw=ap.simulate.dof.RampUp(ap.simulate.dof.Sine(amp=0.1), duration=5.0),
+            yaw=ap.simulate.dof.ramp_up(ap.simulate.dof.Sine(amp=0.1), duration=5.0),
         )
 
         np.testing.assert_allclose(motion.x.y(t), 2.0 * Beat().y(t) + 0.5)
