@@ -138,6 +138,7 @@ class Beat(DOF):
 
     def __init__(
         self,
+        *,
         amp: float = 1.0,
         omega: float = 0.1,
         omega_beat: float = 0.01,
@@ -222,6 +223,7 @@ class Sine(DOF):
 
     def __init__(
         self,
+        *,
         amp: float = 1.0,
         omega: float = 1.0,
         phase: float = 0.0,
@@ -269,7 +271,7 @@ class SmootherStep(DOF):
         to 0.0 seconds.
     """
 
-    def __init__(self, duration: float = 100.0, start: float = 0.0) -> None:
+    def __init__(self, *, duration: float = 100.0, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
         if start < 0.0:
@@ -291,7 +293,7 @@ class SmootherStep(DOF):
         return w, dw, d2w
 
 
-def _as_dof(other: object) -> DOF:
+def _as_dof(other: object, /) -> DOF:
     """
     Convert an argument to a DOF signal generator.
 
@@ -437,7 +439,7 @@ def multiply(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
     return _Product(_as_dof(dof1), _as_dof(dof2))
 
 
-def ramp_up(dof: DOF | float, duration: float = 100.0, start: float = 0.0) -> DOF:
+def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0) -> DOF:
     """
     Ramp up a DOF signal.
 
@@ -454,7 +456,7 @@ def ramp_up(dof: DOF | float, duration: float = 100.0, start: float = 0.0) -> DO
     vanishing first and second derivatives at both ends of the ramp-up period,
     so that the ramped signal and its two first time derivatives are continuous.
 
-    This is equivalent to ``multiply(SmootherStep(duration, start), dof)``.
+    This is equivalent to ``multiply(SmootherStep(duration=duration, start=start), dof)``.
 
     Parameters
     ----------

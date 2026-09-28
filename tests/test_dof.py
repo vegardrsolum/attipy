@@ -274,7 +274,7 @@ class Test_Sine:
 class Test_SmootherStep:
     @pytest.fixture
     def step(self):
-        return SmootherStep(4.0, start=2.0)
+        return SmootherStep(duration=4.0, start=2.0)
 
     @pytest.fixture
     def expect(self, t):
@@ -285,7 +285,7 @@ class Test_SmootherStep:
         return w, dw, d2w
 
     def test__init__(self):
-        step = SmootherStep(4.0, start=2.0)
+        step = SmootherStep(duration=4.0, start=2.0)
 
         assert isinstance(step, DOF)
         assert step._duration == 4.0
@@ -300,11 +300,11 @@ class Test_SmootherStep:
     @pytest.mark.parametrize("duration", [0.0, -1.0])
     def test__init__raises_duration(self, duration):
         with pytest.raises(ValueError):
-            SmootherStep(duration)
+            SmootherStep(duration=duration)
 
     def test__init__raises_start(self):
         with pytest.raises(ValueError):
-            SmootherStep(4.0, start=-1.0)
+            SmootherStep(duration=4.0, start=-1.0)
 
     def test_values(self, step):
         t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
@@ -347,7 +347,7 @@ class Test_ramp_up:
 
     @pytest.fixture
     def rampup(self, beat):
-        return ramp_up(beat, 4.0, start=2.0)
+        return ramp_up(beat, duration=4.0, start=2.0)
 
     @pytest.fixture
     def window(self, t):
@@ -428,7 +428,7 @@ class Test_ramp_up:
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
     def test_real(self, value, window, t):
         w, dw, d2w = window
-        y, dydt, d2ydt2 = ramp_up(value, 4.0, start=2.0)(t)
+        y, dydt, d2ydt2 = ramp_up(value, duration=4.0, start=2.0)(t)
 
         np.testing.assert_allclose(y, 2.0 * w)
         np.testing.assert_allclose(dydt, 2.0 * dw)
@@ -437,11 +437,11 @@ class Test_ramp_up:
     @pytest.mark.parametrize("duration", [0.0, -1.0])
     def test_raises_duration(self, beat, duration):
         with pytest.raises(ValueError):
-            ramp_up(beat, duration)
+            ramp_up(beat, duration=duration)
 
     def test_raises_start(self, beat):
         with pytest.raises(ValueError):
-            ramp_up(beat, 4.0, start=-1.0)
+            ramp_up(beat, duration=4.0, start=-1.0)
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test_raises_type(self, other):

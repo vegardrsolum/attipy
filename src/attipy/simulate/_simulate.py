@@ -52,12 +52,12 @@ _W_MAIN = 2.0 * np.pi * 0.1  # 0.1 Hz
 _W_BEAT = 2.0 * np.pi * 0.01  # 0.01 Hz
 
 _BEAT6DOF = Motion(
-    x=Beat(1.0, _W_MAIN, _W_BEAT, phase=0.0),
-    y=Beat(1.0, _W_MAIN, _W_BEAT, phase=np.pi / 3),
-    z=Beat(1.0, _W_MAIN, _W_BEAT, phase=2 * np.pi / 3),
-    roll=Beat(0.1, _W_MAIN, _W_BEAT, phase=np.pi),
-    pitch=Beat(0.1, _W_MAIN, _W_BEAT, phase=4 * np.pi / 3),
-    yaw=Beat(0.1, _W_MAIN, _W_BEAT, phase=5 * np.pi / 3),
+    x=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=0.0),
+    y=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi / 3),
+    z=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=2 * np.pi / 3),
+    roll=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi),
+    pitch=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=4 * np.pi / 3),
+    yaw=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=5 * np.pi / 3),
     degrees=False,
 )
 
