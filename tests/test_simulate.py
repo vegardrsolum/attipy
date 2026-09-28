@@ -163,25 +163,14 @@ class Test_trajectory:
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory()
 
         # Expected DOF signals
-        pos_amp = 1.0
-        att_amp = 0.1
-        amps = 3 * [pos_amp] + 3 * [att_amp]
         phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
-        beats = [
-            BeatDOF(
-                amp=amp,
-                omega=2 * np.pi * 0.1,
-                omega_beat=2 * np.pi * 0.01,
-                phase=phase,
-            )
-            for amp, phase in zip(amps, phases)
-        ]
-        px, vx, _ = beats[0](t)
-        py, vy, _ = beats[1](t)
-        pz, vz, _ = beats[2](t)
-        r, *_ = beats[3](t)
-        p, *_ = beats[4](t)
-        y, *_ = beats[5](t)
+        beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
+        px, vx, _ = BeatDOF(amp=1.0, phase=phases[0], **beat_kwargs)(t)
+        py, vy, _ = BeatDOF(amp=1.0, phase=phases[1], **beat_kwargs)(t)
+        pz, vz, _ = BeatDOF(amp=1.0, phase=phases[2], **beat_kwargs)(t)
+        r, *_ = BeatDOF(amp=0.1, phase=phases[3], **beat_kwargs)(t)
+        p, *_ = BeatDOF(amp=0.1, phase=phases[4], **beat_kwargs)(t)
+        y, *_ = BeatDOF(amp=0.1, phase=phases[5], **beat_kwargs)(t)
 
         # Time
         fs_expect = 10.0
@@ -297,18 +286,10 @@ class Test_trajectory:
         )
 
         # Expected attitude DOF signals
-        beats = [
-            BeatDOF(
-                amp=0.1,
-                omega=2 * np.pi * 0.1,
-                omega_beat=2 * np.pi * 0.01,
-                phase=phase,
-            )
-            for phase in (np.pi, 4 * np.pi / 3, 5 * np.pi / 3)
-        ]
-        r, *_ = beats[0](t)
-        p, *_ = beats[1](t)
-        y, *_ = beats[2](t)
+        beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
+        r, *_ = BeatDOF(amp=0.1, phase=np.pi, **beat_kwargs)(t)
+        p, *_ = BeatDOF(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
+        y, *_ = BeatDOF(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
 
         # No translation
         np.testing.assert_allclose(p_n, np.zeros((n, 3)))
