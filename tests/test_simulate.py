@@ -3,7 +3,7 @@ import pytest
 
 import attipy as ap
 from attipy._transforms import _matrix_from_euler_zyx
-from attipy.simulate._dof import DOF, BeatDOF, ConstantDOF
+from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
     Motion,
     _angular_velocity_body,
@@ -17,7 +17,7 @@ class Test_Motion:
     NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
     def test__init__(self):
-        dofs = {name: ConstantDOF(float(i)) for i, name in enumerate(self.NAMES)}
+        dofs = {name: Constant(float(i)) for i, name in enumerate(self.NAMES)}
         motion = Motion(**dofs, degrees=True)
 
         for name in self.NAMES:
@@ -30,7 +30,7 @@ class Test_Motion:
 
         for name in self.NAMES:
             dof = getattr(motion, name)
-            assert isinstance(dof, ConstantDOF)
+            assert isinstance(dof, Constant)
             np.testing.assert_allclose(dof.y(t), np.zeros_like(t))
         assert motion.degrees is False
 
@@ -39,7 +39,7 @@ class Test_Motion:
 
     def test__init__keyword_only(self):
         with pytest.raises(TypeError):
-            Motion(ConstantDOF())
+            Motion(Constant())
 
     @pytest.mark.parametrize("name", NAMES)
     def test__init__non_dof_raises(self, name):
@@ -51,7 +51,7 @@ class Test_Motion:
         motion = Motion()
 
         with pytest.raises(AttributeError):
-            setattr(motion, name, ConstantDOF())
+            setattr(motion, name, Constant())
 
     def test_not_iterable(self):
         with pytest.raises(TypeError):
@@ -116,10 +116,10 @@ class Test_sample_motion:
     def test_degrees_converts_angular_dofs(self):
         t = np.linspace(0.0, 10.0, 100)
         dofs = {
-            "x": BeatDOF(omega=0.1, omega_beat=0.01),
-            "roll": ConstantDOF(30.0),
-            "pitch": BeatDOF(amp=5.0, omega=0.1, omega_beat=0.01),
-            "yaw": BeatDOF(amp=10.0, omega=0.2, omega_beat=0.02),
+            "x": Beat(omega=0.1, omega_beat=0.01),
+            "roll": Constant(30.0),
+            "pitch": Beat(amp=5.0, omega=0.1, omega_beat=0.01),
+            "yaw": Beat(amp=10.0, omega=0.2, omega_beat=0.02),
         }
 
         out_deg = _sample_motion(Motion(**dofs, degrees=True), t)
@@ -165,12 +165,12 @@ class Test_trajectory:
         # Expected DOF signals
         phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
         beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        px, vx, _ = BeatDOF(amp=1.0, phase=phases[0], **beat_kwargs)(t)
-        py, vy, _ = BeatDOF(amp=1.0, phase=phases[1], **beat_kwargs)(t)
-        pz, vz, _ = BeatDOF(amp=1.0, phase=phases[2], **beat_kwargs)(t)
-        r, *_ = BeatDOF(amp=0.1, phase=phases[3], **beat_kwargs)(t)
-        p, *_ = BeatDOF(amp=0.1, phase=phases[4], **beat_kwargs)(t)
-        y, *_ = BeatDOF(amp=0.1, phase=phases[5], **beat_kwargs)(t)
+        px, vx, _ = Beat(amp=1.0, phase=phases[0], **beat_kwargs)(t)
+        py, vy, _ = Beat(amp=1.0, phase=phases[1], **beat_kwargs)(t)
+        pz, vz, _ = Beat(amp=1.0, phase=phases[2], **beat_kwargs)(t)
+        r, *_ = Beat(amp=0.1, phase=phases[3], **beat_kwargs)(t)
+        p, *_ = Beat(amp=0.1, phase=phases[4], **beat_kwargs)(t)
+        y, *_ = Beat(amp=0.1, phase=phases[5], **beat_kwargs)(t)
 
         # Time
         fs_expect = 10.0
@@ -287,9 +287,9 @@ class Test_trajectory:
 
         # Expected attitude DOF signals
         beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        r, *_ = BeatDOF(amp=0.1, phase=np.pi, **beat_kwargs)(t)
-        p, *_ = BeatDOF(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
-        y, *_ = BeatDOF(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
+        r, *_ = Beat(amp=0.1, phase=np.pi, **beat_kwargs)(t)
+        p, *_ = Beat(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
+        y, *_ = Beat(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
 
         # No translation
         np.testing.assert_allclose(p_n, np.zeros((n, 3)))
@@ -306,8 +306,8 @@ class Test_trajectory:
 
     def test_motion_custom(self):
         n = 100
-        x = BeatDOF(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
-        motion = Motion(x=x, yaw=ConstantDOF(0.5))
+        x = Beat(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
+        motion = Motion(x=x, yaw=Constant(0.5))
 
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(n=n, motion=motion)
 
@@ -334,10 +334,10 @@ class Test_trajectory:
         amp_deg = 5.0
 
         def roll(amp):
-            return BeatDOF(amp=amp, omega=2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01)
+            return Beat(amp=amp, omega=2 * np.pi * 0.1, omega_beat=2 * np.pi * 0.01)
 
         def pitch(amp):
-            return BeatDOF(amp=amp, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.01)
+            return Beat(amp=amp, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.01)
 
         motion_deg = Motion(
             roll=roll(amp_deg),

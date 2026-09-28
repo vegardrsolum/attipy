@@ -113,7 +113,7 @@ class DOF(ABC):
         return self._evaluate(t)
 
 
-class BeatDOF(DOF):
+class Beat(DOF):
     """
     Beating DOF signal generator.
 
@@ -173,7 +173,7 @@ class BeatDOF(DOF):
         return y, dydt, d2ydt2
 
 
-class ConstantDOF(DOF):
+class Constant(DOF):
     """
     Constant DOF signal generator.
 
@@ -200,7 +200,7 @@ class ConstantDOF(DOF):
         return y, dydt, d2ydt2
 
 
-class SineDOF(DOF):
+class Sine(DOF):
     """
     Sinusoidal DOF signal generator.
 
@@ -316,12 +316,12 @@ def _as_dof(other: object) -> DOF:
     Convert an argument to a DOF signal generator.
 
     DOF instances are returned as they are, and real numbers are wrapped in a
-    ``ConstantDOF``. Any other argument raises a ``TypeError``.
+    ``Constant``. Any other argument raises a ``TypeError``.
     """
     if isinstance(other, DOF):
         return other
     if isinstance(other, numbers.Real):
-        return ConstantDOF(float(other))
+        return Constant(float(other))
     raise TypeError(
         f"Arguments must be DOF instances or real numbers, got {type(other).__name__}."
     )

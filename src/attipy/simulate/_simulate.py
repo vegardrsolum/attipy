@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 
 from .._mekf import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
-from ._dof import DOF, BeatDOF, ConstantDOF
+from ._dof import DOF, Beat, Constant
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -17,29 +17,29 @@ class Motion:
 
     Parameters
     ----------
-    x : DOF, optional
-        Position along the x-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    y : DOF, optional
-        Position along the y-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    z : DOF, optional
-        Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
-    roll : DOF, optional
-        Roll Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
-    pitch : DOF, optional
-        Pitch Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
-    yaw : DOF, optional
-        Yaw Euler angle in radians (default) or degrees. Defaults to ``ConstantDOF(0.0)``.
+    x : dof.DOF, optional
+        Position along the x-axis in meters. Defaults to ``dof.Constant(0.0)``.
+    y : dof.DOF, optional
+        Position along the y-axis in meters. Defaults to ``dof.Constant(0.0)``.
+    z : dof.DOF, optional
+        Position along the z-axis in meters. Defaults to ``dof.Constant(0.0)``.
+    roll : dof.DOF, optional
+        Roll Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
+    pitch : dof.DOF, optional
+        Pitch Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
+    yaw : dof.DOF, optional
+        Yaw Euler angle in radians (default) or degrees. Defaults to ``dof.Constant(0.0)``.
     degrees : bool, optional
         Specifies whether the angular DOF signals, ``roll``, ``pitch`` and ``yaw``,
         are given in degrees or radians (default).
     """
 
-    x: DOF = field(default_factory=ConstantDOF)
-    y: DOF = field(default_factory=ConstantDOF)
-    z: DOF = field(default_factory=ConstantDOF)
-    roll: DOF = field(default_factory=ConstantDOF)
-    pitch: DOF = field(default_factory=ConstantDOF)
-    yaw: DOF = field(default_factory=ConstantDOF)
+    x: DOF = field(default_factory=Constant)
+    y: DOF = field(default_factory=Constant)
+    z: DOF = field(default_factory=Constant)
+    roll: DOF = field(default_factory=Constant)
+    pitch: DOF = field(default_factory=Constant)
+    yaw: DOF = field(default_factory=Constant)
     degrees: bool = False
 
     def __post_init__(self) -> None:
@@ -52,21 +52,21 @@ _W_MAIN = 2.0 * np.pi * 0.1  # 0.1 Hz
 _W_BEAT = 2.0 * np.pi * 0.01  # 0.01 Hz
 
 _BEAT6DOF = Motion(
-    x=BeatDOF(1.0, _W_MAIN, _W_BEAT, phase=0.0),
-    y=BeatDOF(1.0, _W_MAIN, _W_BEAT, phase=np.pi / 3),
-    z=BeatDOF(1.0, _W_MAIN, _W_BEAT, phase=2 * np.pi / 3),
-    roll=BeatDOF(0.1, _W_MAIN, _W_BEAT, phase=np.pi),
-    pitch=BeatDOF(0.1, _W_MAIN, _W_BEAT, phase=4 * np.pi / 3),
-    yaw=BeatDOF(0.1, _W_MAIN, _W_BEAT, phase=5 * np.pi / 3),
+    x=Beat(1.0, _W_MAIN, _W_BEAT, phase=0.0),
+    y=Beat(1.0, _W_MAIN, _W_BEAT, phase=np.pi / 3),
+    z=Beat(1.0, _W_MAIN, _W_BEAT, phase=2 * np.pi / 3),
+    roll=Beat(0.1, _W_MAIN, _W_BEAT, phase=np.pi),
+    pitch=Beat(0.1, _W_MAIN, _W_BEAT, phase=4 * np.pi / 3),
+    yaw=Beat(0.1, _W_MAIN, _W_BEAT, phase=5 * np.pi / 3),
     degrees=False,
 )
 
 
 _BEAT3DOF = replace(
     _BEAT6DOF,
-    x=ConstantDOF(0.0),
-    y=ConstantDOF(0.0),
-    z=ConstantDOF(0.0),
+    x=Constant(0.0),
+    y=Constant(0.0),
+    z=Constant(0.0),
 )
 
 

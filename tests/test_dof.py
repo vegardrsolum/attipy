@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+import attipy as ap
 from attipy.simulate._dof import (
     DOF,
-    BeatDOF,
-    ConstantDOF,
+    Beat,
+    Constant,
     RampUp,
-    SineDOF,
+    Sine,
     _as_dof,
     _Product,
     _Sum,
@@ -55,14 +56,14 @@ class Test_DOF:
         np.testing.assert_allclose(some_dof.d2ydt2(t), some_dof(t)[2])
 
 
-class Test_BeatDOF:
+class Test_Beat:
     @pytest.fixture
     def beat(self):
-        dof = BeatDOF(amp=2.0, omega=1.0, omega_beat=0.1)
+        dof = Beat(amp=2.0, omega=1.0, omega_beat=0.1)
         return dof
 
     def test__init__(self):
-        beat = BeatDOF(
+        beat = Beat(
             amp=3.0,
             omega=2.0,
             omega_beat=0.2,
@@ -76,7 +77,7 @@ class Test_BeatDOF:
         assert beat._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        beat_dof = BeatDOF()
+        beat_dof = Beat()
 
         assert isinstance(beat_dof, DOF)
         assert beat_dof._amp == 1.0
@@ -159,20 +160,20 @@ class Test_BeatDOF:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_ConstantDOF:
+class Test_Constant:
     @pytest.fixture
     def constant(self):
-        dof = ConstantDOF(value=2.0)
+        dof = Constant(value=2.0)
         return dof
 
     def test__init__(self):
-        constant = ConstantDOF(value=3.0)
+        constant = Constant(value=3.0)
 
         assert isinstance(constant, DOF)
         assert constant._value == 3.0
 
     def test__init__default(self):
-        constant = ConstantDOF()
+        constant = Constant()
 
         assert isinstance(constant, DOF)
         assert constant._value == 0.0
@@ -210,14 +211,14 @@ class Test_ConstantDOF:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_SineDOF:
+class Test_Sine:
     @pytest.fixture
     def sine(self):
-        dof = SineDOF(amp=2.0, omega=3.0, phase=0.5)
+        dof = Sine(amp=2.0, omega=3.0, phase=0.5)
         return dof
 
     def test__init__(self):
-        sine = SineDOF(
+        sine = Sine(
             amp=3.0,
             omega=2.0,
             phase=4.0,
@@ -229,7 +230,7 @@ class Test_SineDOF:
         assert sine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        sine = SineDOF()
+        sine = Sine()
 
         assert isinstance(sine, DOF)
         assert sine._amp == 1.0
@@ -272,7 +273,7 @@ class Test_SineDOF:
 class Test_RampUp:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1)
+        return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def rampup(self, beat):
@@ -372,14 +373,14 @@ class Test_RampUp:
 
 class Test__as_dof:
     def test_dof(self):
-        dof = BeatDOF()
+        dof = Beat()
         assert _as_dof(dof) is dof
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
     def test_real(self, value, t):
         dof = _as_dof(value)
 
-        assert isinstance(dof, ConstantDOF)
+        assert isinstance(dof, Constant)
         assert dof._value == 2.0
         assert type(dof._value) is float
         np.testing.assert_allclose(dof.y(t), 2.0)
@@ -393,15 +394,15 @@ class Test__as_dof:
 class Test__Sum:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1)
+        return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
-        return ConstantDOF(value=3.0)
+        return Constant(value=3.0)
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, phase=0.3)
+        return Sine(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_sum(self, beat, constant, sine):
@@ -509,15 +510,15 @@ class Test__Sum:
 class Test__Product:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1)
+        return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
-        return ConstantDOF(value=3.0)
+        return Constant(value=3.0)
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, phase=0.3)
+        return Sine(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_product(self, beat, constant, sine):
@@ -583,7 +584,7 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2, expect[2])
 
     def test_scale_by_constant(self, beat, t):
-        dof_product = _Product(ConstantDOF(2.0), beat)
+        dof_product = _Product(Constant(2.0), beat)
         y, dydt, d2ydt2 = dof_product(t)
 
         np.testing.assert_allclose(y, 2.0 * beat.y(t))
@@ -591,7 +592,7 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
 
     def test_multiply_by_zero(self, beat, t):
-        dof_product = _Product(beat, ConstantDOF(0.0))
+        dof_product = _Product(beat, Constant(0.0))
         y, dydt, d2ydt2 = dof_product(t)
 
         np.testing.assert_allclose(y, 0.0)
@@ -659,11 +660,11 @@ class Test__Product:
 class Test_add:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1)
+        return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, phase=0.3)
+        return Sine(omega=1.5, phase=0.3)
 
     def test_dofs(self, beat, sine, t):
         dof_sum = add(beat, sine)
@@ -725,11 +726,11 @@ class Test_add:
 class Test_multiply:
     @pytest.fixture
     def beat(self):
-        return BeatDOF(omega=1.0, omega_beat=0.1)
+        return Beat(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def sine(self):
-        return SineDOF(omega=1.5, phase=0.3)
+        return Sine(omega=1.5, phase=0.3)
 
     def test_dofs(self, beat, sine, t):
         dof_product = multiply(beat, sine)
@@ -799,3 +800,28 @@ class Test_multiply:
     def test_raises_type(self, beat, other):
         with pytest.raises(TypeError):
             multiply(beat, other)
+
+
+class Test_public_api:
+    def test_dof_submodule(self):
+        dof = ap.simulate.dof
+
+        assert dof.DOF is DOF
+        assert dof.Beat is Beat
+        assert dof.Constant is Constant
+        assert dof.RampUp is RampUp
+        assert dof.Sine is Sine
+        assert dof.add is add
+        assert dof.multiply is multiply
+        assert sorted(dof.__all__) == sorted(
+            ["DOF", "Beat", "Constant", "RampUp", "Sine", "add", "multiply"]
+        )
+
+    def test_usage(self):
+        t = np.linspace(0.0, 10.0, 100)
+        motion = ap.simulate.Motion(
+            x=ap.simulate.dof.add(ap.simulate.dof.Beat(amp=2.0), 0.5),
+            yaw=ap.simulate.dof.RampUp(ap.simulate.dof.Sine(amp=0.1), duration=5.0),
+        )
+
+        np.testing.assert_allclose(motion.x.y(t), 2.0 * Beat().y(t) + 0.5)
