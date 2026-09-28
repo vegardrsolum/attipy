@@ -499,8 +499,10 @@ def from_psd(
     equally wide bins, and one component is placed at a frequency, f_k, within
     each bin. Without jitter, f_k is the center frequency of the bin. With
     jitter, f_k is drawn from a uniform distribution centered on the bin center,
-    with width ``jitter * df``. Jitter avoids that the signal repeats itself
-    with period 1 / df. The amplitudes are given by:
+    with width ``jitter * df``. Without jitter, the evenly spaced components
+    make the signal repeat itself on a time scale of 1 / df (with period exactly
+    2 / df when ``freq`` starts at 0, as for ``scipy.signal.welch``). Jitter
+    breaks up this periodicity. The amplitudes are given by:
 
         amp_k = sqrt(2 * S(f_k) * df)
 
