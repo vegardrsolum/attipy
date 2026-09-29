@@ -491,29 +491,18 @@ def from_psd(
     """
     DOF signal realization of a one-sided power spectral density (PSD).
 
-    The signal is a sum of sinusoidal components with random phases:
+    The signal is a sum of sinusoids with random phases:
 
-        y(t) = sum_k amp_k * sin(w_k * t + phase_k)
+        y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
 
-    The frequency range spanned by ``freq`` is divided into ``n_components``
-    equally wide bins, and one component is placed at a frequency, f_k, within
-    each bin. Without jitter, f_k is the center frequency of the bin. With
-    jitter, f_k is drawn from a uniform distribution centered on the bin center,
-    with width ``jitter * df``. Without jitter, the evenly spaced components
-    make the signal repeat itself on a time scale of 1 / df (with period exactly
-    2 / df when ``freq`` starts at 0, as for ``scipy.signal.welch``). Jitter
-    breaks up this periodicity. The amplitudes are given by:
+    The frequency range of ``freq`` is divided into ``n_components`` equally
+    wide bins, with one component per bin. The amplitudes are:
 
         amp_k = sqrt(2 * P_k)
 
-    where P_k is the area under the linearly interpolated PSD within bin k.
-    The variance of the signal thus equals the area under the PSD, regardless
-    of ``n_components`` and ``jitter``, and narrow spectral peaks are captured
-    even when they fall between bin centers. The phases, phase_k, are drawn
-    independently from a uniform distribution on [0, 2 * pi).
-
-    The PSD is expected to be one-sided, e.g., as returned by
-    ``scipy.signal.welch``.
+    where P_k is the area under the linearly interpolated PSD within bin k, so
+    that the signal variance equals the area under the PSD. The phases are
+    uniformly distributed on [0, 2 * pi).
 
     Parameters
     ----------
@@ -521,17 +510,17 @@ def from_psd(
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
-        One-sided power spectral density at the given frequencies, in units of
-        y**2 / Hz. Must be non-negative.
+        One-sided power spectral density, in V**2 / Hz.. Must be non-negative.
     n_components : int
         Number of sinusoidal components. Must be positive.
     jitter : float, optional
-        Random frequency jitter as a fraction of the bin width. Must be in
-        [0, 1]. A value of 0.0 places each component at its bin center, while
-        1.0 places it anywhere within its bin. Defaults to 0.0.
-    seed : int or numpy.random.Generator, optional
-        Seed, or random number generator, used to draw the random phases and
-        frequency jitter.
+        Random offset of each component frequency from its bin center, as a
+        fraction of the bin width. Must be in the range [0, 1], where 0.0 places
+        the component at the bin center and 1.0 anywhere within the bin. Jitter
+        breaks up the periodicity of evenly spaced components. Defaults to 0.0.
+    seed : int, optional
+        A seed used to initialize a random number generator which assigns random
+        phases and jitter to the sinusoidal components.
 
     Returns
     -------
