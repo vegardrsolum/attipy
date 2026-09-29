@@ -558,16 +558,16 @@ def from_psd(
     phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
     offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
 
-    df = (freq[-1] - freq[0]) / n_components
-    edges = freq[0] + df * np.arange(n_components + 1)
-    edges[-1] = freq[-1]  # guard against round-off
+    edges = np.linspace(freq[0], freq[-1], n_components + 1)
+    df = edges[1] - edges[0]
     freq_k = edges[:-1] + df * offset_k
 
-    # Exact bin areas of the linearly interpolated PSD
+    # Exact bin areas of the linearly interpolated PSD: trapezoid areas between
+    # consecutive grid points, summed within each bin
     grid = np.union1d(freq, edges)
     psd_grid = np.interp(grid, freq, psd)
-    area_seg = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
-    area_k = np.add.reduceat(area_seg, np.searchsorted(grid, edges[:-1]))
+    area_grid = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
+    area_k = np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]))
     amp_k = np.sqrt(2.0 * area_k)
 
     return _Sum(
