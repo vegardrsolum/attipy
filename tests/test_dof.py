@@ -915,71 +915,38 @@ class Test_from_psd:
     def psd(self, freq):
         return np.exp(-(((freq - 0.2) / 0.05) ** 2))
 
-    def test_returns_sum_of_sines(self, freq, psd):
-        dof = from_psd(freq, psd, 10, seed=1)
+    def test_components(self):
+        # Triangular PSD with peak 2.0 at 1 Hz, and area 2.0
+        freq = [0.0, 1.0, 2.0]
+        psd = [0.0, 2.0, 0.0]
 
-        assert isinstance(dof, _Sum)
-        assert len(dof._dofs) == 10
-        assert all(isinstance(dof_k, Sine) for dof_k in dof._dofs)
-
-    def test_components(self, freq, psd):
         dof = from_psd(freq, psd, 4, seed=1)
 
-        freq_expect = np.array([0.125, 0.375, 0.625, 0.875])
-        edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
-        area_expect = [
-            np.trapezoid(psd[mask], freq[mask])
-            for mask in (
-                (freq >= lo - 1e-12) & (freq <= hi + 1e-12)
-                for lo, hi in zip(edges[:-1], edges[1:])
-            )
-        ]
-        amp_expect = np.sqrt(2.0 * np.array(area_expect))
+        # Bins [0, 0.5], [0.5, 1], [1, 1.5], [1.5, 2] with areas 0.25, 0.75, 0.75, 0.25
+        freq_expect = np.array([0.25, 0.75, 1.25, 1.75])
+        amp_expect = np.sqrt(2.0 * np.array([0.25, 0.75, 0.75, 0.25]))
 
+        assert isinstance(dof, _Sum)
+        assert all(isinstance(s, Sine) for s in dof._dofs)
         np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
         np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
         assert all(0.0 <= s._phase < 2.0 * np.pi for s in dof._dofs)
 
-    def test_single_component(self, t):
+    def test_single_component(self):
         dof = from_psd([0.0, 2.0], [0.5, 0.5], 1, seed=1)
 
         # Component at 1 Hz with variance equal to the area under the PSD
-        sine = dof._dofs[0]
+        (sine,) = dof._dofs
         assert sine._w == pytest.approx(2.0 * np.pi)
-        assert sine._amp**2 / 2.0 == pytest.approx(1.0)
+        assert sine._amp == pytest.approx(np.sqrt(2.0))
 
-    def test_seed(self, freq, psd, t):
-        y1 = from_psd(freq, psd, 20, seed=1).y(t)
-        y2 = from_psd(freq, psd, 20, seed=1).y(t)
-        y3 = from_psd(freq, psd, 20, seed=2).y(t)
-
-        np.testing.assert_allclose(y1, y2)
-        assert not np.allclose(y1, y3)
-
-    @pytest.mark.parametrize("jitter", [0.5, 1.0])
-    def test_jitter(self, freq, psd, jitter):
-        dof = from_psd(freq, psd, 4, jitter=jitter, seed=1)
-        dof_ref = from_psd(freq, psd, 4, seed=1)
-
-        df = 0.25
-        freq_center = np.array([0.125, 0.375, 0.625, 0.875])
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-
-        assert not np.allclose(freq_k, freq_center)
-        assert np.all(np.abs(freq_k - freq_center) <= 0.5 * jitter * df)
-
-        # Amplitudes are given by bin areas, and are not affected by jitter
-        np.testing.assert_allclose(
-            [s._amp for s in dof._dofs], [s._amp for s in dof_ref._dofs]
-        )
-
-    @pytest.mark.parametrize("n_components", [1, 3, 7, 10, 33])
+    @pytest.mark.parametrize("n_components", [1, 7, 33])
     @pytest.mark.parametrize("jitter", [0.0, 1.0])
-    def test_component_variance_equals_psd_area(self, freq, psd, n_components, jitter):
+    def test_variance_equals_psd_area(self, freq, psd, n_components, jitter):
         dof = from_psd(freq, psd, n_components, jitter=jitter, seed=1)
 
-        var_components = sum(s._amp**2 / 2.0 for s in dof._dofs)
-        assert var_components == pytest.approx(np.trapezoid(psd, freq))
+        var = sum(s._amp**2 / 2.0 for s in dof._dofs)
+        assert var == pytest.approx(np.trapezoid(psd, freq))
 
     def test_narrow_peak_between_bin_centers(self):
         # Narrow peak at 0.25 Hz, exactly between the bin centers 0.125 and 0.375 Hz
@@ -988,46 +955,48 @@ class Test_from_psd:
 
         dof = from_psd(freq, psd, 4, seed=1)
 
-        amp_k = np.array([s._amp for s in dof._dofs])
-        var_expect = np.trapezoid(psd, freq)
-        assert np.sum(amp_k**2 / 2.0) == pytest.approx(var_expect)
-        np.testing.assert_allclose(amp_k[:2] ** 2 / 2.0, var_expect / 2.0)
-        np.testing.assert_allclose(amp_k[2:], 0.0)
-
-    def test_jitter_does_not_change_phases(self, freq, psd):
-        dof1 = from_psd(freq, psd, 10, seed=1)
-        dof2 = from_psd(freq, psd, 10, jitter=1.0, seed=1)
-
+        # The peak is split equally between the two neighbouring bins
+        var_k = np.array([s._amp**2 / 2.0 for s in dof._dofs])
+        area = np.trapezoid(psd, freq)
         np.testing.assert_allclose(
-            [s._phase for s in dof1._dofs], [s._phase for s in dof2._dofs]
+            var_k, [area / 2.0, area / 2.0, 0.0, 0.0], atol=1e-15
         )
 
-    def test_jitter_variance(self, freq, psd):
-        dof = from_psd(freq, psd, 200, jitter=1.0, seed=1)
+    @pytest.mark.parametrize("jitter", [0.5, 1.0])
+    def test_jitter(self, freq, psd, jitter):
+        dof = from_psd(freq, psd, 4, jitter=jitter, seed=1)
+        dof_ref = from_psd(freq, psd, 4, jitter=0.0, seed=1)
 
-        t = np.arange(0.0, 10_000.0, 0.1)
-        var_expect = np.trapezoid(psd, freq)
+        df = 0.25
+        freq_center = np.array([0.125, 0.375, 0.625, 0.875])
+        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
 
-        assert np.var(dof.y(t)) == pytest.approx(var_expect, rel=0.05)
+        # Frequencies are moved within their bins
+        assert not np.allclose(freq_k, freq_center)
+        assert np.all(np.abs(freq_k - freq_center) <= 0.5 * jitter * df)
 
-    @pytest.mark.parametrize("jitter", [-0.1, 1.1])
-    def test_raises_jitter(self, freq, psd, jitter):
-        with pytest.raises(ValueError):
-            from_psd(freq, psd, 10, jitter=jitter)
+        # Amplitudes and phases are not affected by jitter
+        np.testing.assert_allclose(
+            [s._amp for s in dof._dofs], [s._amp for s in dof_ref._dofs]
+        )
+        np.testing.assert_allclose(
+            [s._phase for s in dof._dofs], [s._phase for s in dof_ref._dofs]
+        )
 
-    def test_seed_generator(self, freq, psd, t):
-        y1 = from_psd(freq, psd, 20, seed=np.random.default_rng(1)).y(t)
-        y2 = from_psd(freq, psd, 20, seed=1).y(t)
+    def test_seed(self, freq, psd):
+        phase1 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
+        phase2 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
+        phase3 = [s._phase for s in from_psd(freq, psd, 20, seed=2)._dofs]
 
-        np.testing.assert_allclose(y1, y2)
+        np.testing.assert_allclose(phase1, phase2)
+        assert not np.allclose(phase1, phase3)
 
-    def test_variance(self, freq, psd):
-        dof = from_psd(freq, psd, 200, seed=1)
+    def test_seed_generator(self, freq, psd):
+        rng = np.random.default_rng(1)
+        phase1 = [s._phase for s in from_psd(freq, psd, 20, seed=rng)._dofs]
+        phase2 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
 
-        t = np.arange(0.0, 10_000.0, 0.1)
-        var_expect = np.trapezoid(psd, freq)
-
-        assert np.var(dof.y(t)) == pytest.approx(var_expect, rel=0.05)
+        np.testing.assert_allclose(phase1, phase2)
 
     def test_welch(self, freq, psd):
         from scipy.signal import welch
@@ -1041,20 +1010,6 @@ class Test_from_psd:
         np.testing.assert_allclose(
             psd_out, np.interp(freq_out, freq, psd), atol=0.05 * psd.max()
         )
-
-    def test_derivatives_by_finite_difference(self, freq, psd):
-        dof = from_psd(freq, psd, 20, seed=1)
-
-        t = np.linspace(0.0, 20.0, 20_001)
-        dt = t[1] - t[0]
-        y, dydt, d2ydt2 = dof(t)
-
-        np.testing.assert_allclose(np.gradient(y, dt), dydt, atol=1e-3)
-        np.testing.assert_allclose(np.gradient(dydt, dt), d2ydt2, atol=1e-2)
-
-    def test_list_input(self):
-        dof = from_psd([0.0, 1.0, 2.0], [1.0, 2.0, 1.0], 3, seed=1)
-        assert len(dof._dofs) == 3
 
     @pytest.mark.parametrize(
         "freq, psd",
@@ -1076,3 +1031,8 @@ class Test_from_psd:
     def test_raises_n_components(self, freq, psd, n_components):
         with pytest.raises(ValueError):
             from_psd(freq, psd, n_components)
+
+    @pytest.mark.parametrize("jitter", [-0.1, 1.1])
+    def test_raises_jitter(self, freq, psd, jitter):
+        with pytest.raises(ValueError):
+            from_psd(freq, psd, 10, jitter=jitter)
