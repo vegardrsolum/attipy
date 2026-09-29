@@ -925,9 +925,16 @@ class Test_from_psd:
     def test_components(self, freq, psd):
         dof = from_psd(freq, psd, 4, seed=1)
 
-        df = 0.25
         freq_expect = np.array([0.125, 0.375, 0.625, 0.875])
-        amp_expect = np.sqrt(2.0 * np.interp(freq_expect, freq, psd) * df)
+        edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        area_expect = [
+            np.trapezoid(psd[mask], freq[mask])
+            for mask in (
+                (freq >= lo - 1e-12) & (freq <= hi + 1e-12)
+                for lo, hi in zip(edges[:-1], edges[1:])
+            )
+        ]
+        amp_expect = np.sqrt(2.0 * np.array(area_expect))
 
         np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
         np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
@@ -952,15 +959,40 @@ class Test_from_psd:
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
         dof = from_psd(freq, psd, 4, jitter=jitter, seed=1)
+        dof_ref = from_psd(freq, psd, 4, seed=1)
 
         df = 0.25
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
         freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        amp_expect = np.sqrt(2.0 * np.interp(freq_k, freq, psd) * df)
 
         assert not np.allclose(freq_k, freq_center)
         assert np.all(np.abs(freq_k - freq_center) <= 0.5 * jitter * df)
-        np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
+
+        # Amplitudes are given by bin areas, and are not affected by jitter
+        np.testing.assert_allclose(
+            [s._amp for s in dof._dofs], [s._amp for s in dof_ref._dofs]
+        )
+
+    @pytest.mark.parametrize("n_components", [1, 3, 7, 10, 33])
+    @pytest.mark.parametrize("jitter", [0.0, 1.0])
+    def test_component_variance_equals_psd_area(self, freq, psd, n_components, jitter):
+        dof = from_psd(freq, psd, n_components, jitter=jitter, seed=1)
+
+        var_components = sum(s._amp**2 / 2.0 for s in dof._dofs)
+        assert var_components == pytest.approx(np.trapezoid(psd, freq))
+
+    def test_narrow_peak_between_bin_centers(self):
+        # Narrow peak at 0.25 Hz, exactly between the bin centers 0.125 and 0.375 Hz
+        freq = np.linspace(0.0, 1.0, 1001)
+        psd = np.where(np.abs(freq - 0.25) <= 0.005, 1.0, 0.0)
+
+        dof = from_psd(freq, psd, 4, seed=1)
+
+        amp_k = np.array([s._amp for s in dof._dofs])
+        var_expect = np.trapezoid(psd, freq)
+        assert np.sum(amp_k**2 / 2.0) == pytest.approx(var_expect)
+        np.testing.assert_allclose(amp_k[:2] ** 2 / 2.0, var_expect / 2.0)
+        np.testing.assert_allclose(amp_k[2:], 0.0)
 
     def test_jitter_does_not_change_phases(self, freq, psd):
         dof1 = from_psd(freq, psd, 10, seed=1)

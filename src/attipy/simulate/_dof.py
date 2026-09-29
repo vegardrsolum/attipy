@@ -504,12 +504,13 @@ def from_psd(
     2 / df when ``freq`` starts at 0, as for ``scipy.signal.welch``). Jitter
     breaks up this periodicity. The amplitudes are given by:
 
-        amp_k = sqrt(2 * S(f_k) * df)
+        amp_k = sqrt(2 * P_k)
 
-    where S(f_k) is the PSD linearly interpolated at f_k, and df is the bin
-    width. The variance of the signal thus approximates the area under the PSD.
-    The phases, phase_k, are drawn independently from a uniform distribution on
-    [0, 2 * pi).
+    where P_k is the area under the linearly interpolated PSD within bin k.
+    The variance of the signal thus equals the area under the PSD, regardless
+    of ``n_components`` and ``jitter``, and narrow spectral peaks are captured
+    even when they fall between bin centers. The phases, phase_k, are drawn
+    independently from a uniform distribution on [0, 2 * pi).
 
     The PSD is expected to be one-sided, e.g., as returned by
     ``scipy.signal.welch``.
@@ -558,8 +559,16 @@ def from_psd(
     offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
 
     df = (freq[-1] - freq[0]) / n_components
-    freq_k = freq[0] + df * (np.arange(n_components) + offset_k)
-    amp_k = np.sqrt(2.0 * np.interp(freq_k, freq, psd) * df)
+    edges = freq[0] + df * np.arange(n_components + 1)
+    edges[-1] = freq[-1]  # guard against round-off
+    freq_k = edges[:-1] + df * offset_k
+
+    # Exact bin areas of the linearly interpolated PSD
+    grid = np.union1d(freq, edges)
+    psd_grid = np.interp(grid, freq, psd)
+    area_seg = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
+    area_k = np.add.reduceat(area_seg, np.searchsorted(grid, edges[:-1]))
+    amp_k = np.sqrt(2.0 * area_k)
 
     return _Sum(
         *(
