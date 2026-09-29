@@ -519,8 +519,9 @@ def from_psd(
         the component at the bin center and 1.0 anywhere within the bin. Jitter
         breaks up the periodicity of evenly spaced components. Defaults to 0.0.
     seed : int, optional
-        A seed used to initialize a random number generator which assigns random
-        phases and jitter to the sinusoidal components.
+        Seed used to generate random phases and jitter. Defaults to None; fresh
+        unpredictable entropy will be pulled from the OS.
+        
 
     Returns
     -------
