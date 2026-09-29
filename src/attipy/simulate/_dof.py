@@ -478,3 +478,93 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
         DOF signal generator for the ramped-up signal.
     """
     return multiply(SmootherStep(duration=duration, start=start), dof)
+
+
+def from_psd(
+    freq: ArrayLike,
+    psd: ArrayLike,
+    n_components: int,
+    *,
+    jitter: float = 0.0,
+    seed: int | None = None,
+) -> DOF:
+    """
+    DOF signal realization of a one-sided power spectral density (PSD).
+
+    The signal is a sum of sinusoids with random phases:
+
+        y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
+
+    The frequency range of ``freq`` is divided into ``n_components`` equally
+    wide bins, with one component per bin. The amplitudes are:
+
+        amp_k = sqrt(2 * P_k)
+
+    where P_k is the area under the linearly interpolated PSD within bin k, so
+    that the signal variance equals the area under the PSD. The phases are
+    uniformly distributed on [0, 2 * pi).
+
+    Parameters
+    ----------
+    freq : array_like, shape (m,)
+        Frequencies in Hz. Must be non-negative and strictly increasing, with at
+        least two values.
+    psd : array_like, shape (m,)
+        One-sided power spectral density, in y**2 / Hz. Must be non-negative.
+    n_components : int
+        Number of sinusoidal components. Must be positive.
+    jitter : float, optional
+        Random offset of each component frequency from its bin center, as a
+        fraction of the bin width. Must be in the range [0, 1], where 0.0 places
+        the component at the bin center and 1.0 anywhere within the bin. Jitter
+        breaks up the periodicity of evenly spaced components. Defaults to 0.0.
+    seed : int, optional
+        Seed used to generate random phases and jitter. Defaults to None; fresh
+        unpredictable entropy will be pulled from the OS.
+
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the signal realization of the PSD.
+    """
+    freq = np.asarray_chkfinite(freq, dtype=np.float64)
+    psd = np.asarray_chkfinite(psd, dtype=np.float64)
+
+    if freq.ndim != 1 or freq.size < 2:
+        raise ValueError("'freq' must be a 1D array with at least two values.")
+    if psd.shape != freq.shape:
+        raise ValueError("'psd' must have the same shape as 'freq'.")
+    if freq[0] < 0.0 or np.any(np.diff(freq) <= 0.0):
+        raise ValueError("'freq' must be non-negative and strictly increasing.")
+    if np.any(psd < 0.0):
+        raise ValueError("'psd' must be non-negative.")
+    if not isinstance(n_components, numbers.Integral) or n_components < 1:
+        raise ValueError("'n_components' must be a positive integer.")
+    if not 0.0 <= jitter <= 1.0:
+        raise ValueError("'jitter' must be in [0, 1].")
+
+    rng = np.random.default_rng(seed)
+    phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
+    offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
+
+    edges = np.linspace(freq[0], freq[-1], n_components + 1)
+    df = edges[1] - edges[0]
+    freq_k = edges[:-1] + df * offset_k
+
+    # Exact bin areas of the linearly interpolated PSD: trapezoid areas between
+    # consecutive grid points, summed within each bin
+    grid = np.union1d(freq, edges)
+    psd_grid = np.interp(grid, freq, psd)
+    area_grid = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
+    area_k = np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]))
+    amp_k = np.sqrt(2.0 * area_k)
+
+    y = _Sum(
+        *(
+            Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
+            for amp, f, phase in zip(amp_k, freq_k, phase_k)
+        )
+    )
+
+    return y

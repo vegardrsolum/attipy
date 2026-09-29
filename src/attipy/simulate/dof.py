@@ -2,7 +2,17 @@
 Degree of freedom (DOF) signal generators for building rigid body motions.
 """
 
-from ._dof import DOF, Beat, Constant, Sine, SmootherStep, add, multiply, ramp_up
+from ._dof import (
+    DOF,
+    Beat,
+    Constant,
+    Sine,
+    SmootherStep,
+    add,
+    from_psd,
+    multiply,
+    ramp_up,
+)
 
 __all__ = [
     "DOF",
@@ -11,6 +21,7 @@ __all__ = [
     "Sine",
     "SmootherStep",
     "add",
+    "from_psd",
     "multiply",
     "ramp_up",
 ]
