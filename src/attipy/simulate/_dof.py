@@ -521,7 +521,7 @@ def from_psd(
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
-        
+
 
     Returns
     -------
