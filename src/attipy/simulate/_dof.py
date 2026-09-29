@@ -486,7 +486,7 @@ def from_psd(
     n_components: int,
     *,
     jitter: float = 0.0,
-    seed: int | np.random.Generator | None = None,
+    seed: int | None = None,
 ) -> DOF:
     """
     DOF signal realization of a one-sided power spectral density (PSD).
@@ -560,9 +560,11 @@ def from_psd(
     area_k = np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]))
     amp_k = np.sqrt(2.0 * area_k)
 
-    return _Sum(
+    y = _Sum(
         *(
             Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
             for amp, f, phase in zip(amp_k, freq_k, phase_k)
         )
     )
+
+    return y
