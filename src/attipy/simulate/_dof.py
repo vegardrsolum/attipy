@@ -510,7 +510,7 @@ def from_psd(
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
-        One-sided power spectral density, in V**2 / Hz.. Must be non-negative.
+        One-sided power spectral density, in y**2 / Hz. Must be non-negative.
     n_components : int
         Number of sinusoidal components. Must be positive.
     jitter : float, optional
