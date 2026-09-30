@@ -507,10 +507,10 @@ def from_psd(
 
     Parameters
     ----------
-    f : array_like, shape (m,)
+    f : array_like, shape (n_f,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
-    psd : array_like, shape (m,)
+    psd : array_like, shape (n_f,)
         One-sided power spectral density, in y**2 / Hz. Must be non-negative.
     n_components : int
         Number of sinusoidal components. Must be positive.
@@ -569,37 +569,20 @@ def from_csd(
     seed: int | np.random.Generator | None = None,
 ) -> tuple[DOF, ...]:
     """
-    Correlated DOF signal realizations of a one-sided cross-spectral density
-    (CSD) matrix.
+    Correlated DOF signal realizations of a one-sided CSD matrix.
 
-    The n signals are linear combinations of n independent sources, each a sum
-    of sinusoids with random phases:
-
-        y_i(t) = sum_k sum_m amp_kim * sin(2 * pi * f_km * t + phase_kim)
-
-    The frequency range of ``f`` is divided into ``n_components`` equally wide
-    bins. Each bin is divided into n equally wide sub-bins, with one component
-    of source m placed in sub-bin m (double-indexed frequencies, Deodatis, 1996).
-    The amplitudes and phases are:
-
-        amp_kim = sqrt(2) * |L_kim|
-        phase_kim = angle(L_kim) + theta_km
-
-    where L_k is the Hermitian square root of conj(P_k), such that
-    ``L_k @ L_k^H = conj(P_k)``, P_k is the area under the linearly
-    interpolated CSD matrix within bin k, and the phases, theta_km, are
-    uniformly distributed on [0, 2 * pi).
-
-    The variance of each signal thus equals the area under its auto-spectrum,
-    and the auto- and cross-spectra match the CSD matrix at a frequency
-    resolution of one bin width.
+    Each signal is a sum of sinusoids with random phases. The frequency range
+    of ``f`` is divided into ``n_components`` equally wide bins, each split into
+    n sub-bins with one component per sub-bin. The amplitudes and phases are
+    chosen so that the auto- and cross-spectra of the signals match the CSD at
+    a resolution of one bin width (Deodatis, 1996).
 
     Parameters
     ----------
-    f : array_like, shape (m,)
+    f : array_like, shape (n_f,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
-    csd : array_like, shape (m, n, n)
+    csd : array_like, shape (n_f, n, n)
         One-sided CSD matrix, in y_i * y_j / Hz, where ``csd[:, i, j]`` is the
         CSD of y_i and y_j as returned by ``scipy.signal.csd(y_i, y_j)``. Must
         be Hermitian and positive semidefinite at each frequency.
@@ -634,7 +617,9 @@ def from_csd(
     if f[0] < 0.0 or np.any(np.diff(f) <= 0.0):
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
-        raise ValueError("'csd' must have shape (m, n, n), where m is the size of 'f'.")
+        raise ValueError(
+            "'csd' must have shape (n_f, n, n), where n_f is the size of 'f'."
+        )
     tol = 1e-10 * np.abs(csd).max()
     if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
         raise ValueError("'csd' must be Hermitian.")
@@ -730,14 +715,14 @@ def _bin_areas(
     """
     Integrate a linearly interpolated spectrum within frequency bins.
 
-    The spectrum, of shape ``(m, ...)``, is linearly interpolated along its
+    The spectrum, of shape ``(n_f, ...)``, is linearly interpolated along its
     first axis. The integral within each bin is then computed exactly for
     this piecewise-linear interpolation.
 
     Parameters
     ----------
     freq
-        Strictly increasing frequency grid of length ``m``.
+        Strictly increasing frequency grid of length ``n_f``.
     spectrum
         Spectrum values on ``freq``.
     edges
