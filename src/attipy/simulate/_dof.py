@@ -546,17 +546,17 @@ def from_psd(
         raise ValueError("'jitter' must be in [0, 1].")
 
     rng = np.random.default_rng(seed)
-    phases = rng.uniform(0.0, 2.0 * np.pi, n_components)
-    offsets = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
+    phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
+    offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
 
     edges = np.linspace(f[0], f[-1], n_components + 1)
     df = edges[1] - edges[0]
-    freqs = edges[:-1] + df * offsets
+    freq_k = edges[:-1] + df * offset_k
 
-    areas = _bin_areas(f, psd, edges)
-    amps = np.sqrt(2.0 * areas)
+    area_k = _bin_areas(f, psd, edges)
+    amp_k = np.sqrt(2.0 * area_k)
 
-    return _sum_of_sines(amps, freqs, phases)
+    return _sum_of_sines(amp_k, freq_k, phase_k)
 
 
 def from_csd(
