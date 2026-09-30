@@ -501,8 +501,8 @@ def from_psd(
         amp_k = sqrt(2 * P_k)
 
     where P_k is the area under the linearly interpolated PSD within bin k, so
-    that the signal variance equals the area under the PSD. The phases are
-    uniformly distributed on [0, 2 * pi).
+    that the expected variance of the realization equals the area under the PSD.
+    The phases are uniformly distributed on [0, 2 * pi).
 
     Parameters
     ----------
