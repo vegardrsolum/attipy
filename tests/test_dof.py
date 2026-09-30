@@ -968,12 +968,16 @@ class Test_from_psd:
         dof_ref = from_psd(freq, psd, 4, jitter=0.0, seed=1)
 
         df = 0.25
+        edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
+        freq_jitter = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
+        freq_ref = np.array([s._w for s in dof_ref._dofs]) / (2.0 * np.pi)
 
-        # Frequencies are moved within their bins
-        assert not np.allclose(freq_k, freq_center)
-        assert np.all(np.abs(freq_k - freq_center) <= 0.5 * jitter * df)
+        # Frequencies are moved within their respective bins.
+        assert not np.allclose(freq_jitter, freq_ref)
+        assert np.all(np.abs(freq_jitter - freq_center) <= 0.5 * jitter * df)
+        assert np.all(freq_jitter >= edges[:-1])
+        assert np.all(freq_jitter <= edges[1:])
 
         # Amplitudes and phases are not affected by jitter
         np.testing.assert_allclose(
@@ -1010,6 +1014,14 @@ class Test_from_psd:
         np.testing.assert_allclose(
             psd_out, np.interp(freq_out, freq, psd), atol=0.05 * psd.max()
         )
+
+    def test_zero_psd(self):
+        freq = np.array([0.0, 1.0, 2.0])
+        psd = np.array([0.0, 0.0, 0.0])
+        dof = from_psd(freq, psd, 3)
+        t = np.linspace(0.0, 1.0, 100)
+        y = dof.y(t)
+        np.testing.assert_allclose(y, 0.0)
 
     @pytest.mark.parametrize(
         "freq, psd",

@@ -481,8 +481,9 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
 
 
 def from_psd(
-    freq: ArrayLike,
+    f: ArrayLike,
     psd: ArrayLike,
+    /,
     n_components: int,
     *,
     jitter: float = 0.0,
@@ -495,18 +496,18 @@ def from_psd(
 
         y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
 
-    The frequency range of ``freq`` is divided into ``n_components`` equally
-    wide bins, with one component per bin. The amplitudes are:
+    The frequency range of ``f`` is divided into ``n_components`` equally wide
+    bins, with one component per bin. The amplitudes are:
 
         amp_k = sqrt(2 * P_k)
 
     where P_k is the area under the linearly interpolated PSD within bin k, so
-    that the signal variance equals the area under the PSD. The phases are
-    uniformly distributed on [0, 2 * pi).
+    that the expected variance of the realization equals the area under the PSD.
+    The phases are uniformly distributed on [0, 2 * pi).
 
     Parameters
     ----------
-    freq : array_like, shape (m,)
+    f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
@@ -528,15 +529,15 @@ def from_psd(
     DOF
         DOF signal generator for the signal realization of the PSD.
     """
-    freq = np.asarray_chkfinite(freq, dtype=np.float64)
+    f = np.asarray_chkfinite(f, dtype=np.float64)
     psd = np.asarray_chkfinite(psd, dtype=np.float64)
 
-    if freq.ndim != 1 or freq.size < 2:
-        raise ValueError("'freq' must be a 1D array with at least two values.")
-    if psd.shape != freq.shape:
-        raise ValueError("'psd' must have the same shape as 'freq'.")
-    if freq[0] < 0.0 or np.any(np.diff(freq) <= 0.0):
-        raise ValueError("'freq' must be non-negative and strictly increasing.")
+    if f.ndim != 1 or f.size < 2:
+        raise ValueError("'f' must be a 1D array with at least two values.")
+    if psd.shape != f.shape:
+        raise ValueError("'psd' must have the same shape as 'f'.")
+    if f[0] < 0.0 or np.any(np.diff(f) <= 0.0):
+        raise ValueError("'f' must be non-negative and strictly increasing.")
     if np.any(psd < 0.0):
         raise ValueError("'psd' must be non-negative.")
     if not isinstance(n_components, numbers.Integral) or n_components < 1:
@@ -545,25 +546,28 @@ def from_psd(
         raise ValueError("'jitter' must be in [0, 1].")
 
     rng = np.random.default_rng(seed)
-    phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
-    offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
+    phases = rng.uniform(0.0, 2.0 * np.pi, n_components)
+    offsets = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
 
-    edges = np.linspace(freq[0], freq[-1], n_components + 1)
+    edges = np.linspace(f[0], f[-1], n_components + 1)
     df = edges[1] - edges[0]
-    freq_k = edges[:-1] + df * offset_k
+    freqs = edges[:-1] + df * offsets
 
-    # Exact bin areas of the linearly interpolated PSD: trapezoid areas between
-    # consecutive grid points, summed within each bin
-    grid = np.union1d(freq, edges)
-    psd_grid = np.interp(grid, freq, psd)
+    grid = np.union1d(f, edges)
+    psd_grid = np.interp(grid, f, psd)
+
     area_grid = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
-    area_k = np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]))
-    amp_k = np.sqrt(2.0 * area_k)
+
+    cum_area = np.concatenate(([0.0], np.cumsum(area_grid)))
+    idx = np.searchsorted(grid, edges)
+    areas = np.diff(cum_area[idx])
+
+    amps = np.sqrt(2.0 * areas)
 
     y = _Sum(
         *(
-            Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
-            for amp, f, phase in zip(amp_k, freq_k, phase_k)
+            Sine(amp=amp_k, omega=2.0 * np.pi * f_k, phase=phase_k)
+            for amp_k, f_k, phase_k in zip(amps, freqs, phases)
         )
     )
 
