@@ -510,7 +510,7 @@ def from_psd(
     f : array_like, shape (n_f,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
-    psd : array_like, shape (n_f,)
+    psd : array_like, shape (m,)
         One-sided power spectral density, in y**2 / Hz. Must be non-negative.
     n_components : int
         Number of sinusoidal components. Must be positive.
@@ -582,7 +582,7 @@ def from_csd(
     f : array_like, shape (n_f,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
-    csd : array_like, shape (n_f, n, n)
+    csd : array_like, shape (m, n, n)
         One-sided CSD matrix, in y_i * y_j / Hz, where ``csd[:, i, j]`` is the
         CSD of y_i and y_j as returned by ``scipy.signal.csd(y_i, y_j)``. Must
         be Hermitian and positive semidefinite at each frequency.
@@ -617,9 +617,7 @@ def from_csd(
     if f[0] < 0.0 or np.any(np.diff(f) <= 0.0):
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
-        raise ValueError(
-            "'csd' must have shape (n_f, n, n), where n_f is the size of 'f'."
-        )
+        raise ValueError("'csd' must have shape (m, n, n), where m is the size of 'f'.")
     tol = 1e-10 * np.abs(csd).max()
     if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
         raise ValueError("'csd' must be Hermitian.")
