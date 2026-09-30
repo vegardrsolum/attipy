@@ -553,15 +553,7 @@ def from_psd(
     df = edges[1] - edges[0]
     freqs = edges[:-1] + df * offsets
 
-    grid = np.union1d(f, edges)
-    psd_grid = np.interp(grid, f, psd)
-
-    area_grid = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
-
-    cum_area = np.concatenate(([0.0], np.cumsum(area_grid)))
-    idx = np.searchsorted(grid, edges)
-    areas = np.diff(cum_area[idx])
-
+    areas = _bin_areas(f, psd, edges)
     amps = np.sqrt(2.0 * areas)
 
     y = _Sum(
@@ -699,27 +691,45 @@ def from_csd(
 
 
 def _bin_areas(
-    freq: NDArray[np.float64], spectrum: NDArray, edges: NDArray[np.float64]
+    freq: NDArray[np.float64],
+    spectrum: NDArray,
+    edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact bin areas of a linearly interpolated spectrum.
+    Integrate a linearly interpolated spectrum within frequency bins.
 
-    The spectrum, of shape (m, ...), is interpolated along its first axis onto
-    a grid of both ``freq`` and ``edges``. The trapezoid areas between
-    consecutive grid points are then summed within each bin. Returns an array
-    of shape (len(edges) - 1, ...).
+    The spectrum, of shape ``(m, ...)``, is linearly interpolated along its
+    first axis. The integral within each bin is then computed exactly for
+    this piecewise-linear interpolation.
+
+    Parameters
+    ----------
+    freq
+        Strictly increasing frequency grid of length ``m``.
+    spectrum
+        Spectrum values on ``freq``.
+    edges
+        Strictly increasing bin edges, within ``freq``.
+
+    Returns
+    -------
+    NDArray
+        Bin areas with shape ``(len(edges) - 1, ...)``.
     """
     grid = np.union1d(freq, edges)
-    broadcast = (-1,) + (1,) * (spectrum.ndim - 1)
+    reshape = (-1,) + (1,) * (spectrum.ndim - 1)
 
     # Linear interpolation along the first axis
-    idx = np.clip(np.searchsorted(freq, grid, side="right") - 1, 0, freq.size - 2)
-    weight = ((grid - freq[idx]) / (freq[idx + 1] - freq[idx])).reshape(broadcast)
+    idx = np.searchsorted(freq, grid, side="right") - 1
+    idx = np.clip(idx, 0, freq.size - 2)
+
+    weight = ((grid - freq[idx]) / (freq[idx + 1] - freq[idx])).reshape(reshape)
+
     spectrum_grid = (1.0 - weight) * spectrum[idx] + weight * spectrum[idx + 1]
 
-    area_grid = (
-        0.5
-        * (spectrum_grid[1:] + spectrum_grid[:-1])
-        * np.diff(grid).reshape(broadcast)
+    area = (
+        0.5 * (spectrum_grid[:-1] + spectrum_grid[1:]) * np.diff(grid).reshape(reshape)
     )
-    return np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]), axis=0)
+
+    starts = np.searchsorted(grid, edges[:-1])
+    return np.add.reduceat(area, starts, axis=0)
