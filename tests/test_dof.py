@@ -905,6 +905,9 @@ class Test_public_api:
         )
 
         np.testing.assert_allclose(motion.x.y(t), 2.0 * Beat().y(t) + 0.5)
+        np.testing.assert_allclose(
+            motion.yaw.y(t), ramp_up(Sine(amp=0.1), duration=5.0).y(t)
+        )
 
 
 class Test_from_psd:
