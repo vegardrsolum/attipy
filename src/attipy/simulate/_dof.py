@@ -600,9 +600,10 @@ def from_csd(
         amp_kim = sqrt(2) * |L_kim|
         phase_kim = angle(L_kim) + theta_km
 
-    where L_k is a factor such that ``L_k @ L_k^H = conj(P_k)``, P_k is the area
-    under the linearly interpolated CSD matrix within bin k, and the phases,
-    theta_km, are uniformly distributed on [0, 2 * pi).
+    where L_k is the Hermitian square root of conj(P_k), such that
+    ``L_k @ L_k^H = conj(P_k)``, P_k is the area under the linearly
+    interpolated CSD matrix within bin k, and the phases, theta_km, are
+    uniformly distributed on [0, 2 * pi).
 
     The variance of each signal thus equals the area under its auto-spectrum,
     and the auto- and cross-spectra match the CSD matrix at a frequency
@@ -672,11 +673,15 @@ def from_csd(
     df = edges[1] - edges[0]
     freq_km = edges[:-1, np.newaxis] + df / n * (np.arange(n) + offset_km)
 
-    # Factorize conj(P_k) = L_k @ L_k^H by eigendecomposition, which (unlike
-    # Cholesky) also works for singular matrices
+    # Factorize conj(P_k) = L_k @ L_k^H with the Hermitian square root, which
+    # (unlike Cholesky) also works for singular matrices, and (unlike raw
+    # eigenvectors) is unique and does not pile energy into the last sub-bin
     area_k = _bin_areas(f, csd, edges)
     eigval_k, eigvec_k = np.linalg.eigh(area_k.conj())
-    L_kim = eigvec_k * np.sqrt(np.clip(eigval_k, 0.0, None))[:, np.newaxis, :]
+    sqrt_eigval_k = np.sqrt(np.clip(eigval_k, 0.0, None))
+    L_kim = (eigvec_k * sqrt_eigval_k[:, np.newaxis, :]) @ eigvec_k.conj().swapaxes(
+        1, 2
+    )
 
     amp_kim = np.sqrt(2.0) * np.abs(L_kim)
     phase_kim = np.angle(L_kim) + theta_km[:, np.newaxis, :]
