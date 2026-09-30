@@ -660,7 +660,7 @@ def _sum_of_sines(
 ) -> DOF:
     """
     Sum of sinusoids:
-    
+
         ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``
 
     Parameters
