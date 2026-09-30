@@ -635,7 +635,7 @@ def from_csd(
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
         raise ValueError(
-            "'csd' must have shape (m, n, n), where m is the size of 'freq'."
+            "'csd' must have shape (m, n, n), where m is the size of 'f'."
         )
     tol = 1e-10 * np.abs(csd).max()
     if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
