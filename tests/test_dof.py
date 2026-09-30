@@ -1080,11 +1080,11 @@ class Test_from_csd:
         assert len(dofs) == 2
         for dof in dofs:
             assert isinstance(dof, _Sum)
-            assert len(dof._dofs) == 20
+            assert len(dof._dofs) == 10
             assert all(isinstance(s, Sine) for s in dof._dofs)
 
     def test_frequencies(self, freq, psd):
-        dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 2, seed=1)
+        dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 4, seed=1)
 
         # Bins [0, 0.5] and [0.5, 1], each with two sub-bins
         freq_expect = np.array([0.125, 0.375, 0.625, 0.875])
@@ -1101,7 +1101,7 @@ class Test_from_csd:
         csd[:, 0, 0] = psd
         csd[:, 1, 1] = 4.0 * psd
 
-        y0, y1 = from_csd(freq, csd, 2, seed=1)
+        y0, y1 = from_csd(freq, csd, 4, seed=1)
 
         # Bins [0, 1] and [1, 2], with areas 1.0 and 4.0 for y_0 and y_1
         var0_k = [s._amp**2 / 2.0 for s in y0._dofs]
@@ -1133,7 +1133,7 @@ class Test_from_csd:
     @pytest.mark.parametrize("jitter", [0.0, 1.0])
     def test_variance_equals_psd_area(self, freq, psd, coherence, jitter):
         dofs = from_csd(
-            freq, self.csd_2x2(psd, 2.0j, coherence), 7, jitter=jitter, seed=1
+            freq, self.csd_2x2(psd, 2.0j, coherence), 14, jitter=jitter, seed=1
         )
 
         var = [sum(s._amp**2 / 2.0 for s in dof._dofs) for dof in dofs]
@@ -1143,8 +1143,8 @@ class Test_from_csd:
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        y0, y1 = from_csd(freq, csd, 2, jitter=jitter, seed=1)
-        y0_ref, _ = from_csd(freq, csd, 2, seed=1)
+        y0, y1 = from_csd(freq, csd, 4, jitter=jitter, seed=1)
+        y0_ref, _ = from_csd(freq, csd, 4, seed=1)
 
         df_sub = 0.25
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
@@ -1177,7 +1177,7 @@ class Test_from_csd:
         from scipy.signal import csd as scipy_csd
 
         csd = self.csd_2x2(psd, 2.0j, 0.5)
-        y0, y1 = from_csd(freq, csd, 250, jitter=1.0, seed=1)
+        y0, y1 = from_csd(freq, csd, 500, jitter=1.0, seed=1)
 
         fs = 2.0
         t = np.arange(0.0, 20_000.0, 1.0 / fs)
@@ -1230,6 +1230,10 @@ class Test_from_csd:
     def test_raises_n_components(self, freq, psd, n_components):
         with pytest.raises(ValueError):
             from_csd(freq, psd.reshape(-1, 1, 1), n_components)
+
+    def test_raises_n_components_not_multiple(self, freq, psd):
+        with pytest.raises(ValueError):
+            from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 5)
 
     @pytest.mark.parametrize("jitter", [-0.1, 1.1])
     def test_raises_jitter(self, freq, psd, jitter):

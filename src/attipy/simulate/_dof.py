@@ -570,11 +570,11 @@ def from_csd(
     """
     Correlated DOF signal realizations of a one-sided CSD matrix.
 
-    Each signal is a sum of sinusoids with random phases. The frequency range
-    of ``f`` is divided into ``n_components`` equally wide bins, each split into
-    n sub-bins with one component per sub-bin. The amplitudes and phases are
-    chosen so that the auto- and cross-spectra of the signals match the CSD at
-    a resolution of one bin width (Deodatis, 1996).
+    Each signal is a sum of ``n_components`` sinusoids with random phases. The
+    frequency range of ``f`` is divided into ``n_components // n`` equally wide
+    bins, each split into n sub-bins with one component per sub-bin. The
+    amplitudes and phases are chosen so that the auto- and cross-spectra of the
+    signals match the CSD at a resolution of one bin width (Deodatis, 1996).
 
     Parameters
     ----------
@@ -586,8 +586,8 @@ def from_csd(
         CSD of y_i and y_j as returned by ``scipy.signal.csd(y_i, y_j)``. Must
         be Hermitian and positive semidefinite at each frequency.
     n_components : int
-        Number of frequency bins. Each signal is a sum of ``n_components * n``
-        sinusoidal components. Must be positive.
+        Number of sinusoidal components in each signal. Must be a positive
+        multiple of n.
     jitter : float, optional
         Random offset of each component frequency from its sub-bin center, as a
         fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
@@ -628,13 +628,16 @@ def from_csd(
         raise ValueError("'jitter' must be in [0, 1].")
 
     n = csd.shape[1]
+    if n_components % n != 0:
+        raise ValueError(f"'n_components' must be a multiple of n = {n}.")
+    n_bins = n_components // n
 
     rng = np.random.default_rng(seed)
-    theta_km = rng.uniform(0.0, 2.0 * np.pi, (n_components, n))
-    offset_km = 0.5 + jitter * rng.uniform(-0.5, 0.5, (n_components, n))
+    theta_km = rng.uniform(0.0, 2.0 * np.pi, (n_bins, n))
+    offset_km = 0.5 + jitter * rng.uniform(-0.5, 0.5, (n_bins, n))
 
     # Component frequencies, with source m in sub-bin m of each bin
-    edges = np.linspace(f[0], f[-1], n_components + 1)
+    edges = np.linspace(f[0], f[-1], n_bins + 1)
     df = edges[1] - edges[0]
     freq_km = edges[:-1, np.newaxis] + df / n * (np.arange(n) + offset_km)
 
