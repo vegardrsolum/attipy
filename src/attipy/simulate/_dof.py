@@ -575,8 +575,9 @@ def from_psd(
 
 
 def from_csd(
-    freq: ArrayLike,
+    f: ArrayLike,
     csd: ArrayLike,
+    /,
     n_components: int,
     *,
     jitter: float = 0.0,
@@ -591,10 +592,10 @@ def from_csd(
 
         y_i(t) = sum_k sum_m amp_kim * sin(2 * pi * f_km * t + phase_kim)
 
-    The frequency range of ``freq`` is divided into ``n_components`` equally
-    wide bins. Each bin is divided into n equally wide sub-bins, with one
-    component of source m placed in sub-bin m (double-indexed frequencies,
-    Deodatis, 1996). The amplitudes and phases are:
+    The frequency range of ``f`` is divided into ``n_components`` equally wide
+    bins. Each bin is divided into n equally wide sub-bins, with one component
+    of source m placed in sub-bin m (double-indexed frequencies, Deodatis, 1996).
+    The amplitudes and phases are:
 
         amp_kim = sqrt(2) * |L_kim|
         phase_kim = angle(L_kim) + theta_km
@@ -609,7 +610,7 @@ def from_csd(
 
     Parameters
     ----------
-    freq : array_like, shape (m,)
+    f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     csd : array_like, shape (m, n, n)
@@ -639,14 +640,14 @@ def from_csd(
     Deodatis, G. (1996). Simulation of ergodic multivariate stochastic
     processes. Journal of Engineering Mechanics, 122(8), 778-787.
     """
-    freq = np.asarray_chkfinite(freq, dtype=np.float64)
+    f = np.asarray_chkfinite(f, dtype=np.float64)
     csd = np.asarray_chkfinite(csd, dtype=np.complex128)
 
-    if freq.ndim != 1 or freq.size < 2:
-        raise ValueError("'freq' must be a 1D array with at least two values.")
-    if freq[0] < 0.0 or np.any(np.diff(freq) <= 0.0):
-        raise ValueError("'freq' must be non-negative and strictly increasing.")
-    if csd.ndim != 3 or csd.shape[0] != freq.size or csd.shape[1] != csd.shape[2]:
+    if f.ndim != 1 or f.size < 2:
+        raise ValueError("'f' must be a 1D array with at least two values.")
+    if f[0] < 0.0 or np.any(np.diff(f) <= 0.0):
+        raise ValueError("'f' must be non-negative and strictly increasing.")
+    if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
         raise ValueError(
             "'csd' must have shape (m, n, n), where m is the size of 'freq'."
         )
@@ -667,13 +668,13 @@ def from_csd(
     offset_km = 0.5 + jitter * rng.uniform(-0.5, 0.5, (n_components, n))
 
     # Component frequencies, with source m in sub-bin m of each bin
-    edges = np.linspace(freq[0], freq[-1], n_components + 1)
+    edges = np.linspace(f[0], f[-1], n_components + 1)
     df = edges[1] - edges[0]
     freq_km = edges[:-1, np.newaxis] + df / n * (np.arange(n) + offset_km)
 
     # Factorize conj(P_k) = L_k @ L_k^H by eigendecomposition, which (unlike
     # Cholesky) also works for singular matrices
-    area_k = _bin_areas(freq, csd, edges)
+    area_k = _bin_areas(f, csd, edges)
     eigval_k, eigvec_k = np.linalg.eigh(area_k.conj())
     L_kim = eigvec_k * np.sqrt(np.clip(eigval_k, 0.0, None))[:, np.newaxis, :]
 
