@@ -880,22 +880,22 @@ class Test_public_api:
         assert dof.Sine is Sine
         assert dof.SmootherStep is SmootherStep
         assert dof.add is add
+        assert dof.from_csd is from_csd
         assert dof.from_psd is from_psd
         assert dof.multiply is multiply
         assert dof.ramp_up is ramp_up
-        assert sorted(dof.__all__) == sorted(
-            [
-                "DOF",
-                "Beat",
-                "Constant",
-                "Sine",
-                "SmootherStep",
-                "add",
-                "from_psd",
-                "multiply",
-                "ramp_up",
-            ]
-        )
+        assert set(dof.__all__) == {
+            "DOF",
+            "Beat",
+            "Constant",
+            "Sine",
+            "SmootherStep",
+            "add",
+            "from_csd",
+            "from_psd",
+            "multiply",
+            "ramp_up",
+        }
 
     def test_usage(self):
         t = np.linspace(0.0, 10.0, 100)
