@@ -556,14 +556,7 @@ def from_psd(
     areas = _bin_areas(f, psd, edges)
     amps = np.sqrt(2.0 * areas)
 
-    y = _Sum(
-        *(
-            Sine(amp=amp_k, omega=2.0 * np.pi * f_k, phase=phase_k)
-            for amp_k, f_k, phase_k in zip(amps, freqs, phases)
-        )
-    )
-
-    return y
+    return _sum_of_sines(amps, freqs, phases)
 
 
 def from_csd(
@@ -674,16 +667,40 @@ def from_csd(
     amp_kim = np.sqrt(2.0) * np.abs(L_kim)
     phase_kim = np.angle(L_kim) + theta_km[:, np.newaxis, :]
 
-    dofs = []
-    for i in range(n):
-        sines = [
-            Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
-            for amp, f, phase in zip(
-                amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel()
-            )
-        ]
-        dofs.append(_Sum(*sines))
-    return tuple(dofs)
+    return tuple(
+        _sum_of_sines(amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel())
+        for i in range(n)
+    )
+
+
+def _sum_of_sines(
+    amps: NDArray[np.float64],
+    freqs: NDArray[np.float64],
+    phases: NDArray[np.float64],
+) -> DOF:
+    """
+    Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
+
+    Parameters
+    ----------
+    amps
+        Amplitudes of the sinusoidal components.
+    freqs
+        Frequencies of the sinusoidal components, in Hz.
+    phases
+        Phases of the sinusoidal components, in radians.
+
+    Returns
+    -------
+    DOF
+        DOF signal generator for the sum of sinusoids.
+    """
+    return _Sum(
+        *(
+            Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
+            for amp, freq, phase in zip(amps, freqs, phases)
+        )
+    )
 
 
 def _hermitian_sqrt(a: NDArray) -> NDArray:
