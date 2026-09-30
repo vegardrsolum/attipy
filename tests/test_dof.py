@@ -1197,7 +1197,7 @@ class Test_from_csd:
         y_psd = from_psd(freq, psd, 10, jitter=1.0, seed=1)
 
         t = np.linspace(0.0, 100.0, 1001)
-        np.testing.assert_allclose(y.y(t), y_psd.y(t), atol=1e-6)
+        np.testing.assert_allclose(y.y(t), y_psd.y(t))
 
     @pytest.mark.parametrize(
         "csd",
