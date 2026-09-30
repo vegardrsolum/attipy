@@ -1015,6 +1015,14 @@ class Test_from_psd:
             psd_out, np.interp(freq_out, freq, psd), atol=0.05 * psd.max()
         )
 
+    def test_zero_psd(self):
+        freq = np.array([0.0, 1.0, 2.0])
+        psd = np.array([0.0, 0.0, 0.0])
+        dof = from_psd(freq, psd, 3)
+        t = np.linspace(0.0, 1.0, 100)
+        y = dof.y(t)
+        np.testing.assert_allclose(y, 0.0)
+
     @pytest.mark.parametrize(
         "freq, psd",
         [
