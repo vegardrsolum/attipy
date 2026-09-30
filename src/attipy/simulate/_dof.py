@@ -572,3 +572,148 @@ def from_psd(
     )
 
     return y
+
+
+def from_csd(
+    freq: ArrayLike,
+    csd: ArrayLike,
+    n_components: int,
+    *,
+    jitter: float = 0.0,
+    seed: int | np.random.Generator | None = None,
+) -> tuple[DOF, ...]:
+    """
+    Correlated DOF signal realizations of a one-sided cross-spectral density
+    (CSD) matrix.
+
+    The n signals are linear combinations of n independent sources, each a sum
+    of sinusoids with random phases:
+
+        y_i(t) = sum_k sum_m amp_kim * sin(2 * pi * f_km * t + phase_kim)
+
+    The frequency range of ``freq`` is divided into ``n_components`` equally
+    wide bins. Each bin is divided into n equally wide sub-bins, with one
+    component of source m placed in sub-bin m (double-indexed frequencies,
+    Deodatis, 1996). The amplitudes and phases are:
+
+        amp_kim = sqrt(2) * |L_kim|
+        phase_kim = angle(L_kim) + theta_km
+
+    where L_k is a factor such that ``L_k @ L_k^H = conj(P_k)``, P_k is the area
+    under the linearly interpolated CSD matrix within bin k, and the phases,
+    theta_km, are uniformly distributed on [0, 2 * pi).
+
+    The variance of each signal thus equals the area under its auto-spectrum,
+    and the auto- and cross-spectra match the CSD matrix at a frequency
+    resolution of one bin width.
+
+    Parameters
+    ----------
+    freq : array_like, shape (m,)
+        Frequencies in Hz. Must be non-negative and strictly increasing, with at
+        least two values.
+    csd : array_like, shape (m, n, n)
+        One-sided CSD matrix, in y_i * y_j / Hz, where ``csd[:, i, j]`` is the
+        CSD of y_i and y_j as returned by ``scipy.signal.csd(y_i, y_j)``. Must
+        be Hermitian and positive semidefinite at each frequency.
+    n_components : int
+        Number of frequency bins. Each signal is a sum of ``n_components * n``
+        sinusoidal components. Must be positive.
+    jitter : float, optional
+        Random offset of each component frequency from its sub-bin center, as a
+        fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
+        places the component at the sub-bin center and 1.0 anywhere within the
+        sub-bin. Jitter breaks up the periodicity of evenly spaced components.
+        Defaults to 0.0.
+    seed : int, numpy.random.Generator, or None, optional
+        Seed for the random phases and jitter. Accepts anything that
+        ``numpy.random.default_rng()`` accepts.
+
+    Returns
+    -------
+    tuple of DOF, length n
+        DOF signal generators for the signal realizations, y_0, ..., y_(n-1).
+
+    References
+    ----------
+    Deodatis, G. (1996). Simulation of ergodic multivariate stochastic
+    processes. Journal of Engineering Mechanics, 122(8), 778-787.
+    """
+    freq = np.asarray_chkfinite(freq, dtype=np.float64)
+    csd = np.asarray_chkfinite(csd, dtype=np.complex128)
+
+    if freq.ndim != 1 or freq.size < 2:
+        raise ValueError("'freq' must be a 1D array with at least two values.")
+    if freq[0] < 0.0 or np.any(np.diff(freq) <= 0.0):
+        raise ValueError("'freq' must be non-negative and strictly increasing.")
+    if csd.ndim != 3 or csd.shape[0] != freq.size or csd.shape[1] != csd.shape[2]:
+        raise ValueError(
+            "'csd' must have shape (m, n, n), where m is the size of 'freq'."
+        )
+    tol = 1e-10 * np.abs(csd).max()
+    if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
+        raise ValueError("'csd' must be Hermitian.")
+    if np.any(np.linalg.eigvalsh(csd) < -tol):
+        raise ValueError("'csd' must be positive semidefinite.")
+    if not isinstance(n_components, numbers.Integral) or n_components < 1:
+        raise ValueError("'n_components' must be a positive integer.")
+    if not 0.0 <= jitter <= 1.0:
+        raise ValueError("'jitter' must be in [0, 1].")
+
+    n = csd.shape[1]
+
+    rng = np.random.default_rng(seed)
+    theta_km = rng.uniform(0.0, 2.0 * np.pi, (n_components, n))
+    offset_km = 0.5 + jitter * rng.uniform(-0.5, 0.5, (n_components, n))
+
+    # Component frequencies, with source m in sub-bin m of each bin
+    edges = np.linspace(freq[0], freq[-1], n_components + 1)
+    df = edges[1] - edges[0]
+    freq_km = edges[:-1, np.newaxis] + df / n * (np.arange(n) + offset_km)
+
+    # Factorize conj(P_k) = L_k @ L_k^H by eigendecomposition, which (unlike
+    # Cholesky) also works for singular matrices
+    area_k = _bin_areas(freq, csd, edges)
+    eigval_k, eigvec_k = np.linalg.eigh(area_k.conj())
+    L_kim = eigvec_k * np.sqrt(np.clip(eigval_k, 0.0, None))[:, np.newaxis, :]
+
+    amp_kim = np.sqrt(2.0) * np.abs(L_kim)
+    phase_kim = np.angle(L_kim) + theta_km[:, np.newaxis, :]
+
+    dofs = []
+    for i in range(n):
+        sines = [
+            Sine(amp=amp, omega=2.0 * np.pi * f, phase=phase)
+            for amp, f, phase in zip(
+                amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel()
+            )
+        ]
+        dofs.append(_Sum(*sines))
+    return tuple(dofs)
+
+
+def _bin_areas(
+    freq: NDArray[np.float64], spectrum: NDArray, edges: NDArray[np.float64]
+) -> NDArray:
+    """
+    Exact bin areas of a linearly interpolated spectrum.
+
+    The spectrum, of shape (m, ...), is interpolated along its first axis onto
+    a grid of both ``freq`` and ``edges``. The trapezoid areas between
+    consecutive grid points are then summed within each bin. Returns an array
+    of shape (len(edges) - 1, ...).
+    """
+    grid = np.union1d(freq, edges)
+    broadcast = (-1,) + (1,) * (spectrum.ndim - 1)
+
+    # Linear interpolation along the first axis
+    idx = np.clip(np.searchsorted(freq, grid, side="right") - 1, 0, freq.size - 2)
+    weight = ((grid - freq[idx]) / (freq[idx + 1] - freq[idx])).reshape(broadcast)
+    spectrum_grid = (1.0 - weight) * spectrum[idx] + weight * spectrum[idx + 1]
+
+    area_grid = (
+        0.5
+        * (spectrum_grid[1:] + spectrum_grid[:-1])
+        * np.diff(grid).reshape(broadcast)
+    )
+    return np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]), axis=0)
