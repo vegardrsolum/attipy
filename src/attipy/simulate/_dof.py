@@ -483,6 +483,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
 def from_psd(
     f: ArrayLike,
     psd: ArrayLike,
+    /,
     n_components: int,
     *,
     jitter: float = 0.0,
