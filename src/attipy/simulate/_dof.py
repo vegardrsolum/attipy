@@ -507,7 +507,7 @@ def from_psd(
 
     Parameters
     ----------
-    f : array_like, shape (n_f,)
+    f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
@@ -522,7 +522,6 @@ def from_psd(
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
-
 
     Returns
     -------
@@ -566,7 +565,7 @@ def from_csd(
     n_components: int,
     *,
     jitter: float = 0.0,
-    seed: int | np.random.Generator | None = None,
+    seed: int | None = None,
 ) -> tuple[DOF, ...]:
     """
     Correlated DOF signal realizations of a one-sided CSD matrix.
@@ -579,7 +578,7 @@ def from_csd(
 
     Parameters
     ----------
-    f : array_like, shape (n_f,)
+    f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     csd : array_like, shape (m, n, n)
@@ -595,9 +594,9 @@ def from_csd(
         places the component at the sub-bin center and 1.0 anywhere within the
         sub-bin. Jitter breaks up the periodicity of evenly spaced components.
         Defaults to 0.0.
-    seed : int, numpy.random.Generator, or None, optional
-        Seed for the random phases and jitter. Accepts anything that
-        ``numpy.random.default_rng()`` accepts.
+    seed : int, optional
+        Seed used to generate random phases and jitter. Defaults to None; fresh
+        unpredictable entropy will be pulled from the OS.
 
     Returns
     -------
@@ -660,15 +659,17 @@ def _sum_of_sines(
     phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
+    Sum of sinusoids:
+    
+        ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``
 
     Parameters
     ----------
-    amps
+    amps : ndarray, shape (n_c,)
         Amplitudes of the sinusoidal components.
-    freqs
+    freqs : ndarray, shape (n_c,)
         Frequencies of the sinusoidal components, in Hz.
-    phases
+    phases : ndarray, shape (n_c,)
         Phases of the sinusoidal components, in radians.
 
     Returns
@@ -690,15 +691,14 @@ def _hermitian_sqrt(a: NDArray) -> NDArray:
 
     Parameters
     ----------
-    a
-        Stack of Hermitian positive semidefinite matrices, of shape
-        ``(..., n, n)``.
+    a : ndarray, shape (..., n, n)
+        Hermitian positive semidefinite matrices.
 
     Returns
     -------
-    NDArray
-        Hermitian matrices, s, of the same shape, such that ``s @ s^H = a``.
-        Small negative eigenvalues from round-off are clipped to zero.
+    ndarray, shape (..., n, n)
+        Hermitian matrices, s, such that ``s @ s^H = a``. Negative eigenvalues
+        from round-off are clipped to zero.
     """
     eigval, eigvec = np.linalg.eigh(a)
     sqrt_eigval = np.sqrt(np.clip(eigval, 0.0, None))
@@ -711,25 +711,21 @@ def _bin_areas(
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Integrate a linearly interpolated spectrum within frequency bins.
-
-    The spectrum, of shape ``(n_f, ...)``, is linearly interpolated along its
-    first axis. The integral within each bin is then computed exactly for
-    this piecewise-linear interpolation.
+    Exact bin areas of a linearly interpolated spectrum.
 
     Parameters
     ----------
-    freq
-        Strictly increasing frequency grid of length ``n_f``.
-    spectrum
-        Spectrum values on ``freq``.
-    edges
-        Strictly increasing bin edges, within ``freq``.
+    freq : ndarray, shape (m,)
+        Frequencies. Must be strictly increasing.
+    spectrum : ndarray, shape (m, ...)
+        Spectrum values at ``freq``, interpolated along the first axis.
+    edges : ndarray, shape (n_bins + 1,)
+        Bin edges. Must be strictly increasing and within ``freq``.
 
     Returns
     -------
-    NDArray
-        Bin areas with shape ``(len(edges) - 1, ...)``.
+    ndarray, shape (n_bins, ...)
+        Area under the spectrum within each bin.
     """
     grid = np.union1d(freq, edges)
     reshape = (-1,) + (1,) * (spectrum.ndim - 1)
