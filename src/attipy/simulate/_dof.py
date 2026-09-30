@@ -552,12 +552,15 @@ def from_psd(
     df = edges[1] - edges[0]
     freq_k = edges[:-1] + df * offset_k
 
-    # Exact bin areas of the linearly interpolated PSD: trapezoid areas between
-    # consecutive grid points, summed within each bin
     grid = np.union1d(freq, edges)
     psd_grid = np.interp(grid, freq, psd)
+
     area_grid = 0.5 * (psd_grid[1:] + psd_grid[:-1]) * np.diff(grid)
-    area_k = np.add.reduceat(area_grid, np.searchsorted(grid, edges[:-1]))
+
+    cum_area = np.concatenate(([0.0], np.cumsum(area_grid)))
+    idx = np.searchsorted(grid, edges)
+    area_k = np.diff(cum_area[idx])
+
     amp_k = np.sqrt(2.0 * area_k)
 
     y = _Sum(
