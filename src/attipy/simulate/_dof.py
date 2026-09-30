@@ -606,8 +606,8 @@ def from_csd(
 
     References
     ----------
-    Deodatis, G. (1996). Simulation of ergodic multivariate stochastic
-    processes. Journal of Engineering Mechanics, 122(8), 778-787.
+    Deodatis, G. (1996). Simulation of ergodic multivariate stochastic processes.
+    Journal of Engineering Mechanics, 122(8), 778-787.
     """
     f = np.asarray_chkfinite(f, dtype=np.float64)
     csd = np.asarray_chkfinite(csd, dtype=np.complex128)
