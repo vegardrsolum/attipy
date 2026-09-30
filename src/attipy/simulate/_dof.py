@@ -669,11 +669,7 @@ def from_csd(
     # (unlike Cholesky) also works for singular matrices, and (unlike raw
     # eigenvectors) is unique and does not pile energy into the last sub-bin
     area_k = _bin_areas(f, csd, edges)
-    eigval_k, eigvec_k = np.linalg.eigh(area_k.conj())
-    sqrt_eigval_k = np.sqrt(np.clip(eigval_k, 0.0, None))
-    L_kim = (eigvec_k * sqrt_eigval_k[:, np.newaxis, :]) @ eigvec_k.conj().swapaxes(
-        1, 2
-    )
+    L_kim = _hermitian_sqrt(area_k.conj())
 
     amp_kim = np.sqrt(2.0) * np.abs(L_kim)
     phase_kim = np.angle(L_kim) + theta_km[:, np.newaxis, :]
@@ -688,6 +684,27 @@ def from_csd(
         ]
         dofs.append(_Sum(*sines))
     return tuple(dofs)
+
+
+def _hermitian_sqrt(a: NDArray) -> NDArray:
+    """
+    Hermitian square root of Hermitian positive semidefinite matrices.
+
+    Parameters
+    ----------
+    a
+        Stack of Hermitian positive semidefinite matrices, of shape
+        ``(..., n, n)``.
+
+    Returns
+    -------
+    NDArray
+        Hermitian matrices, s, of the same shape, such that ``s @ s^H = a``.
+        Small negative eigenvalues from round-off are clipped to zero.
+    """
+    eigval, eigvec = np.linalg.eigh(a)
+    sqrt_eigval = np.sqrt(np.clip(eigval, 0.0, None))
+    return (eigvec * sqrt_eigval[..., np.newaxis, :]) @ eigvec.conj().swapaxes(-1, -2)
 
 
 def _bin_areas(
