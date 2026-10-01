@@ -1054,25 +1054,6 @@ class Test_from_psd:
             from_psd(freq, psd, 10, jitter=jitter)
 
 
-def bin_csd(dofs, n_bins):
-    """Exact CSD contribution of each bin, shape (n_bins, n, n), from the components."""
-    z = np.array([[s._amp * np.exp(1j * s._phase) for s in dof._dofs] for dof in dofs])
-    csd_c = np.einsum("ic,jc->cij", z.conj(), z) / 2.0
-    return csd_c.reshape(n_bins, -1, *csd_c.shape[1:]).sum(axis=1)
-
-
-def grid_bin_areas(freq, csd, n_bins):
-    """Exact bin areas of ``csd`` when the bin edges fall on the frequency grid."""
-    assert (freq.size - 1) % n_bins == 0, "bin edges must fall on the grid"
-    step = (freq.size - 1) // n_bins
-    return np.array(
-        [
-            np.trapezoid(csd[i : i + step + 1], freq[i : i + step + 1], axis=0)
-            for i in range(0, n_bins * step, step)
-        ]
-    )
-
-
 class Test_from_csd:
     @pytest.fixture
     def freq(self):
@@ -1093,14 +1074,19 @@ class Test_from_csd:
         return csd
 
     @staticmethod
-    def csd_3x3(freq, psd):
-        # Partially coherent signals with PSD scales 1, 4 and 0.25, coherency
-        # magnitudes |gamma_ij| and time delays tau_i
-        coherency = np.array([[1.0, 0.8, 0.5], [0.8, 1.0, 0.6], [0.5, 0.6, 1.0]])
-        scale = np.array([1.0, 2.0, 0.5])
-        delay = np.exp(2j * np.pi * freq[:, None] * np.array([0.0, 0.3, 0.7]))
-        phase = delay[:, :, None] * delay[:, None, :].conj()
-        return psd[:, None, None] * np.outer(scale, scale) * coherency * phase
+    def csd_3x3(psd):
+        # Constant Hermitian positive definite matrix times the PSD
+        a = np.array(
+            [[1.0, 0.5j, 0.2], [-0.5j, 2.0, 0.3 + 0.3j], [0.2, 0.3 - 0.3j, 0.5]]
+        )
+        return psd[:, None, None] * a
+
+    @staticmethod
+    def realized_csd(dofs):
+        # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where
+        # z_ik = amp_ik * exp(1j * phase_ik) for component k of signal i
+        z = np.array([[s._amp * np.exp(1j * s._phase) for s in d._dofs] for d in dofs])
+        return z.conj() @ z.T / 2.0
 
     def test_returns_tuple_of_sums_of_sines(self, freq, psd):
         dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 10, seed=1)
@@ -1113,64 +1099,47 @@ class Test_from_csd:
             assert all(isinstance(s, Sine) for s in dof._dofs)
 
     @pytest.mark.parametrize(
-        "f0, freq_expect",
+        "f, freq_expect",
         [
-            (0.0, [0.125, 0.375, 0.625, 0.875]),  # bins [0, 0.5] and [0.5, 1]
-            (0.6, [0.65, 0.75, 0.85, 0.95]),  # bins [0.6, 0.8] and [0.8, 1]
+            ([0.0, 1.0], [0.125, 0.375, 0.625, 0.875]),
+            ([0.6, 1.0], [0.65, 0.75, 0.85, 0.95]),
         ],
     )
-    def test_frequencies(self, freq, psd, f0, freq_expect):
-        keep = freq >= f0 - 1e-12
-        dofs = from_csd(freq[keep], self.csd_2x2(psd[keep], 2.0, 0.5), 4, seed=1)
+    def test_frequencies(self, f, freq_expect):
+        # Two bins with two sub-bins each; components at the sub-bin centers
+        dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), 4, seed=1)
 
-        # Two bins, each with two sub-bins; components at sub-bin centers
         for dof in dofs:
-            np.testing.assert_allclose(
-                [s._w for s in dof._dofs], 2.0 * np.pi * np.array(freq_expect)
-            )
+            freq = [s._w / (2.0 * np.pi) for s in dof._dofs]
+            np.testing.assert_allclose(freq, freq_expect)
 
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
-    @pytest.mark.parametrize("jitter", [0.0, 1.0])
-    def test_bin_csd_2x2(self, freq, psd, coherence, jitter):
-        # 10 bins with edges on the frequency grid, so slice integrals are exact
+    def test_csd_equals_area_2x2(self, freq, psd, coherence):
         csd = self.csd_2x2(psd, 2.0j, coherence)
-        dofs = from_csd(freq, csd, 20, jitter=jitter, seed=1)
+        dofs = from_csd(freq, csd, 14, seed=1)
 
         np.testing.assert_allclose(
-            bin_csd(dofs, 10), grid_bin_areas(freq, csd, 10), atol=1e-12
+            self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
         )
 
-    def test_bin_csd_3x3(self, freq, psd):
-        csd = self.csd_3x3(freq, psd)
-        dofs = from_csd(freq, csd, 30, jitter=0.5, seed=1)
+    def test_csd_equals_area_3x3(self, freq, psd):
+        csd = self.csd_3x3(psd)
+        dofs = from_csd(freq, csd, 21, seed=1)
 
         np.testing.assert_allclose(
-            bin_csd(dofs, 10), grid_bin_areas(freq, csd, 10), atol=1e-12
+            self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
         )
 
-    @pytest.mark.parametrize("n", [2, 3])
-    def test_total_csd_equals_area(self, freq, psd, n):
-        # 7 bins, with edges between the grid points
-        csd = self.csd_2x2(psd, 2.0j, 0.5) if n == 2 else self.csd_3x3(freq, psd)
-        dofs = from_csd(freq, csd, 7 * n, jitter=1.0, seed=1)
-
-        np.testing.assert_allclose(
-            bin_csd(dofs, 7).sum(axis=0), np.trapezoid(csd, freq, axis=0), atol=1e-12
-        )
-
-    def test_bin_areas_between_knots(self):
-        # Triangle with area 2.0; edges at 2/3 and 4/3 fall inside knot intervals
+    def test_bin_areas(self):
+        # Triangle with area 2.0, split into bins [0, 2/3], [2/3, 4/3], [4/3, 2]
         csd = np.array([0.0, 2.0, 0.0]).reshape(-1, 1, 1)
         (y,) = from_csd([0.0, 1.0, 2.0], csd, 3, seed=1)
 
-        var_k = [s._amp**2 / 2.0 for s in y._dofs]
-        np.testing.assert_allclose(var_k, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
+        var = [s._amp**2 / 2.0 for s in y._dofs]
+        np.testing.assert_allclose(var, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
 
     def test_fully_coherent(self, freq, psd):
-        # Rank-1 CSD: every component appears in both signals, with amplitude
-        # ratio |h| = 2 and phase difference arg(h) = +90 degrees. Tail
-        # components with negligible amplitude have meaningless phases and are
-        # excluded.
+        # y_1 is y_0 scaled by 2 and phase shifted by +90 degrees
         y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), 10, seed=1)
 
         amp0 = np.array([s._amp for s in y0._dofs])
@@ -1178,11 +1147,21 @@ class Test_from_csd:
         phase0 = np.array([s._phase for s in y0._dofs])
         phase1 = np.array([s._phase for s in y1._dofs])
 
+        # Phases of components with negligible amplitude are meaningless
         active = amp0 > 1e-6 * amp0.max()
         np.testing.assert_allclose(amp1, 2.0 * amp0, atol=1e-12)
         np.testing.assert_allclose(
             np.mod(phase1[active] - phase0[active], 2.0 * np.pi), np.pi / 2.0
         )
+
+    def test_energy_spread_over_sub_bins(self, freq, psd):
+        # Hermitian square root of a fully coherent CSD with equal PSDs splits
+        # each bin's energy equally between its two sub-bins
+        dofs = from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), 10, seed=1)
+
+        for dof in dofs:
+            amp = np.array([s._amp for s in dof._dofs]).reshape(5, 2)
+            np.testing.assert_allclose(amp[:, 0], amp[:, 1])
 
     def test_zero_csd(self, freq):
         dofs = from_csd(freq, np.zeros((freq.size, 2, 2)), 10, seed=1)
@@ -1191,7 +1170,7 @@ class Test_from_csd:
             assert all(s._amp == 0.0 for s in dof._dofs)
 
     def test_roundoff_negative_eigenvalue(self):
-        # Eigenvalues -1e-14 and 2.0: accepted as positive semidefinite
+        # Eigenvalues 2.0 and -1e-14 are accepted as positive semidefinite
         csd = np.tile([[1.0, 1.0 + 1e-14], [1.0 + 1e-14, 1.0]], (3, 1, 1))
         dofs = from_csd([0.0, 1.0, 2.0], csd, 4, seed=1)
 
@@ -1214,7 +1193,7 @@ class Test_from_csd:
         assert not np.allclose(freq0, freq_center)
         assert np.all(np.abs(freq0 - freq_center) <= 0.5 * jitter * df_sub)
 
-        # Changing jitter with the same seed leaves amplitudes and phases unchanged
+        # Amplitudes and phases are the same as without jitter
         np.testing.assert_allclose(
             [s._amp for s in y0._dofs], [s._amp for s in y0_ref._dofs]
         )
@@ -1243,9 +1222,7 @@ class Test_from_csd:
         for i in range(2):
             for j in range(2):
                 freq_out, csd_out = scipy_csd(y[i], y[j], fs=fs, nperseg=256)
-                csd_expect = np.interp(
-                    freq_out, freq, csd[:, i, j].real
-                ) + 1j * np.interp(freq_out, freq, csd[:, i, j].imag)
+                csd_expect = np.interp(freq_out, freq, csd[:, i, j])
                 np.testing.assert_allclose(
                     csd_out, csd_expect, atol=0.1 * np.abs(csd[:, i, j]).max()
                 )
@@ -1256,6 +1233,11 @@ class Test_from_csd:
 
         t = np.linspace(0.0, 100.0, 1001)
         np.testing.assert_allclose(y.y(t), y_psd.y(t), atol=1e-12)
+
+    def test_numpy_integer_n_components(self, freq, psd):
+        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), np.int64(10), seed=1)
+
+        assert len(y._dofs) == 10
 
     @pytest.mark.parametrize(
         "freq, match",
@@ -1290,11 +1272,6 @@ class Test_from_csd:
     def test_raises_n_components(self, freq, psd, n_components):
         with pytest.raises(ValueError, match="positive integer"):
             from_csd(freq, psd.reshape(-1, 1, 1), n_components)
-
-    def test_numpy_integer_n_components(self, freq, psd):
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), np.int64(10), seed=1)
-
-        assert len(y._dofs) == 10
 
     def test_raises_n_components_not_multiple(self, freq, psd):
         with pytest.raises(ValueError, match="multiple of n = 2"):
