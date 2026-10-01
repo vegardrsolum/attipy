@@ -661,13 +661,17 @@ def _sum_of_sines(
 ) -> DOF:
     """
     Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
+    Zero-amplitude components are dropped, and a zero ``Constant`` is returned
+    if no components remain.
     """
-    return _Sum(
-        *(
-            Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
-            for amp, freq, phase in zip(amps, freqs, phases)
-        )
-    )
+    sines = [
+        Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
+        for amp, freq, phase in zip(amps, freqs, phases)
+        if amp > 0.0
+    ]
+    if not sines:
+        return Constant(0.0)
+    return _Sum(*sines)
 
 
 def _hermitian_sqrt(a: NDArray) -> NDArray:
