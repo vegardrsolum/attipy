@@ -568,26 +568,23 @@ def from_csd(
     seed: int | None = None,
 ) -> tuple[DOF, ...]:
     """
-    Correlated DOF signal realizations of a one-sided CSD matrix.
+    Correlated DOF signal realizations of a one-sided cross-spectral density (CSD)
+    matrix.
 
-    Each signal is a sum of ``n_components`` sinusoids with random phases. The
-    frequency range of ``f`` is divided into ``n_components // n`` equally wide
-    bins, each split into n sub-bins with one component per sub-bin. The
-    amplitudes and phases are chosen so that the auto- and cross-spectra of the
-    signals match the CSD at a resolution of one bin width (Deodatis, 1996).
+    The range of ``f`` is split into ``n_components // n`` equal bins of n sub-bins
+    each, with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
+    of the signals match ``csd`` at a resolution of one bin width  (Deodatis, 1996).
 
     Parameters
     ----------
     f : array_like, shape (m,)
-        Frequencies in Hz. Must be non-negative and strictly increasing, with at
-        least two values.
+        Frequencies in Hz, non-negative and strictly increasing, with m >= 2.
     csd : array_like, shape (m, n, n)
-        One-sided CSD matrix, in y_i * y_j / Hz, where ``csd[:, i, j]`` is the
-        CSD of y_i and y_j as returned by ``scipy.signal.csd(y_i, y_j)``. Must
-        be Hermitian and positive semidefinite at each frequency.
+        One-sided CSD matrix in y_i * y_j / Hz, where ``csd[:, i, j]`` matches
+        ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and positive semidefinite
+        at each frequency.
     n_components : int
-        Number of sinusoidal components in each signal. Must be a positive
-        multiple of n.
+        Number of sinusoids per signal, a positive multiple of n.
     jitter : float, optional
         Random offset of each component frequency from its sub-bin center, as a
         fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
@@ -595,13 +592,13 @@ def from_csd(
         sub-bin. Jitter breaks up the periodicity of evenly spaced components.
         Defaults to 0.0.
     seed : int, optional
-        Seed used to generate random phases and jitter. Defaults to None; fresh
+      Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
 
     Returns
     -------
     tuple of DOF, length n
-        DOF signal generators for the signal realizations, y_0, ..., y_(n-1).
+        DOF signal generators.
 
     References
     ----------
