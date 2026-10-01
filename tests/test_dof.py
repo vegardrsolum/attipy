@@ -1063,6 +1063,7 @@ def bin_csd(dofs, n_bins):
 
 def grid_bin_areas(freq, csd, n_bins):
     """Exact bin areas of ``csd`` when the bin edges fall on the frequency grid."""
+    assert (freq.size - 1) % n_bins == 0, "bin edges must fall on the grid"
     step = (freq.size - 1) // n_bins
     return np.array(
         [
@@ -1093,11 +1094,13 @@ class Test_from_csd:
 
     @staticmethod
     def csd_3x3(freq, psd):
-        # Partially coherent signals with time delays tau_i
-        coherence = np.array([[1.0, 0.8, 0.5], [0.8, 1.0, 0.6], [0.5, 0.6, 1.0]])
+        # Partially coherent signals with PSD scales 1, 4 and 0.25, coherency
+        # magnitudes |gamma_ij| and time delays tau_i
+        coherency = np.array([[1.0, 0.8, 0.5], [0.8, 1.0, 0.6], [0.5, 0.6, 1.0]])
+        scale = np.array([1.0, 2.0, 0.5])
         delay = np.exp(2j * np.pi * freq[:, None] * np.array([0.0, 0.3, 0.7]))
         phase = delay[:, :, None] * delay[:, None, :].conj()
-        return psd[:, None, None] * coherence * phase
+        return psd[:, None, None] * np.outer(scale, scale) * coherency * phase
 
     def test_returns_tuple_of_sums_of_sines(self, freq, psd):
         dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 10, seed=1)
@@ -1143,6 +1146,16 @@ class Test_from_csd:
 
         np.testing.assert_allclose(
             bin_csd(dofs, 10), grid_bin_areas(freq, csd, 10), atol=1e-12
+        )
+
+    @pytest.mark.parametrize("n", [2, 3])
+    def test_total_csd_equals_area(self, freq, psd, n):
+        # 7 bins, with edges between the grid points
+        csd = self.csd_2x2(psd, 2.0j, 0.5) if n == 2 else self.csd_3x3(freq, psd)
+        dofs = from_csd(freq, csd, 7 * n, jitter=1.0, seed=1)
+
+        np.testing.assert_allclose(
+            bin_csd(dofs, 7).sum(axis=0), np.trapezoid(csd, freq, axis=0), atol=1e-12
         )
 
     def test_bin_areas_between_knots(self):
@@ -1201,8 +1214,7 @@ class Test_from_csd:
         assert not np.allclose(freq0, freq_center)
         assert np.all(np.abs(freq0 - freq_center) <= 0.5 * jitter * df_sub)
 
-        # Amplitudes and phases do not depend on jitter. Intended contract:
-        # phases are drawn before jitter, so changing jitter keeps them.
+        # Changing jitter with the same seed leaves amplitudes and phases unchanged
         np.testing.assert_allclose(
             [s._amp for s in y0._dofs], [s._amp for s in y0_ref._dofs]
         )
