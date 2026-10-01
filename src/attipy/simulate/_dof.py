@@ -546,7 +546,7 @@ def from_psd(
 
     rng = np.random.default_rng(seed)
     phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
-    offset_k = 0.5 + jitter * rng.uniform(-0.5, 0.5, n_components)
+    offset_k = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, n_components)
 
     edges = np.linspace(f[0], f[-1], n_components + 1)
     df = edges[1] - edges[0]
