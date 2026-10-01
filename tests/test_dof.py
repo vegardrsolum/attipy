@@ -959,12 +959,24 @@ class Test_from_psd:
 
         dof = from_psd(freq, psd, 4, seed=1)
 
-        # The peak is split equally between the two neighbouring bins
+        # The peak is split equally between the two neighbouring bins, and the
+        # empty bins are dropped
+        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
         var_k = np.array([s._amp**2 / 2.0 for s in dof._dofs])
         area = np.trapezoid(psd, freq)
-        np.testing.assert_allclose(
-            var_k, [area / 2.0, area / 2.0, 0.0, 0.0], atol=1e-15
-        )
+        np.testing.assert_allclose(freq_k, [0.125, 0.375])
+        np.testing.assert_allclose(var_k, [area / 2.0, area / 2.0])
+
+    def test_drops_zero_amplitude_components(self):
+        # PSD is zero in the bins [0, 0.5] and [1.5, 2]
+        freq = [0.0, 0.5, 1.0, 1.5, 2.0]
+        psd = [0.0, 0.0, 2.0, 0.0, 0.0]
+
+        dof = from_psd(freq, psd, 4, seed=1)
+
+        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
+        np.testing.assert_allclose(freq_k, [0.75, 1.25])
+        assert all(s._amp > 0.0 for s in dof._dofs)
 
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
@@ -1023,6 +1035,7 @@ class Test_from_psd:
         freq = np.array([0.0, 1.0, 2.0])
         psd = np.array([0.0, 0.0, 0.0])
         dof = from_psd(freq, psd, 3)
+        assert isinstance(dof, Constant)
         t = np.linspace(0.0, 1.0, 100)
         y = dof.y(t)
         np.testing.assert_allclose(y, 0.0)
@@ -1084,8 +1097,14 @@ class Test_from_csd:
     @staticmethod
     def realized_csd(dofs):
         # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where
-        # z_ik = amp_ik * exp(1j * phase_ik) for component k of signal i
-        z = np.array([[s._amp * np.exp(1j * s._phase) for s in d._dofs] for d in dofs])
+        # z_ik = amp_ik * exp(1j * phase_ik) for component k of signal i.
+        # Zero-amplitude components are dropped, so components are matched
+        # across signals by frequency.
+        omega = sorted({s._w for d in dofs for s in d._dofs})
+        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
+        for i, d in enumerate(dofs):
+            for s in d._dofs:
+                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
         return z.conj() @ z.T / 2.0
 
     def test_returns_tuple_of_sums_of_sines(self, freq, psd):
@@ -1101,17 +1120,19 @@ class Test_from_csd:
     @pytest.mark.parametrize(
         "f, freq_expect",
         [
-            ([0.0, 1.0], [0.125, 0.375, 0.625, 0.875]),
-            ([0.6, 1.0], [0.65, 0.75, 0.85, 0.95]),
+            ([0.0, 1.0], [[0.125, 0.625], [0.375, 0.875]]),
+            ([0.6, 1.0], [[0.65, 0.85], [0.75, 0.95]]),
         ],
     )
     def test_frequencies(self, f, freq_expect):
-        # Two bins with two sub-bins each; components at the sub-bin centers
+        # Two bins with two sub-bins each; components at the sub-bin centers.
+        # For uncorrelated signals, signal i only has energy in sub-bin i of
+        # each bin, and the zero-amplitude components are dropped.
         dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), 4, seed=1)
 
-        for dof in dofs:
+        for dof, freq_expect_i in zip(dofs, freq_expect):
             freq = [s._w / (2.0 * np.pi) for s in dof._dofs]
-            np.testing.assert_allclose(freq, freq_expect)
+            np.testing.assert_allclose(freq, freq_expect_i)
 
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
     def test_csd_equals_area_2x2(self, freq, psd, coherence):
@@ -1166,8 +1187,10 @@ class Test_from_csd:
     def test_zero_csd(self, freq):
         dofs = from_csd(freq, np.zeros((freq.size, 2, 2)), 10, seed=1)
 
+        t = np.linspace(0.0, 1.0, 100)
         for dof in dofs:
-            assert all(s._amp == 0.0 for s in dof._dofs)
+            assert isinstance(dof, Constant)
+            np.testing.assert_allclose(dof.y(t), 0.0)
 
     def test_roundoff_negative_eigenvalue(self):
         # Eigenvalues 2.0 and -1e-14 are accepted as positive semidefinite
