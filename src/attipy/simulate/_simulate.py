@@ -11,7 +11,7 @@ from ._dof import DOF, Beat, Constant
 @dataclass(frozen=True, kw_only=True, slots=True)
 class Motion:
     """
-    Rigid body motion defined by six independent DOF signal generators.
+    Rigid body motion defined by six DOF signal generators.
 
     Defaults to a stationary/standstill motion with all DOFs set to zero.
 
