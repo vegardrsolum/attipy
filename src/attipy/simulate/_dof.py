@@ -634,21 +634,22 @@ def from_csd(
 
     rng = np.random.default_rng(seed)
     theta_km = rng.uniform(0.0, 2.0 * np.pi, (n_bins, n))
-    offset_km = 0.5 + jitter * rng.uniform(-0.5, 0.5, (n_bins, n))
+    offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (n_bins, n))
 
-    # Component frequencies, with source m in sub-bin m of each bin
-    edges = np.linspace(f[0], f[-1], n_bins + 1)
-    df = edges[1] - edges[0]
-    freq_km = edges[:-1, np.newaxis] + df / n * (np.arange(n) + offset_km)
+    # Sub-bin m of bin k holds the component of source m; every n-th sub-bin
+    # edge is a bin edge
+    sub_edges = np.linspace(f[0], f[-1], n_components + 1)
+    d_sub = sub_edges[1] - sub_edges[0]
+    freq_km = sub_edges[:-1].reshape(n_bins, n) + d_sub * offset_km
 
-    # Factorize conj(P_k) = L_k @ L_k^H with the Hermitian square root, which
-    # (unlike Cholesky) also works for singular matrices, and (unlike raw
-    # eigenvectors) is unique and does not pile energy into the last sub-bin
-    area_k = _bin_areas(f, csd, edges)
-    L_kim = _hermitian_sqrt(area_k.conj())
-
-    amp_kim = np.sqrt(2.0) * np.abs(L_kim)
-    phase_kim = np.angle(L_kim) + theta_km[:, np.newaxis, :]
+    # Hermitian square root S_k of each bin area A_k. It works for singular
+    # matrices (unlike Cholesky) and is unique (unlike raw eigenvectors, which
+    # pile energy into the last sub-bin). The minus sign on the phase uses
+    # conj(S_k) as the factor of conj(A_k), matching scipy's conj(X) * Y
+    # convention for the CSD.
+    s_kim = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
+    amp_kim = np.sqrt(2.0) * np.abs(s_kim)
+    phase_kim = theta_km[:, np.newaxis, :] - np.angle(s_kim)
 
     return tuple(
         _sum_of_sines(amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel())
@@ -662,23 +663,7 @@ def _sum_of_sines(
     phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Sum of sinusoids:
-
-        ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``
-
-    Parameters
-    ----------
-    amps : ndarray, shape (n_c,)
-        Amplitudes of the sinusoidal components.
-    freqs : ndarray, shape (n_c,)
-        Frequencies of the sinusoidal components, in Hz.
-    phases : ndarray, shape (n_c,)
-        Phases of the sinusoidal components, in radians.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the sum of sinusoids.
+    Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
     """
     return _Sum(
         *(
@@ -690,22 +675,13 @@ def _sum_of_sines(
 
 def _hermitian_sqrt(a: NDArray) -> NDArray:
     """
-    Hermitian square root of Hermitian positive semidefinite matrices.
-
-    Parameters
-    ----------
-    a : ndarray, shape (..., n, n)
-        Hermitian positive semidefinite matrices.
-
-    Returns
-    -------
-    ndarray, shape (..., n, n)
-        Hermitian matrices, s, such that ``s @ s^H = a``. Negative eigenvalues
-        from round-off are clipped to zero.
+    Hermitian square roots, s, of Hermitian positive semidefinite matrices, a,
+    shape (..., n, n), such that ``s @ s = a``. Negative eigenvalues from
+    round-off are clipped to zero.
     """
-    eigval, eigvec = np.linalg.eigh(a)
-    sqrt_eigval = np.sqrt(np.clip(eigval, 0.0, None))
-    return (eigvec * sqrt_eigval[..., np.newaxis, :]) @ eigvec.conj().swapaxes(-1, -2)
+    w, v = np.linalg.eigh(a)
+    sqrt_w = np.sqrt(np.clip(w, 0.0, None))
+    return (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
 
 
 def _bin_areas(
@@ -714,36 +690,19 @@ def _bin_areas(
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact bin areas of a linearly interpolated spectrum.
-
-    Parameters
-    ----------
-    freq : ndarray, shape (m,)
-        Frequencies. Must be strictly increasing.
-    spectrum : ndarray, shape (m, ...)
-        Spectrum values at ``freq``, interpolated along the first axis.
-    edges : ndarray, shape (n_bins + 1,)
-        Bin edges. Must be strictly increasing and within ``freq``.
-
-    Returns
-    -------
-    ndarray, shape (n_bins, ...)
-        Area under the spectrum within each bin.
+    Exact areas, shape (n_bins, ...), of a spectrum, shape (m, ...), linearly
+    interpolated between ``freq`` and integrated over the bins between
+    ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
+    ``edges`` must lie within ``freq``.
     """
     grid = np.union1d(freq, edges)
-    reshape = (-1,) + (1,) * (spectrum.ndim - 1)
+    shape = (-1,) + (1,) * (spectrum.ndim - 1)
 
-    # Linear interpolation along the first axis
-    idx = np.searchsorted(freq, grid, side="right") - 1
-    idx = np.clip(idx, 0, freq.size - 2)
+    # Linear interpolation onto the grid, which contains every knot and edge
+    j = np.clip(np.searchsorted(freq, grid, side="right") - 1, 0, freq.size - 2)
+    w = ((grid - freq[j]) / (freq[j + 1] - freq[j])).reshape(shape)
+    s = (1.0 - w) * spectrum[j] + w * spectrum[j + 1]
 
-    weight = ((grid - freq[idx]) / (freq[idx + 1] - freq[idx])).reshape(reshape)
-
-    spectrum_grid = (1.0 - weight) * spectrum[idx] + weight * spectrum[idx + 1]
-
-    area = (
-        0.5 * (spectrum_grid[:-1] + spectrum_grid[1:]) * np.diff(grid).reshape(reshape)
-    )
-
-    starts = np.searchsorted(grid, edges[:-1])
-    return np.add.reduceat(area, starts, axis=0)
+    # Trapezoids are exact for a piecewise-linear function; sum them per bin
+    area = 0.5 * (s[:-1] + s[1:]) * np.diff(grid).reshape(shape)
+    return np.add.reduceat(area, np.searchsorted(grid, edges[:-1]), axis=0)
