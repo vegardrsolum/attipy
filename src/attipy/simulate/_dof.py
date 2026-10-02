@@ -569,17 +569,16 @@ def from_csd(
     seed: int | None = None,
 ) -> tuple[DOF, ...]:
     """
-    Correlated DOF signal realizations of a one-sided cross-spectral density (CSD)
-    matrix.
+    Correlated DOF signal realizations of a cross-spectral density (CSD) matrix.
 
     Parameters
     ----------
     f : array_like, shape (m,)
         Frequencies in Hz, non-negative and strictly increasing, with m >= 2.
     csd : array_like, shape (m, n, n)
-        One-sided CSD matrix in y_i * y_j / Hz, where ``csd[:, i, j]`` matches
-        ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and positive semidefinite
-        at each frequency.
+        One-sided cross-spectral density (CSD) matrix in y_i * y_j / Hz, where
+        ``csd[:, i, j]`` matches ``scipy.signal.csd(y_i, y_j)``. Must be
+        Hermitian and positive semidefinite at each frequency.
     nbins : int
         Number of bins to divide the frequency range into. The auto- and cross-spectra
         of the output signals will match ``csd`` at a resolution of one bin width.
