@@ -571,6 +571,8 @@ def from_csd(
     """
     Correlated DOF signal realizations of a cross-spectral density (CSD) matrix.
 
+    Adapted from the spectral representation method of Deodatis (1996).
+
     Parameters
     ----------
     f : array_like, shape (m,)
@@ -582,7 +584,8 @@ def from_csd(
     nbins : int
         Number of bins to divide the frequency range into. The auto- and cross-
         spectra of the output DOF signals will match ``csd`` at a resolution of
-        one bin width. Each output signal is a sum of ``nbins * n`` sinusoids.
+        one bin width. Each bin is split into n sub-bins with one sinusoid each,
+        so each output signal is a sum of ``nbins * n`` sinusoids.
     jitter : float, optional
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
