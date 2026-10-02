@@ -574,7 +574,7 @@ def from_csd(
 
     The range of ``f`` is split into ``nbins`` equal bins of n sub-bins each,
     with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
-    of the signals match ``csd`` at a resolution of one bin width  (Deodatis, 1996).
+    of the signals match ``csd`` at a resolution of one bin width.
 
     Parameters
     ----------
@@ -605,7 +605,7 @@ def from_csd(
     References
     ----------
     Deodatis, G. (1996). Simulation of ergodic multivariate stochastic processes.
-    Journal of Engineering Mechanics, 122(8), 778-787.
+    Journal of Engineering Mechanics.
     """
     f = np.asarray_chkfinite(f, dtype=np.float64)
     csd = np.asarray_chkfinite(csd, dtype=np.complex128)
