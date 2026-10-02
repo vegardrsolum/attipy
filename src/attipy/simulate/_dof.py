@@ -626,9 +626,6 @@ def from_csd(
     if not 0.0 <= jitter <= 1.0:
         raise ValueError("'jitter' must be in [0, 1].")
 
-    # Indexes: k is the frequency bin, j the sub-bin and source, and i the signal.
-    # Signal i is the sum over k and j of the sinusoids of source j, weighted by
-    # element (i, j) of the Hermitian square root S_k of the CSD integral over bin k.
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
     theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
@@ -639,14 +636,20 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
+    # S_k[i, j] weights the sinusoid of source j in signal i
     s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
     amp_kij = np.sqrt(2.0) * np.abs(s_kij)
     phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
 
-    return tuple(
-        _sum_of_sines(amp_kij[:, i].ravel(), freq_kj.ravel(), phase_kij[:, i].ravel())
-        for i in range(n)
-    )
+    # Signal i is the sum of sinusoids over sub-bins j and frequency bins k
+    dofs = []
+    freq_kj_flat = freq_kj.ravel()
+    for i in range(n):
+        amp_kj_flat = amp_kij[:, i, :].ravel()
+        phase_kj_flat = phase_kij[:, i, :].ravel()
+        dofs.append(_sum_of_sines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
+
+    return tuple(dofs)
 
 
 def _sum_of_sines(
