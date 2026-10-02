@@ -553,7 +553,7 @@ def from_psd(
     df = edges[1] - edges[0]
     freq_k = edges[:-1] + df * offset_k
 
-    area_k = _bin_areas(f, psd, edges)
+    area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
     return _sum_of_sines(amp_k, freq_k, phase_k)
@@ -628,7 +628,7 @@ def from_csd(
 
     # Indexes: k is the frequency bin, j the sub-bin and source, and i the signal.
     # Signal i is the sum over k and j of the sinusoids of source j, weighted by
-    # element (i, j) of the Hermitian square root S_k of the CSD area in bin k.
+    # element (i, j) of the Hermitian square root S_k of the CSD integral over bin k.
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
     theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
@@ -639,7 +639,7 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    s_kij = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
+    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
     amp_kij = np.sqrt(2.0) * np.abs(s_kij)
     phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
 
@@ -680,13 +680,13 @@ def _hermitian_sqrt(a: NDArray) -> NDArray:
     return (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
 
 
-def _bin_areas(
+def _bin_integrals(
     freq: NDArray[np.float64],
     spectrum: NDArray,
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact areas, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
+    Exact integrals, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
     interpolated between ``freq`` and integrated over the bins between
     ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
     ``edges`` must lie within ``freq``.
@@ -700,5 +700,5 @@ def _bin_areas(
     s = (1.0 - w) * spectrum[j] + w * spectrum[j + 1]
 
     # Trapezoids are exact for a piecewise-linear function; sum them per bin
-    area = 0.5 * (s[:-1] + s[1:]) * np.diff(grid).reshape(shape)
-    return np.add.reduceat(area, np.searchsorted(grid, edges[:-1]), axis=0)
+    trap = 0.5 * (s[:-1] + s[1:]) * np.diff(grid).reshape(shape)
+    return np.add.reduceat(trap, np.searchsorted(grid, edges[:-1]), axis=0)
