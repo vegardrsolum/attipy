@@ -1135,7 +1135,7 @@ class Test_from_csd:
             np.testing.assert_allclose(freq, freq_expect_i)
 
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
-    def test_csd_equals_area_2x2(self, freq, psd, coherence):
+    def test_csd_equals_integral_2x2(self, freq, psd, coherence):
         csd = self.csd_2x2(psd, 2.0j, coherence)
         dofs = from_csd(freq, csd, 7, seed=1)
 
@@ -1143,7 +1143,7 @@ class Test_from_csd:
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
         )
 
-    def test_csd_equals_area_3x3(self, freq, psd):
+    def test_csd_equals_integral_3x3(self, freq, psd):
         csd = self.csd_3x3(psd)
         dofs = from_csd(freq, csd, 7, seed=1)
 
@@ -1151,7 +1151,7 @@ class Test_from_csd:
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
         )
 
-    def test_bin_areas(self):
+    def test_bin_integrals(self):
         # Triangle with area 2.0, split into bins [0, 2/3], [2/3, 4/3], [4/3, 2]
         csd = np.array([0.0, 2.0, 0.0]).reshape(-1, 1, 1)
         (y,) = from_csd([0.0, 1.0, 2.0], csd, 3, seed=1)

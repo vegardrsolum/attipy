@@ -553,7 +553,7 @@ def from_psd(
     df = edges[1] - edges[0]
     freq_k = edges[:-1] + df * offset_k
 
-    area_k = _bin_areas(f, psd, edges)
+    area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
     return _sum_of_sines(amp_k, freq_k, phase_k)
@@ -569,30 +569,28 @@ def from_csd(
     seed: int | None = None,
 ) -> tuple[DOF, ...]:
     """
-    Correlated DOF signal realizations of a one-sided cross-spectral density (CSD)
-    matrix.
+    Correlated DOF signal realizations of a cross-spectral density (CSD) matrix.
 
-    The range of ``f`` is split into ``nbins`` equal bins of n sub-bins each,
-    with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
-    of the signals match ``csd`` at a resolution of one bin width.
+    Adapted from the spectral representation method of Deodatis (1996).
 
     Parameters
     ----------
     f : array_like, shape (m,)
         Frequencies in Hz, non-negative and strictly increasing, with m >= 2.
     csd : array_like, shape (m, n, n)
-        One-sided CSD matrix in y_i * y_j / Hz, where ``csd[:, i, j]`` matches
-        ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and positive semidefinite
-        at each frequency.
+        One-sided cross-spectral density (CSD) matrix in y_i * y_j / Hz, where
+        ``csd[:, i, j]`` matches ``scipy.signal.csd(y_i, y_j)``. Must be
+        Hermitian and positive semidefinite at each frequency.
     nbins : int
-        Number of frequency bins. Must be positive. Each signal is a sum of
-        ``nbins * n`` sinusoids.
+        Number of bins to divide the frequency range into. The auto- and cross-
+        spectra of the output DOF signals will match ``csd`` at a resolution of
+        one bin width. Each bin is split into n sub-bins with one sinusoid each,
+        so each output signal is a sum of ``nbins * n`` sinusoids.
     jitter : float, optional
-        Random offset of each component frequency from its sub-bin center, as a
-        fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
-        places the component at the sub-bin center and 1.0 anywhere within the
-        sub-bin. Jitter breaks up the periodicity of evenly spaced components.
-        Defaults to 0.0.
+        Random frequency offset of each component within its sub-bin. Must be in
+        the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
+        anywhere within their sub-bins. Jitter breaks up periodicity. Defaults to
+        0.0.
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
@@ -628,28 +626,28 @@ def from_csd(
 
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
-    theta_km = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
-    offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
+    theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
+    offset_kj = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
 
-    # Sub-bin m of bin k holds the component of source m; every n-th sub-bin
-    # edge is a bin edge
+    # Sub-bin j of bin k holds the component of source j
     sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
     d_sub = sub_edges[1] - sub_edges[0]
-    freq_km = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_km
+    freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # Hermitian square root S_k of each bin area A_k. It works for singular
-    # matrices (unlike Cholesky) and is unique (unlike raw eigenvectors, which
-    # pile energy into the last sub-bin). The minus sign on the phase uses
-    # conj(S_k) as the factor of conj(A_k), matching scipy's conj(X) * Y
-    # convention for the CSD.
-    s_kim = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
-    amp_kim = np.sqrt(2.0) * np.abs(s_kim)
-    phase_kim = theta_km[:, np.newaxis, :] - np.angle(s_kim)
+    # S_k[i, j] weights the sinusoid of source j in signal i
+    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
+    amp_kij = np.sqrt(2.0) * np.abs(s_kij)
+    phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
 
-    return tuple(
-        _sum_of_sines(amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel())
-        for i in range(n)
-    )
+    # Signal i is the sum of sinusoids over sub-bins j and frequency bins k
+    dofs = []
+    freq_kj_flat = freq_kj.ravel()
+    for i in range(n):
+        amp_kj_flat = amp_kij[:, i, :].ravel()
+        phase_kj_flat = phase_kij[:, i, :].ravel()
+        dofs.append(_sum_of_sines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
+
+    return tuple(dofs)
 
 
 def _sum_of_sines(
@@ -683,13 +681,13 @@ def _hermitian_sqrt(a: NDArray) -> NDArray:
     return (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
 
 
-def _bin_areas(
+def _bin_integrals(
     freq: NDArray[np.float64],
     spectrum: NDArray,
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact areas, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
+    Exact integrals, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
     interpolated between ``freq`` and integrated over the bins between
     ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
     ``edges`` must lie within ``freq``.
@@ -703,5 +701,5 @@ def _bin_areas(
     s = (1.0 - w) * spectrum[j] + w * spectrum[j + 1]
 
     # Trapezoids are exact for a piecewise-linear function; sum them per bin
-    area = 0.5 * (s[:-1] + s[1:]) * np.diff(grid).reshape(shape)
-    return np.add.reduceat(area, np.searchsorted(grid, edges[:-1]), axis=0)
+    trap = 0.5 * (s[:-1] + s[1:]) * np.diff(grid).reshape(shape)
+    return np.add.reduceat(trap, np.searchsorted(grid, edges[:-1]), axis=0)
