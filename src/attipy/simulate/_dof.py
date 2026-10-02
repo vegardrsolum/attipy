@@ -626,22 +626,25 @@ def from_csd(
     if not 0.0 <= jitter <= 1.0:
         raise ValueError("'jitter' must be in [0, 1].")
 
+    # Indexes: k is the frequency bin, j the sub-bin and source, and i the signal.
+    # Signal i is the sum over k and j of the sinusoids of source j, weighted by
+    # element (i, j) of the Hermitian square root S_k of the CSD area in bin k.
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
-    theta_km = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
-    offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
+    theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
+    offset_kj = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
 
-    # Sub-bin m of bin k holds the component of source m
+    # Sub-bin j of bin k holds the component of source j
     sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
     d_sub = sub_edges[1] - sub_edges[0]
-    freq_km = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_km
+    freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    s_kim = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
-    amp_kim = np.sqrt(2.0) * np.abs(s_kim)
-    phase_kim = theta_km[:, np.newaxis, :] - np.angle(s_kim)
+    s_kij = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
+    amp_kij = np.sqrt(2.0) * np.abs(s_kij)
+    phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
 
     return tuple(
-        _sum_of_sines(amp_kim[:, i].ravel(), freq_km.ravel(), phase_kim[:, i].ravel())
+        _sum_of_sines(amp_kij[:, i].ravel(), freq_kj.ravel(), phase_kij[:, i].ravel())
         for i in range(n)
     )
 
