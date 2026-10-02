@@ -572,10 +572,6 @@ def from_csd(
     Correlated DOF signal realizations of a one-sided cross-spectral density (CSD)
     matrix.
 
-    The range of ``f`` is split into ``nbins`` equal bins of n sub-bins each,
-    with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
-    of the signals match ``csd`` at a resolution of one bin width.
-
     Parameters
     ----------
     f : array_like, shape (m,)
@@ -585,8 +581,9 @@ def from_csd(
         ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and positive semidefinite
         at each frequency.
     nbins : int
-        Number of frequency bins. Must be positive. Each signal is a sum of
-        ``nbins * n`` sinusoids.
+        Number of bins to divide the frequency range into. The auto- and cross-spectra
+        of the output signals will match ``csd`` at a resolution of one bin width.
+        Each output signal is a sum of ``nbins * n`` sinusoids.
     jitter : float, optional
         Random offset of each component frequency from its sub-bin center, as a
         fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
