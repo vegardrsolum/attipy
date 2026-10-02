@@ -584,11 +584,10 @@ def from_csd(
         spectra of the output DOF signals will match ``csd`` at a resolution of
         one bin width. Each output signal is a sum of ``nbins * n`` sinusoids.
     jitter : float, optional
-        Random offset of each component frequency from its sub-bin center, as a
-        fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
-        places the component at the sub-bin center and 1.0 anywhere within the
-        sub-bin. Jitter breaks up the periodicity of evenly spaced components.
-        Defaults to 0.0.
+        Random frequency offset of each component within its sub-bin. Must be in
+        the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
+        anywhere within their sub-bins. Jitter breaks up periodicity. Defaults to
+        0.0.
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
