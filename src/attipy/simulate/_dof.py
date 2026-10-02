@@ -484,7 +484,7 @@ def from_psd(
     f: ArrayLike,
     psd: ArrayLike,
     /,
-    n_components: int,
+    nbins: int,
     *,
     jitter: float = 0.0,
     seed: int | None = None,
@@ -496,8 +496,8 @@ def from_psd(
 
         y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
 
-    The frequency range of ``f`` is divided into ``n_components`` equally wide
-    bins, with one component per bin. The amplitudes are:
+    The frequency range of ``f`` is divided into ``nbins`` equally wide bins,
+    with one component per bin. The amplitudes are:
 
         amp_k = sqrt(2 * P_k)
 
@@ -512,8 +512,9 @@ def from_psd(
         least two values.
     psd : array_like, shape (m,)
         One-sided power spectral density, in y**2 / Hz. Must be non-negative.
-    n_components : int
-        Number of sinusoidal components. Must be positive.
+    nbins : int
+        Number of frequency bins, and thereby sinusoidal components. Must be
+        positive.
     jitter : float, optional
         Random offset of each component frequency from its bin center, as a
         fraction of the bin width. Must be in the range [0, 1], where 0.0 places
@@ -539,16 +540,16 @@ def from_psd(
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if np.any(psd < 0.0):
         raise ValueError("'psd' must be non-negative.")
-    if not isinstance(n_components, numbers.Integral) or n_components < 1:
-        raise ValueError("'n_components' must be a positive integer.")
+    if not isinstance(nbins, numbers.Integral) or nbins < 1:
+        raise ValueError("'nbins' must be a positive integer.")
     if not 0.0 <= jitter <= 1.0:
         raise ValueError("'jitter' must be in [0, 1].")
 
     rng = np.random.default_rng(seed)
-    phase_k = rng.uniform(0.0, 2.0 * np.pi, n_components)
-    offset_k = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, n_components)
+    phase_k = rng.uniform(0.0, 2.0 * np.pi, nbins)
+    offset_k = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, nbins)
 
-    edges = np.linspace(f[0], f[-1], n_components + 1)
+    edges = np.linspace(f[0], f[-1], nbins + 1)
     df = edges[1] - edges[0]
     freq_k = edges[:-1] + df * offset_k
 
@@ -562,7 +563,7 @@ def from_csd(
     f: ArrayLike,
     csd: ArrayLike,
     /,
-    n_components: int,
+    nbins: int,
     *,
     jitter: float = 0.0,
     seed: int | None = None,
@@ -571,9 +572,9 @@ def from_csd(
     Correlated DOF signal realizations of a one-sided cross-spectral density (CSD)
     matrix.
 
-    The range of ``f`` is split into ``n_components // n`` equal bins of n sub-bins
-    each, with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
-    of the signals match ``csd`` at a resolution of one bin width  (Deodatis, 1996).
+    The range of ``f`` is split into ``nbins`` equal bins of n sub-bins each,
+    with one random-phase sinusoid per sub-bin. The auto- and cross-spectra
+    of the signals match ``csd`` at a resolution of one bin width.
 
     Parameters
     ----------
@@ -583,8 +584,9 @@ def from_csd(
         One-sided CSD matrix in y_i * y_j / Hz, where ``csd[:, i, j]`` matches
         ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and positive semidefinite
         at each frequency.
-    n_components : int
-        Number of sinusoids per signal, a positive multiple of n.
+    nbins : int
+        Number of frequency bins. Must be positive. Each signal is a sum of
+        ``nbins * n`` sinusoids.
     jitter : float, optional
         Random offset of each component frequency from its sub-bin center, as a
         fraction of the sub-bin width. Must be in the range [0, 1], where 0.0
@@ -592,7 +594,7 @@ def from_csd(
         sub-bin. Jitter breaks up the periodicity of evenly spaced components.
         Defaults to 0.0.
     seed : int, optional
-      Seed used to generate random phases and jitter. Defaults to None; fresh
+        Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
 
     Returns
@@ -603,7 +605,7 @@ def from_csd(
     References
     ----------
     Deodatis, G. (1996). Simulation of ergodic multivariate stochastic processes.
-    Journal of Engineering Mechanics, 122(8), 778-787.
+    Journal of Engineering Mechanics.
     """
     f = np.asarray_chkfinite(f, dtype=np.float64)
     csd = np.asarray_chkfinite(csd, dtype=np.complex128)
@@ -619,25 +621,21 @@ def from_csd(
         raise ValueError("'csd' must be Hermitian.")
     if np.any(np.linalg.eigvalsh(csd) < -tol):
         raise ValueError("'csd' must be positive semidefinite.")
-    if not isinstance(n_components, numbers.Integral) or n_components < 1:
-        raise ValueError("'n_components' must be a positive integer.")
+    if not isinstance(nbins, numbers.Integral) or nbins < 1:
+        raise ValueError("'nbins' must be a positive integer.")
     if not 0.0 <= jitter <= 1.0:
         raise ValueError("'jitter' must be in [0, 1].")
 
     n = csd.shape[1]
-    if n_components % n != 0:
-        raise ValueError(f"'n_components' must be a multiple of n = {n}.")
-    n_bins = n_components // n
-
     rng = np.random.default_rng(seed)
-    theta_km = rng.uniform(0.0, 2.0 * np.pi, (n_bins, n))
-    offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (n_bins, n))
+    theta_km = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
+    offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
 
     # Sub-bin m of bin k holds the component of source m; every n-th sub-bin
     # edge is a bin edge
-    sub_edges = np.linspace(f[0], f[-1], n_components + 1)
+    sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
     d_sub = sub_edges[1] - sub_edges[0]
-    freq_km = sub_edges[:-1].reshape(n_bins, n) + d_sub * offset_km
+    freq_km = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_km
 
     # Hermitian square root S_k of each bin area A_k. It works for singular
     # matrices (unlike Cholesky) and is unique (unlike raw eigenvectors, which
@@ -691,7 +689,7 @@ def _bin_areas(
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact areas, shape (n_bins, ...), of a spectrum, shape (m, ...), linearly
+    Exact areas, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
     interpolated between ``freq`` and integrated over the bins between
     ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
     ``edges`` must lie within ``freq``.
