@@ -631,17 +631,11 @@ def from_csd(
     theta_km = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
     offset_km = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
 
-    # Sub-bin m of bin k holds the component of source m; every n-th sub-bin
-    # edge is a bin edge
+    # Sub-bin m of bin k holds the component of source m
     sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
     d_sub = sub_edges[1] - sub_edges[0]
     freq_km = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_km
 
-    # Hermitian square root S_k of each bin area A_k. It works for singular
-    # matrices (unlike Cholesky) and is unique (unlike raw eigenvectors, which
-    # pile energy into the last sub-bin). The minus sign on the phase uses
-    # conj(S_k) as the factor of conj(A_k), matching scipy's conj(X) * Y
-    # convention for the CSD.
     s_kim = _hermitian_sqrt(_bin_areas(f, csd, sub_edges[::n]))
     amp_kim = np.sqrt(2.0) * np.abs(s_kim)
     phase_kim = theta_km[:, np.newaxis, :] - np.angle(s_kim)
