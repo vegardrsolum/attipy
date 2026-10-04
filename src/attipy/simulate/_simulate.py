@@ -66,6 +66,9 @@ class Motion:
 
 
 def _stationary() -> Motion:
+    """
+    Stationary/standstill motion with all DOFs set to zero.
+    """
     return Motion()
 
 
