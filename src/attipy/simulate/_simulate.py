@@ -35,8 +35,7 @@ class Motion:
         Yaw Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
     nav_frame : {'NED', 'ENU'}, optional
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
-        (East-North-Up). Defaults to None; the motion is used as is in any
-        navigation frame.
+        (East-North-Up). Defaults to 'NED'.
     """
 
     x: DOF = field(default_factory=Constant)
@@ -45,7 +44,7 @@ class Motion:
     roll: DOF = field(default_factory=Constant)
     pitch: DOF = field(default_factory=Constant)
     yaw: DOF = field(default_factory=Constant)
-    nav_frame: str | None = None
+    nav_frame: str = "NED"
 
     def __post_init__(self) -> None:
         for name in ("x", "y", "z", "roll", "pitch", "yaw"):
@@ -355,7 +354,7 @@ def trajectory(
         euler = np.degrees(euler)
         w_b = np.degrees(w_b)
 
-    if motion.nav_frame is not None and motion.nav_frame != nav_frame:
+    if motion.nav_frame != nav_frame:
         pos[:, 1:] *= -1
         vel[:, 1:] *= -1
         euler[:, 1:] *= -1
