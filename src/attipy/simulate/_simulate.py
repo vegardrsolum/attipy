@@ -352,4 +352,11 @@ def trajectory(
         euler = np.degrees(euler)
         w_b = np.degrees(w_b)
 
+    if motion.nav_frame is not None and motion.nav_frame != nav_frame:
+        pos[:, 1:] *= -1
+        vel[:, 1:] *= -1
+        euler[:, 1:] *= -1
+        w_b[:, 1:] *= -1
+        f_b[:, 1:] *= -1
+
     return t, pos, vel, euler, f_b, w_b
