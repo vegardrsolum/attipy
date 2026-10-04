@@ -109,8 +109,9 @@ def _vessel_6dof() -> Motion:
 
     Realized from the cross-spectral density matrix of the supply vessel RAOs
     from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT licence), in a
-    JONSWAP sea state (Hs = 3.5 m, Tp = 9.5 s) with waves coming from 45 degrees
-    off the starboard bow.
+    multimodal sea state (total Hs = 3.5 m) of a wind sea (Hs = 3.0 m,
+    Tp = 8.0 s) from 45 degrees off the starboard bow and a swell (Hs = 1.8 m,
+    Tp = 13.0 s) from the port beam. See ``scripts/make_vessel_csd.py``.
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
