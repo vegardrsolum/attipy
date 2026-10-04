@@ -323,6 +323,10 @@ def trajectory(
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+        - 'vessel-6dof': Wave-induced response of an 83 m supply vessel in all
+          six degrees of freedom.
+        - 'vessel-3dof': Wave-induced response of an 83 m supply vessel in roll,
+          pitch and yaw only.
 
         or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
 
