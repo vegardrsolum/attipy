@@ -73,6 +73,9 @@ def _stationary() -> Motion:
 
 
 def _beat_6dof() -> Motion:
+    """
+    Beat motion in all six degrees of freedom.
+    """
     w_main = 2.0 * np.pi * 0.1
     w_beat = 2.0 * np.pi * 0.01
     phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
@@ -88,6 +91,10 @@ def _beat_6dof() -> Motion:
 
 
 def _beat_3dof() -> Motion:
+    """
+    Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
+    translational degrees of freedom (x, y, z) are set to zero.
+    """
     motion = _beat_6dof()
     motion = replace(
         motion,
@@ -100,10 +107,7 @@ def _beat_3dof() -> Motion:
 
 def _vessel_6dof() -> Motion:
     """
-    Wave-induced 6-DOF response of an offshore vessel in a measured sea state
-    (Hs = 1.7 m, Tp = 7.6 s), realized from a cross-spectral density matrix of
-    surge, sway, heave, roll, pitch and yaw. The motion is defined in ENU, with
-    the vessel heading along the x-axis.
+    Wave-induced vessel response in all six degrees of freedom.
     """
     f, csd = _load_csd("vessel_csd.npz")
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
@@ -111,6 +115,10 @@ def _vessel_6dof() -> Motion:
 
 
 def _vessel_3dof() -> Motion:
+    """
+    Wave-induced vessel response in the rotational degrees of freedom (roll,
+    pitch, yaw). The translational degrees of freedom (x, y, z) are set to zero.
+    """
     return replace(
         _vessel_6dof(),
         x=Constant(0.0),
