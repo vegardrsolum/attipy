@@ -106,12 +106,6 @@ def _beat_3dof() -> Motion:
 def _vessel_6dof() -> Motion:
     """
     Wave-induced vessel response in all six degrees of freedom.
-
-    Realized from the cross-spectral density matrix of the supply vessel RAOs
-    from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT licence), in a
-    multimodal sea state (total Hs = 3.5 m) of a wind sea (Hs = 3.0 m,
-    Tp = 8.0 s) from 45 degrees off the starboard bow and a swell (Hs = 1.8 m,
-    Tp = 13.0 s) from the port beam. See ``scripts/make_vessel_csd.py``.
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
@@ -121,8 +115,7 @@ def _vessel_6dof() -> Motion:
 
 def _vessel_3dof() -> Motion:
     """
-    Wave-induced vessel response in the rotational degrees of freedom (roll,
-    pitch, yaw). The translational degrees of freedom (x, y, z) are set to zero.
+    Wave-induced vessel response in the rotational degrees of freedom.
     """
     return replace(
         _vessel_6dof(),
