@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, replace
 from importlib import resources
+from os import path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -11,13 +12,13 @@ from ._dof import DOF, Beat, Constant, from_csd
 _PACKAGE_PATH = resources.files(__package__)
 
 
-def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
+def _load_csd(path: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
     """
     Load a frequency array, shape (m,), and a cross-spectral density (CSD)
-    matrix, shape (m, n, n), from an .npz file in the package data folder.
+    matrix, shape (m, n, n), from an .npz file.
     """
-    path = _PACKAGE_PATH.joinpath("_data", name)
-    with path.open("rb") as fh, np.load(fh) as data:
+    with open(path, "rb") as fh:
+        data = np.load(fh)
         f = np.asarray(data["f"], dtype=np.float64)
         csd = np.asarray(data["csd"], dtype=np.complex128)
     return f, csd
@@ -107,7 +108,8 @@ def _vessel_6dof() -> Motion:
     """
     Wave-induced vessel response in all six degrees of freedom.
     """
-    f, csd = _load_csd("vessel_csd.npz")
+    csd_path = _PACKAGE_PATH.joinpath("_data", "vessel_csd.npz")
+    f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="ENU")
 
