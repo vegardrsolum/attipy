@@ -57,15 +57,16 @@ def _stationary() -> Motion:
 
 
 def _beat_6dof() -> Motion:
-    _w_main = 2.0 * np.pi * 0.1  # 0.1 Hz
-    _w_beat = 2.0 * np.pi * 0.01  # 0.01 Hz
+    w_main = 2.0 * np.pi * 0.1  # 0.1 Hz
+    w_beat = 2.0 * np.pi * 0.01  # 0.01 Hz
+    phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
     motion = Motion(
-        x=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=0.0),
-        y=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=np.pi / 3),
-        z=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=2 * np.pi / 3),
-        roll=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=np.pi),
-        pitch=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=4 * np.pi / 3),
-        yaw=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=5 * np.pi / 3),
+        x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
+        y=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
+        z=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
+        roll=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
+        pitch=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
+        yaw=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
     )
     return motion
 
