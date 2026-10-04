@@ -16,7 +16,6 @@ def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
     Load a frequency array, shape (m,), and a cross-spectral density (CSD)
     matrix, shape (m, n, n), from an .npz file in the package data folder.
     """
-    # path = resources.files(__package__).joinpath("_data", name)
     path = _PACKAGE_PATH.joinpath("_data", name)
     with path.open("rb") as fh, np.load(fh) as data:
         f = np.asarray(data["f"], dtype=np.float64)
