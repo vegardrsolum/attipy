@@ -127,7 +127,7 @@ def _vessel_6dof(vessel: str) -> Motion:
         200 m FPSO, a 115 m semi-submersible or a 246 m tanker, all at zero
         speed.
     """
-    csd_path = _PACKAGE_PATH.joinpath("_data", f"vessel_csd_{vessel}.npz")
+    csd_path = _PACKAGE_PATH.joinpath("_data", f"{vessel}-vessel-csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="NED")

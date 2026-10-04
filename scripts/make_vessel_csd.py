@@ -144,7 +144,7 @@ def main():
         )["vessel"]
         f, csd = sea_state_csd(mss_raos(vessel), f_grid)
 
-        out_file = OUT_DIR / f"vessel_csd_{name}.npz"
+        out_file = OUT_DIR / f"{name}-vessel-csd.npz"
         np.savez_compressed(out_file, f=f, csd=csd)
 
         std = np.sqrt(np.trapezoid(np.diagonal(csd, axis1=1, axis2=2).real, f, axis=0))

@@ -291,7 +291,7 @@ class Test_trajectory:
         )
 
         # Standard deviations from the area under the auto-spectra
-        csd_path = _PACKAGE_PATH.joinpath("_data", f"vessel_csd_{vessel}.npz")
+        csd_path = _PACKAGE_PATH.joinpath("_data", f"{vessel}-vessel-csd.npz")
         f, csd = _load_csd(str(csd_path))
         psd = np.diagonal(csd, axis1=1, axis2=2).real
         std_expect = np.sqrt(np.trapezoid(psd, f, axis=0))
