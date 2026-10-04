@@ -96,21 +96,21 @@ def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
     return f, csd
 
 
-def _waveresponse_6dof() -> Motion:
+def _vessel_6dof() -> Motion:
     """
     Wave-induced 6-DOF response of an offshore vessel in a measured sea state
     (Hs = 1.7 m, Tp = 7.6 s), realized from a cross-spectral density matrix of
     surge, sway, heave, roll, pitch and yaw. The motion is defined in ENU, with
     the vessel heading along the x-axis.
     """
-    f, csd = _load_csd("waveresponse_csd.npz")
+    f, csd = _load_csd("vessel_csd.npz")
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="ENU")
 
 
-def _waveresponse_3dof() -> Motion:
+def _vessel_3dof() -> Motion:
     return replace(
-        _waveresponse_6dof(),
+        _vessel_6dof(),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
@@ -122,8 +122,8 @@ _MOTION_PRESETS: dict[str, Callable[[], Motion]] = {
     "beat-6dof": lambda: _BEAT6DOF,
     "beat-3dof": lambda: _BEAT3DOF,
     "stationary": lambda: _STATIONARY,
-    "waveresponse-6dof": _waveresponse_6dof,
-    "waveresponse-3dof": _waveresponse_3dof,
+    "vessel-6dof": _vessel_6dof,
+    "vessel-3dof": _vessel_3dof,
 }
 
 
