@@ -52,35 +52,33 @@ class Motion:
                 raise TypeError(f"'{name}' must be a DOF instance.")
 
 
-_W_MAIN = 2.0 * np.pi * 0.1  # 0.1 Hz
-_W_BEAT = 2.0 * np.pi * 0.01  # 0.01 Hz
-
-_BEAT6DOF = Motion(
-    x=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=0.0),
-    y=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi / 3),
-    z=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=2 * np.pi / 3),
-    roll=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi),
-    pitch=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=4 * np.pi / 3),
-    yaw=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=5 * np.pi / 3),
-)
+def _stationary() -> Motion:
+    return Motion()
 
 
-_BEAT3DOF = replace(
-    _BEAT6DOF,
-    x=Constant(0.0),
-    y=Constant(0.0),
-    z=Constant(0.0),
-)
+def _beat_6dof() -> Motion:
+    _w_main = 2.0 * np.pi * 0.1  # 0.1 Hz
+    _w_beat = 2.0 * np.pi * 0.01  # 0.01 Hz
+    motion = Motion(
+        x=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=0.0),
+        y=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=np.pi / 3),
+        z=Beat(amp=1.0, omega=_w_main, omega_beat=_w_beat, phase=2 * np.pi / 3),
+        roll=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=np.pi),
+        pitch=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=4 * np.pi / 3),
+        yaw=Beat(amp=0.1, omega=_w_main, omega_beat=_w_beat, phase=5 * np.pi / 3),
+    )
+    return motion
 
 
-_STATIONARY = Motion()
-
-
-_MOTION_PRESETS = {
-    "beat-6dof": _BEAT6DOF,
-    "beat-3dof": _BEAT3DOF,
-    "stationary": _STATIONARY,
-}
+def _beat_3dof() -> Motion:
+    motion = _beat_6dof()
+    motion = replace(
+        motion,
+        x=Constant(0.0),
+        y=Constant(0.0),
+        z=Constant(0.0),
+    )
+    return motion
 
 
 def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
@@ -117,11 +115,10 @@ def _vessel_3dof() -> Motion:
     )
 
 
-# Motions are built on demand, so that costly motions are only built when used
 _MOTION_PRESETS: dict[str, Callable[[], Motion]] = {
-    "beat-6dof": lambda: _BEAT6DOF,
-    "beat-3dof": lambda: _BEAT3DOF,
-    "stationary": lambda: _STATIONARY,
+    "stationary": _stationary,
+    "beat-6dof": _beat_6dof,
+    "beat-3dof": _beat_3dof,
     "vessel-6dof": _vessel_6dof,
     "vessel-3dof": _vessel_3dof,
 }
