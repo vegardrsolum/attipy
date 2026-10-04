@@ -1,6 +1,6 @@
 """
-Build the cross-spectral density (CSD) matrices used by the 'vessel-<type>-6dof'
-and 'vessel-<type>-3dof' motion presets, and save them as .npz files in the
+Build the cross-spectral density (CSD) matrices used by the '<type>-vessel-6dof'
+and '<type>-vessel-3dof' motion presets, and save them as .npz files in the
 attipy package, one file per vessel.
 
 The vessels are from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT

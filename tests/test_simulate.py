@@ -287,7 +287,7 @@ class Test_trajectory:
     @pytest.mark.parametrize("vessel", _VESSELS)
     def test_motion_vessel_6dof(self, vessel):
         _, p_n, _, euler_nb, f_b, _ = ap.simulate.trajectory(
-            fs=1.0, n=7200, motion=f"vessel-{vessel}-6dof"
+            fs=1.0, n=7200, motion=f"{vessel}-vessel-6dof"
         )
 
         # Standard deviations from the area under the auto-spectra
@@ -306,10 +306,10 @@ class Test_trajectory:
     def test_motion_vessel_3dof(self, vessel):
         n = 100
         _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion=f"vessel-{vessel}-3dof"
+            n=n, motion=f"{vessel}-vessel-3dof"
         )
         *_, euler_6dof, _, w_6dof = ap.simulate.trajectory(
-            n=n, motion=f"vessel-{vessel}-6dof"
+            n=n, motion=f"{vessel}-vessel-6dof"
         )
 
         # No translation
@@ -324,9 +324,9 @@ class Test_trajectory:
         np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
 
     def test_motion_vessel_ned_enu(self):
-        out_ned = ap.simulate.trajectory(n=100, motion="vessel-supply-6dof")
+        out_ned = ap.simulate.trajectory(n=100, motion="supply-vessel-6dof")
         out_enu = ap.simulate.trajectory(
-            n=100, motion="vessel-supply-6dof", nav_frame="ENU"
+            n=100, motion="supply-vessel-6dof", nav_frame="ENU"
         )
 
         # Rotated 180 degrees about the x-axis
@@ -338,7 +338,7 @@ class Test_trajectory:
     def test_motion_vessel_strapdown(self):
         fs = 100.0
         _, _, _, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            fs=fs, n=10_000, motion="vessel-supply-6dof"
+            fs=fs, n=10_000, motion="supply-vessel-6dof"
         )
 
         # Validate w by strapdown integration using MEKF (no aiding)
@@ -378,7 +378,7 @@ class Test_trajectory:
         np.testing.assert_allclose(f_b[:, 2], -9.80665)
 
     @pytest.mark.parametrize(
-        "motion", ["BEAT-6DOF", "Beat-3dof", "Stationary", "Vessel-FPSO-6DOF"]
+        "motion", ["BEAT-6DOF", "Beat-3dof", "Stationary", "FPSO-Vessel-6DOF"]
     )
     def test_motion_case_insensitive(self, motion):
         out = ap.simulate.trajectory(n=10, motion=motion)

@@ -153,8 +153,8 @@ _MOTION_PRESETS: dict[str, Callable[[], Motion]] = {
     "beat-3dof": _beat_3dof,
 }
 for _vessel in _VESSELS:
-    _MOTION_PRESETS[f"vessel-{_vessel}-6dof"] = partial(_vessel_6dof, _vessel)
-    _MOTION_PRESETS[f"vessel-{_vessel}-3dof"] = partial(_vessel_3dof, _vessel)
+    _MOTION_PRESETS[f"{_vessel}-vessel-6dof"] = partial(_vessel_6dof, _vessel)
+    _MOTION_PRESETS[f"{_vessel}-vessel-3dof"] = partial(_vessel_3dof, _vessel)
 
 
 def _specific_force_body(
@@ -339,15 +339,31 @@ def trajectory(
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
-        - 'vessel-<type>-6dof': Wave-induced vessel response in all six degrees
-          of freedom, in a multimodal sea state with a total significant wave
-          height of 3.5 m. The vessel type is one of 'supply' (83 m supply
-          vessel), 'container' (175 m container ship), 'fpso' (200 m FPSO),
-          'semisub' (115 m semi-submersible) or 'tanker' (246 m tanker).
-        - 'vessel-<type>-3dof': Wave-induced vessel response in roll, pitch and
-          yaw only.
+        - 'supply-vessel-6dof': Wave-induced response of an 83 m supply vessel in
+          all six degrees of freedom.
+        - 'supply-vessel-3dof': Wave-induced response of an 83 m supply vessel in
+          roll, pitch and yaw only.
+        - 'container-vessel-6dof': Wave-induced response of a 175 m container
+          ship in all six degrees of freedom.
+        - 'container-vessel-3dof': Wave-induced response of a 175 m container
+          ship in roll, pitch and yaw only.
+        - 'fpso-vessel-6dof': Wave-induced response of a 200 m FPSO in all six
+          degrees of freedom.
+        - 'fpso-vessel-3dof': Wave-induced response of a 200 m FPSO in roll,
+          pitch and yaw only.
+        - 'semisub-vessel-6dof': Wave-induced response of a 115 m
+          semi-submersible in all six degrees of freedom.
+        - 'semisub-vessel-3dof': Wave-induced response of a 115 m
+          semi-submersible in roll, pitch and yaw only.
+        - 'tanker-vessel-6dof': Wave-induced response of a 246 m tanker in all
+          six degrees of freedom.
+        - 'tanker-vessel-3dof': Wave-induced response of a 246 m tanker in roll,
+          pitch and yaw only.
 
-        or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
+        The vessel responses are in a multimodal sea state with a total
+        significant wave height of 3.5 m.
+
+        Alternatively, a custom ``Motion`` instance. Defaults to 'beat-6dof'.
 
     Returns
     -------
