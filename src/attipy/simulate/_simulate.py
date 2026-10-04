@@ -106,11 +106,16 @@ def _beat_3dof() -> Motion:
 def _vessel_6dof() -> Motion:
     """
     Wave-induced vessel response in all six degrees of freedom.
+
+    Realized from the cross-spectral density matrix of the supply vessel RAOs
+    from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT licence), in a
+    JONSWAP sea state (Hs = 3.5 m, Tp = 9.5 s) with waves coming from 45 degrees
+    off the starboard bow.
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
-    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="ENU")
+    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="NED")
 
 
 def _vessel_3dof() -> Motion:
@@ -342,6 +347,8 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
+    if nav_frame.lower() not in ("ned", "enu"):
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
     if not isinstance(motion, Motion):
         try:
@@ -356,13 +363,13 @@ def trajectory(
 
     # PVA and IMU signals
     pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
-    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
+    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, motion.nav_frame)
 
     if degrees:
         euler = np.degrees(euler)
         w_b = np.degrees(w_b)
 
-    if motion.nav_frame != nav_frame:
+    if motion.nav_frame.lower() != nav_frame.lower():
         pos[:, 1:] *= -1
         vel[:, 1:] *= -1
         euler[:, 1:] *= -1
