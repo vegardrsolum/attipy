@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field, replace
 from importlib import resources
-from os import path
 
 import numpy as np
 from numpy.typing import NDArray
