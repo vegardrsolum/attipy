@@ -335,9 +335,10 @@ def trajectory(
 
     if not isinstance(motion, Motion):
         try:
-            motion = _MOTION_PRESETS[motion.lower()]
+            make_motion = _MOTION_PRESETS[motion.lower()]
         except (KeyError, AttributeError):
             raise ValueError(f"Unknown motion type: {motion!r}.") from None
+        motion = make_motion()
 
     # Time
     dt = 1.0 / fs
