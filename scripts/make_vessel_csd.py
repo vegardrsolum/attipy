@@ -1,11 +1,12 @@
 """
-Build the cross-spectral density (CSD) matrix used by the 'vessel-6dof' and
-'vessel-3dof' motion presets, and save it as an .npz file in the attipy package.
+Build the cross-spectral density (CSD) matrices used by the 'vessel-<type>-6dof'
+and 'vessel-<type>-3dof' motion presets, and save them as .npz files in the
+attipy package, one file per vessel.
 
-The vessel is the supply vessel from the Marine Systems Simulator (MSS) by
-T. I. Fossen (MIT licence, https://github.com/cybergalactic/MSS). The sea state is
-multimodal: a wind sea and a swell from different directions, each described by
-a JONSWAP spectrum with cos-2s directional spreading.
+The vessels are from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT
+licence, https://github.com/cybergalactic/MSS). The sea state is multimodal: a
+wind sea and a swell from different directions, each described by a JONSWAP
+spectrum with cos-2s directional spreading.
 
 Usage:
 
@@ -21,8 +22,15 @@ import numpy as np
 import scipy.io as sio
 import waveresponse as wr
 
-MSS_VESSEL = Path("HYDRO/vessels_shipx/supply/supply.mat")
-OUT_FILE = Path(__file__).parents[1] / "src/attipy/simulate/_data/vessel_csd.npz"
+# Vessel types and their MSS vessel files. All at zero speed.
+VESSELS = {
+    "supply": Path("HYDRO/vessels_shipx/supply/supply.mat"),  # 83 m supply vessel
+    "container": Path("HYDRO/vessels_shipx/s175/s175.mat"),  # 175 m container ship
+    "fpso": Path("HYDRO/vessels_wamit/fpso/fpso.mat"),  # 200 m FPSO
+    "semisub": Path("HYDRO/vessels_wamit/semisub/semisub.mat"),  # 115 m semi-sub
+    "tanker": Path("HYDRO/vessels_wamit/tanker/tanker.mat"),  # 246 m tanker
+}
+OUT_DIR = Path(__file__).parents[1] / "src/attipy/simulate/_data"
 
 # Sea state components, with directions relative to the vessel (waves coming
 # from, clockwise from the bow). Total Hs = sqrt(3.0**2 + 1.8**2) = 3.5 m.
@@ -129,19 +137,20 @@ def main():
     parser.add_argument("mss", type=Path, help="Path to the MSS repository.")
     args = parser.parse_args()
 
-    vessel = sio.loadmat(
-        args.mss / MSS_VESSEL, squeeze_me=True, struct_as_record=False
-    )["vessel"]
-    raos = mss_raos(vessel)
+    f_grid = np.round(np.arange(FMIN, FMAX + DF / 2, DF), 6)
+    for name, mss_file in VESSELS.items():
+        vessel = sio.loadmat(
+            args.mss / mss_file, squeeze_me=True, struct_as_record=False
+        )["vessel"]
+        f, csd = sea_state_csd(mss_raos(vessel), f_grid)
 
-    f = np.round(np.arange(FMIN, FMAX + DF / 2, DF), 6)
-    f, csd = sea_state_csd(raos, f)
-    np.savez_compressed(OUT_FILE, f=f, csd=csd)
+        out_file = OUT_DIR / f"vessel_csd_{name}.npz"
+        np.savez_compressed(out_file, f=f, csd=csd)
 
-    std = np.sqrt(np.trapezoid(np.diagonal(csd, axis1=1, axis2=2).real, f, axis=0))
-    print(f"Saved {OUT_FILE} ({f.size} frequencies, {f[0]:.3f}-{f[-1]:.3f} Hz)")
-    print(f"Std surge, sway, heave [m]: {np.round(std[:3], 3)}")
-    print(f"Std roll, pitch, yaw [deg]: {np.round(np.degrees(std[3:]), 3)}")
+        std = np.sqrt(np.trapezoid(np.diagonal(csd, axis1=1, axis2=2).real, f, axis=0))
+        print(f"Saved {out_file} ({f.size} frequencies, {f[0]:.3f}-{f[-1]:.3f} Hz)")
+        print(f"  Std surge, sway, heave [m]: {np.round(std[:3], 3)}")
+        print(f"  Std roll, pitch, yaw [deg]: {np.round(np.degrees(std[3:]), 3)}")
 
 
 if __name__ == "__main__":

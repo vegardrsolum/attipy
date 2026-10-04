@@ -5,9 +5,12 @@ import attipy as ap
 from attipy._transforms import _matrix_from_euler_zyx
 from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
+    _PACKAGE_PATH,
+    _VESSELS,
     Motion,
     _angular_velocity_body,
     _imu_from_kinematics,
+    _load_csd,
     _sample_motion,
     _specific_force_body,
 )
@@ -281,6 +284,74 @@ class Test_trajectory:
         # No translation -> specific force is gravity only
         np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
 
+    @pytest.mark.parametrize("vessel", _VESSELS)
+    def test_motion_vessel_6dof(self, vessel):
+        _, p_n, _, euler_nb, f_b, _ = ap.simulate.trajectory(
+            fs=1.0, n=7200, motion=f"vessel-{vessel}-6dof"
+        )
+
+        # Standard deviations from the area under the auto-spectra
+        csd_path = _PACKAGE_PATH.joinpath("_data", f"vessel_csd_{vessel}.npz")
+        f, csd = _load_csd(str(csd_path))
+        psd = np.diagonal(csd, axis1=1, axis2=2).real
+        std_expect = np.sqrt(np.trapezoid(psd, f, axis=0))
+
+        std = np.concatenate([p_n.std(axis=0), euler_nb.std(axis=0)])
+        np.testing.assert_allclose(std, std_expect, rtol=0.2)
+
+        # Specific force counteracts gravity along the z-axis of NED
+        assert -10.0 < f_b.mean(axis=0)[2] < -9.5
+
+    @pytest.mark.parametrize("vessel", _VESSELS)
+    def test_motion_vessel_3dof(self, vessel):
+        n = 100
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion=f"vessel-{vessel}-3dof"
+        )
+        *_, euler_6dof, _, w_6dof = ap.simulate.trajectory(
+            n=n, motion=f"vessel-{vessel}-6dof"
+        )
+
+        # No translation
+        np.testing.assert_allclose(p_n, np.zeros((n, 3)))
+        np.testing.assert_allclose(v_n, np.zeros((n, 3)))
+
+        # Same attitude as the 6-DOF response
+        np.testing.assert_allclose(euler_nb, euler_6dof)
+        np.testing.assert_allclose(w_b, w_6dof)
+
+        # No translation -> specific force is gravity only
+        np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
+
+    def test_motion_vessel_ned_enu(self):
+        out_ned = ap.simulate.trajectory(n=100, motion="vessel-supply-6dof")
+        out_enu = ap.simulate.trajectory(
+            n=100, motion="vessel-supply-6dof", nav_frame="ENU"
+        )
+
+        # Rotated 180 degrees about the x-axis
+        flip = np.array([1.0, -1.0, -1.0])
+        np.testing.assert_allclose(out_enu[0], out_ned[0])
+        for arr_enu, arr_ned in zip(out_enu[1:], out_ned[1:]):
+            np.testing.assert_allclose(arr_enu, arr_ned * flip)
+
+    def test_motion_vessel_strapdown(self):
+        fs = 100.0
+        _, _, _, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            fs=fs, n=10_000, motion="vessel-supply-6dof"
+        )
+
+        # Validate w by strapdown integration using MEKF (no aiding)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
+        euler_est = [euler_nb[0]]
+        for f_i, w_i in zip(f_b[1:], w_b[1:]):
+            mekf.update(f_i, w_i, gref=False)
+            euler_est.append(mekf.attitude.as_euler(degrees=False))
+        euler_est = np.array(euler_est)
+
+        np.testing.assert_allclose(euler_est, euler_nb, atol=1e-3)
+
     def test_motion_custom(self):
         n = 100
         x = Beat(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
@@ -306,7 +377,9 @@ class Test_trajectory:
         np.testing.assert_allclose(f_b[:, 1], -np.sin(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 2], -9.80665)
 
-    @pytest.mark.parametrize("motion", ["BEAT-6DOF", "Beat-3dof", "Stationary"])
+    @pytest.mark.parametrize(
+        "motion", ["BEAT-6DOF", "Beat-3dof", "Stationary", "Vessel-FPSO-6DOF"]
+    )
     def test_motion_case_insensitive(self, motion):
         out = ap.simulate.trajectory(n=10, motion=motion)
         out_expect = ap.simulate.trajectory(n=10, motion=motion.lower())

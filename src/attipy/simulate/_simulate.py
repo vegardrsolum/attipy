@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
+from functools import partial
 from importlib import resources
 
 import numpy as np
@@ -103,42 +105,56 @@ def _beat_3dof() -> Motion:
     return motion
 
 
-def _vessel_6dof() -> Motion:
+# Vessel types with wave-induced response presets
+_VESSELS = ("supply", "container", "fpso", "semisub", "tanker")
+
+
+def _vessel_6dof(vessel: str) -> Motion:
     """
     Wave-induced vessel response in all six degrees of freedom.
 
-    Realized from the cross-spectral density matrix of the supply vessel RAOs
-    from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT licence), in a
-    multimodal sea state (total Hs = 3.5 m) of a wind sea (Hs = 3.0 m,
-    Tp = 8.0 s) from 45 degrees off the starboard bow and a swell (Hs = 1.8 m,
-    Tp = 13.0 s) from the port beam. See ``scripts/make_vessel_csd.py``.
+    Realized from the cross-spectral density matrix of the responses of a
+    vessel from the Marine Systems Simulator (MSS) by T. I. Fossen (MIT
+    licence), in a multimodal sea state (total Hs = 3.5 m) of a wind sea
+    (Hs = 3.0 m, Tp = 8.0 s) from 45 degrees off the starboard bow and a swell
+    (Hs = 1.8 m, Tp = 13.0 s) from the port beam. See
+    ``scripts/make_vessel_csd.py``.
+
+    Parameters
+    ----------
+    vessel : {'supply', 'container', 'fpso', 'semisub', 'tanker'}
+        Vessel type. An 83 m supply vessel, a 175 m container ship (S175), a
+        200 m FPSO, a 115 m semi-submersible or a 246 m tanker, all at zero
+        speed.
     """
-    csd_path = _PACKAGE_PATH.joinpath("_data", "vessel_csd.npz")
+    csd_path = _PACKAGE_PATH.joinpath("_data", f"vessel_csd_{vessel}.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="NED")
 
 
-def _vessel_3dof() -> Motion:
+def _vessel_3dof(vessel: str) -> Motion:
     """
     Wave-induced vessel response in the rotational degrees of freedom (roll,
     pitch, yaw). The translational degrees of freedom (x, y, z) are set to zero.
+    See ``_vessel_6dof``.
     """
     return replace(
-        _vessel_6dof(),
+        _vessel_6dof(vessel),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
     )
 
 
-_MOTION_PRESETS = {
+_MOTION_PRESETS: dict[str, Callable[[], Motion]] = {
     "stationary": _stationary,
     "beat-6dof": _beat_6dof,
     "beat-3dof": _beat_3dof,
-    "vessel-6dof": _vessel_6dof,
-    "vessel-3dof": _vessel_3dof,
 }
+for _vessel in _VESSELS:
+    _MOTION_PRESETS[f"vessel-{_vessel}-6dof"] = partial(_vessel_6dof, _vessel)
+    _MOTION_PRESETS[f"vessel-{_vessel}-3dof"] = partial(_vessel_3dof, _vessel)
 
 
 def _specific_force_body(
@@ -323,6 +339,13 @@ def trajectory(
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+        - 'vessel-<type>-6dof': Wave-induced vessel response in all six degrees
+          of freedom, in a multimodal sea state with a total significant wave
+          height of 3.5 m. The vessel type is one of 'supply' (83 m supply
+          vessel), 'container' (175 m container ship), 'fpso' (200 m FPSO),
+          'semisub' (115 m semi-submersible) or 'tanker' (246 m tanker).
+        - 'vessel-<type>-3dof': Wave-induced vessel response in roll, pitch and
+          yaw only.
 
         or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
 
