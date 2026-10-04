@@ -113,7 +113,7 @@ def _vessel_6dof() -> Motion:
     Tp = 8.0 s) from 45 degrees off the starboard bow and a swell (Hs = 1.8 m,
     Tp = 13.0 s) from the port beam. See ``scripts/make_vessel_csd.py``.
     """
-    csd_path = _PACKAGE_PATH.joinpath("_data", "vessel_csd.npz")
+    csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="NED")
