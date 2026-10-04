@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from importlib import resources
 
@@ -127,7 +126,7 @@ def _vessel_3dof() -> Motion:
     )
 
 
-_MOTION_PRESETS: dict[str, Callable[[], Motion]] = {
+_MOTION_PRESETS = {
     "stationary": _stationary,
     "beat-6dof": _beat_6dof,
     "beat-3dof": _beat_3dof,
