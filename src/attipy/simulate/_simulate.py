@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from functools import cache
 from importlib import resources
 
 import numpy as np
@@ -90,7 +89,6 @@ def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
     return f, csd
 
 
-@cache
 def _waveresponse_6dof() -> Motion:
     """
     Wave-induced 6-DOF response of an offshore vessel in a measured sea state
@@ -103,7 +101,6 @@ def _waveresponse_6dof() -> Motion:
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="ENU")
 
 
-@cache
 def _waveresponse_3dof() -> Motion:
     return replace(
         _waveresponse_6dof(),
