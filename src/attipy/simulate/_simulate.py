@@ -12,6 +12,19 @@ from ._dof import DOF, Beat, Constant, from_csd
 _PACKAGE_PATH = resources.files(__package__)
 
 
+def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
+    """
+    Load a frequency array, shape (m,), and a cross-spectral density (CSD)
+    matrix, shape (m, n, n), from an .npz file in the package data folder.
+    """
+    # path = resources.files(__package__).joinpath("_data", name)
+    path = _PACKAGE_PATH.joinpath("_data", name)
+    with path.open("rb") as fh, np.load(fh) as data:
+        f = np.asarray(data["f"], dtype=np.float64)
+        csd = np.asarray(data["csd"], dtype=np.complex128)
+    return f, csd
+
+
 @dataclass(frozen=True, kw_only=True, slots=True)
 class Motion:
     """
@@ -80,19 +93,6 @@ def _beat_3dof() -> Motion:
         z=Constant(0.0),
     )
     return motion
-
-
-def _load_csd(name: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
-    """
-    Load a frequency array, shape (m,), and a cross-spectral density (CSD)
-    matrix, shape (m, n, n), from an .npz file in the package data folder.
-    """
-    # path = resources.files(__package__).joinpath("_data", name)
-    path = _PACKAGE_PATH.joinpath("_data", name)
-    with path.open("rb") as fh, np.load(fh) as data:
-        f = np.asarray(data["f"], dtype=np.float64)
-        csd = np.asarray(data["csd"], dtype=np.complex128)
-    return f, csd
 
 
 def _vessel_6dof() -> Motion:
