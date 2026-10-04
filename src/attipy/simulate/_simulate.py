@@ -57,8 +57,8 @@ def _stationary() -> Motion:
 
 
 def _beat_6dof() -> Motion:
-    w_main = 2.0 * np.pi * 0.1  # 0.1 Hz
-    w_beat = 2.0 * np.pi * 0.01  # 0.01 Hz
+    w_main = 2.0 * np.pi * 0.1
+    w_beat = 2.0 * np.pi * 0.01
     phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
     motion = Motion(
         x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
