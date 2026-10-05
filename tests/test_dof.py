@@ -304,9 +304,11 @@ class Test_SmootherStep:
         with pytest.raises(ValueError):
             SmootherStep(duration=duration)
 
-    def test__init__raises_start(self):
-        with pytest.raises(ValueError):
-            SmootherStep(duration=4.0, start=-1.0)
+    def test_negative_start(self):
+        step = SmootherStep(duration=4.0, start=-2.0)
+        w, _, _ = step(np.array([-4.0, 0.0, 2.0]))  # before, mid, end
+
+        np.testing.assert_allclose(w, [0.0, 0.5, 1.0])
 
     def test_values(self, step):
         t = np.array([0.0, 2.0, 4.0, 6.0, 8.0])  # before, start, mid, end, after
@@ -441,9 +443,10 @@ class Test_ramp_up:
         with pytest.raises(ValueError):
             ramp_up(beat, duration=duration)
 
-    def test_raises_start(self, beat):
-        with pytest.raises(ValueError):
-            ramp_up(beat, duration=4.0, start=-1.0)
+    def test_negative_start(self, beat):
+        ramp = ramp_up(beat, duration=4.0, start=-1.0)._dofs[0]
+
+        assert ramp._start == -1.0
 
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
     def test_raises_type(self, other):

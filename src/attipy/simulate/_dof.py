@@ -267,15 +267,12 @@ class SmootherStep(DOF):
         Duration of the step period in seconds. Must be positive. Defaults to
         100.0 seconds.
     start : float, optional
-        Time in seconds at which the step starts. Must be non-negative. Defaults
-        to 0.0 seconds.
+        Time in seconds at which the step starts. Defaults to 0.0 seconds.
     """
 
     def __init__(self, *, duration: float = 100.0, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
-        if start < 0.0:
-            raise ValueError("'start' must be non-negative.")
 
         self._duration = float(duration)
         self._start = float(start)
