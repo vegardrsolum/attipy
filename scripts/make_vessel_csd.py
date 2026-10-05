@@ -7,6 +7,9 @@ T. I. Fossen (MIT licence, https://github.com/cybergalactic/MSS). The sea state 
 multimodal: a wind sea and a swell from different directions, each described by
 a JONSWAP spectrum with cos-2s directional spreading.
 
+The responses are given in MSS forward-starboard-down (FSD) axes, i.e., NED with
+the vessel heading north.
+
 Usage:
 
     python scripts/make_vessel_csd.py <path to MSS repository>
@@ -22,7 +25,7 @@ import scipy.io as sio
 import waveresponse as wr
 
 MSS_VESSEL = Path("HYDRO/vessels_shipx/supply/supply.mat")
-OUT_FILE = Path(__file__).parents[1] / "src/attipy/simulate/_data/vessel_csd.npz"
+OUT_FILE = Path(__file__).parents[1] / "src/attipy/simulate/_data/supply_vessel_csd.npz"
 
 # Sea state components, with directions relative to the vessel (waves coming
 # from, clockwise from the bow). Total Hs = sqrt(3.0**2 + 1.8**2) = 3.5 m.
@@ -132,6 +135,8 @@ def main():
     vessel = sio.loadmat(
         args.mss / MSS_VESSEL, squeeze_me=True, struct_as_record=False
     )["vessel"]
+    if vessel.hydrodynamic_axes != "FSD":
+        raise ValueError(f"Expected FSD axes, got {vessel.hydrodynamic_axes!r}.")
     raos = mss_raos(vessel)
 
     f = np.round(np.arange(FMIN, FMAX + DF / 2, DF), 6)
