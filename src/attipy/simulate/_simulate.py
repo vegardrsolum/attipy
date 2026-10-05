@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, replace
 from importlib import resources
 
 import numpy as np
@@ -54,9 +54,9 @@ class Motion:
     yaw: DOF = field(default_factory=Constant)
 
     def __post_init__(self) -> None:
-        for name in ("x", "y", "z", "roll", "pitch", "yaw"):
-            if not isinstance(getattr(self, name), DOF):
-                raise TypeError(f"'{name}' must be a DOF instance.")
+        for f in fields(self):
+            if not isinstance(getattr(self, f.name), DOF):
+                raise TypeError(f"'{f.name}' must be a DOF instance.")
 
 
 def _stationary() -> Motion:
