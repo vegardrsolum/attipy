@@ -656,9 +656,23 @@ def _sum_of_sines(
     phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
-    Zero-amplitude components are dropped, and a zero ``Constant`` is returned
-    if no components remain.
+    Build a DOF signal as a sum of sinusoids:
+
+        sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])
+
+    Parameters
+    ----------
+    amps : NDArray[np.float64]
+        Amplitudes, shape (k,). Components with zero amplitude are dropped.
+    freqs : NDArray[np.float64]
+        Frequencies in Hz, shape (k,).
+    phases : NDArray[np.float64]
+        Phases in radians, shape (k,).
+
+    Returns
+    -------
+    DOF
+        Sum of the sinusoids, or a zero ``Constant`` if no components remain.
     """
     sines = [
         Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
@@ -672,9 +686,19 @@ def _sum_of_sines(
 
 def _hermitian_sqrt(a: NDArray) -> NDArray:
     """
-    Hermitian square roots, s, of Hermitian positive semidefinite matrices, a,
-    shape (..., n, n), such that ``s @ s = a``. Negative eigenvalues from
-    round-off are clipped to zero.
+    Compute the Hermitian square roots of Hermitian positive semidefinite
+    matrices.
+
+    Parameters
+    ----------
+    a : NDArray
+        Hermitian positive semidefinite matrices, shape (..., n, n). Negative
+        eigenvalues from round-off are clipped to zero.
+
+    Returns
+    -------
+    NDArray
+        Hermitian square roots, s, such that ``s @ s = a``, shape (..., n, n).
     """
     w, v = np.linalg.eigh(a)
     sqrt_w = np.sqrt(np.clip(w, 0.0, None))
