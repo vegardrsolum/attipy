@@ -359,7 +359,7 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
-    if nav_frame.lower() not in ("ned", "enu"):
+    if not isinstance(nav_frame, str) or nav_frame.lower() not in ("ned", "enu"):
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
     if not isinstance(motion, Motion):

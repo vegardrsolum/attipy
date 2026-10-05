@@ -342,8 +342,10 @@ class Test_trajectory:
         *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
+    @pytest.mark.parametrize("nav_frame", ["invalid", 0])
+    def test_nav_frame_raise(self, nav_frame):
         with pytest.raises(ValueError):
-            ap.simulate.trajectory(nav_frame="invalid")
+            ap.simulate.trajectory(nav_frame=nav_frame)
 
     def test_g(self):
         g = 5.0
