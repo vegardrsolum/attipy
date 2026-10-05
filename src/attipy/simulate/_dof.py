@@ -492,26 +492,13 @@ def from_psd(
     """
     DOF signal realization of a one-sided power spectral density (PSD).
 
-    The signal is a sum of sinusoids with random phases:
-
-        y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
-
-    The frequency range of ``f`` is divided into ``nbins`` equally wide bins,
-    with one component per bin. The amplitudes are:
-
-        amp_k = sqrt(2 * P_k)
-
-    where P_k is the area under the linearly interpolated PSD within bin k, so
-    that the expected variance of the realization equals the area under the PSD.
-    The phases are uniformly distributed on [0, 2 * pi).
-
     Parameters
     ----------
     f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
-        One-sided power spectral density, in y**2 / Hz. Must be non-negative.
+        One-sided power spectral density in y**2 / Hz. Must be non-negative.
     nbins : int
         Number of frequency bins, and thereby sinusoidal components. Must be
         positive.
