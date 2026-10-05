@@ -11,9 +11,9 @@ from attipy.simulate._simulate import (
     _angular_velocity_body,
     _imu_from_kinematics,
     _load_csd,
-    _ned_to_enu,
     _sample_motion,
     _specific_force_body,
+    _z_down_to_z_up,
 )
 
 VESSEL_CSD_PATH = str(_PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz"))
@@ -113,7 +113,7 @@ class Test_motion_presets:
         )
 
 
-class Test_ned_to_enu:
+class Test_z_down_to_z_up:
     def test_signs(self):
         t = np.linspace(0.0, 10.0, 101)
         names = ("x", "y", "z", "roll", "pitch", "yaw")
@@ -125,12 +125,12 @@ class Test_ned_to_enu:
             }
         )
 
-        motion_enu = _ned_to_enu(motion)
+        motion_z_up = _z_down_to_z_up(motion)
 
-        assert isinstance(motion_enu, Motion)
+        assert isinstance(motion_z_up, Motion)
         for name, sign in zip(names, signs):
             for out, out_expect in zip(
-                getattr(motion_enu, name)(t), getattr(motion, name)(t)
+                getattr(motion_z_up, name)(t), getattr(motion, name)(t)
             ):
                 np.testing.assert_allclose(out, sign * out_expect)
 

@@ -136,9 +136,10 @@ _MOTION_PRESETS = {
 }
 
 
-def _ned_to_enu(motion: Motion) -> Motion:
+def _z_down_to_z_up(motion: Motion) -> Motion:
     """
-    Converts a motion from NED to ENU.
+    Converts a motion from a z-down to a z-up frame by a 180 degree rotation
+    about the x-axis, which negates y, z, pitch and yaw.
     """
     return replace(
         motion,
@@ -368,7 +369,7 @@ def trajectory(
             raise ValueError(f"Unknown motion type: {motion!r}.") from None
         motion = make_motion()
         if nav_frame.lower() == "enu":
-            motion = _ned_to_enu(motion)
+            motion = _z_down_to_z_up(motion)
 
     # Time
     dt = 1.0 / fs
