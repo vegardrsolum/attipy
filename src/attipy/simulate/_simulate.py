@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from .._mekf import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
-from ._dof import DOF, Beat, Constant, from_csd
+from ._dof import DOF, Beat, Constant, from_csd, multiply
 
 _PACKAGE_PATH = resources.files(__package__)
 
@@ -44,9 +44,6 @@ class Motion:
         Pitch Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
     yaw : dof.DOF, optional
         Yaw Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
-    nav_frame : {'NED', 'ENU'}, optional
-        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
-        (East-North-Up). Defaults to 'NED'.
     """
 
     x: DOF = field(default_factory=Constant)
@@ -55,7 +52,6 @@ class Motion:
     roll: DOF = field(default_factory=Constant)
     pitch: DOF = field(default_factory=Constant)
     yaw: DOF = field(default_factory=Constant)
-    nav_frame: str = "NED"
 
     def __post_init__(self) -> None:
         for name in ("x", "y", "z", "roll", "pitch", "yaw"):
@@ -106,16 +102,22 @@ def _beat_3dof() -> Motion:
 def _vessel_6dof() -> Motion:
     """
     Wave-induced vessel response in all six degrees of freedom.
+
+    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
+    north-east-down (NED) navigation frame.
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
-    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, nav_frame="NED")
+    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
 
 def _vessel_3dof() -> Motion:
     """
     Wave-induced vessel response in the rotational degrees of freedom.
+
+    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
+    north-east-down (NED) navigation frame.
     """
     return replace(
         _vessel_6dof(),
@@ -132,6 +134,19 @@ _MOTION_PRESETS = {
     "vessel-6dof": _vessel_6dof,
     "vessel-3dof": _vessel_3dof,
 }
+
+
+def _ned_to_enu(motion: Motion) -> Motion:
+    """
+    Converts a motion from NED to ENU.
+    """
+    return replace(
+        motion,
+        y=multiply(-1.0, motion.y),
+        z=multiply(-1.0, motion.z),
+        pitch=multiply(-1.0, motion.pitch),
+        yaw=multiply(-1.0, motion.yaw),
+    )
 
 
 def _specific_force_body(
@@ -352,6 +367,8 @@ def trajectory(
         except (KeyError, AttributeError):
             raise ValueError(f"Unknown motion type: {motion!r}.") from None
         motion = make_motion()
+        if nav_frame.lower() == "enu":
+            motion = _ned_to_enu(motion)
 
     # Time
     dt = 1.0 / fs
@@ -359,17 +376,10 @@ def trajectory(
 
     # PVA and IMU signals
     pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
-    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, motion.nav_frame)
+    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
 
     if degrees:
         euler = np.degrees(euler)
         w_b = np.degrees(w_b)
-
-    if motion.nav_frame.lower() != nav_frame.lower():
-        pos[:, 1:] *= -1
-        vel[:, 1:] *= -1
-        euler[:, 1:] *= -1
-        w_b[:, 1:] *= -1
-        f_b[:, 1:] *= -1
 
     return t, pos, vel, euler, f_b, w_b
