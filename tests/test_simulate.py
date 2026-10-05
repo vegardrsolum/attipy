@@ -5,12 +5,134 @@ import attipy as ap
 from attipy._transforms import _matrix_from_euler_zyx
 from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
+    _MOTION_PRESETS,
+    _PACKAGE_PATH,
     Motion,
     _angular_velocity_body,
     _imu_from_kinematics,
+    _load_csd,
     _sample_motion,
     _specific_force_body,
+    _z_down_to_z_up,
 )
+
+VESSEL_CSD_PATH = str(_PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz"))
+
+
+class Test_load_csd:
+    def test_round_trip(self, tmp_path):
+        rng = np.random.default_rng(0)
+        f = np.linspace(0.0, 1.0, 10)
+        csd = rng.standard_normal((10, 2, 2)) + 1j * rng.standard_normal((10, 2, 2))
+        path = tmp_path / "csd.npz"
+        np.savez(path, f=f, csd=csd)
+
+        f_out, csd_out = _load_csd(str(path))
+
+        np.testing.assert_array_equal(f_out, f)
+        np.testing.assert_array_equal(csd_out, csd)
+
+    def test_casts_dtypes(self, tmp_path):
+        path = tmp_path / "csd.npz"
+        np.savez(path, f=np.arange(3), csd=np.ones((3, 1, 1)))
+
+        f, csd = _load_csd(str(path))
+
+        assert f.dtype == np.float64
+        assert csd.dtype == np.complex128
+
+    def test_vessel_data(self):
+        f, csd = _load_csd(VESSEL_CSD_PATH)
+
+        assert f.ndim == 1
+        assert csd.shape == (f.size, 6, 6)
+        assert np.all(np.diff(f) > 0.0)
+        np.testing.assert_allclose(csd, np.conj(np.swapaxes(csd, 1, 2)))
+        assert np.all(np.linalg.eigvalsh(csd) > -1e-12)
+
+
+class Test_motion_presets:
+    NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
+
+    def test_keys(self):
+        assert set(_MOTION_PRESETS) == {
+            "stationary",
+            "beat-6dof",
+            "beat-3dof",
+            "vessel-6dof",
+            "vessel-3dof",
+        }
+
+    @pytest.mark.parametrize("name", list(_MOTION_PRESETS))
+    def test_returns_new_motion(self, name):
+        make_motion = _MOTION_PRESETS[name]
+        motion = make_motion()
+
+        assert isinstance(motion, Motion)
+        assert make_motion() is not motion
+
+    @pytest.mark.parametrize("name", ["beat-3dof", "vessel-3dof"])
+    def test_3dof_matches_6dof_rotations(self, name):
+        t = np.linspace(0.0, 100.0, 1001)
+        motion_3dof = _MOTION_PRESETS[name]()
+        motion_6dof = _MOTION_PRESETS[name.replace("3dof", "6dof")]()
+
+        for dof_name in ("x", "y", "z"):
+            np.testing.assert_allclose(getattr(motion_3dof, dof_name).y(t), 0.0)
+
+        for dof_name in ("roll", "pitch", "yaw"):
+            for out, out_expect in zip(
+                getattr(motion_3dof, dof_name)(t), getattr(motion_6dof, dof_name)(t)
+            ):
+                np.testing.assert_allclose(out, out_expect)
+
+    def test_vessel_6dof_deterministic(self):
+        t = np.linspace(0.0, 100.0, 1001)
+        motion_a = _MOTION_PRESETS["vessel-6dof"]()
+        motion_b = _MOTION_PRESETS["vessel-6dof"]()
+
+        for name in self.NAMES:
+            for out_a, out_b in zip(
+                getattr(motion_a, name)(t), getattr(motion_b, name)(t)
+            ):
+                np.testing.assert_array_equal(out_a, out_b)
+
+    def test_vessel_6dof_matches_csd(self):
+        f, csd = _load_csd(VESSEL_CSD_PATH)
+        motion = _MOTION_PRESETS["vessel-6dof"]()
+        dofs = [getattr(motion, name) for name in self.NAMES]
+
+        omega = sorted({s._w for d in dofs for s in d._dofs})
+        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
+        for i, d in enumerate(dofs):
+            for s in d._dofs:
+                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
+
+        np.testing.assert_allclose(
+            z.conj() @ z.T / 2.0, np.trapezoid(csd, f, axis=0), atol=1e-12
+        )
+
+
+class Test_z_down_to_z_up:
+    def test_signs(self):
+        t = np.linspace(0.0, 10.0, 101)
+        names = ("x", "y", "z", "roll", "pitch", "yaw")
+        signs = (1.0, -1.0, -1.0, 1.0, -1.0, -1.0)
+        motion = Motion(
+            **{
+                name: Beat(amp=i + 1.0, omega=0.5 + 0.1 * i, omega_beat=0.05, phase=i)
+                for i, name in enumerate(names)
+            }
+        )
+
+        motion_z_up = _z_down_to_z_up(motion)
+
+        assert isinstance(motion_z_up, Motion)
+        for name, sign in zip(names, signs):
+            for out, out_expect in zip(
+                getattr(motion_z_up, name)(t), getattr(motion, name)(t)
+            ):
+                np.testing.assert_allclose(out, sign * out_expect)
 
 
 class Test_Motion:
@@ -220,8 +342,10 @@ class Test_trajectory:
         *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
+    @pytest.mark.parametrize("nav_frame", ["invalid", 0])
+    def test_nav_frame_raise(self, nav_frame):
         with pytest.raises(ValueError):
-            ap.simulate.trajectory(nav_frame="invalid")
+            ap.simulate.trajectory(nav_frame=nav_frame)
 
     def test_g(self):
         g = 5.0
@@ -306,7 +430,84 @@ class Test_trajectory:
         np.testing.assert_allclose(f_b[:, 1], -np.sin(0.5) * ax, atol=1e-12)
         np.testing.assert_allclose(f_b[:, 2], -9.80665)
 
-    @pytest.mark.parametrize("motion", ["BEAT-6DOF", "Beat-3dof", "Stationary"])
+    def test_motion_vessel_6dof(self):
+        fs = 10.0
+        n = 1000
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            fs=fs, n=n, motion="vessel-6dof"
+        )
+
+        for arr in (p_n, v_n, euler_nb, f_b, w_b):
+            assert arr.shape == (n, 3)
+            assert np.all(np.std(arr, axis=0) > 0.0)
+
+        # Validate f and w by strapdown integration using MEKF (no aiding)
+        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
+        mekf = ap.MEKF(fs, q0)
+        euler_est = [euler_nb[0]]
+        for f_i, w_i in zip(f_b[1:], w_b[1:]):
+            mekf.update(f_i, w_i, gref=False)
+            euler_est.append(mekf.attitude.as_euler(degrees=False))
+        euler_est = np.array(euler_est)
+
+        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
+
+    def test_motion_vessel_3dof(self):
+        n = 1000
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion="vessel-3dof"
+        )
+        *_, euler_6dof, _, w_6dof = ap.simulate.trajectory(n=n, motion="vessel-6dof")
+
+        # No translation
+        np.testing.assert_allclose(p_n, np.zeros((n, 3)))
+        np.testing.assert_allclose(v_n, np.zeros((n, 3)))
+
+        # Same rotations as 6DOF
+        np.testing.assert_allclose(euler_nb, euler_6dof)
+        np.testing.assert_allclose(w_b, w_6dof)
+
+        # No translation -> specific force is gravity only
+        np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
+
+    @pytest.mark.parametrize("motion", list(_MOTION_PRESETS))
+    @pytest.mark.parametrize("degrees", [False, True])
+    def test_motion_preset_enu(self, motion, degrees):
+        kwargs = {"n": 100, "motion": motion, "degrees": degrees}
+        t_ned, *out_ned = ap.simulate.trajectory(nav_frame="NED", **kwargs)
+        t_enu, *out_enu = ap.simulate.trajectory(nav_frame="ENU", **kwargs)
+
+        # Presets are rotated 180 degrees about x, so y and z change sign
+        np.testing.assert_allclose(t_enu, t_ned)
+        for arr_enu, arr_ned in zip(out_enu, out_ned):
+            np.testing.assert_allclose(arr_enu[:, 0], arr_ned[:, 0])
+            np.testing.assert_allclose(arr_enu[:, 1:], -arr_ned[:, 1:], atol=1e-12)
+
+    def test_motion_custom_enu(self):
+        # Custom motions are used as given, also in ENU
+        n = 100
+        x = Beat(amp=2.0, omega=2 * np.pi * 0.2, omega_beat=2 * np.pi * 0.02)
+        motion = Motion(x=x, y=x, pitch=Constant(0.1), yaw=Constant(0.5))
+
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+            n=n, motion=motion, nav_frame="ENU"
+        )
+
+        px, vx, _ = x(t)
+        np.testing.assert_allclose(p_n, np.column_stack([px, px, np.zeros(n)]))
+        np.testing.assert_allclose(v_n, np.column_stack([vx, vx, np.zeros(n)]))
+        np.testing.assert_allclose(euler_nb, np.tile([0.0, 0.1, 0.5], (n, 1)))
+        np.testing.assert_allclose(w_b, np.zeros((n, 3)))
+
+        # Same kinematics as in NED, only gravity changes direction
+        *_, f_ned, _ = ap.simulate.trajectory(n=n, motion=motion, nav_frame="NED")
+        R_nb = _matrix_from_euler_zyx(np.array([0.0, 0.1, 0.5]))
+        g_b = R_nb.T @ np.array([0.0, 0.0, 9.80665])
+        np.testing.assert_allclose(f_b, f_ned + 2.0 * g_b, atol=1e-12)
+
+    @pytest.mark.parametrize(
+        "motion", ["BEAT-6DOF", "Beat-3dof", "Stationary", "Vessel-6DOF", "VESSEL-3dof"]
+    )
     def test_motion_case_insensitive(self, motion):
         out = ap.simulate.trajectory(n=10, motion=motion)
         out_expect = ap.simulate.trajectory(n=10, motion=motion.lower())

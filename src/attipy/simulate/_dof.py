@@ -267,15 +267,12 @@ class SmootherStep(DOF):
         Duration of the step period in seconds. Must be positive. Defaults to
         100.0 seconds.
     start : float, optional
-        Time in seconds at which the step starts. Must be non-negative. Defaults
-        to 0.0 seconds.
+        Time in seconds at which the step starts. Defaults to 0.0 seconds.
     """
 
     def __init__(self, *, duration: float = 100.0, start: float = 0.0) -> None:
         if duration <= 0.0:
             raise ValueError("'duration' must be positive.")
-        if start < 0.0:
-            raise ValueError("'start' must be non-negative.")
 
         self._duration = float(duration)
         self._start = float(start)
@@ -492,26 +489,13 @@ def from_psd(
     """
     DOF signal realization of a one-sided power spectral density (PSD).
 
-    The signal is a sum of sinusoids with random phases:
-
-        y(t) = sum_k amp_k * sin(2 * pi * f_k * t + phase_k)
-
-    The frequency range of ``f`` is divided into ``nbins`` equally wide bins,
-    with one component per bin. The amplitudes are:
-
-        amp_k = sqrt(2 * P_k)
-
-    where P_k is the area under the linearly interpolated PSD within bin k, so
-    that the expected variance of the realization equals the area under the PSD.
-    The phases are uniformly distributed on [0, 2 * pi).
-
     Parameters
     ----------
     f : array_like, shape (m,)
         Frequencies in Hz. Must be non-negative and strictly increasing, with at
         least two values.
     psd : array_like, shape (m,)
-        One-sided power spectral density, in y**2 / Hz. Must be non-negative.
+        One-sided power spectral density in y**2 / Hz. Must be non-negative.
     nbins : int
         Number of frequency bins, and thereby sinusoidal components. Must be
         positive.
@@ -527,7 +511,7 @@ def from_psd(
     Returns
     -------
     DOF
-        DOF signal generator for the signal realization of the PSD.
+        DOF signal generator for the realization of the PSD.
     """
     f = np.asarray_chkfinite(f, dtype=np.float64)
     psd = np.asarray_chkfinite(psd, dtype=np.float64)
@@ -656,9 +640,23 @@ def _sum_of_sines(
     phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Sum of sinusoids, ``sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])``.
-    Zero-amplitude components are dropped, and a zero ``Constant`` is returned
-    if no components remain.
+    Build a DOF signal as a sum of sinusoids:
+
+        sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])
+
+    Parameters
+    ----------
+    amps : NDArray[np.float64]
+        Amplitudes, shape (k,). Components with zero amplitude are dropped.
+    freqs : NDArray[np.float64]
+        Frequencies in Hz, shape (k,).
+    phases : NDArray[np.float64]
+        Phases in radians, shape (k,).
+
+    Returns
+    -------
+    DOF
+        Sum of the sinusoids, or a zero ``Constant`` if no components remain.
     """
     sines = [
         Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
@@ -672,9 +670,19 @@ def _sum_of_sines(
 
 def _hermitian_sqrt(a: NDArray) -> NDArray:
     """
-    Hermitian square roots, s, of Hermitian positive semidefinite matrices, a,
-    shape (..., n, n), such that ``s @ s = a``. Negative eigenvalues from
-    round-off are clipped to zero.
+    Compute the Hermitian square roots of Hermitian positive semidefinite
+    matrices.
+
+    Parameters
+    ----------
+    a : NDArray
+        Hermitian positive semidefinite matrices, shape (..., n, n). Negative
+        eigenvalues from round-off are clipped to zero.
+
+    Returns
+    -------
+    NDArray
+        Hermitian square roots, s, such that ``s @ s = a``, shape (..., n, n).
     """
     w, v = np.linalg.eigh(a)
     sqrt_w = np.sqrt(np.clip(w, 0.0, None))
@@ -687,10 +695,24 @@ def _bin_integrals(
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact integrals, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
-    interpolated between ``freq`` and integrated over the bins between
-    ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
-    ``edges`` must lie within ``freq``.
+    Compute the exact integrals of a linearly interpolated spectrum over specified
+    frequency bins.
+
+    Parameters
+    ----------
+    freq : NDArray[np.float64]
+        Frequencies at which the spectrum is defined, shape (m,).
+    spectrum : NDArray
+        Spectrum values at the given frequencies, shape (m, ...).
+    edges : NDArray[np.float64]
+        Frequency bin edges, shape (nbins + 1,). Must be strictly increasing,
+        with ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
+
+    Returns
+    -------
+    NDArray
+        Exact integrals of the spectrum over the specified frequency bins, shape
+        (nbins, ...).
     """
     grid = np.union1d(freq, edges)
     shape = (-1,) + (1,) * (spectrum.ndim - 1)

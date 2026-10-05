@@ -1,11 +1,26 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, replace
+from importlib import resources
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .._mekf import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
-from ._dof import DOF, Beat, Constant
+from ._dof import DOF, Beat, Constant, from_csd, multiply
+
+_PACKAGE_PATH = resources.files(__package__)
+
+
+def _load_csd(path: str) -> tuple[NDArray[np.float64], NDArray[np.complex128]]:
+    """
+    Load a frequency array, shape (m,), and a cross-spectral density (CSD)
+    matrix, shape (m, n, n), from an .npz file.
+    """
+    with open(path, "rb") as fh:
+        data = np.load(fh)
+        f = np.asarray(data["f"], dtype=np.float64)
+        csd = np.asarray(data["csd"], dtype=np.complex128)
+    return f, csd
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -39,40 +54,100 @@ class Motion:
     yaw: DOF = field(default_factory=Constant)
 
     def __post_init__(self) -> None:
-        for name in ("x", "y", "z", "roll", "pitch", "yaw"):
-            if not isinstance(getattr(self, name), DOF):
-                raise TypeError(f"'{name}' must be a DOF instance.")
+        for f in fields(self):
+            if not isinstance(getattr(self, f.name), DOF):
+                raise TypeError(f"'{f.name}' must be a DOF instance.")
 
 
-_W_MAIN = 2.0 * np.pi * 0.1  # 0.1 Hz
-_W_BEAT = 2.0 * np.pi * 0.01  # 0.01 Hz
-
-_BEAT6DOF = Motion(
-    x=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=0.0),
-    y=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi / 3),
-    z=Beat(amp=1.0, omega=_W_MAIN, omega_beat=_W_BEAT, phase=2 * np.pi / 3),
-    roll=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=np.pi),
-    pitch=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=4 * np.pi / 3),
-    yaw=Beat(amp=0.1, omega=_W_MAIN, omega_beat=_W_BEAT, phase=5 * np.pi / 3),
-)
+def _stationary() -> Motion:
+    """
+    Stationary/standstill motion with all DOFs set to zero.
+    """
+    return Motion()
 
 
-_BEAT3DOF = replace(
-    _BEAT6DOF,
-    x=Constant(0.0),
-    y=Constant(0.0),
-    z=Constant(0.0),
-)
+def _beat_6dof() -> Motion:
+    """
+    Beat motion in all six degrees of freedom.
+    """
+    w_main = 2.0 * np.pi * 0.1
+    w_beat = 2.0 * np.pi * 0.01
+    phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
+    motion = Motion(
+        x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
+        y=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
+        z=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
+        roll=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
+        pitch=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
+        yaw=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
+    )
+    return motion
 
 
-_STATIONARY = Motion()
+def _beat_3dof() -> Motion:
+    """
+    Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
+    translational degrees of freedom (x, y, z) are set to zero.
+    """
+    motion = _beat_6dof()
+    motion = replace(
+        motion,
+        x=Constant(0.0),
+        y=Constant(0.0),
+        z=Constant(0.0),
+    )
+    return motion
+
+
+def _vessel_6dof() -> Motion:
+    """
+    Wave-induced vessel response in all six degrees of freedom.
+
+    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
+    north-east-down (NED) navigation frame.
+    """
+    csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
+    f, csd = _load_csd(str(csd_path))
+    x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
+    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
+
+
+def _vessel_3dof() -> Motion:
+    """
+    Wave-induced vessel response in the rotational degrees of freedom.
+
+    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
+    north-east-down (NED) navigation frame.
+    """
+    return replace(
+        _vessel_6dof(),
+        x=Constant(0.0),
+        y=Constant(0.0),
+        z=Constant(0.0),
+    )
 
 
 _MOTION_PRESETS = {
-    "beat-6dof": _BEAT6DOF,
-    "beat-3dof": _BEAT3DOF,
-    "stationary": _STATIONARY,
+    "stationary": _stationary,
+    "beat-6dof": _beat_6dof,
+    "beat-3dof": _beat_3dof,
+    "vessel-6dof": _vessel_6dof,
+    "vessel-3dof": _vessel_3dof,
 }
+
+
+def _z_down_to_z_up(motion: Motion) -> Motion:
+    """
+    Converts a motion from a z-down to a z-up frame by a 180 degree rotation
+    about the x-axis, which negates y, z, pitch and yaw.
+    """
+    return replace(
+        motion,
+        y=multiply(-1.0, motion.y),
+        z=multiply(-1.0, motion.z),
+        pitch=multiply(-1.0, motion.pitch),
+        yaw=multiply(-1.0, motion.yaw),
+    )
 
 
 def _specific_force_body(
@@ -257,6 +332,8 @@ def trajectory(
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
         - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+        - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
+        - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
 
         or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
 
@@ -282,12 +359,17 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
+    if not isinstance(nav_frame, str) or nav_frame.lower() not in ("ned", "enu"):
+        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
     if not isinstance(motion, Motion):
         try:
-            motion = _MOTION_PRESETS[motion.lower()]
+            make_motion = _MOTION_PRESETS[motion.lower()]
         except (KeyError, AttributeError):
             raise ValueError(f"Unknown motion type: {motion!r}.") from None
+        motion = make_motion()
+        if nav_frame.lower() == "enu":
+            motion = _z_down_to_z_up(motion)
 
     # Time
     dt = 1.0 / fs
