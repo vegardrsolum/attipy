@@ -514,7 +514,7 @@ def from_psd(
     Returns
     -------
     DOF
-        DOF signal generator for the signal realization of the PSD.
+        DOF signal generator for the realization of the PSD.
     """
     f = np.asarray_chkfinite(f, dtype=np.float64)
     psd = np.asarray_chkfinite(psd, dtype=np.float64)
