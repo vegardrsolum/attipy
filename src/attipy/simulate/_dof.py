@@ -687,10 +687,24 @@ def _bin_integrals(
     edges: NDArray[np.float64],
 ) -> NDArray:
     """
-    Exact integrals, shape (nbins, ...), of a spectrum, shape (m, ...), linearly
-    interpolated between ``freq`` and integrated over the bins between
-    ``edges``. Both ``freq`` and ``edges`` must be strictly increasing, and
-    ``edges`` must lie within ``freq``.
+    Compute the exact integrals of a linearly interpolated spectrum over specified
+    frequency bins.
+
+    Parameters
+    ----------
+    freq : NDArray[np.float64]
+        Frequencies at which the spectrum is defined, shape (m,).
+    spectrum : NDArray
+        Spectrum values at the given frequencies, shape (m, ...).
+    edges : NDArray[np.float64]
+        Frequency bin edges, shape (nbins + 1,). Must be strictly increasing,
+        with ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
+
+    Returns
+    -------
+    NDArray
+        Exact integrals of the spectrum over the specified frequency bins, shape
+        (nbins, ...).
     """
     grid = np.union1d(freq, edges)
     shape = (-1,) + (1,) * (spectrum.ndim - 1)
