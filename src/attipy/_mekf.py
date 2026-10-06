@@ -23,8 +23,6 @@ from ._transforms import (
 )
 from ._vectorops import _normalize_vec, _skew_symmetric
 
-DEG2RAD = np.pi / 180.0
-
 _P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
@@ -169,7 +167,6 @@ def _aiding_update_gref(
 def _aiding_update_yaw(
     yaw: float,
     var: float,
-    degrees: bool,
     dhdx: NDArray[np.float64],
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -179,10 +176,6 @@ def _aiding_update_yaw(
     """
     Update state and covariance with heading (yaw angle) aiding measurement.
     """
-    if degrees:
-        yaw *= DEG2RAD
-        var *= DEG2RAD**2
-
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
     dhdx[0:3] = _dyawda(q_nb)
 
@@ -294,19 +287,15 @@ class MEKF:
         yaw = _yaw_from_quat(self._q_nb)
         self._q_nb = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
 
-    def align_yaw(self, yaw: float, degrees: bool = False) -> None:
+    def align_yaw(self, yaw: float) -> None:
         """
         Yaw angle alignment.
 
         Parameters
         ----------
         yaw : float
-            Desired yaw angle.
-        degrees : bool, optional
-            Specifies whether the yaw angle is given in degrees or radians (default).
+            Desired yaw angle in radians.
         """
-        if degrees:
-            yaw = np.radians(yaw)
         roll, pitch, _ = _euler_zyx_from_quat(self._q_nb)
         self._q_nb = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
 
@@ -337,11 +326,8 @@ class MEKF:
         dtheta: ArrayLike,
         /,
         *,
-        gyro_degrees: bool = False,
-        increments: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
-        yaw_degrees: bool = False,
         gref: bool = True,
         gref_var: ArrayLike = (0.001, 0.001, 0.001),
     ) -> None:
@@ -351,27 +337,15 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Accelerometer measurement as specific force (m/s^2) or velocity increment
-            (m/s), depending on ``increments``.
+            Velocity increment over the sampling interval in m/s.
         dtheta : array_like, shape (3,)
-            Gyroscope measurement as angular rate (rad/s or deg/s) or angle increment
-            (rad or deg), depending on ``increments`` and ``gyro_degrees``.
-        gyro_degrees : bool, optional
-            Specifies whether the gyroscope measurement is given in terms of degrees
-            or radians. Defaults to radians.
-        increments : bool, optional
-            Specifies whether the IMU measurements should be interpreted as velocity
-            and angle increments rather than specific force and angular rate. Defaults
-            to ``False``.
+            Angle increment over the sampling interval in radians.
         yaw : float, optional
-            Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
-            Defaults to ``None`` (no yaw aiding).
+            Heading (yaw angle) aiding measurement in radians. Defaults to ``None``
+            (no yaw aiding).
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
-            Required for yaw aiding. Defaults to None.
-        yaw_degrees : bool, optional
-            Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
-            or rad and rad^2 (default).
+            Variance of heading (yaw angle) measurement in rad^2. Required for yaw
+            aiding. Defaults to None.
         gref : bool, optional
             Specifies whether to use accelerometer measurements (dv) and the known
             direction of gravity as aiding. Defaults to ``True``.
@@ -381,14 +355,7 @@ class MEKF:
         """
         dtheta = np.array(dtheta, dtype=float)
 
-        if gyro_degrees:
-            dtheta *= DEG2RAD
-
-        # Convert rotation rate to attitude increment (rotation vector)
-        # (scaling of dv is not needed since only its direction is used)
-        if not increments:
-            dtheta *= self._dt
-
+        # Bias-corrected attitude increment
         dtheta -= self._dt * self._bg_b
 
         # Update state-space model
@@ -420,7 +387,6 @@ class MEKF:
             _aiding_update_yaw(
                 yaw,
                 yaw_var,
-                yaw_degrees,
                 self._dhdx_yaw,
                 self._dx,
                 self._P,

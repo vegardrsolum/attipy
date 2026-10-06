@@ -306,7 +306,7 @@ class Test_trajectory:
         mekf = ap.MEKF(fs_expect, q0)
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i, w_i, gref=False)
+            mekf.update(f_i / fs_expect, w_i / fs_expect, gref=False)
             euler_est.append(mekf.attitude.as_euler(degrees=False))
         euler_est = np.array(euler_est)
 
@@ -446,7 +446,7 @@ class Test_trajectory:
         mekf = ap.MEKF(fs, q0)
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i, w_i, gref=False)
+            mekf.update(f_i / fs, w_i / fs, gref=False)
             euler_est.append(mekf.attitude.as_euler(degrees=False))
         euler_est = np.array(euler_est)
 
