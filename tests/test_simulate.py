@@ -307,7 +307,7 @@ class Test_trajectory:
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i / fs_expect, w_i / fs_expect, gref=False)
-            euler_est.append(mekf.attitude.as_euler(degrees=False))
+            euler_est.append(mekf.euler())
         euler_est = np.array(euler_est)
 
         # TODO: check also pos and vel when strapdown estimator is available
@@ -447,7 +447,7 @@ class Test_trajectory:
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i / fs, w_i / fs, gref=False)
-            euler_est.append(mekf.attitude.as_euler(degrees=False))
+            euler_est.append(mekf.euler())
         euler_est = np.array(euler_est)
 
         np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
