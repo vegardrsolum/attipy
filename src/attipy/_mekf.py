@@ -332,7 +332,6 @@ class MEKF:
         /,
         *,
         gyro_degrees: bool = False,
-        increments: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
         yaw_degrees: bool = False,
@@ -345,18 +344,15 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Accelerometer measurement as specific force (m/s^2) or velocity increment
-            (m/s), depending on ``increments``.
+            Velocity increment (m/s) over the sampling interval. For specific force
+            measurements, f (m/s^2), pass ``f / fs``.
         dtheta : array_like, shape (3,)
-            Gyroscope measurement as angular rate (rad/s or deg/s) or angle increment
-            (rad or deg), depending on ``increments`` and ``gyro_degrees``.
+            Angle increment (rad or deg, see ``gyro_degrees``) over the sampling
+            interval. For angular rate measurements, w (rad/s or deg/s), pass
+            ``w / fs``.
         gyro_degrees : bool, optional
-            Specifies whether the gyroscope measurement is given in terms of degrees
-            or radians. Defaults to radians.
-        increments : bool, optional
-            Specifies whether the IMU measurements should be interpreted as velocity
-            and angle increments rather than specific force and angular rate. Defaults
-            to ``False``.
+            Specifies whether the angle increment is given in degrees or radians
+            (default).
         yaw : float, optional
             Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
             Defaults to ``None`` (no yaw aiding).
@@ -378,11 +374,7 @@ class MEKF:
         if gyro_degrees:
             dtheta *= DEG2RAD
 
-        # Convert rotation rate to attitude increment (rotation vector)
-        # (scaling of dv is not needed since only its direction is used)
-        if not increments:
-            dtheta *= self._dt
-
+        # Bias-corrected attitude increment (bias is in rad/s)
         dtheta -= self._dt * self._bg_b
 
         # Update state-space model
