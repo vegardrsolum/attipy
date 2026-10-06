@@ -111,6 +111,17 @@ class Attitude:
         q_str = f"{qw:.3g} + {qx:.3g}i + {qy:.3g}j + {qz:.3g}k".replace("+ -", "- ")
         return f"Attitude(q={q_str})"
 
+    @classmethod
+    def _from_unit_quaternion(cls, q: NDArray[np.float64]) -> Self:
+        """
+        Initialize from a unit quaternion without validation (internal fast path).
+
+        The quaternion must be a float array of shape (4,) with unit norm.
+        """
+        att = cls.__new__(cls)
+        att._q = _canonical(q).copy()
+        return att
+
     def as_quaternion(self) -> NDArray[np.float64]:
         """
         Represent the attitude as a unit quaternion.
