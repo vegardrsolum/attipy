@@ -293,6 +293,7 @@ def _imu_from_kinematics(
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
+    /,
     degrees: bool = False,
     g: float = 9.80665,
     nav_frame: str = "NED",
