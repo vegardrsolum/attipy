@@ -57,7 +57,7 @@ class Test_MEKF:
         assert mekf._gbs == gyro_bias_stability
         assert mekf._gbc == gyro_bias_corr_time
 
-        np.testing.assert_allclose(mekf._att_nb._q, q_nb)
+        np.testing.assert_allclose(mekf._q_nb, q_nb)
         np.testing.assert_allclose(mekf._bg_b, bg_b)
         np.testing.assert_allclose(mekf._P, P)
 
@@ -80,7 +80,7 @@ class Test_MEKF:
         assert mekf._gbs == 0.00005
         assert mekf._gbc == 50.0
 
-        np.testing.assert_allclose(mekf._att_nb._q, np.array([1.0, 0.0, 0.0, 0.0]))
+        np.testing.assert_allclose(mekf._q_nb, np.array([1.0, 0.0, 0.0, 0.0]))
         np.testing.assert_allclose(mekf._bg_b, np.zeros(3))
         np.testing.assert_allclose(mekf._P, 1e-6 * np.eye(6))
 
@@ -116,6 +116,17 @@ class Test_MEKF:
         q_expected = np.array([1.0, 0.0, 0.0, 0.0])
         assert isinstance(mekf.attitude, ap.Attitude)
         np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
+
+    def test_attitude_is_snapshot(self):
+        mekf = ap.MEKF(10.0)
+        att_before = mekf.attitude
+        q_before = att_before.as_quaternion()
+        mekf.update([0.0, 0.0, -9.81], [0.1, 0.0, 0.0])
+        att_after = mekf.attitude
+
+        assert att_after is not att_before
+        np.testing.assert_allclose(att_before.as_quaternion(), q_before)
+        assert not np.allclose(att_after.as_quaternion(), q_before)
 
     def test_bias(self):
         mekf = ap.MEKF(10.0, b0=np.array([0.01, -0.02, 0.03]))

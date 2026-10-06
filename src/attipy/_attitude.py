@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical
+from ._quatops import _canonical, _normalize_quat
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -104,12 +104,22 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
+        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q))
+        _normalize_quat(self._q)
 
     def __repr__(self) -> str:
-        qw, qx, qy, qz = self._q
-        q_str = f"{qw:.3g} + {qx:.3g}i + {qy:.3g}j + {qz:.3g}k".replace("+ -", "- ")
-        return f"Attitude(q={q_str})"
+        return f"{type(self).__name__}(q={self._q.tolist()!r})"
+
+    @classmethod
+    def _from_unit_quaternion(cls, q: NDArray[np.float64]) -> Self:
+        """
+        Initialize from a unit quaternion without validation (internal fast path).
+
+        The quaternion must be a float array of shape (4,) with unit norm.
+        """
+        att = cls.__new__(cls)
+        att._q = _canonical(q)
+        return att
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
