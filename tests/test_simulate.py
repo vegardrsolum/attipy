@@ -326,12 +326,6 @@ class Test_trajectory:
         assert w_b.shape == (n, 3)
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
-    def test_degrees(self):
-        *_, euler_deg, _, _ = ap.simulate.trajectory(degrees=True)
-        *_, euler_rad, _, _ = ap.simulate.trajectory(degrees=False)
-
-        np.testing.assert_allclose(euler_deg, np.degrees(euler_rad))
-
     def test_nav_frame(self):
 
         # NED
@@ -471,9 +465,8 @@ class Test_trajectory:
         np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
 
     @pytest.mark.parametrize("motion", list(_MOTION_PRESETS))
-    @pytest.mark.parametrize("degrees", [False, True])
-    def test_motion_preset_enu(self, motion, degrees):
-        kwargs = {"n": 100, "motion": motion, "degrees": degrees}
+    def test_motion_preset_enu(self, motion):
+        kwargs = {"n": 100, "motion": motion}
         t_ned, *out_ned = ap.simulate.trajectory(nav_frame="NED", **kwargs)
         t_enu, *out_enu = ap.simulate.trajectory(nav_frame="ENU", **kwargs)
 

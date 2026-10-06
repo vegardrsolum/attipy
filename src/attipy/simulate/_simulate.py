@@ -293,7 +293,7 @@ def _imu_from_kinematics(
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
-    degrees: bool = False,
+    *,
     g: float = 9.80665,
     nav_frame: str = "NED",
     motion: str | Motion = "beat-6dof",
@@ -316,9 +316,6 @@ def trajectory(
     n : int, optional
         Number of samples to generate. Must be a positive whole number.
         Defaults to 10 000.
-    degrees : bool, optional
-        Specifies whether to return the Euler angles and the angular velocities
-        in degrees and degrees per second or radians and radians per second (default).
     g : float, optional
         The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
         of 9.80665 m/s^2.
@@ -346,11 +343,11 @@ def trajectory(
     v_n : ndarray, shape (n, 3)
         Velocity timeseries in m/s.
     euler_nb : ndarray, shape (n, 3)
-        Euler angle timeseries in radians (default) or degrees.
+        Euler angle timeseries in radians.
     f_b : ndarray, shape (n, 3)
         Specific force timeseries in m/s^2.
     w_b : ndarray, shape (n, 3)
-        Angular rate timeseries in rad/s (default) or deg/s.
+        Angular rate timeseries in rad/s.
     """
 
     if fs <= 0.0:
@@ -378,9 +375,5 @@ def trajectory(
     # PVA and IMU signals
     pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
     f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
-
-    if degrees:
-        euler = np.degrees(euler)
-        w_b = np.degrees(w_b)
 
     return t, pos, vel, euler, f_b, w_b
