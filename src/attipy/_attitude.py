@@ -107,9 +107,7 @@ class Attitude:
         self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
 
     def __repr__(self) -> str:
-        qw, qx, qy, qz = self._q
-        q_str = f"{qw:.3g} + {qx:.3g}i + {qy:.3g}j + {qz:.3g}k".replace("+ -", "- ")
-        return f"Attitude(q={q_str})"
+        return f"{type(self).__name__}(q={self._q.tolist()!r})"
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
