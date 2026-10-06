@@ -322,7 +322,7 @@ class MEKF:
     @property
     def attitude(self) -> Attitude:
         """
-        Snapshot of the attitude estimate. Later updates do not change it.
+        Copy of the attitude estimate.
         """
         return Attitude._from_unit_quaternion(self._q_nb)
 
