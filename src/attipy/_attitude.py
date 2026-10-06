@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ._quatops import _canonical
+from ._quatops import _canonical, _normalize_quat
 from ._transforms import (
     _euler_zyx_from_quat,
     _matrix_from_quat,
@@ -105,6 +105,7 @@ class Attitude:
 
     def __init__(self, q: ArrayLike) -> None:
         self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
+        _normalize_quat(self._q)
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q
