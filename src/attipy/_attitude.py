@@ -107,7 +107,7 @@ class Attitude:
         self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({self._q.tolist()!r})"
+        return f"{type(self).__name__}(q={self._q.tolist()!r})"
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
