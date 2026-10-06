@@ -104,7 +104,7 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
+        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q))
 
     def __repr__(self) -> str:
         qw, qx, qy, qz = self._q
@@ -119,7 +119,7 @@ class Attitude:
         The quaternion must be a float array of shape (4,) with unit norm.
         """
         att = cls.__new__(cls)
-        att._q = _canonical(q).copy()
+        att._q = _canonical(q)
         return att
 
     def as_quaternion(self) -> NDArray[np.float64]:
