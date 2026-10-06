@@ -14,7 +14,13 @@ from ._statespace import (
     _state_transition_matrix,
     _state_transition_matrix_update,
 )
-from ._transforms import _dyawda, _nz_b_from_quat, _quat_from_euler_zyx, _yaw_from_quat
+from ._transforms import (
+    _dyawda,
+    _euler_zyx_from_quat,
+    _nz_b_from_quat,
+    _quat_from_euler_zyx,
+    _yaw_from_quat,
+)
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 DEG2RAD = np.pi / 180.0
@@ -260,7 +266,7 @@ class MEKF:
         self._gbc = gyro_bias_corr_time  # gyro bias correlation time
 
         # Initial state and covariance estimates
-        self._att_nb = Attitude(q0)
+        self._q_nb = Attitude(q0).as_quaternion()
         self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
@@ -285,8 +291,8 @@ class MEKF:
             Specific force vector measurement in (m/s^2).
         """
         roll, pitch = _roll_pitch_from_acc(f, nav_frame=self._nav_frame)
-        yaw = _yaw_from_quat(self._att_nb._q)
-        self._att_nb._q = _quat_from_euler_zyx(np.asarray([roll, pitch, yaw]))
+        yaw = _yaw_from_quat(self._q_nb)
+        self._q_nb = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
 
     def align_yaw(self, yaw: float, degrees: bool = False) -> None:
         """
@@ -301,8 +307,8 @@ class MEKF:
         """
         if degrees:
             yaw = np.radians(yaw)
-        roll, pitch, _ = self._att_nb.as_euler(degrees=False)
-        self._att_nb._q = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
+        roll, pitch, _ = _euler_zyx_from_quat(self._q_nb)
+        self._q_nb = _quat_from_euler_zyx(np.array([roll, pitch, yaw]))
 
     @property
     def P(self) -> NDArray[np.float64]:
@@ -313,8 +319,10 @@ class MEKF:
 
     @property
     def attitude(self) -> Attitude:
-        """Attitude estimate (no copy)."""
-        return self._att_nb
+        """
+        Copy of the attitude estimate.
+        """
+        return Attitude._from_unit_quaternion(self._q_nb)
 
     @property
     def bias(self) -> NDArray[np.float64]:
@@ -387,7 +395,7 @@ class MEKF:
         _state_transition_matrix_update(self._phi, dtheta)
 
         # Project (a priori) attitude estimate ahead (strapdown algorithm)
-        _correct_quat_with_rotvec(self._att_nb._q, dtheta)
+        _correct_quat_with_rotvec(self._q_nb, dtheta)
 
         # Project (a priori) error covariance matrix estimate ahead
         _project_cov_ahead_fast(self._P, self._phi, self._Q, self._tmp)
@@ -400,7 +408,7 @@ class MEKF:
                 self._dhdx_gref,
                 self._dx,
                 self._P,
-                self._att_nb._q,
+                self._q_nb,
                 self._nz2vg,
                 self._tmp,
             )
@@ -416,9 +424,9 @@ class MEKF:
                 self._dhdx_yaw,
                 self._dx,
                 self._P,
-                self._att_nb._q,
+                self._q_nb,
                 self._tmp,
             )
 
         # Reset state (regulating error-state to zero)
-        _reset(self._att_nb._q, self._bg_b, self._dx)
+        _reset(self._q_nb, self._bg_b, self._dx)

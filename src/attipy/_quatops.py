@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 @njit  # type: ignore[misc]
 def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Return the quaternion in canonical (standardized) form.
+    Return a copy of the quaternion in canonical (standardized) form.
 
     Ensures a unique sign by enforcing: w > 0, or if w == 0 then x > 0, etc.
     """
@@ -22,7 +22,7 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     if flip:
         return -q
 
-    return q
+    return q.copy()
 
 
 @njit  # type: ignore[misc]

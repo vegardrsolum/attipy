@@ -104,10 +104,21 @@ class Attitude:
     """
 
     def __init__(self, q: ArrayLike) -> None:
-        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q)).copy()
+        self._q: NDArray[np.float64] = _canonical(_asarray_check_quat(q))
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(q={self._q.tolist()!r})"
+
+    @classmethod
+    def _from_unit_quaternion(cls, q: NDArray[np.float64]) -> Self:
+        """
+        Initialize from a unit quaternion without validation (internal fast path).
+
+        The quaternion must be a float array of shape (4,) with unit norm.
+        """
+        att = cls.__new__(cls)
+        att._q = _canonical(q)
+        return att
 
     def as_quaternion(self) -> NDArray[np.float64]:
         """
