@@ -355,7 +355,7 @@ class MEKF:
         """
         dtheta = np.array(dtheta, dtype=float)
 
-        # Bias-corrected attitude increment (bias is in rad/s)
+        # Bias-corrected attitude increment
         dtheta -= self._dt * self._bg_b
 
         # Update state-space model
