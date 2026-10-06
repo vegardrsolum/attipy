@@ -19,8 +19,6 @@ from ._statespace import (
 from ._transforms import _dyawda, _nz_b_from_quat, _quat_from_euler_zyx, _yaw_from_quat
 from ._vectorops import _normalize_vec, _skew_symmetric
 
-DEG2RAD = np.pi / 180.0
-
 _P0 = (
     (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
@@ -165,7 +163,6 @@ def _aiding_update_gref(
 def _aiding_update_yaw(
     yaw: float,
     var: float,
-    degrees: bool,
     dhdx: NDArray[np.float64],
     dx: NDArray[np.float64],
     P: NDArray[np.float64],
@@ -175,10 +172,6 @@ def _aiding_update_yaw(
     """
     Update state and covariance with heading (yaw angle) aiding measurement.
     """
-    if degrees:
-        yaw *= DEG2RAD
-        var *= DEG2RAD**2
-
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
     dhdx[0:3] = _dyawda(q_nb)
 
@@ -331,10 +324,8 @@ class MEKF:
         dtheta: ArrayLike,
         /,
         *,
-        gyro_degrees: bool = False,
         yaw: float | None = None,
         yaw_var: float | None = None,
-        yaw_degrees: bool = False,
         gref: bool = True,
         gref_var: ArrayLike = (0.001, 0.001, 0.001),
     ) -> None:
@@ -346,20 +337,13 @@ class MEKF:
         dv : array_like, shape (3,)
             Velocity increment over the sampling interval in m/s.
         dtheta : array_like, shape (3,)
-            Angle increment over the sampling interval in radians (default) or
-            degrees, depending on ``gyro_degrees``.
-        gyro_degrees : bool, optional
-            Specifies whether the angle increment is given in degrees or radians
-            (default).
+            Angle increment over the sampling interval in radians.
         yaw : float, optional
-            Heading (yaw angle) aiding measurement (see ``yaw_degrees`` for units).
-            Defaults to ``None`` (no yaw aiding).
+            Heading (yaw angle) aiding measurement in radians. Defaults to ``None``
+            (no yaw aiding).
         yaw_var : float, optional
-            Variance of heading (yaw angle) measurement (see ``yaw_degrees`` for units).
-            Required for yaw aiding. Defaults to None.
-        yaw_degrees : bool, optional
-            Specifies whether the units of ``yaw`` and ``yaw_var`` are deg and deg^2
-            or rad and rad^2 (default).
+            Variance of heading (yaw angle) measurement in rad^2. Required for yaw
+            aiding. Defaults to None.
         gref : bool, optional
             Specifies whether to use accelerometer measurements (dv) and the known
             direction of gravity as aiding. Defaults to ``True``.
@@ -368,9 +352,6 @@ class MEKF:
             Required for gravity reference vector aiding. Defaults to (0.001, 0.001, 0.001).
         """
         dtheta = np.array(dtheta, dtype=float)
-
-        if gyro_degrees:
-            dtheta *= DEG2RAD
 
         # Bias-corrected attitude increment (bias is in rad/s)
         dtheta -= self._dt * self._bg_b
@@ -404,7 +385,6 @@ class MEKF:
             _aiding_update_yaw(
                 yaw,
                 yaw_var,
-                yaw_degrees,
                 self._dhdx_yaw,
                 self._dx,
                 self._P,

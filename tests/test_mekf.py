@@ -210,7 +210,6 @@ class Test_MEKF:
             mekf.update(  # full aiding
                 f_i / fs,
                 w_i / fs,
-                gyro_degrees=False,
                 yaw=y_i,
                 yaw_var=yaw_var,
                 gref=True,
