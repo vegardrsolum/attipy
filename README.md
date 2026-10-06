@@ -56,7 +56,7 @@ mekf.align_yaw(yaw_meas[0])
 euler_est = []
 for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
     mekf.update(f_i / fs, w_i / fs, yaw=y_i, yaw_var=yaw_std**2)
-    euler_est.append(mekf.attitude.as_euler())
+    euler_est.append(mekf.euler())
 euler_est = np.asarray(euler_est)
 ```
 

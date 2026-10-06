@@ -40,7 +40,7 @@ class Test_MEKF:
         mekf = ap.MEKF(
             fs,
             q_nb,
-            b0=bg_b,
+            bg0=bg_b,
             P0=P,
             nav_frame=nav_frame,
             gyro_noise_density=gyro_noise_density,
@@ -101,38 +101,39 @@ class Test_MEKF:
         g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
         f_b = -att.as_matrix().T @ g_n
         mekf.level(f_b)
-        np.testing.assert_allclose(
-            mekf.attitude.as_euler(degrees=False)[:2], att.as_euler(degrees=False)[:2]
-        )
+        np.testing.assert_allclose(mekf.euler()[:2], att.as_euler(degrees=False)[:2])
 
     def test_align_yaw(self):
         mekf = ap.MEKF(10.0)
         yaw = np.radians(45.0)
         mekf.align_yaw(yaw)
-        _, _, yaw_est = mekf.attitude.as_euler()
+        _, _, yaw_est = mekf.euler()
         assert np.isclose(yaw_est, yaw)
 
-    def test_attitude(self, mekf):
-        q_expected = np.array([1.0, 0.0, 0.0, 0.0])
-        assert isinstance(mekf.attitude, ap.Attitude)
-        np.testing.assert_allclose(mekf.attitude.as_quaternion(), q_expected)
+    def test_quaternion(self):
+        q0 = ap.Attitude.from_euler([0.1, -0.2, 0.3]).as_quaternion()
+        mekf = ap.MEKF(10.0, q0=q0)
+        q = mekf.quaternion()
+        np.testing.assert_allclose(q, q0)
+        assert not np.shares_memory(q, mekf._q_nb)  # ensure it is a copy
 
-    def test_attitude_is_snapshot(self):
+    def test_quaternion_canonical(self):
         mekf = ap.MEKF(10.0)
-        att_before = mekf.attitude
-        q_before = att_before.as_quaternion()
-        mekf.update([0.0, 0.0, -9.81], [0.1, 0.0, 0.0])
-        att_after = mekf.attitude
+        mekf._q_nb[:] = (-0.5, 0.5, -0.5, 0.5)
+        np.testing.assert_allclose(mekf.quaternion(), [0.5, -0.5, 0.5, -0.5])
 
-        assert att_after is not att_before
-        np.testing.assert_allclose(att_before.as_quaternion(), q_before)
-        assert not np.allclose(att_after.as_quaternion(), q_before)
+    def test_euler(self):
+        euler0 = np.array([0.1, -0.2, 0.3])
+        q0 = ap.Attitude.from_euler(euler0).as_quaternion()
+        mekf = ap.MEKF(10.0, q0=q0)
+        np.testing.assert_allclose(mekf.euler(), euler0)
 
-    def test_bias(self):
-        mekf = ap.MEKF(10.0, b0=np.array([0.01, -0.02, 0.03]))
+    def test_gyro_bias(self):
+        mekf = ap.MEKF(10.0, bg0=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
-        np.testing.assert_allclose(mekf.bias, bg_expected)
-        assert mekf.bias is not mekf._bg_b  # ensure it is a copy
+        bg = mekf.gyro_bias()
+        np.testing.assert_allclose(bg, bg_expected)
+        assert not np.shares_memory(bg, mekf._bg_b)  # ensure it is a copy
 
     def test_P(self):
         mekf = ap.MEKF(10.0, P0=np.eye(6))
@@ -161,8 +162,8 @@ class Test_MEKF:
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i / fs, w_i / fs)
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bias)
+            euler_est.append(mekf.euler())
+            bg_est.append(mekf.gyro_bias())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -225,8 +226,8 @@ class Test_MEKF:
                 gref=True,
                 gref_var=0.001 * np.ones(3),
             )
-            euler_est.append(mekf.attitude.as_euler())
-            bg_est.append(mekf.bias)
+            euler_est.append(mekf.euler())
+            bg_est.append(mekf.gyro_bias())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
