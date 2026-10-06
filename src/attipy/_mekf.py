@@ -344,12 +344,10 @@ class MEKF:
         Parameters
         ----------
         dv : array_like, shape (3,)
-            Velocity increment (m/s) over the sampling interval. For specific force
-            measurements, f (m/s^2), pass ``f / fs``.
+            Velocity increment over the sampling interval in m/s.
         dtheta : array_like, shape (3,)
-            Angle increment (rad or deg, see ``gyro_degrees``) over the sampling
-            interval. For angular rate measurements, w (rad/s or deg/s), pass
-            ``w / fs``.
+            Angle increment over the sampling interval in radians (default) or
+            degrees, depending on ``gyro_degrees``.
         gyro_degrees : bool, optional
             Specifies whether the angle increment is given in degrees or radians
             (default).
