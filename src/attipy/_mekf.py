@@ -23,15 +23,6 @@ from ._transforms import (
 )
 from ._vectorops import _normalize_vec, _skew_symmetric
 
-_P0 = (
-    (1.0e-6, 0.0, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 1.0e-6, 0.0, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 1.0e-6, 0.0, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 1.0e-6, 0.0, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 1.0e-6, 0.0),
-    (0.0, 0.0, 0.0, 0.0, 0.0, 1.0e-6),
-)
-
 
 def _roll_pitch_from_acc(
     f_b: NDArray[np.float64], nav_frame: str
@@ -220,9 +211,9 @@ class MEKF:
     bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
-        Initial error covariance matrix estimate. Defaults to a small diagonal matrix
-        (1e-6 * eye(6)). The order of the (error) states is: dx = (da, db), where
-        da is the attitude error, and db is the gyroscope bias error.
+        Initial error covariance matrix estimate. Defaults to a small diagonal
+        matrix (1e-6 * eye(6)). The order of the (error) states is: dx = (da, db),
+        where da is the attitude error, and db is the gyroscope bias error.
     gyro_noise_density : float, optional
         Gyroscope noise density (angular random walk) in (rad/s)/√Hz. Defaults to
         0.0001 (typical value for low-cost MEMS IMUs).
@@ -241,7 +232,7 @@ class MEKF:
         fs: float,
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
-        P0: ArrayLike = _P0,
+        P0: ArrayLike | None = None,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
         gyro_bias_corr_time: float = 50.0,
@@ -261,8 +252,11 @@ class MEKF:
         # Initial state and covariance estimates
         self._q_nb = Attitude(q0).as_quaternion()
         self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
-        self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
+        if P0 is None:
+            self._P = 1e-6 * np.eye(6)
+        else:
+            self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
 
         # Discrete state-space model
         self._phi = _state_transition_matrix(self._dt, np.zeros(3), self._gbc)
