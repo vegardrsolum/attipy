@@ -40,7 +40,7 @@ class Test_MEKF:
         mekf = ap.MEKF(
             fs,
             q_nb,
-            b0=bg_b,
+            bg0=bg_b,
             P0=P,
             nav_frame=nav_frame,
             gyro_noise_density=gyro_noise_density,
@@ -128,10 +128,10 @@ class Test_MEKF:
         mekf = ap.MEKF(10.0, q0=q0)
         np.testing.assert_allclose(mekf.euler(), euler0)
 
-    def test_bias(self):
-        mekf = ap.MEKF(10.0, b0=np.array([0.01, -0.02, 0.03]))
+    def test_gyro_bias(self):
+        mekf = ap.MEKF(10.0, bg0=np.array([0.01, -0.02, 0.03]))
         bg_expected = np.array([0.01, -0.02, 0.03])
-        bg = mekf.bias()
+        bg = mekf.gyro_bias()
         np.testing.assert_allclose(bg, bg_expected)
         assert not np.shares_memory(bg, mekf._bg_b)  # ensure it is a copy
 
@@ -163,7 +163,7 @@ class Test_MEKF:
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i / fs, w_i / fs)
             euler_est.append(mekf.euler())
-            bg_est.append(mekf.bias())
+            bg_est.append(mekf.gyro_bias())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 
@@ -227,7 +227,7 @@ class Test_MEKF:
                 gref_var=0.001 * np.ones(3),
             )
             euler_est.append(mekf.euler())
-            bg_est.append(mekf.bias())
+            bg_est.append(mekf.gyro_bias())
         euler_est = np.asarray(euler_est)
         bg_est = np.asarray(bg_est)
 

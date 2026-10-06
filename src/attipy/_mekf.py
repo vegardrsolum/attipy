@@ -217,7 +217,7 @@ class MEKF:
     q0 : array_like, shape (4,), optional
         Initial attitude estimate given as a unit quaternion (qw, qx, qy, qz).
         Defaults to the identity quaternion (1.0, 0.0, 0.0, 0.0) (i.e., no rotation).
-    b0 : array_like, shape (3,), optional
+    bg0 : array_like, shape (3,), optional
         Initial gyroscope bias estimate (bx, by, bz) in rad/s. Defaults to zero bias.
     P0 : array_like, shape (6, 6), optional
         Initial error covariance matrix estimate. Defaults to a small diagonal matrix
@@ -240,7 +240,7 @@ class MEKF:
         self,
         fs: float,
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
-        b0: ArrayLike = (0.0, 0.0, 0.0),
+        bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike = _P0,
         gyro_noise_density: float = 0.0001,
         gyro_bias_stability: float = 0.00005,
@@ -260,7 +260,7 @@ class MEKF:
 
         # Initial state and covariance estimates
         self._q_nb = Attitude(q0).as_quaternion()
-        self._bg_b = np.asarray_chkfinite(b0).reshape(3).copy()
+        self._bg_b = np.asarray_chkfinite(bg0).reshape(3).copy()
         self._P = np.asarray_chkfinite(P0).reshape(6, 6).copy()
         self._dx = np.zeros(6)
 
@@ -302,24 +302,24 @@ class MEKF:
     @property
     def P(self) -> NDArray[np.float64]:
         """
-        Copy of the error covariance matrix estimate.
+        Error covariance matrix estimate.
         """
         return self._P.copy()
 
     def quaternion(self) -> NDArray[np.float64]:
         """
-        Attitude estimate as a unit quaternion.
+        Attitude estimate represented as a unit quaternion.
 
         Returns
         -------
         ndarray, shape (4,)
-            Unit quaternion (qw, qx, qy, qz) in canonical form (qw >= 0).
+            Unit quaternion (qw, qx, qy, qz).
         """
         return _canonical(self._q_nb)  # type: ignore[no-any-return]
 
     def euler(self) -> NDArray[np.float64]:
         """
-        Attitude estimate as Euler angles (ZYX convention).
+        Attitude estimate represented as Euler angles (ZYX convention).
 
         Returns
         -------
@@ -335,7 +335,7 @@ class MEKF:
         """
         return _euler_zyx_from_quat(self._q_nb)  # type: ignore[no-any-return]
 
-    def bias(self) -> NDArray[np.float64]:
+    def gyro_bias(self) -> NDArray[np.float64]:
         """
         Gyroscope bias estimate.
 
