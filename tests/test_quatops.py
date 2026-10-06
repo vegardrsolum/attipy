@@ -31,7 +31,6 @@ def test_correct_quat_with_gibbs2(euler_deg):
 
     dq = (1.0 / np.sqrt(4.0 + np.dot(da, da))) * np.array([2.0, *da])
     q_corr_expect = _quatprod(q, dq)
-    q_corr_expect = q_corr_expect
 
     _correct_quat_with_gibbs2(q, da)
 
