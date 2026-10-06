@@ -25,6 +25,12 @@ class Test_Attitude:
         with pytest.raises(ValueError):
             Attitude([1.0, 1.0, 0.0, 0.0])
 
+    def test__init__normalizes(self):
+        q = [1.000001, 0.0, 0.0, 0.0]  # within tolerance, but not exactly unit norm
+        att = Attitude(q)
+        assert np.linalg.norm(att._q) == pytest.approx(1.0, abs=1e-15)
+        np.testing.assert_allclose(att._q, [1.0, 0.0, 0.0, 0.0], rtol=0.0, atol=1e-15)
+
     def test__init__copies_input(self):
         q = np.array([1.0, 0.0, 0.0, 0.0])
         att = Attitude(q)
@@ -33,10 +39,10 @@ class Test_Attitude:
         np.testing.assert_allclose(att._q, [1.0, 0.0, 0.0, 0.0])
 
     def test__repr__(self):
-        q = [0.52005444, -0.51089824, 0.64045922, 0.24153336]
+        q = [0.5, -0.5, 0.5, 0.5]  # exactly unit norm, so unchanged by normalization
         att = Attitude(q)
         repr_str = repr(att)
-        expected_str = "Attitude(q=[0.52005444, -0.51089824, 0.64045922, 0.24153336])"
+        expected_str = "Attitude(q=[0.5, -0.5, 0.5, 0.5])"
         assert repr_str == expected_str
 
     @pytest.mark.parametrize("att", _ATTITUDES)
