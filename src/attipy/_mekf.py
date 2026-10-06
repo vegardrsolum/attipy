@@ -319,7 +319,7 @@ class MEKF:
 
     def euler(self) -> NDArray[np.float64]:
         """
-        Attitude estimate represented as Euler angles (ZYX convention).
+        Attitude estimate represented as Euler angles (see Notes).
 
         Returns
         -------
