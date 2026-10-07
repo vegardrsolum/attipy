@@ -28,7 +28,7 @@ def _kalman_update_scalar_fast(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     Ph : ndarray, shape (n,)
-        Temporary workspace array for P @ h.
+        Preallocated workspace array for P @ h (overwritten).
     """
     n = h.shape[0]
 
@@ -86,7 +86,7 @@ def _kalman_update_sequential_fast(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     Ph : ndarray, shape (n,)
-        Temporary workspace array for P @ h.
+        Preallocated workspace array for P @ h (overwritten).
     """
     m = z.shape[0]
     for i in range(m):
@@ -114,7 +114,7 @@ def _project_cov_ahead_fast(
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
     phiP : ndarray, shape (n, n)
-        Temporary workspace matrix for phi @ P.
+        Preallocated workspace matrix for phi @ P (overwritten).
     """
     n = P.shape[0]
 
