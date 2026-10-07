@@ -86,7 +86,7 @@ def _kalman_update_sequential_fast(
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
     Ph : ndarray, shape (n,)
-        Preallocated workspace array for P @ h (overwritten).
+        Preallocated workspace array for P @ H[i] (overwritten).
     """
     m = z.shape[0]
     for i in range(m):
