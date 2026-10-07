@@ -159,7 +159,7 @@ class Attitude:
         return _matrix_from_quat(self._q)  # type: ignore[no-any-return]
 
     @classmethod
-    def from_euler(cls, theta: ArrayLike, degrees: bool = False) -> Self:
+    def from_euler(cls, theta: ArrayLike, *, degrees: bool = False) -> Self:
         """
         Initialize from a set of Euler angles (ZYX convention).
 
@@ -188,7 +188,7 @@ class Attitude:
         q = _quat_from_euler_zyx(theta)
         return cls(q)
 
-    def as_euler(self, degrees: bool = False) -> NDArray[np.float64]:
+    def as_euler(self, *, degrees: bool = False) -> NDArray[np.float64]:
         """
         Represent the attitude as a set of Euler angles (ZYX convention) (see Notes).
 
@@ -216,7 +216,7 @@ class Attitude:
         return theta  # type: ignore[no-any-return]
 
     @classmethod
-    def from_rotvec(cls, r: ArrayLike, degrees: bool = False) -> Self:
+    def from_rotvec(cls, r: ArrayLike, *, degrees: bool = False) -> Self:
         """
         Initialize from a rotation vector, r, defined such that it is co-directional
         to the axis of rotation and has a norm equal to the angle of rotation [1]_.
@@ -244,7 +244,7 @@ class Attitude:
         q = _quat_from_rotvec(r)
         return cls(q)
 
-    def as_rotvec(self, degrees: bool = False) -> NDArray[np.float64]:
+    def as_rotvec(self, *, degrees: bool = False) -> NDArray[np.float64]:
         """
         Represent the attitude as a 3-element rotation vector, defined such that
         it is co-directional to the axis of rotation and has a norm equal to the
