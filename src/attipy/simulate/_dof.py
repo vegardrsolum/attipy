@@ -646,12 +646,12 @@ def _sum_of_sines(
 
     Parameters
     ----------
-    amps : NDArray[np.float64]
-        Amplitudes, shape (k,). Components with zero amplitude are dropped.
-    freqs : NDArray[np.float64]
-        Frequencies in Hz, shape (k,).
-    phases : NDArray[np.float64]
-        Phases in radians, shape (k,).
+    amps : ndarray, shape (k,)
+        Amplitudes. Components with zero amplitude are dropped.
+    freqs : ndarray, shape (k,)
+        Frequencies in Hz.
+    phases : ndarray, shape (k,)
+        Phases in radians.
 
     Returns
     -------
@@ -675,14 +675,14 @@ def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:
 
     Parameters
     ----------
-    a : NDArray[np.complex128]
-        Hermitian positive semidefinite matrices, shape (..., n, n). Negative
-        eigenvalues from round-off are clipped to zero.
+    a : ndarray, shape (..., n, n)
+        Hermitian positive semidefinite matrices. Negative eigenvalues from
+        round-off are clipped to zero.
 
     Returns
     -------
-    NDArray[np.complex128]
-        Hermitian square roots, s, such that ``s @ s = a``, shape (..., n, n).
+    ndarray, shape (..., n, n)
+        Hermitian square roots, s, such that ``s @ s = a``.
     """
     w, v = np.linalg.eigh(a)
     sqrt_w = np.sqrt(np.clip(w, 0.0, None))
@@ -701,19 +701,18 @@ def _bin_integrals(
 
     Parameters
     ----------
-    freq : NDArray[np.float64]
-        Frequencies at which the spectrum is defined, shape (m,).
-    spectrum : NDArray[np.complex128]
-        Spectrum values at the given frequencies, shape (m, ...).
-    edges : NDArray[np.float64]
-        Frequency bin edges, shape (nbins + 1,). Must be strictly increasing,
-        with ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
+    freq : ndarray, shape (m,)
+        Frequencies at which the spectrum is defined.
+    spectrum : ndarray, shape (m, ...)
+        Spectrum values at the given frequencies.
+    edges : ndarray, shape (nbins + 1,)
+        Frequency bin edges. Must be strictly increasing, with
+        ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
 
     Returns
     -------
-    NDArray[np.complex128]
-        Exact integrals of the spectrum over the specified frequency bins, shape
-        (nbins, ...).
+    ndarray, shape (nbins, ...)
+        Exact integrals of the spectrum over the specified frequency bins.
     """
     grid = np.union1d(freq, edges)
     shape = (-1,) + (1,) * (spectrum.ndim - 1)
