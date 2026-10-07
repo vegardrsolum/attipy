@@ -40,7 +40,7 @@ def _state_transition_matrix(
     return phi
 
 
-@njit  # type: ignore[misc]
+@njit
 def _state_transition_matrix_update(
     phi: NDArray[np.float64],
     dtheta: NDArray[np.float64],

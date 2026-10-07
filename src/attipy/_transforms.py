@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from ._quatops import _canonical, _normalize_quat
 
 
-@njit  # type: ignore[misc]
+@njit
 def _quat_from_matrix(dcm: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from a rotation matrix (see ref [1]_).
@@ -51,7 +51,7 @@ def _quat_from_matrix(dcm: NDArray[np.float64]) -> NDArray[np.float64]:
     return q
 
 
-@njit  # type: ignore[misc]
+@njit
 def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the direction cosine matrix (rotation matrix) from a unit quaternion.
@@ -104,7 +104,7 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return dcm
 
 
-@njit  # type: ignore[misc]
+@njit
 def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the Euler angles (ZYX convention) from a unit quaternion (see ref [1]_).
@@ -137,7 +137,7 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([roll, pitch, yaw])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the direction cosine matrix (rotation matrix) from Euler angles.
@@ -229,7 +229,7 @@ def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float
     return np.moveaxis(dcm, -1, 0)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from Euler angles (see ref [1]_).
@@ -270,7 +270,7 @@ def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([qw, qx, qy, qz])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the unit quaternion from a rotation vector.
@@ -306,7 +306,7 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
     return q
 
 
-@njit  # type: ignore[misc]
+@njit
 def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the rotation vector from a unit quaternion.
@@ -341,7 +341,7 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([rx, ry, rz])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     """
     Compute yaw angle from a unit quaternion.
@@ -367,7 +367,7 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     return np.arctan2(uy, ux)  # type: ignore[no-any-return]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute unit quaternion from 2 x Gibbs vector (scaled Gibbs vector).
@@ -401,7 +401,7 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
     return q  # type: ignore[no-any-return]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Unit vector describing the z-axis of frame {n} expressed in frame {b}, computed
@@ -428,7 +428,7 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([x, y, z])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute yaw angle gradient wrt to the scaled Gibbs vector.
