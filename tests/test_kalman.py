@@ -19,7 +19,8 @@ def test_kalman_update():
     A = rng.random((n, n))
     P = A @ A.T + np.eye(n)  # positive semi-definite
     H = rng.random((m, n))
-    R = rng.random((m, m))
+    B = rng.random((m, m))
+    R = B @ B.T + np.eye(m)  # positive semi-definite
     z = rng.random(m)
 
     x_upd, P_upd = _kalman_update(z, R, H, x, P)
