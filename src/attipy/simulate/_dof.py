@@ -5,6 +5,7 @@ from collections.abc import Iterable
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+
 class DOF(ABC):
     """
     Abstract base class for degree of freedom (DOF) signal generators.
