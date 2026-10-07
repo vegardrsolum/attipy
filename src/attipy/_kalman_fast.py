@@ -13,7 +13,7 @@ def _kalman_update_scalar_fast(
     Ph: NDArray[np.float64],
 ) -> None:
     """
-    Scalar Kalman filter measurement update.
+    Scalar Kalman filter measurement update of x and P in place.
 
     Parameters
     ----------
@@ -71,7 +71,7 @@ def _kalman_update_sequential_fast(
     Ph: NDArray[np.float64],
 ) -> None:
     """
-    Sequential (one-at-a-time) Kalman filter measurement update.
+    Sequential (one-at-a-time) Kalman filter measurement update of x and P in place.
 
     Parameters
     ----------
@@ -101,7 +101,7 @@ def _project_cov_ahead_fast(
     phiP: NDArray[np.float64],
 ) -> None:
     """
-    Project the error covariance matrix ahead:
+    Project the error covariance matrix ahead in place:
 
         P = phi @ P @ phi.T + Q
 
