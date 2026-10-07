@@ -3,7 +3,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_scalar_fast(
     z: float,
     r: float,
@@ -61,7 +61,7 @@ def _kalman_update_scalar_fast(
             P[j, i] = p
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_sequential_fast(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -93,7 +93,7 @@ def _kalman_update_sequential_fast(
         _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, Ph)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _project_cov_ahead_fast(
     P: NDArray[np.float64],
     phi: NDArray[np.float64],

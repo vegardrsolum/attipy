@@ -24,9 +24,7 @@ from ._transforms import (
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 
-def _roll_pitch_from_acc(
-    f_b: NDArray[np.float64], nav_frame: str
-) -> NDArray[np.float64]:
+def _roll_pitch_from_acc(f_b: ArrayLike, nav_frame: str) -> NDArray[np.float64]:
     """
     Estimate roll and pitch Euler angles from a specific force measurement.
 
@@ -41,7 +39,7 @@ def _roll_pitch_from_acc(
 
     Parameters
     ----------
-    f_b: ndarray, shape (3,)
+    f_b : array_like, shape (3,)
         Specific force measurement vector (fx, fy, fz).
     nav_frame : {'NED', 'ENU'}
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
@@ -115,7 +113,7 @@ def _nz2vg(nav_frame: str) -> float:
         raise ValueError(f"Unknown navigation frame: {nav_frame}.")
 
 
-@njit  # type: ignore[misc]
+@njit
 def _signed_smallest_angle(angle: float) -> float:
     """
     Convert the given angle to the smallest signed angle between [-pi., pi) radians.
@@ -133,7 +131,7 @@ def _signed_smallest_angle(angle: float) -> float:
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
 
-@njit  # type: ignore[misc]
+@njit
 def _aiding_update_gref(
     dv: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -154,7 +152,7 @@ def _aiding_update_gref(
     _kalman_update_sequential_fast(dz, var, dhdx, dx, P, tmp[0])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _aiding_update_yaw(
     yaw: float,
     var: float,
@@ -173,7 +171,7 @@ def _aiding_update_yaw(
     _kalman_update_scalar_fast(dz, var, dhdx, dx, P, tmp[0])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _reset(
     q_nb: NDArray[np.float64], bg_b: NDArray[np.float64], dx: NDArray[np.float64]
 ) -> None:

@@ -71,3 +71,4 @@ pythonpath = ["src"]
 files = ["src/attipy"]
 strict = true
 ignore_missing_imports = true
+disallow_untyped_decorators = false  # numba's @njit is untyped

@@ -3,7 +3,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 
-@njit  # type: ignore[misc]
+@njit
 def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Return a copy of the quaternion in canonical (standardized) form.
@@ -25,7 +25,7 @@ def _canonical(q: NDArray[np.float64]) -> NDArray[np.float64]:
     return q.copy()
 
 
-@njit  # type: ignore[misc]
+@njit
 def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Computes the product of two unit quaternions (Hamilton product):
@@ -63,7 +63,7 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
     return np.array([qw, qx, qy, qz])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _normalize_quat(q: NDArray[np.float64]) -> None:
     """
     L2-normalize a quaternion in place.
@@ -80,7 +80,7 @@ def _normalize_quat(q: NDArray[np.float64]) -> None:
     q[3] *= norm_inv
 
 
-@njit  # type: ignore[misc]
+@njit
 def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -> None:
     """
     Update/correct a unit quaternion, q, with a small attitude error, da, parameterized
@@ -124,7 +124,7 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
     _normalize_quat(q)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _correct_quat_with_rotvec(
     q: NDArray[np.float64], dtheta: NDArray[np.float64]
 ) -> None:

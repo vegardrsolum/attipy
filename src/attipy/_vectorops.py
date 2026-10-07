@@ -3,7 +3,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 
-@njit  # type: ignore[misc]
+@njit
 def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     Compute the cross product equivalent skew symmetric matrix.
@@ -22,7 +22,7 @@ def _skew_symmetric(a: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
 
 
-@njit  # type: ignore[misc]
+@njit
 def _normalize_vec(v: NDArray[np.float64]) -> NDArray[np.float64]:
     """
     L2-normalize a vector.

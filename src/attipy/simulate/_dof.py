@@ -481,8 +481,8 @@ def from_psd(
     f: ArrayLike,
     psd: ArrayLike,
     /,
-    nbins: int,
     *,
+    nbins: int,
     jitter: float = 0.0,
     seed: int | None = None,
 ) -> DOF:
@@ -547,8 +547,8 @@ def from_csd(
     f: ArrayLike,
     csd: ArrayLike,
     /,
-    nbins: int,
     *,
+    nbins: int,
     jitter: float = 0.0,
     seed: int | None = None,
 ) -> tuple[DOF, ...]:
@@ -646,12 +646,12 @@ def _sum_of_sines(
 
     Parameters
     ----------
-    amps : NDArray[np.float64]
-        Amplitudes, shape (k,). Components with zero amplitude are dropped.
-    freqs : NDArray[np.float64]
-        Frequencies in Hz, shape (k,).
-    phases : NDArray[np.float64]
-        Phases in radians, shape (k,).
+    amps : ndarray, shape (k,)
+        Amplitudes. Components with zero amplitude are dropped.
+    freqs : ndarray, shape (k,)
+        Frequencies in Hz.
+    phases : ndarray, shape (k,)
+        Phases in radians.
 
     Returns
     -------
@@ -668,51 +668,51 @@ def _sum_of_sines(
     return _Sum(*sines)
 
 
-def _hermitian_sqrt(a: NDArray) -> NDArray:
+def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:
     """
     Compute the Hermitian square roots of Hermitian positive semidefinite
     matrices.
 
     Parameters
     ----------
-    a : NDArray
-        Hermitian positive semidefinite matrices, shape (..., n, n). Negative
-        eigenvalues from round-off are clipped to zero.
+    a : ndarray, shape (..., n, n)
+        Hermitian positive semidefinite matrices. Negative eigenvalues from
+        round-off are clipped to zero.
 
     Returns
     -------
-    NDArray
-        Hermitian square roots, s, such that ``s @ s = a``, shape (..., n, n).
+    ndarray, shape (..., n, n)
+        Hermitian square roots, s, such that ``s @ s = a``.
     """
     w, v = np.linalg.eigh(a)
     sqrt_w = np.sqrt(np.clip(w, 0.0, None))
-    return (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
+    s = (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
+    return s  # type: ignore[no-any-return]
 
 
 def _bin_integrals(
     freq: NDArray[np.float64],
-    spectrum: NDArray,
+    spectrum: NDArray[np.complex128],
     edges: NDArray[np.float64],
-) -> NDArray:
+) -> NDArray[np.complex128]:
     """
     Compute the exact integrals of a linearly interpolated spectrum over specified
     frequency bins.
 
     Parameters
     ----------
-    freq : NDArray[np.float64]
-        Frequencies at which the spectrum is defined, shape (m,).
-    spectrum : NDArray
-        Spectrum values at the given frequencies, shape (m, ...).
-    edges : NDArray[np.float64]
-        Frequency bin edges, shape (nbins + 1,). Must be strictly increasing,
-        with ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
+    freq : ndarray, shape (m,)
+        Frequencies at which the spectrum is defined.
+    spectrum : ndarray, shape (m, ...)
+        Spectrum values at the given frequencies.
+    edges : ndarray, shape (nbins + 1,)
+        Frequency bin edges. Must be strictly increasing, with
+        ``edges[0] >= freq[0]`` and ``edges[-1] == freq[-1]``.
 
     Returns
     -------
-    NDArray
-        Exact integrals of the spectrum over the specified frequency bins, shape
-        (nbins, ...).
+    ndarray, shape (nbins, ...)
+        Exact integrals of the spectrum over the specified frequency bins.
     """
     grid = np.union1d(freq, edges)
     shape = (-1,) + (1,) * (spectrum.ndim - 1)

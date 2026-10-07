@@ -57,7 +57,7 @@ def _kalman_update(
     return x, P  # type: ignore[return-value]
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_scalar(
     z: float,
     r: float,
@@ -96,7 +96,7 @@ def _kalman_update_scalar(
     P[:, :] = P - np.outer(k, Ph) - np.outer(Ph, k) + s * np.outer(k, k)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _kalman_update_sequential(
     z: NDArray[np.float64],
     var: NDArray[np.float64],
@@ -125,7 +125,7 @@ def _kalman_update_sequential(
         _kalman_update_scalar(z[i], var[i], H[i], x, P)
 
 
-@njit  # type: ignore[misc]
+@njit
 def _project_cov_ahead(
     P: NDArray[np.float64], phi: NDArray[np.float64], Q: NDArray[np.float64]
 ) -> None:
