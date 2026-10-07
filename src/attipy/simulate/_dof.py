@@ -5,7 +5,6 @@ from collections.abc import Iterable
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-
 class DOF(ABC):
     """
     Abstract base class for degree of freedom (DOF) signal generators.
@@ -668,32 +667,33 @@ def _sum_of_sines(
     return _Sum(*sines)
 
 
-def _hermitian_sqrt(a: NDArray) -> NDArray:
+def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:
     """
     Compute the Hermitian square roots of Hermitian positive semidefinite
     matrices.
 
     Parameters
     ----------
-    a : NDArray
+    a : NDArray[np.complex128]
         Hermitian positive semidefinite matrices, shape (..., n, n). Negative
         eigenvalues from round-off are clipped to zero.
 
     Returns
     -------
-    NDArray
+    NDArray[np.complex128]
         Hermitian square roots, s, such that ``s @ s = a``, shape (..., n, n).
     """
     w, v = np.linalg.eigh(a)
     sqrt_w = np.sqrt(np.clip(w, 0.0, None))
-    return (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
+    s = (v * sqrt_w[..., np.newaxis, :]) @ v.conj().swapaxes(-1, -2)
+    return s  # type: ignore[no-any-return]
 
 
 def _bin_integrals(
     freq: NDArray[np.float64],
-    spectrum: NDArray,
+    spectrum: NDArray[np.complex128],
     edges: NDArray[np.float64],
-) -> NDArray:
+) -> NDArray[np.complex128]:
     """
     Compute the exact integrals of a linearly interpolated spectrum over specified
     frequency bins.
@@ -702,7 +702,7 @@ def _bin_integrals(
     ----------
     freq : NDArray[np.float64]
         Frequencies at which the spectrum is defined, shape (m,).
-    spectrum : NDArray
+    spectrum : NDArray[np.complex128]
         Spectrum values at the given frequencies, shape (m, ...).
     edges : NDArray[np.float64]
         Frequency bin edges, shape (nbins + 1,). Must be strictly increasing,
@@ -710,7 +710,7 @@ def _bin_integrals(
 
     Returns
     -------
-    NDArray
+    NDArray[np.complex128]
         Exact integrals of the spectrum over the specified frequency bins, shape
         (nbins, ...).
     """
