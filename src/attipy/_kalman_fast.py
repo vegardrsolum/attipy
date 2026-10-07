@@ -10,10 +10,10 @@ def _kalman_update_scalar_fast(
     h: NDArray[np.float64],
     x: NDArray[np.float64],
     P: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    Ph: NDArray[np.float64],
 ) -> None:
     """
-    Scalar Kalman filter measurement update.
+    Scalar Kalman filter measurement update of x and P in place.
 
     Parameters
     ----------
@@ -27,8 +27,8 @@ def _kalman_update_scalar_fast(
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
-    tmp : ndarray, shape (n,)
-        Temporary workspace array.
+    Ph : ndarray, shape (n,)
+        Preallocated workspace array for P @ h (overwritten).
     """
     n = h.shape[0]
 
@@ -38,7 +38,7 @@ def _kalman_update_scalar_fast(
         Ph_i = 0.0
         for j in range(n):
             Ph_i += P[i, j] * h[j]
-        tmp[i] = Ph_i
+        Ph[i] = Ph_i
         s += h[i] * Ph_i
 
     s_inv = 1.0 / s
@@ -49,14 +49,14 @@ def _kalman_update_scalar_fast(
         y -= h[i] * x[i]
     ky = s_inv * y
     for i in range(n):
-        x[i] += tmp[i] * ky
+        x[i] += Ph[i] * ky
 
     # Updated (a posteriori) covariance estimate (Joseph form, upper triangle + mirror)
     for i in range(n):
-        k_i = tmp[i] * s_inv
+        k_i = Ph[i] * s_inv
         for j in range(i, n):
-            k_j = tmp[j] * s_inv
-            p = P[i, j] - k_i * tmp[j] - tmp[i] * k_j + s * k_i * k_j
+            k_j = Ph[j] * s_inv
+            p = P[i, j] - k_i * Ph[j] - Ph[i] * k_j + s * k_i * k_j
             P[i, j] = p
             P[j, i] = p
 
@@ -68,10 +68,10 @@ def _kalman_update_sequential_fast(
     H: NDArray[np.float64],
     x: NDArray[np.float64],
     P: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    Ph: NDArray[np.float64],
 ) -> None:
     """
-    Sequential (one-at-a-time) Kalman filter measurement update.
+    Sequential (one-at-a-time) Kalman filter measurement update of x and P in place.
 
     Parameters
     ----------
@@ -85,12 +85,12 @@ def _kalman_update_sequential_fast(
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
-    tmp : ndarray, shape (n,)
-        Temporary workspace array.
+    Ph : ndarray, shape (n,)
+        Preallocated workspace array for P @ H[i] (overwritten).
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, tmp)
+        _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, Ph)
 
 
 @njit  # type: ignore[misc]
@@ -98,10 +98,10 @@ def _project_cov_ahead_fast(
     P: NDArray[np.float64],
     phi: NDArray[np.float64],
     Q: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    phiP: NDArray[np.float64],
 ) -> None:
     """
-    Project the error covariance matrix ahead:
+    Project the error covariance matrix ahead in place:
 
         P = phi @ P @ phi.T + Q
 
@@ -113,8 +113,8 @@ def _project_cov_ahead_fast(
         State transition matrix.
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
-    tmp : ndarray, shape (n, n)
-        Temporary workspace matrix.
+    phiP : ndarray, shape (n, n)
+        Preallocated workspace matrix for phi @ P (overwritten).
     """
     n = P.shape[0]
 
@@ -123,13 +123,13 @@ def _project_cov_ahead_fast(
             s = 0.0
             for k in range(n):
                 s += phi[i, k] * P[k, j]
-            tmp[i, j] = s
+            phiP[i, j] = s
 
     # upper triangle + mirror
     for i in range(n):
         for j in range(i, n):
             p = Q[i, j]
             for k in range(n):
-                p += tmp[i, k] * phi[j, k]
+                p += phiP[i, k] * phi[j, k]
             P[i, j] = p
             P[j, i] = p

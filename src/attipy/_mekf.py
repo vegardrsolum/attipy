@@ -230,6 +230,7 @@ class MEKF:
     def __init__(
         self,
         fs: float,
+        *,
         q0: ArrayLike = (1.0, 0.0, 0.0, 0.0),
         bg0: ArrayLike = (0.0, 0.0, 0.0),
         P0: ArrayLike | None = None,

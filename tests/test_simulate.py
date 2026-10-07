@@ -303,7 +303,7 @@ class Test_trajectory:
 
         # Validate f and w by strapdown integration using MEKF (no aiding)
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs_expect, q0)
+        mekf = ap.MEKF(fs_expect, q0=q0)
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i / fs_expect, w_i / fs_expect, gref=False)
@@ -437,7 +437,7 @@ class Test_trajectory:
 
         # Validate f and w by strapdown integration using MEKF (no aiding)
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs, q0)
+        mekf = ap.MEKF(fs, q0=q0)
         euler_est = [euler_nb[0]]
         for f_i, w_i in zip(f_b[1:], w_b[1:]):
             mekf.update(f_i / fs, w_i / fs, gref=False)

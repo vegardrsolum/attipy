@@ -25,7 +25,7 @@ class Test_MEKF:
 
     @fixture
     def mekf(self):
-        return ap.MEKF(10.0, (1.0, 0.0, 0.0, 0.0))
+        return ap.MEKF(10.0, q0=(1.0, 0.0, 0.0, 0.0))
 
     def test__init__(self):
         fs = 1024.0
@@ -39,7 +39,7 @@ class Test_MEKF:
 
         mekf = ap.MEKF(
             fs,
-            q_nb,
+            q0=q_nb,
             bg0=bg_b,
             P0=P,
             nav_frame=nav_frame,
@@ -69,7 +69,7 @@ class Test_MEKF:
 
     def test__init__default(self):
         fs = 10.0
-        mekf = ap.MEKF(fs, (1.0, 0.0, 0.0, 0.0))
+        mekf = ap.MEKF(fs, q0=(1.0, 0.0, 0.0, 0.0))
 
         assert mekf._fs == fs
         assert mekf._dt == 1.0 / fs
@@ -158,7 +158,7 @@ class Test_MEKF:
 
         # Estimate attitude using MEKF
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs, q0)
+        mekf = ap.MEKF(fs, q0=q0)
         euler_est, bg_est = [], []
         for f_i, w_i in zip(f_meas, w_meas):
             mekf.update(f_i / fs, w_i / fs)
@@ -215,7 +215,7 @@ class Test_MEKF:
 
         # Estimate attitude using MEKF
         q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs, q0)
+        mekf = ap.MEKF(fs, q0=q0)
         euler_est, bg_est = [], []
         for f_i, w_i, y_i in zip(f_meas, w_meas, yaw_meas):
             mekf.update(  # full aiding
