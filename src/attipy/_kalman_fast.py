@@ -10,7 +10,7 @@ def _kalman_update_scalar_fast(
     h: NDArray[np.float64],
     x: NDArray[np.float64],
     P: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    Ph: NDArray[np.float64],
 ) -> None:
     """
     Scalar Kalman filter measurement update.
@@ -27,11 +27,10 @@ def _kalman_update_scalar_fast(
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
-    tmp : ndarray, shape (n,)
-        Temporary workspace array.
+    Ph : ndarray, shape (n,)
+        Temporary workspace array for P @ h.
     """
     n = h.shape[0]
-    Ph = tmp  # workspace for P @ h
 
     # Innovation (pre-fit residual) covariance
     s = r
@@ -69,7 +68,7 @@ def _kalman_update_sequential_fast(
     H: NDArray[np.float64],
     x: NDArray[np.float64],
     P: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    Ph: NDArray[np.float64],
 ) -> None:
     """
     Sequential (one-at-a-time) Kalman filter measurement update.
@@ -86,12 +85,12 @@ def _kalman_update_sequential_fast(
         State estimate to be updated in place.
     P : ndarray, shape (n, n)
         State error covariance matrix to be updated in place.
-    tmp : ndarray, shape (n,)
-        Temporary workspace array.
+    Ph : ndarray, shape (n,)
+        Temporary workspace array for P @ h.
     """
     m = z.shape[0]
     for i in range(m):
-        _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, tmp)
+        _kalman_update_scalar_fast(z[i], var[i], H[i], x, P, Ph)
 
 
 @njit  # type: ignore[misc]
@@ -99,7 +98,7 @@ def _project_cov_ahead_fast(
     P: NDArray[np.float64],
     phi: NDArray[np.float64],
     Q: NDArray[np.float64],
-    tmp: NDArray[np.float64],
+    phiP: NDArray[np.float64],
 ) -> None:
     """
     Project the error covariance matrix ahead:
@@ -114,11 +113,10 @@ def _project_cov_ahead_fast(
         State transition matrix.
     Q : ndarray, shape (n, n)
         Process noise covariance matrix.
-    tmp : ndarray, shape (n, n)
-        Temporary workspace matrix.
+    phiP : ndarray, shape (n, n)
+        Temporary workspace matrix for phi @ P.
     """
     n = P.shape[0]
-    phiP = tmp  # workspace for phi @ P
 
     for i in range(n):
         for j in range(n):
