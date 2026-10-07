@@ -24,9 +24,7 @@ from ._transforms import (
 from ._vectorops import _normalize_vec, _skew_symmetric
 
 
-def _roll_pitch_from_acc(
-    f_b: NDArray[np.float64], nav_frame: str
-) -> NDArray[np.float64]:
+def _roll_pitch_from_acc(f_b: ArrayLike, nav_frame: str) -> NDArray[np.float64]:
     """
     Estimate roll and pitch Euler angles from a specific force measurement.
 
@@ -41,7 +39,7 @@ def _roll_pitch_from_acc(
 
     Parameters
     ----------
-    f_b: ndarray, shape (3,)
+    f_b : array_like, shape (3,)
         Specific force measurement vector (fx, fy, fz).
     nav_frame : {'NED', 'ENU'}
         Specifies the assumed inertial-like navigation frame. Should be 'NED'
