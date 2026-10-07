@@ -481,8 +481,8 @@ def from_psd(
     f: ArrayLike,
     psd: ArrayLike,
     /,
-    nbins: int,
     *,
+    nbins: int,
     jitter: float = 0.0,
     seed: int | None = None,
 ) -> DOF:
@@ -547,8 +547,8 @@ def from_csd(
     f: ArrayLike,
     csd: ArrayLike,
     /,
-    nbins: int,
     *,
+    nbins: int,
     jitter: float = 0.0,
     seed: int | None = None,
 ) -> tuple[DOF, ...]:

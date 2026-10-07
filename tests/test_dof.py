@@ -927,7 +927,7 @@ class Test_from_psd:
         freq = [0.0, 1.0, 2.0]
         psd = [0.0, 2.0, 0.0]
 
-        dof = from_psd(freq, psd, 4, seed=1)
+        dof = from_psd(freq, psd, nbins=4, seed=1)
 
         # Bins [0, 0.5], [0.5, 1], [1, 1.5], [1.5, 2] with areas 0.25, 0.75, 0.75, 0.25
         freq_expect = np.array([0.25, 0.75, 1.25, 1.75])
@@ -940,7 +940,7 @@ class Test_from_psd:
         assert all(0.0 <= s._phase < 2.0 * np.pi for s in dof._dofs)
 
     def test_single_component(self):
-        dof = from_psd([0.0, 2.0], [0.5, 0.5], 1, seed=1)
+        dof = from_psd([0.0, 2.0], [0.5, 0.5], nbins=1, seed=1)
 
         # Component at 1 Hz with variance equal to the area under the PSD
         (sine,) = dof._dofs
@@ -950,7 +950,7 @@ class Test_from_psd:
     @pytest.mark.parametrize("nbins", [1, 7, 33])
     @pytest.mark.parametrize("jitter", [0.0, 1.0])
     def test_variance_equals_psd_area(self, freq, psd, nbins, jitter):
-        dof = from_psd(freq, psd, nbins, jitter=jitter, seed=1)
+        dof = from_psd(freq, psd, nbins=nbins, jitter=jitter, seed=1)
 
         var = sum(s._amp**2 / 2.0 for s in dof._dofs)
         assert var == pytest.approx(np.trapezoid(psd, freq))
@@ -960,7 +960,7 @@ class Test_from_psd:
         freq = np.linspace(0.0, 1.0, 1001)
         psd = np.where(np.abs(freq - 0.25) <= 0.005, 1.0, 0.0)
 
-        dof = from_psd(freq, psd, 4, seed=1)
+        dof = from_psd(freq, psd, nbins=4, seed=1)
 
         # The peak is split equally between the two neighbouring bins, and the
         # empty bins are dropped
@@ -975,7 +975,7 @@ class Test_from_psd:
         freq = [0.0, 0.5, 1.0, 1.5, 2.0]
         psd = [0.0, 0.0, 2.0, 0.0, 0.0]
 
-        dof = from_psd(freq, psd, 4, seed=1)
+        dof = from_psd(freq, psd, nbins=4, seed=1)
 
         freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
         np.testing.assert_allclose(freq_k, [0.75, 1.25])
@@ -983,8 +983,8 @@ class Test_from_psd:
 
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
-        dof = from_psd(freq, psd, 4, jitter=jitter, seed=1)
-        dof_ref = from_psd(freq, psd, 4, jitter=0.0, seed=1)
+        dof = from_psd(freq, psd, nbins=4, jitter=jitter, seed=1)
+        dof_ref = from_psd(freq, psd, nbins=4, jitter=0.0, seed=1)
 
         df = 0.25
         edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
@@ -1007,24 +1007,24 @@ class Test_from_psd:
         )
 
     def test_seed(self, freq, psd):
-        phase1 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
-        phase3 = [s._phase for s in from_psd(freq, psd, 20, seed=2)._dofs]
+        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
+        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
+        phase3 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=2)._dofs]
 
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
 
     def test_seed_generator(self, freq, psd):
         rng = np.random.default_rng(1)
-        phase1 = [s._phase for s in from_psd(freq, psd, 20, seed=rng)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, 20, seed=1)._dofs]
+        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=rng)._dofs]
+        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
 
         np.testing.assert_allclose(phase1, phase2)
 
     def test_welch(self, freq, psd):
         from scipy.signal import welch
 
-        dof = from_psd(freq, psd, 500, seed=1)
+        dof = from_psd(freq, psd, nbins=500, seed=1)
 
         fs = 2.0
         t = np.arange(0.0, 20_000.0, 1.0 / fs)
@@ -1037,7 +1037,7 @@ class Test_from_psd:
     def test_zero_psd(self):
         freq = np.array([0.0, 1.0, 2.0])
         psd = np.array([0.0, 0.0, 0.0])
-        dof = from_psd(freq, psd, 3)
+        dof = from_psd(freq, psd, nbins=3)
         assert isinstance(dof, Constant)
         t = np.linspace(0.0, 1.0, 100)
         y = dof.y(t)
@@ -1057,17 +1057,17 @@ class Test_from_psd:
     )
     def test_raises_input(self, freq, psd):
         with pytest.raises(ValueError):
-            from_psd(freq, psd, 10)
+            from_psd(freq, psd, nbins=10)
 
     @pytest.mark.parametrize("nbins", [0, -1, 1.5])
     def test_raises_nbins(self, freq, psd, nbins):
         with pytest.raises(ValueError):
-            from_psd(freq, psd, nbins)
+            from_psd(freq, psd, nbins=nbins)
 
     @pytest.mark.parametrize("jitter", [-0.1, 1.1])
     def test_raises_jitter(self, freq, psd, jitter):
         with pytest.raises(ValueError):
-            from_psd(freq, psd, 10, jitter=jitter)
+            from_psd(freq, psd, nbins=10, jitter=jitter)
 
 
 class Test_from_csd:
@@ -1111,7 +1111,7 @@ class Test_from_csd:
         return z.conj() @ z.T / 2.0
 
     def test_returns_tuple_of_sums_of_sines(self, freq, psd):
-        dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), 5, seed=1)
+        dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), nbins=5, seed=1)
 
         assert isinstance(dofs, tuple)
         assert len(dofs) == 2
@@ -1131,7 +1131,7 @@ class Test_from_csd:
         # Two bins with two sub-bins each; components at the sub-bin centers.
         # For uncorrelated signals, signal i only has energy in sub-bin i of
         # each bin, and the zero-amplitude components are dropped.
-        dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), 2, seed=1)
+        dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), nbins=2, seed=1)
 
         for dof, freq_expect_i in zip(dofs, freq_expect):
             freq = [s._w / (2.0 * np.pi) for s in dof._dofs]
@@ -1140,7 +1140,7 @@ class Test_from_csd:
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
     def test_csd_equals_integral_2x2(self, freq, psd, coherence):
         csd = self.csd_2x2(psd, 2.0j, coherence)
-        dofs = from_csd(freq, csd, 7, seed=1)
+        dofs = from_csd(freq, csd, nbins=7, seed=1)
 
         np.testing.assert_allclose(
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
@@ -1148,7 +1148,7 @@ class Test_from_csd:
 
     def test_csd_equals_integral_3x3(self, freq, psd):
         csd = self.csd_3x3(psd)
-        dofs = from_csd(freq, csd, 7, seed=1)
+        dofs = from_csd(freq, csd, nbins=7, seed=1)
 
         np.testing.assert_allclose(
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
@@ -1157,14 +1157,14 @@ class Test_from_csd:
     def test_bin_integrals(self):
         # Triangle with area 2.0, split into bins [0, 2/3], [2/3, 4/3], [4/3, 2]
         csd = np.array([0.0, 2.0, 0.0]).reshape(-1, 1, 1)
-        (y,) = from_csd([0.0, 1.0, 2.0], csd, 3, seed=1)
+        (y,) = from_csd([0.0, 1.0, 2.0], csd, nbins=3, seed=1)
 
         var = [s._amp**2 / 2.0 for s in y._dofs]
         np.testing.assert_allclose(var, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
 
     def test_fully_coherent(self, freq, psd):
         # y_1 is y_0 scaled by 2 and phase shifted by +90 degrees
-        y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), 5, seed=1)
+        y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), nbins=5, seed=1)
 
         amp0 = np.array([s._amp for s in y0._dofs])
         amp1 = np.array([s._amp for s in y1._dofs])
@@ -1181,14 +1181,14 @@ class Test_from_csd:
     def test_energy_spread_over_sub_bins(self, freq, psd):
         # Hermitian square root of a fully coherent CSD with equal PSDs splits
         # each bin's energy equally between its two sub-bins
-        dofs = from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), 5, seed=1)
+        dofs = from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), nbins=5, seed=1)
 
         for dof in dofs:
             amp = np.array([s._amp for s in dof._dofs]).reshape(5, 2)
             np.testing.assert_allclose(amp[:, 0], amp[:, 1])
 
     def test_zero_csd(self, freq):
-        dofs = from_csd(freq, np.zeros((freq.size, 2, 2)), 5, seed=1)
+        dofs = from_csd(freq, np.zeros((freq.size, 2, 2)), nbins=5, seed=1)
 
         t = np.linspace(0.0, 1.0, 100)
         for dof in dofs:
@@ -1198,7 +1198,7 @@ class Test_from_csd:
     def test_roundoff_negative_eigenvalue(self):
         # Eigenvalues 2.0 and -1e-14 are accepted as positive semidefinite
         csd = np.tile([[1.0, 1.0 + 1e-14], [1.0 + 1e-14, 1.0]], (3, 1, 1))
-        dofs = from_csd([0.0, 1.0, 2.0], csd, 2, seed=1)
+        dofs = from_csd([0.0, 1.0, 2.0], csd, nbins=2, seed=1)
 
         var = [sum(s._amp**2 / 2.0 for s in dof._dofs) for dof in dofs]
         np.testing.assert_allclose(var, [2.0, 2.0])
@@ -1206,8 +1206,8 @@ class Test_from_csd:
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        y0, y1 = from_csd(freq, csd, 2, jitter=jitter, seed=1)
-        y0_ref, _ = from_csd(freq, csd, 2, seed=1)
+        y0, y1 = from_csd(freq, csd, nbins=2, jitter=jitter, seed=1)
+        y0_ref, _ = from_csd(freq, csd, nbins=2, seed=1)
 
         df_sub = 0.25
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
@@ -1229,9 +1229,9 @@ class Test_from_csd:
 
     def test_seed(self, freq, psd):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        phase1 = [s._phase for s in from_csd(freq, csd, 10, seed=1)[0]._dofs]
-        phase2 = [s._phase for s in from_csd(freq, csd, 10, seed=1)[0]._dofs]
-        phase3 = [s._phase for s in from_csd(freq, csd, 10, seed=2)[0]._dofs]
+        phase1 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+        phase2 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+        phase3 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=2)[0]._dofs]
 
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
@@ -1240,7 +1240,7 @@ class Test_from_csd:
         from scipy.signal import csd as scipy_csd
 
         csd = self.csd_2x2(psd, 2.0j, 0.5)
-        y0, y1 = from_csd(freq, csd, 250, jitter=1.0, seed=1)
+        y0, y1 = from_csd(freq, csd, nbins=250, jitter=1.0, seed=1)
 
         fs = 2.0
         t = np.arange(0.0, 20_000.0, 1.0 / fs)
@@ -1254,14 +1254,14 @@ class Test_from_csd:
                 )
 
     def test_psd_equivalence(self, freq, psd):
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), 10, jitter=1.0, seed=1)
-        y_psd = from_psd(freq, psd, 10, jitter=1.0, seed=1)
+        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=10, jitter=1.0, seed=1)
+        y_psd = from_psd(freq, psd, nbins=10, jitter=1.0, seed=1)
 
         t = np.linspace(0.0, 100.0, 1001)
         np.testing.assert_allclose(y.y(t), y_psd.y(t), atol=1e-12)
 
     def test_numpy_integer_nbins(self, freq, psd):
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), np.int64(10), seed=1)
+        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=np.int64(10), seed=1)
 
         assert len(y._dofs) == 10
 
@@ -1277,7 +1277,7 @@ class Test_from_csd:
     )
     def test_raises_freq(self, freq, match):
         with pytest.raises(ValueError, match=match):
-            from_csd(freq, np.ones((2, 1, 1)), 10)
+            from_csd(freq, np.ones((2, 1, 1)), nbins=10)
 
     @pytest.mark.parametrize(
         "csd, match",
@@ -1292,14 +1292,14 @@ class Test_from_csd:
     )
     def test_raises_csd(self, csd, match):
         with pytest.raises(ValueError, match=match):
-            from_csd([0.0, 1.0, 2.0], csd, 10)
+            from_csd([0.0, 1.0, 2.0], csd, nbins=10)
 
     @pytest.mark.parametrize("nbins", [0, -1, 1.5])
     def test_raises_nbins(self, freq, psd, nbins):
         with pytest.raises(ValueError, match="positive integer"):
-            from_csd(freq, psd.reshape(-1, 1, 1), nbins)
+            from_csd(freq, psd.reshape(-1, 1, 1), nbins=nbins)
 
     @pytest.mark.parametrize("jitter", [-0.1, 1.1, np.nan])
     def test_raises_jitter(self, freq, psd, jitter):
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
-            from_csd(freq, psd.reshape(-1, 1, 1), 10, jitter=jitter)
+            from_csd(freq, psd.reshape(-1, 1, 1), nbins=10, jitter=jitter)
