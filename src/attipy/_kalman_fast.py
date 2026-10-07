@@ -31,6 +31,7 @@ def _kalman_update_scalar_fast(
         Temporary workspace array.
     """
     n = h.shape[0]
+    Ph = tmp  # workspace for P @ h
 
     # Innovation (pre-fit residual) covariance
     s = r
@@ -38,7 +39,7 @@ def _kalman_update_scalar_fast(
         Ph_i = 0.0
         for j in range(n):
             Ph_i += P[i, j] * h[j]
-        tmp[i] = Ph_i
+        Ph[i] = Ph_i
         s += h[i] * Ph_i
 
     s_inv = 1.0 / s
@@ -49,14 +50,13 @@ def _kalman_update_scalar_fast(
         y -= h[i] * x[i]
     ky = s_inv * y
     for i in range(n):
-        x[i] += tmp[i] * ky
+        x[i] += Ph[i] * ky
 
-    # Updated (a posteriori) covariance estimate (Joseph form, upper triangle + mirror)
+    # Updated (a posteriori) covariance estimate, P - k @ Ph.T (upper triangle + mirror)
     for i in range(n):
-        k_i = tmp[i] * s_inv
+        k_i = Ph[i] * s_inv
         for j in range(i, n):
-            k_j = tmp[j] * s_inv
-            p = P[i, j] - k_i * tmp[j] - tmp[i] * k_j + s * k_i * k_j
+            p = P[i, j] - k_i * Ph[j]
             P[i, j] = p
             P[j, i] = p
 
@@ -117,19 +117,20 @@ def _project_cov_ahead_fast(
         Temporary workspace matrix.
     """
     n = P.shape[0]
+    phiP = tmp  # workspace for phi @ P
 
     for i in range(n):
         for j in range(n):
             s = 0.0
             for k in range(n):
                 s += phi[i, k] * P[k, j]
-            tmp[i, j] = s
+            phiP[i, j] = s
 
     # upper triangle + mirror
     for i in range(n):
         for j in range(i, n):
             p = Q[i, j]
             for k in range(n):
-                p += tmp[i, k] * phi[j, k]
+                p += phiP[i, k] * phi[j, k]
             P[i, j] = p
             P[j, i] = p
