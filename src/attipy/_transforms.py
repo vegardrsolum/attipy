@@ -348,7 +348,7 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q_nb : ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     Returns
@@ -359,12 +359,12 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     References
     ----------
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
+    2nd Edition, equation 14.250, John Wiley & Sons, 2021.
     """
     qw, qx, qy, qz = q_nb
-    uy = 2.0 * (qx * qy + qz * qw)
-    ux = 1.0 - 2.0 * (qy**2 + qz**2)
-    return np.arctan2(uy, ux)  # type: ignore[no-any-return]
+    r10 = 2.0 * (qx * qy + qz * qw)
+    r00 = 1.0 - 2.0 * (qy**2 + qz**2)
+    return np.arctan2(r10, r00)  # type: ignore[no-any-return]
 
 
 @njit
