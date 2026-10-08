@@ -431,37 +431,37 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit
 def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the scaled Gibbs vector.
+    Compute yaw angle gradient wrt a small attitude error, da, parameterized as a
+    scaled (2x) Gibbs vector.
 
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
+    The attitude error is defined in the body frame, such that:
+
+        q_nb = q_nb_hat ⊗ dq(da)
+
+    and the gradient is evaluated at da = 0. To first order, R_nb = R_nb_hat (I + S(da)),
+    and differentiating yaw = atan2(R10, R00) gives:
+
+        dyaw/da = [0, R21, R22] / (R00^2 + R10^2)
+                = [0, sin(roll), cos(roll)] / cos(pitch)
+
+    which is singular only at pitch = ±90 degrees (gimbal lock).
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
+    q_nb : numpy.ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
     numpy.ndarray, shape (3,)
         Yaw angle gradient vector.
-
-    References
-    ----------
-    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
     """
     qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    u = u_y / u_x
+    r00 = 1.0 - 2.0 * (qy**2 + qz**2)
+    r10 = 2.0 * (qx * qy + qz * qw)
+    r21 = 2.0 * (qy * qz + qx * qw)
+    r22 = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
-    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
-    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
-
-    dyawda = 1.0 / (1.0 + u**2) * duda
+    dyawda = np.array([0.0, r21, r22]) / (r00**2 + r10**2)
 
     return dyawda  # type: ignore[no-any-return]
