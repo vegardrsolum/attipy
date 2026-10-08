@@ -39,12 +39,12 @@ def _quatprod(qa: NDArray[np.float64], qb: NDArray[np.float64]) -> NDArray[np.fl
 
     Parameters
     ----------
-    qa, qb : numpy.ndarray, shape (4,)
+    qa, qb : ndarray, shape (4,)
         Unit quaternions (qw, qx, qy, qz).
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion product.
 
     References
@@ -70,7 +70,7 @@ def _normalize_quat(q: NDArray[np.float64]) -> None:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Quaternion to be normalized (in place).
     """
     norm_inv = 1.0 / np.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)

@@ -58,12 +58,12 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    rot : numpy.ndarray, shape (3, 3)
+    rot : ndarray, shape (3, 3)
         Rotation matrix.
 
     References
@@ -111,12 +111,12 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -144,7 +144,7 @@ def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (3,)
+    theta : ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -153,7 +153,7 @@ def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    numpy.ndarray, shape (3, 3)
+    ndarray, shape (3, 3)
         Rotation matrix.
     """
     # TODO: add reference
@@ -192,7 +192,7 @@ def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (n, 3)
+    theta : ndarray, shape (n, 3)
         Vectors of Euler angles in radians (ZYX convention), given as rows. Each row
         contains the following three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -201,7 +201,7 @@ def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float
 
     Returns
     -------
-    numpy.ndarray, shape (n, 3, 3)
+    ndarray, shape (n, 3, 3)
         Rotation matrices.
     """
     roll, pitch, yaw = theta.T
@@ -236,7 +236,7 @@ def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (3,)
+    theta : ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -245,7 +245,7 @@ def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion.
 
     References
@@ -277,12 +277,12 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    r : numpy.ndarray, shape (3,)
+    r : ndarray, shape (3,)
         Rotation vector (rx, ry, rz).
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
     """
     # TODO: add reference
@@ -313,12 +313,12 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         Rotation vector (thetax, thetay, thetaz).
     """
     # TODO: add reference
@@ -380,12 +380,12 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    g2 : numpy.ndarray, shape (3,)
+    g2 : ndarray, shape (3,)
         2 x Gibbs vector (g2x, g2y, g2z).
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     References
@@ -412,12 +412,12 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q_nb : numpy.ndarray, shape (4,)
+    q_nb : ndarray, shape (4,)
         Unit quaternion which transforms a vector from frame {b} to frame {n}.
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         The z-axis (unit vector) of frame {n} expressed in frame {b}.
     """
 

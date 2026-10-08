@@ -98,7 +98,7 @@ class Attitude:
 
     Parameters
     ----------
-    q : ArrayLike
+    q : array_like
         The 4-element unit quaternion (qw, qx, qy, qz), where qw is the scalar
         part and (qx, qy, qz) is the vector part.
     """
@@ -132,7 +132,7 @@ class Attitude:
 
         Parameters
         ----------
-        dcm : ArrayLike
+        dcm : array_like
             Rotation matrix (direction cosine matrix), R. Element of SO(3).
 
         Returns
@@ -165,7 +165,7 @@ class Attitude:
 
         Parameters
         ----------
-        theta : ArrayLike
+        theta : array_like
             Euler angles (roll, pitch, yaw) (see Notes).
         degrees : bool, optional
             Specifies whether the Euler angles are given in degrees or radians (default).
@@ -224,7 +224,7 @@ class Attitude:
 
         Parameters
         ----------
-        r : ArrayLike
+        r : array_like
             Rotation vector (rx, ry, rz).
         degrees : bool, optional
             Specifies whether the rotation vector is given in degrees or radians (default).
