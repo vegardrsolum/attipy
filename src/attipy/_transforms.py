@@ -439,9 +439,9 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
         q_nb = q_nb_hat ⊗ dq(da)
 
     and the gradient is evaluated at da = 0. To first order, R_nb = R_nb_hat (I + S(da)),
-    and differentiating yaw = atan2(R10, R00) gives:
+    and differentiating yaw = atan2(R10, R00) gives (see ref [1]_):
 
-        dyaw/da = [0, R21, R22] / (R00^2 + R10^2)
+        dyaw/da = [0, R21, R22] / (R21^2 + R22^2)
                 = [0, sin(roll), cos(roll)] / cos(pitch)
 
     which is singular only at pitch = ±90 degrees (gimbal lock).
@@ -455,13 +455,16 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     numpy.ndarray, shape (3,)
         Yaw angle gradient vector.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., MSS (Marine Systems Simulator) toolbox, quatMEKF.m,
+    https://github.com/cybergalactic/MSS/blob/108ceda48c5f97cc1cfb27a631610940d5307a8f/INS/functions/quatMEKF.m#L113
     """
     qw, qx, qy, qz = q_nb
-    r00 = 1.0 - 2.0 * (qy**2 + qz**2)
-    r10 = 2.0 * (qx * qy + qz * qw)
     r21 = 2.0 * (qy * qz + qx * qw)
     r22 = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    dyawda = np.array([0.0, r21, r22]) / (r00**2 + r10**2)
+    dyawda = np.array([0.0, r21, r22]) / (r21**2 + r22**2)
 
     return dyawda  # type: ignore[no-any-return]
