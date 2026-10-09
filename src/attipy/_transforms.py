@@ -431,14 +431,22 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit
 def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt a small attitude error, da, parameterized as
-    a scaled (2x) Gibbs vector.
+    Compute the yaw angle gradient with respect to a small attitude error, da,
+    parameterized as a scaled Gibbs vector (2 x Gibbs vector).
 
     The attitude error is defined in the body frame, such that:
 
         q_nb = q_nb_hat ⊗ dq(da)
 
     and the gradient is evaluated at da = 0.
+
+    Corresponds to the third row of the Euler angle rate transformation matrix
+    in ref [1]_, since da is (to first order) a small rotation vector in the
+    body frame:
+
+        dyaw/da = [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)]
+
+    which is undefined for pitch = ±90 degrees (gimbal lock).
 
     Parameters
     ----------
@@ -449,8 +457,14 @@ def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     -------
     ndarray, shape (3,)
         Yaw angle gradient vector.
+
+    References
+    ----------
+    .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
+    2nd Edition, equation 2.41, John Wiley & Sons, 2021.
     """
-    # TODO: add reference when the 3rd edition of Fossen's book is available
+    # TODO: add reference to the specific equation in the 3rd edition of Fossen's
+    # book when it is available
     # https://github.com/cybergalactic/MSS/blob/108ceda48c5f97cc1cfb27a631610940d5307a8f/INS/functions/quatMEKF.m#L113
 
     qw, qx, qy, qz = q_nb
