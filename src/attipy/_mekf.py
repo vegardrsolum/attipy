@@ -165,6 +165,7 @@ def _aiding_update_yaw(
     """
     Update state and covariance with heading (yaw angle) aiding measurement.
     """
+    # TODO: handle gimbal lock (pitch near ±90 degrees)
     dz = _signed_smallest_angle(yaw - _yaw_from_quat(q_nb))
     dhdx[0:3] = _dyawda(q_nb)
 
