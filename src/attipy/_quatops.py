@@ -110,8 +110,8 @@ def _correct_quat_with_gibbs2(q: NDArray[np.float64], da: NDArray[np.float64]) -
 
     References
     ----------
-    Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude Determination
-    and Control, Eq. (6.27)-(6.28).
+    .. [1] Markley & Crassidis (2014), Fundamentals of Spacecraft Attitude
+    Determination and Control, Eq. (6.27)-(6.28).
     """
 
     qw, qx, qy, qz = q
