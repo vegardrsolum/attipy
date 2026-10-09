@@ -116,7 +116,7 @@ def _nz2vg(nav_frame: str) -> float:
 @njit
 def _signed_smallest_angle(angle: float) -> float:
     """
-    Convert the given angle to the smallest signed angle between [-pi., pi) radians.
+    Convert the given angle to the smallest signed angle between [-pi, pi) radians.
 
     Parameters
     ----------

@@ -80,7 +80,7 @@ def _process_noise_cov(
     """
     Set up the process noise covariance matrix, Q, using the first-order approximation:
 
-        Q = dt @ dfdw @ W @ dfdw.T
+        Q = dt * dfdw @ W @ dfdw.T
 
     Parameters
     ----------
