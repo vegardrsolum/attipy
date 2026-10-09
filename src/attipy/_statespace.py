@@ -87,7 +87,7 @@ def _process_noise_cov(
     dt : float
         Time step in seconds.
     arw : float
-        Angular random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in (rad/s)/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
@@ -149,7 +149,7 @@ def _process_noise_psd(arw: float, gbs: float, gbc: float) -> NDArray[np.float64
     Parameters
     ----------
     arw : float
-        Angular random walk (gyroscope noise density) in rad/√Hz.
+        Angular random walk (gyroscope noise density) in (rad/s)/√Hz.
     gbs : float
         Gyro bias stability (bias instability) in rad/s.
     gbc : float
