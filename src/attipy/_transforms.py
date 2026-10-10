@@ -58,12 +58,12 @@ def _matrix_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion.
 
     Returns
     -------
-    rot : numpy.ndarray, shape (3, 3)
+    rot : ndarray, shape (3, 3)
         Rotation matrix.
 
     References
@@ -111,12 +111,12 @@ def _euler_zyx_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion (representing transformation from-body-to-origin).
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -144,7 +144,7 @@ def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (3,)
+    theta : ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -153,7 +153,7 @@ def _matrix_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    numpy.ndarray, shape (3, 3)
+    ndarray, shape (3, 3)
         Rotation matrix.
     """
     # TODO: add reference
@@ -192,7 +192,7 @@ def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (n, 3)
+    theta : ndarray, shape (n, 3)
         Vectors of Euler angles in radians (ZYX convention), given as rows. Each row
         contains the following three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -201,7 +201,7 @@ def _matrix_from_euler_zyx_batch(theta: NDArray[np.float64]) -> NDArray[np.float
 
     Returns
     -------
-    numpy.ndarray, shape (n, 3, 3)
+    ndarray, shape (n, 3, 3)
         Rotation matrices.
     """
     roll, pitch, yaw = theta.T
@@ -236,7 +236,7 @@ def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    theta : numpy.ndarray, shape (3,)
+    theta : ndarray, shape (3,)
         Vector of Euler angles in radians (ZYX convention). Contains the following
         three Euler angles in order:
             - Roll (roll): Rotation about the x-axis.
@@ -245,7 +245,7 @@ def _quat_from_euler_zyx(theta: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion.
 
     References
@@ -277,12 +277,12 @@ def _quat_from_rotvec(r: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    r : numpy.ndarray, shape (3,)
+    r : ndarray, shape (3,)
         Rotation vector (rx, ry, rz).
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
     """
     # TODO: add reference
@@ -313,12 +313,12 @@ def _rotvec_from_quat(q: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q : ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         Rotation vector (thetax, thetay, thetaz).
     """
     # TODO: add reference
@@ -348,7 +348,7 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
+    q_nb : ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     Returns
@@ -359,12 +359,12 @@ def _yaw_from_quat(q_nb: NDArray[np.float64]) -> float:
     References
     ----------
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.251, John Wiley & Sons, 2021.
+    2nd Edition, equation 14.250, John Wiley & Sons, 2021.
     """
     qw, qx, qy, qz = q_nb
-    uy = 2.0 * (qx * qy + qz * qw)
-    ux = 1.0 - 2.0 * (qy**2 + qz**2)
-    return np.arctan2(uy, ux)  # type: ignore[no-any-return]
+    r10 = 2.0 * (qx * qy + qz * qw)
+    r00 = 1.0 - 2.0 * (qy**2 + qz**2)
+    return np.arctan2(r10, r00)  # type: ignore[no-any-return]
 
 
 @njit
@@ -380,12 +380,12 @@ def _quat_from_gibbs2(g2: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    g2 : numpy.ndarray, shape (3,)
+    g2 : ndarray, shape (3,)
         2 x Gibbs vector (g2x, g2y, g2z).
 
     Returns
     -------
-    numpy.ndarray, shape (4,)
+    ndarray, shape (4,)
         Unit quaternion (qw, qx, qy, qz).
 
     References
@@ -412,12 +412,12 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 
     Parameters
     ----------
-    q_nb : numpy.ndarray, shape (4,)
+    q_nb : ndarray, shape (4,)
         Unit quaternion which transforms a vector from frame {b} to frame {n}.
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         The z-axis (unit vector) of frame {n} expressed in frame {b}.
     """
 
@@ -431,37 +431,46 @@ def _nz_b_from_quat(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
 @njit
 def _dyawda(q_nb: NDArray[np.float64]) -> NDArray[np.float64]:
     """
-    Compute yaw angle gradient wrt to the scaled Gibbs vector.
+    Compute the yaw angle gradient with respect to a small attitude error, da,
+    parameterized as a scaled Gibbs vector (2 x Gibbs vector).
 
-    Defined in terms of scaled Gibbs vector in ref [1]_, but implemented in terms of
-    unit quaternion here to avoid singularities.
+    The attitude error is defined in the body frame, such that:
+
+        q_nb = q_nb_hat ⊗ dq(da)
+
+    and the gradient is evaluated at da = 0.
+
+    Corresponds to the third row of the Euler angle rate transformation matrix
+    in ref [1]_, since da is (to first order) a small rotation vector in the
+    body frame:
+
+        dyaw/da = [0, sin(roll) / cos(pitch), cos(roll) / cos(pitch)]
+
+    which is undefined for pitch = ±90 degrees (gimbal lock).
 
     Parameters
     ----------
-    q : numpy.ndarray, shape (4,)
-        Unit quaternion.
+    q_nb : ndarray, shape (4,)
+        Unit quaternion (qw, qx, qy, qz).
 
     Returns
     -------
-    numpy.ndarray, shape (3,)
+    ndarray, shape (3,)
         Yaw angle gradient vector.
 
     References
     ----------
     .. [1] Fossen, T.I., "Handbook of Marine Craft Hydrodynamics and Motion Control",
-    2nd Edition, equation 14.254, John Wiley & Sons, 2021.
+    2nd Edition, equation 2.41, John Wiley & Sons, 2021.
     """
+    # TODO: add reference to the specific equation in the 3rd edition of Fossen's
+    # book when it is available
+    # https://github.com/cybergalactic/MSS/blob/108ceda48c5f97cc1cfb27a631610940d5307a8f/INS/functions/quatMEKF.m#L113
+
     qw, qx, qy, qz = q_nb
-    u_y = 2.0 * (qx * qy + qz * qw)
-    u_x = 1.0 - 2.0 * (qy**2 + qz**2)
-    u = u_y / u_x
+    r21 = 2.0 * (qy * qz + qx * qw)
+    r22 = 1.0 - 2.0 * (qx**2 + qy**2)
 
-    duda_scale = 1.0 / u_x**2
-    duda_x = -(qw * qy) * (1.0 - 2.0 * qw**2) - (2.0 * qw**2 * qx * qz)
-    duda_y = (qw * qx) * (1.0 - 2.0 * qz**2) + (2.0 * qw**2 * qy * qz)
-    duda_z = qw**2 * (1.0 - 2.0 * qy**2) + (2.0 * qw * qx * qy * qz)
-    duda = duda_scale * np.array([duda_x, duda_y, duda_z])
-
-    dyawda = 1.0 / (1.0 + u**2) * duda
+    dyawda = np.array([0.0, r21, r22]) / (r21**2 + r22**2)
 
     return dyawda  # type: ignore[no-any-return]

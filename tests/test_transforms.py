@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from attipy._quatops import _quatprod
 from attipy._transforms import (
     _dyawda,
     _euler_zyx_from_quat,
@@ -105,27 +106,19 @@ def test_quat_from_gibbs2(att):
 @pytest.mark.parametrize("att", _ATTITUDES)
 def test_dyawda(att):
     q = np.array(att["quaternion"])
-    a = np.array(att["gibbs2"])
-
-    # Skip cases where yaw is close to ±180 degrees, and the gradient is ill-defined
-    yaw = att["euler_rad"][2]
-    if abs(abs(yaw) - np.pi) < 0.01:
-        return
 
     result = _dyawda(q)
 
-    def yaw_from_gibbs2(a):
-        ax, ay, az = a
-        return np.arctan2(2.0 * (ax * ay + 2.0 * az), 4.0 + ax**2 - ay**2 - az**2)
-
-    # Numerical gradient via centred finite differences on the scaled Gibbs vector
+    # Numerical gradient via centred finite differences on a small attitude error,
+    # da (scaled Gibbs vector), applied in the body frame: q_nb = q ⊗ dq(da)
     eps = 1e-6
     numerical = np.empty(3)
     for i in range(3):
-        a_fwd = a.copy()
-        a_bwd = a.copy()
-        a_fwd[i] += eps
-        a_bwd[i] -= eps
-        numerical[i] = (yaw_from_gibbs2(a_fwd) - yaw_from_gibbs2(a_bwd)) / (2.0 * eps)
+        da = np.zeros(3)
+        da[i] = eps
+        yaw_fwd = _yaw_from_quat(_quatprod(q, _quat_from_gibbs2(da)))
+        yaw_bwd = _yaw_from_quat(_quatprod(q, _quat_from_gibbs2(-da)))
+        dyaw = (yaw_fwd - yaw_bwd + np.pi) % (2.0 * np.pi) - np.pi
+        numerical[i] = dyaw / (2.0 * eps)
 
     np.testing.assert_allclose(result, numerical, atol=1e-8)
