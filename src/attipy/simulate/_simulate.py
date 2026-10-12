@@ -151,8 +151,8 @@ def _z_down_to_z_up(motion: Motion) -> Motion:
 
 
 def _specific_force_body(
-    acc: NDArray[np.float64],
-    euler: NDArray[np.float64],
+    a_n: NDArray[np.float64],
+    euler_nb: NDArray[np.float64],
     g_n: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
@@ -160,9 +160,9 @@ def _specific_force_body(
 
     Parameters
     ----------
-    acc : ndarray, shape (n, 3)
+    a_n : ndarray, shape (n, 3)
         Acceleration (ax, ay, az) in meters per second squared.
-    euler : ndarray, shape (n, 3)
+    euler_nb : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
     g_n : ndarray, shape (3,)
         Gravity vector expressed in the navigation frame.
@@ -172,23 +172,23 @@ def _specific_force_body(
     ndarray, shape (n, 3)
         Specific force in meters per second squared, expressed in the body frame.
     """
-    R_nb = _matrix_from_euler_zyx_batch(euler)
-    f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, acc - g_n)
+    R_nb = _matrix_from_euler_zyx_batch(euler_nb)
+    f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, a_n - g_n)
 
     return f_b
 
 
 def _angular_velocity_body(
-    euler: NDArray[np.float64], euler_dot: NDArray[np.float64]
+    euler_nb: NDArray[np.float64], euler_nb_dot: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
     Angular velocity in the body frame.
 
     Parameters
     ----------
-    euler : ndarray, shape (n, 3)
+    euler_nb : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
-    euler_dot : ndarray, shape (n, 3)
+    euler_nb_dot : ndarray, shape (n, 3)
         Time derivatives of Euler angles (roll_dot, pitch_dot, yaw_dot)
         in radians per second.
 
@@ -197,8 +197,8 @@ def _angular_velocity_body(
     ndarray, shape (n, 3)
         Angular velocity in radians per second, expressed in the body frame.
     """
-    roll, pitch, _ = euler.T
-    roll_dot, pitch_dot, yaw_dot = euler_dot.T
+    roll, pitch, _ = euler_nb.T
+    roll_dot, pitch_dot, yaw_dot = euler_nb_dot.T
 
     w_x = roll_dot - np.sin(pitch) * yaw_dot
     w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
@@ -228,27 +228,27 @@ def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
 
     Returns
     -------
-    pos : ndarray, shape (n, 3)
+    p_n : ndarray, shape (n, 3)
         Position timeseries in m.
-    vel : ndarray, shape (n, 3)
+    v_n : ndarray, shape (n, 3)
         Velocity timeseries in m/s.
-    acc : ndarray, shape (n, 3)
+    a_n : ndarray, shape (n, 3)
         Acceleration timeseries in m/s^2.
-    euler : ndarray, shape (n, 3)
+    euler_nb : ndarray, shape (n, 3)
         Euler angle (roll, pitch, yaw) timeseries in radians.
-    euler_dot : ndarray, shape (n, 3)
+    euler_nb_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
     """
     pos_sig = [dof(t) for dof in (motion.x, motion.y, motion.z)]
     att_sig = [dof(t) for dof in (motion.roll, motion.pitch, motion.yaw)]
 
-    pos = np.column_stack([y for y, _, _ in pos_sig])
-    vel = np.column_stack([dydt for _, dydt, _ in pos_sig])
-    acc = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
-    euler = np.column_stack([y for y, _, _ in att_sig])
-    euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
+    p_n = np.column_stack([y for y, _, _ in pos_sig])
+    v_n = np.column_stack([dydt for _, dydt, _ in pos_sig])
+    a_n = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
+    euler_nb = np.column_stack([y for y, _, _ in att_sig])
+    euler_nb_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
 
-    return pos, vel, acc, euler, euler_dot
+    return p_n, v_n, a_n, euler_nb, euler_nb_dot
 
 
 def trajectory(
@@ -334,10 +334,10 @@ def trajectory(
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
     # Kinematics
-    pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
+    p_n, v_n, a_n, euler_nb, euler_nb_dot = _sample_motion(motion, t)
 
     # IMU signals from kinematics
-    f_b = _specific_force_body(acc, euler, g_n)
-    w_b = _angular_velocity_body(euler, euler_dot)
+    f_b = _specific_force_body(a_n, euler_nb, g_n)
+    w_b = _angular_velocity_body(euler_nb, euler_nb_dot)
 
-    return t, pos, vel, euler, f_b, w_b
+    return t, p_n, v_n, euler_nb, f_b, w_b
