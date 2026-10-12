@@ -274,10 +274,9 @@ def trajectory(
     Parameters
     ----------
     fs : float, optional
-        Sampling frequency in Hz. Must be positive. Defaults to 10.0 Hz.
+        Sampling frequency in Hz. Defaults to 10.0 Hz.
     n : int, optional
-        Number of samples to generate. Must be a positive whole number.
-        Defaults to 10 000.
+        Number of samples to generate. Defaults to 10_000.
     g : float, optional
         The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
         of 9.80665 m/s^2.
