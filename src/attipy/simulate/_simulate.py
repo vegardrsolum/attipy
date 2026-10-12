@@ -4,7 +4,7 @@ from importlib import resources
 import numpy as np
 from numpy.typing import NDArray
 
-from .._mekf import _gravity_nav
+from .._frames import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
 from ._dof import DOF, Beat, Constant, from_csd, multiply
 
