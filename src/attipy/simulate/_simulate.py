@@ -161,7 +161,8 @@ def _specific_force_body(
     Parameters
     ----------
     a_n : ndarray, shape (n, 3)
-        Acceleration (ax, ay, az) in meters per second squared.
+        Acceleration (ax, ay, az) in meters per second squared, expressed in the
+        navigation frame.
     euler_nb : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
     g_n : ndarray, shape (3,)
@@ -229,11 +230,11 @@ def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
     Returns
     -------
     p_n : ndarray, shape (n, 3)
-        Position timeseries in m.
+        Position timeseries in m, expressed in the navigation frame.
     v_n : ndarray, shape (n, 3)
-        Velocity timeseries in m/s.
+        Velocity timeseries in m/s, expressed in the navigation frame.
     a_n : ndarray, shape (n, 3)
-        Acceleration timeseries in m/s^2.
+        Acceleration timeseries in m/s^2, expressed in the navigation frame.
     euler_nb : ndarray, shape (n, 3)
         Euler angle (roll, pitch, yaw) timeseries in radians.
     euler_nb_dot : ndarray, shape (n, 3)
@@ -300,15 +301,15 @@ def trajectory(
     t : ndarray, shape (n,)
         Time in seconds.
     p_n : ndarray, shape (n, 3)
-        Position timeseries in m.
+        Position timeseries in m, expressed in the navigation frame.
     v_n : ndarray, shape (n, 3)
-        Velocity timeseries in m/s.
+        Velocity timeseries in m/s, expressed in the navigation frame.
     euler_nb : ndarray, shape (n, 3)
         Euler angle timeseries in radians.
     f_b : ndarray, shape (n, 3)
-        Specific force timeseries in m/s^2.
+        Specific force timeseries in m/s^2, expressed in the body frame.
     w_b : ndarray, shape (n, 3)
-        Angular rate timeseries in rad/s.
+        Angular rate timeseries in rad/s, expressed in the body frame.
     """
 
     if fs <= 0.0:
