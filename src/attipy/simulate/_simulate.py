@@ -251,39 +251,6 @@ def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
     return pos, vel, acc, euler, euler_dot
 
 
-def _imu_from_kinematics(
-    acc: NDArray[np.float64],
-    euler: NDArray[np.float64],
-    euler_dot: NDArray[np.float64],
-    g_n: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Noise-free IMU measurements corresponding to given rigid body kinematics.
-
-    Parameters
-    ----------
-    acc : ndarray, shape (n, 3)
-        Acceleration timeseries in m/s^2, expressed in the navigation frame.
-    euler : ndarray, shape (n, 3)
-        Euler angle (roll, pitch, yaw) timeseries in radians.
-    euler_dot : ndarray, shape (n, 3)
-        Euler angle rate timeseries in radians per second.
-    g_n : ndarray, shape (3,)
-        Gravity vector in the navigation frame, in m/s^2.
-
-    Returns
-    -------
-    f_b : ndarray, shape (n, 3)
-        Specific force timeseries in m/s^2, expressed in the body frame.
-    w_b : ndarray, shape (n, 3)
-        Angular rate timeseries in rad/s, expressed in the body frame.
-    """
-    f_b = _specific_force_body(acc, euler, g_n)
-    w_b = _angular_velocity_body(euler, euler_dot)
-
-    return f_b, w_b
-
-
 def trajectory(
     fs: float = 10.0,
     n: int = 10_000,
@@ -366,8 +333,11 @@ def trajectory(
     dt = 1.0 / fs
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
-    # PVA and IMU signals
+    # Kinematics
     pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
-    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g_n)
+
+    # IMU signals from kinematics
+    f_b = _specific_force_body(acc, euler, g_n)
+    w_b = _angular_velocity_body(euler, euler_dot)
 
     return t, pos, vel, euler, f_b, w_b

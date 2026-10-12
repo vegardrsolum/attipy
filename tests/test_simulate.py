@@ -9,7 +9,6 @@ from attipy.simulate._simulate import (
     _PACKAGE_PATH,
     Motion,
     _angular_velocity_body,
-    _imu_from_kinematics,
     _load_csd,
     _sample_motion,
     _specific_force_body,
@@ -232,26 +231,6 @@ class Test_sample_motion:
         np.testing.assert_allclose(acc, np.tile([100.0, 200.0, 300.0], (4, 1)))
         np.testing.assert_allclose(euler, np.tile([4.0, 5.0, 6.0], (4, 1)))
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
-
-
-class Test_imu_from_kinematics:
-    @pytest.fixture
-    def kinematics(self):
-        rng = np.random.default_rng(0)
-        acc = rng.standard_normal((20, 3))
-        euler = 0.3 * rng.standard_normal((20, 3))
-        euler_dot = 0.1 * rng.standard_normal((20, 3))
-        return acc, euler, euler_dot
-
-    def test_matches_underlying_conversions(self, kinematics):
-        acc, euler, euler_dot = kinematics
-
-        g_n = np.array([0.0, 0.0, -9.81])
-
-        f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g_n)
-
-        np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
-        np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
 
 
 class Test_trajectory:
