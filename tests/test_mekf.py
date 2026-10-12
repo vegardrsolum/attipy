@@ -4,6 +4,7 @@ from pytest import fixture
 from scipy.signal import resample_poly
 
 import attipy as ap
+from attipy._frames import _gravity_nav
 from attipy._mekf import _roll_pitch_from_acc
 from attipy._transforms import _quat_from_euler_zyx
 
@@ -11,7 +12,7 @@ from attipy._transforms import _quat_from_euler_zyx
 @pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
 def test_roll_pitch_from_acc(nav_frame):
     att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random attitude
-    g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
+    g_n = _gravity_nav(9.81, nav_frame=nav_frame)
     f_b = -att.as_matrix().T @ g_n
     roll_pitch = _roll_pitch_from_acc(f_b, nav_frame=nav_frame)
     np.testing.assert_allclose(roll_pitch, att.as_euler(degrees=False)[:2])
@@ -98,7 +99,7 @@ class Test_MEKF:
     def test_level(self, nav_frame):
         att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random
         mekf = ap.MEKF(10.0, nav_frame=nav_frame)
-        g_n = ap._mekf._gravity_nav(9.81, nav_frame=nav_frame)
+        g_n = _gravity_nav(9.81, nav_frame=nav_frame)
         f_b = -att.as_matrix().T @ g_n
         mekf.level(f_b)
         np.testing.assert_allclose(mekf.euler()[:2], att.as_euler(degrees=False)[:2])
