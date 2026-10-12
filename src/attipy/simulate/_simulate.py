@@ -255,8 +255,7 @@ def _imu_from_kinematics(
     acc: NDArray[np.float64],
     euler: NDArray[np.float64],
     euler_dot: NDArray[np.float64],
-    g: float,
-    nav_frame: str,
+    g_n: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Noise-free IMU measurements corresponding to given rigid body kinematics.
@@ -269,11 +268,8 @@ def _imu_from_kinematics(
         Euler angle (roll, pitch, yaw) timeseries in radians.
     euler_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
-    g : float
-        The gravitational acceleration in m/s^2.
-    nav_frame : {'NED', 'ENU'}
-        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
-        (East-North-Up).
+    g_n : ndarray, shape (3,)
+        Gravity vector in the navigation frame, in m/s^2.
 
     Returns
     -------
@@ -282,8 +278,6 @@ def _imu_from_kinematics(
     w_b : ndarray, shape (n, 3)
         Angular rate timeseries in rad/s, expressed in the body frame.
     """
-    g_n = _gravity_nav(g, nav_frame.lower())
-
     f_b = _specific_force_body(acc, euler, g_n)
     w_b = _angular_velocity_body(euler, euler_dot)
 
@@ -356,8 +350,8 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
-    if not isinstance(nav_frame, str) or nav_frame.lower() not in ("ned", "enu"):
-        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+
+    g_n = _gravity_nav(g, nav_frame)
 
     if not isinstance(motion, Motion):
         try:
@@ -374,6 +368,6 @@ def trajectory(
 
     # PVA and IMU signals
     pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
-    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
+    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g_n)
 
     return t, pos, vel, euler, f_b, w_b

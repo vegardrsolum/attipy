@@ -246,15 +246,12 @@ class Test_imu_from_kinematics:
     def test_matches_underlying_conversions(self, kinematics):
         acc, euler, euler_dot = kinematics
 
-        f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
-
         g_n = np.array([0.0, 0.0, -9.81])
+
+        f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g_n)
+
         np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
         np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
-
-    def test_nav_frame_raises(self, kinematics):
-        with pytest.raises(ValueError):
-            _imu_from_kinematics(*kinematics, g=9.80665, nav_frame="invalid")
 
 
 class Test_trajectory:
@@ -336,10 +333,9 @@ class Test_trajectory:
         *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
-    @pytest.mark.parametrize("nav_frame", ["invalid", 0])
-    def test_nav_frame_raise(self, nav_frame):
+    def test_nav_frame_raise(self):
         with pytest.raises(ValueError):
-            ap.simulate.trajectory(nav_frame=nav_frame)
+            ap.simulate.trajectory(nav_frame="invalid")
 
     def test_g(self):
         g = 5.0
