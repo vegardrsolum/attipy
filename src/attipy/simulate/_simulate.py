@@ -4,7 +4,7 @@ from importlib import resources
 import numpy as np
 from numpy.typing import NDArray
 
-from .._mekf import _gravity_nav
+from .._frames import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
 from ._dof import DOF, Beat, Constant, from_csd, multiply
 
@@ -151,8 +151,8 @@ def _z_down_to_z_up(motion: Motion) -> Motion:
 
 
 def _specific_force_body(
-    acc: NDArray[np.float64],
-    euler: NDArray[np.float64],
+    a_n: NDArray[np.float64],
+    euler_nb: NDArray[np.float64],
     g_n: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """
@@ -160,9 +160,10 @@ def _specific_force_body(
 
     Parameters
     ----------
-    acc : ndarray, shape (n, 3)
-        Acceleration (ax, ay, az) in meters per second squared.
-    euler : ndarray, shape (n, 3)
+    a_n : ndarray, shape (n, 3)
+        Acceleration (ax, ay, az) in meters per second squared, expressed in the
+        navigation frame.
+    euler_nb : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
     g_n : ndarray, shape (3,)
         Gravity vector expressed in the navigation frame.
@@ -172,23 +173,23 @@ def _specific_force_body(
     ndarray, shape (n, 3)
         Specific force in meters per second squared, expressed in the body frame.
     """
-    R_nb = _matrix_from_euler_zyx_batch(euler)
-    f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, acc - g_n)
+    R_nb = _matrix_from_euler_zyx_batch(euler_nb)
+    f_b: NDArray[np.float64] = np.einsum("nji,nj->ni", R_nb, a_n - g_n)
 
     return f_b
 
 
 def _angular_velocity_body(
-    euler: NDArray[np.float64], euler_dot: NDArray[np.float64]
+    euler_nb: NDArray[np.float64], euler_nb_dot: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     """
     Angular velocity in the body frame.
 
     Parameters
     ----------
-    euler : ndarray, shape (n, 3)
+    euler_nb : ndarray, shape (n, 3)
         Euler angles (roll, pitch, yaw) in radians.
-    euler_dot : ndarray, shape (n, 3)
+    euler_nb_dot : ndarray, shape (n, 3)
         Time derivatives of Euler angles (roll_dot, pitch_dot, yaw_dot)
         in radians per second.
 
@@ -197,8 +198,8 @@ def _angular_velocity_body(
     ndarray, shape (n, 3)
         Angular velocity in radians per second, expressed in the body frame.
     """
-    roll, pitch, _ = euler.T
-    roll_dot, pitch_dot, yaw_dot = euler_dot.T
+    roll, pitch, _ = euler_nb.T
+    roll_dot, pitch_dot, yaw_dot = euler_nb_dot.T
 
     w_x = roll_dot - np.sin(pitch) * yaw_dot
     w_y = np.cos(roll) * pitch_dot + np.sin(roll) * np.cos(pitch) * yaw_dot
@@ -228,66 +229,27 @@ def _sample_motion(motion: Motion, t: NDArray[np.float64]) -> tuple[
 
     Returns
     -------
-    pos : ndarray, shape (n, 3)
-        Position timeseries in m.
-    vel : ndarray, shape (n, 3)
-        Velocity timeseries in m/s.
-    acc : ndarray, shape (n, 3)
-        Acceleration timeseries in m/s^2.
-    euler : ndarray, shape (n, 3)
+    p_n : ndarray, shape (n, 3)
+        Position timeseries in m, expressed in the navigation frame.
+    v_n : ndarray, shape (n, 3)
+        Velocity timeseries in m/s, expressed in the navigation frame.
+    a_n : ndarray, shape (n, 3)
+        Acceleration timeseries in m/s^2, expressed in the navigation frame.
+    euler_nb : ndarray, shape (n, 3)
         Euler angle (roll, pitch, yaw) timeseries in radians.
-    euler_dot : ndarray, shape (n, 3)
+    euler_nb_dot : ndarray, shape (n, 3)
         Euler angle rate timeseries in radians per second.
     """
     pos_sig = [dof(t) for dof in (motion.x, motion.y, motion.z)]
     att_sig = [dof(t) for dof in (motion.roll, motion.pitch, motion.yaw)]
 
-    pos = np.column_stack([y for y, _, _ in pos_sig])
-    vel = np.column_stack([dydt for _, dydt, _ in pos_sig])
-    acc = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
-    euler = np.column_stack([y for y, _, _ in att_sig])
-    euler_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
+    p_n = np.column_stack([y for y, _, _ in pos_sig])
+    v_n = np.column_stack([dydt for _, dydt, _ in pos_sig])
+    a_n = np.column_stack([d2ydt2 for _, _, d2ydt2 in pos_sig])
+    euler_nb = np.column_stack([y for y, _, _ in att_sig])
+    euler_nb_dot = np.column_stack([dydt for _, dydt, _ in att_sig])
 
-    return pos, vel, acc, euler, euler_dot
-
-
-def _imu_from_kinematics(
-    acc: NDArray[np.float64],
-    euler: NDArray[np.float64],
-    euler_dot: NDArray[np.float64],
-    g: float,
-    nav_frame: str,
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Noise-free IMU measurements corresponding to given rigid body kinematics.
-
-    Parameters
-    ----------
-    acc : ndarray, shape (n, 3)
-        Acceleration timeseries in m/s^2, expressed in the navigation frame.
-    euler : ndarray, shape (n, 3)
-        Euler angle (roll, pitch, yaw) timeseries in radians.
-    euler_dot : ndarray, shape (n, 3)
-        Euler angle rate timeseries in radians per second.
-    g : float
-        The gravitational acceleration in m/s^2.
-    nav_frame : {'NED', 'ENU'}
-        Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
-        (East-North-Up).
-
-    Returns
-    -------
-    f_b : ndarray, shape (n, 3)
-        Specific force timeseries in m/s^2, expressed in the body frame.
-    w_b : ndarray, shape (n, 3)
-        Angular rate timeseries in rad/s, expressed in the body frame.
-    """
-    g_n = _gravity_nav(g, nav_frame.lower())
-
-    f_b = _specific_force_body(acc, euler, g_n)
-    w_b = _angular_velocity_body(euler, euler_dot)
-
-    return f_b, w_b
+    return p_n, v_n, a_n, euler_nb, euler_nb_dot
 
 
 def trajectory(
@@ -312,10 +274,9 @@ def trajectory(
     Parameters
     ----------
     fs : float, optional
-        Sampling frequency in Hz. Must be positive. Defaults to 10.0 Hz.
+        Sampling frequency in Hz. Defaults to 10.0 Hz.
     n : int, optional
-        Number of samples to generate. Must be a positive whole number.
-        Defaults to 10 000.
+        Number of samples to generate. Defaults to 10_000.
     g : float, optional
         The gravitational acceleration in m/s^2. Defaults to the 'standard gravity'
         of 9.80665 m/s^2.
@@ -323,8 +284,8 @@ def trajectory(
         Specifies the navigation frame. Either 'NED' (North-East-Down) or 'ENU'
         (East-North-Up). Defaults to 'NED'.
     motion : str or Motion, optional
-        Specifies the type of motion to generate. Either a string specifying one
-        of the predefined types of motion:
+        Specifies the type of motion to generate. Either a custom ``Motion``
+        instance, or a string specifying one of the predefined types of motion:
 
         - 'stationary': No motion; all degrees of freedom remain constant at the origin.
         - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
@@ -332,22 +293,22 @@ def trajectory(
         - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
         - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
 
-        or a custom ``Motion`` instance. Defaults to 'beat-6dof'.
+        Defaults to 'beat-6dof'.
 
     Returns
     -------
     t : ndarray, shape (n,)
         Time in seconds.
     p_n : ndarray, shape (n, 3)
-        Position timeseries in m.
+        Position timeseries in m, expressed in the navigation frame.
     v_n : ndarray, shape (n, 3)
-        Velocity timeseries in m/s.
+        Velocity timeseries in m/s, expressed in the navigation frame.
     euler_nb : ndarray, shape (n, 3)
         Euler angle timeseries in radians.
     f_b : ndarray, shape (n, 3)
-        Specific force timeseries in m/s^2.
+        Specific force timeseries in m/s^2, expressed in the body frame.
     w_b : ndarray, shape (n, 3)
-        Angular rate timeseries in rad/s.
+        Angular rate timeseries in rad/s, expressed in the body frame.
     """
 
     if fs <= 0.0:
@@ -356,8 +317,8 @@ def trajectory(
         raise ValueError("'n' must be a whole number of samples.")
     if n <= 0:
         raise ValueError("'n' must be positive.")
-    if not isinstance(nav_frame, str) or nav_frame.lower() not in ("ned", "enu"):
-        raise ValueError(f"Unknown navigation frame: {nav_frame}.")
+
+    g_n = _gravity_nav(g, nav_frame)
 
     if not isinstance(motion, Motion):
         try:
@@ -372,8 +333,11 @@ def trajectory(
     dt = 1.0 / fs
     t: NDArray[np.float64] = dt * np.arange(n, dtype=np.float64)
 
-    # PVA and IMU signals
-    pos, vel, acc, euler, euler_dot = _sample_motion(motion, t)
-    f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g, nav_frame)
+    # Kinematics
+    p_n, v_n, a_n, euler_nb, euler_nb_dot = _sample_motion(motion, t)
 
-    return t, pos, vel, euler, f_b, w_b
+    # IMU signals from kinematics
+    f_b = _specific_force_body(a_n, euler_nb, g_n)
+    w_b = _angular_velocity_body(euler_nb, euler_nb_dot)
+
+    return t, p_n, v_n, euler_nb, f_b, w_b

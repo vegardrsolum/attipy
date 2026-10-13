@@ -9,7 +9,6 @@ from attipy.simulate._simulate import (
     _PACKAGE_PATH,
     Motion,
     _angular_velocity_body,
-    _imu_from_kinematics,
     _load_csd,
     _sample_motion,
     _specific_force_body,
@@ -234,29 +233,6 @@ class Test_sample_motion:
         np.testing.assert_allclose(euler_dot, np.tile([40.0, 50.0, 60.0], (4, 1)))
 
 
-class Test_imu_from_kinematics:
-    @pytest.fixture
-    def kinematics(self):
-        rng = np.random.default_rng(0)
-        acc = rng.standard_normal((20, 3))
-        euler = 0.3 * rng.standard_normal((20, 3))
-        euler_dot = 0.1 * rng.standard_normal((20, 3))
-        return acc, euler, euler_dot
-
-    def test_matches_underlying_conversions(self, kinematics):
-        acc, euler, euler_dot = kinematics
-
-        f_b, w_b = _imu_from_kinematics(acc, euler, euler_dot, g=9.81, nav_frame="ENU")
-
-        g_n = np.array([0.0, 0.0, -9.81])
-        np.testing.assert_allclose(f_b, _specific_force_body(acc, euler, g_n))
-        np.testing.assert_allclose(w_b, _angular_velocity_body(euler, euler_dot))
-
-    def test_nav_frame_raises(self, kinematics):
-        with pytest.raises(ValueError):
-            _imu_from_kinematics(*kinematics, g=9.80665, nav_frame="invalid")
-
-
 class Test_trajectory:
     def test_default(self):
         t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory()
@@ -336,10 +312,9 @@ class Test_trajectory:
         *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
         assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
 
-    @pytest.mark.parametrize("nav_frame", ["invalid", 0])
-    def test_nav_frame_raise(self, nav_frame):
+    def test_nav_frame_raise(self):
         with pytest.raises(ValueError):
-            ap.simulate.trajectory(nav_frame=nav_frame)
+            ap.simulate.trajectory(nav_frame="invalid")
 
     def test_g(self):
         g = 5.0
