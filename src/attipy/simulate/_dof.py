@@ -679,10 +679,7 @@ def _sum_of_cosines(
     freqs: NDArray[np.float64],
 ) -> DOF:
     """
-    Build a DOF signal as a sum of cosinusoids given by phasors:
-
-        Re(sum_k phasors[k] * exp(1j * 2 * pi * freqs[k] * t))
-        = sum_k |phasors[k]| * cos(2 * pi * freqs[k] * t + angle(phasors[k]))
+    Build a DOF signal as a sum of cosines.
 
     Parameters
     ----------
