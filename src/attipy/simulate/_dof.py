@@ -542,7 +542,7 @@ def from_psd(
     psd : array_like, shape (m,)
         One-sided power spectral density in y**2 / Hz. Must be non-negative.
     nbins : int
-        Number of frequency bins, and thereby cosine components. Must be
+        Number of frequency bins, and thereby sinusoidal components. Must be
         positive.
     jitter : float, optional
         Random offset of each component frequency from its bin center, as a
@@ -613,8 +613,8 @@ def from_csd(
     nbins : int
         Number of bins to divide the frequency range into. The auto- and cross-
         spectra of the output DOF signals will match ``csd`` at a resolution of
-        one bin width. Each bin is split into n sub-bins with one cosine each,
-        so each output signal is a sum of ``nbins * n`` cosines.
+        one bin width. Each bin is split into n sub-bins with one sinusoid each,
+        so each output signal is a sum of ``nbins * n`` sinusoids.
     jitter : float, optional
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
