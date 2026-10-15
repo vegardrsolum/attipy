@@ -643,6 +643,8 @@ def from_csd(
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
         raise ValueError("'csd' must have shape (m, n, n), where m is the size of 'f'.")
+    if csd.shape[1] == 0:
+        raise ValueError("'csd' must describe at least one signal, i.e., n >= 1.")
     tol = 1e-10 * np.abs(csd).max()
     if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
         raise ValueError("'csd' must be Hermitian.")
@@ -663,8 +665,14 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # Phasor, Z_k[i, j], of the cosine of source j in signal i
+    # Hermitian square root, S_k, of the CSD integrated over bin k. Unlike the
+    # Cholesky factor used by Deodatis (1996), it handles singular matrices (e.g.,
+    # fully coherent signals), and spreads every signal over all sub-bins, where
+    # a lower-triangular factor gives signal i energy only in sub-bins j <= i.
     s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
+
+    # Phasor, Z_k[i, j], of the cosine of source j in signal i.
+    # A cosine with amplitude a has variance a**2 / 2, hence the factor sqrt(2).
     z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
     # Signal i is the sum of cosines over sub-bins j and frequency bins k

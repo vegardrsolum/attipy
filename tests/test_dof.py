@@ -1354,6 +1354,7 @@ class Test_from_csd:
             (np.ones((3, 2)), "must have shape"),  # not 3D
             (np.ones((2, 2, 2)), "must have shape"),  # wrong number of frequencies
             (np.ones((3, 2, 3)), "must have shape"),  # not square
+            (np.ones((3, 0, 0)), "at least one signal"),  # empty
             (np.tile([[1.0, 1.0j], [1.0j, 1.0]], (3, 1, 1)), "Hermitian"),
             (np.tile([[1.0, 2.0], [2.0, 1.0]], (3, 1, 1)), "positive semidefinite"),
             (np.full((3, 1, 1), np.nan), "infs or NaNs"),
