@@ -676,9 +676,8 @@ def from_csd(
     z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
     # Signal i is the sum of cosines over sub-bins j and frequency bins k
-    freq_kj_flat = freq_kj.ravel()
     return tuple(
-        _sum_of_cosines(z_kij[:, i, :].ravel(), freq_kj_flat) for i in range(n)
+        _sum_of_cosines(z_kij[:, i, :].ravel(), freq_kj.ravel()) for i in range(n)
     )
 
 
