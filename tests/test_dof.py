@@ -6,10 +6,10 @@ from attipy.simulate._dof import (
     DOF,
     Beat,
     Constant,
-    Cosine,
     Sine,
     SmootherStep,
     _as_dof,
+    _Cosine,
     _Product,
     _Sum,
     add,
@@ -215,14 +215,14 @@ class Test_Constant:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_Cosine:
+class Test__Cosine:
     @pytest.fixture
     def cosine(self):
-        dof = Cosine(amp=2.0, omega=3.0, phase=0.5)
+        dof = _Cosine(amp=2.0, omega=3.0, phase=0.5)
         return dof
 
     def test__init__(self):
-        cosine = Cosine(
+        cosine = _Cosine(
             amp=3.0,
             omega=2.0,
             phase=4.0,
@@ -234,7 +234,7 @@ class Test_Cosine:
         assert cosine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        cosine = Cosine()
+        cosine = _Cosine()
 
         assert isinstance(cosine, DOF)
         assert cosine._amp == 1.0
@@ -946,7 +946,6 @@ class Test_public_api:
         assert dof.DOF is DOF
         assert dof.Beat is Beat
         assert dof.Constant is Constant
-        assert dof.Cosine is Cosine
         assert dof.Sine is Sine
         assert dof.SmootherStep is SmootherStep
         assert dof.add is add
@@ -958,7 +957,6 @@ class Test_public_api:
             "DOF",
             "Beat",
             "Constant",
-            "Cosine",
             "Sine",
             "SmootherStep",
             "add",
@@ -1002,7 +1000,7 @@ class Test_from_psd:
         amp_expect = np.sqrt(2.0 * np.array([0.25, 0.75, 0.75, 0.25]))
 
         assert isinstance(dof, _Sum)
-        assert all(isinstance(s, Cosine) for s in dof._dofs)
+        assert all(isinstance(s, _Cosine) for s in dof._dofs)
         np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
         np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
         assert all(-np.pi < s._phase <= np.pi for s in dof._dofs)
@@ -1187,7 +1185,7 @@ class Test_from_csd:
         for dof in dofs:
             assert isinstance(dof, _Sum)
             assert len(dof._dofs) == 10
-            assert all(isinstance(s, Cosine) for s in dof._dofs)
+            assert all(isinstance(s, _Cosine) for s in dof._dofs)
 
     @pytest.mark.parametrize(
         "f, freq_expect",

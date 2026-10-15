@@ -202,7 +202,7 @@ class Constant(DOF):
         return y, dydt, d2ydt2
 
 
-class Cosine(DOF):
+class _Cosine(DOF):
     """
     Cosine DOF signal generator.
 
@@ -703,7 +703,7 @@ def _sum_of_cosines(
         Sum of the cosines, or a zero ``Constant`` if no components remain.
     """
     cosines = [
-        Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
+        _Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
         for amp, freq, phase in zip(np.abs(phasors), freqs, np.angle(phasors))
         if amp > 0.0
     ]
