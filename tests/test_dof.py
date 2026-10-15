@@ -1168,7 +1168,7 @@ class Test_from_csd:
     @staticmethod
     def realized_csd(dofs):
         # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where
-        # z_ik = amp_ik * exp(1j * phase_ik) is the complex amplitude of cosine
+        # z_ik = amp_ik * exp(1j * phase_ik) is the phasor of cosine
         # component k of signal i.
         # Zero-amplitude components are dropped, so components are matched
         # across signals by frequency.

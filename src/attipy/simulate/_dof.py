@@ -663,7 +663,7 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # Complex amplitude, Z_k[i, j], of the cosine of source j in signal i
+    # Phasor, Z_k[i, j], of the cosine of source j in signal i
     s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
     z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
@@ -675,19 +675,21 @@ def from_csd(
 
 
 def _sum_of_cosines(
-    amps: NDArray[np.complex128],
+    phasors: NDArray[np.complex128],
     freqs: NDArray[np.float64],
 ) -> DOF:
     """
-    Build a DOF signal as a sum of cosinusoids with complex amplitudes:
+    Build a DOF signal as a sum of cosinusoids given by phasors:
 
-        Re(sum_k amps[k] * exp(1j * 2 * pi * freqs[k] * t))
-        = sum_k |amps[k]| * cos(2 * pi * freqs[k] * t + angle(amps[k]))
+        Re(sum_k phasors[k] * exp(1j * 2 * pi * freqs[k] * t))
+        = sum_k |phasors[k]| * cos(2 * pi * freqs[k] * t + angle(phasors[k]))
 
     Parameters
     ----------
-    amps : ndarray, shape (k,)
-        Complex amplitudes. Components with zero amplitude are dropped.
+    phasors : ndarray, shape (k,)
+        Phasors, i.e., complex amplitudes whose modulus and argument are the
+        amplitude and phase of each cosine. Components with zero amplitude are
+        dropped.
     freqs : ndarray, shape (k,)
         Frequencies in Hz.
 
@@ -698,7 +700,7 @@ def _sum_of_cosines(
     """
     cosines = [
         Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
-        for amp, freq, phase in zip(np.abs(amps), freqs, np.angle(amps))
+        for amp, freq, phase in zip(np.abs(phasors), freqs, np.angle(phasors))
         if amp > 0.0
     ]
     if not cosines:
