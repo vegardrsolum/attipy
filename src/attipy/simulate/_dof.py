@@ -204,7 +204,7 @@ class Constant(DOF):
 
 class Cosine(DOF):
     """
-    Cosinus DOF signal generator.
+    Cosine DOF signal generator.
 
     Defined as:
 
@@ -213,12 +213,12 @@ class Cosine(DOF):
     Parameters
     ----------
     amp : float, optional
-        Amplitude of the cosinus signal. Defaults to 1.0.
+        Amplitude of the cosine signal. Defaults to 1.0.
     omega : float, optional
-        Angular frequency, w, of the cosinus signal, y(t), in rad/s. Defaults
+        Angular frequency, w, of the cosine signal, y(t), in rad/s. Defaults
         to 1.0 rad/s.
     phase : float, optional
-        Phase offset of the cosinus signal in radians. Defaults to 0.0 radians.
+        Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
     """
 
     def __init__(
