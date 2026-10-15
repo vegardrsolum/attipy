@@ -202,6 +202,51 @@ class Constant(DOF):
         return y, dydt, d2ydt2
 
 
+class Cosine(DOF):
+    """
+    Cosinus DOF signal generator.
+
+    Defined as:
+
+        y = amp * cos(w * t + phase)
+
+    Parameters
+    ----------
+    amp : float, optional
+        Amplitude of the cosinus signal. Defaults to 1.0.
+    omega : float, optional
+        Angular frequency, w, of the cosinus signal, y(t), in rad/s. Defaults
+        to 1.0 rad/s.
+    phase : float, optional
+        Phase offset of the cosinus signal in radians. Defaults to 0.0 radians.
+    """
+
+    def __init__(
+        self,
+        *,
+        amp: float = 1.0,
+        omega: float = 1.0,
+        phase: float = 0.0,
+    ) -> None:
+        self._amp = amp
+        self._w = omega
+        self._phase = phase
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        amp = self._amp
+        w = self._w
+
+        arg = w * t + self._phase
+
+        y = amp * np.cos(arg)
+        dydt = -amp * w * np.sin(arg)
+        d2ydt2 = -(w**2) * y
+
+        return y, dydt, d2ydt2
+
+
 class Sine(DOF):
     """
     Sinusoidal DOF signal generator.
@@ -497,7 +542,7 @@ def from_psd(
     psd : array_like, shape (m,)
         One-sided power spectral density in y**2 / Hz. Must be non-negative.
     nbins : int
-        Number of frequency bins, and thereby sinusoidal components. Must be
+        Number of frequency bins, and thereby cosine components. Must be
         positive.
     jitter : float, optional
         Random offset of each component frequency from its bin center, as a
@@ -540,7 +585,7 @@ def from_psd(
     area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
-    return _sum_of_sines(amp_k, freq_k, phase_k)
+    return _sum_of_cosines(amp_k, freq_k, phase_k)
 
 
 def from_csd(
@@ -568,8 +613,8 @@ def from_csd(
     nbins : int
         Number of bins to divide the frequency range into. The auto- and cross-
         spectra of the output DOF signals will match ``csd`` at a resolution of
-        one bin width. Each bin is split into n sub-bins with one sinusoid each,
-        so each output signal is a sum of ``nbins * n`` sinusoids.
+        one bin width. Each bin is split into n sub-bins with one cosine each,
+        so each output signal is a sum of ``nbins * n`` cosines.
     jitter : float, optional
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
@@ -618,31 +663,31 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # S_k[i, j] weights the sinusoid of source j in signal i
+    # S_k[i, j] weights the cosine of source j in signal i
     s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
     amp_kij = np.sqrt(2.0) * np.abs(s_kij)
     phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
 
-    # Signal i is the sum of sinusoids over sub-bins j and frequency bins k
+    # Signal i is the sum of cosines over sub-bins j and frequency bins k
     dofs = []
     freq_kj_flat = freq_kj.ravel()
     for i in range(n):
         amp_kj_flat = amp_kij[:, i, :].ravel()
         phase_kj_flat = phase_kij[:, i, :].ravel()
-        dofs.append(_sum_of_sines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
+        dofs.append(_sum_of_cosines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
 
     return tuple(dofs)
 
 
-def _sum_of_sines(
+def _sum_of_cosines(
     amps: NDArray[np.float64],
     freqs: NDArray[np.float64],
     phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Build a DOF signal as a sum of sinusoids:
+    Build a DOF signal as a sum of cosinusoids:
 
-        sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])
+        sum_k amps[k] * cos(2 * pi * freqs[k] * t + phases[k])
 
     Parameters
     ----------
@@ -656,16 +701,16 @@ def _sum_of_sines(
     Returns
     -------
     DOF
-        Sum of the sinusoids, or a zero ``Constant`` if no components remain.
+        Sum of the cosines, or a zero ``Constant`` if no components remain.
     """
-    sines = [
-        Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
+    cosines = [
+        Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
         for amp, freq, phase in zip(amps, freqs, phases)
         if amp > 0.0
     ]
-    if not sines:
+    if not cosines:
         return Constant(0.0)
-    return _Sum(*sines)
+    return _Sum(*cosines)
 
 
 def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:

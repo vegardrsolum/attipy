@@ -6,6 +6,7 @@ from attipy.simulate._dof import (
     DOF,
     Beat,
     Constant,
+    Cosine,
     Sine,
     SmootherStep,
     _as_dof,
@@ -212,6 +213,71 @@ class Test_Constant:
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+
+class Test_Cosine:
+    @pytest.fixture
+    def cosine(self):
+        dof = Cosine(amp=2.0, omega=3.0, phase=0.5)
+        return dof
+
+    def test__init__(self):
+        cosine = Cosine(
+            amp=3.0,
+            omega=2.0,
+            phase=4.0,
+        )
+
+        assert isinstance(cosine, DOF)
+        assert cosine._amp == 3.0
+        assert cosine._w == pytest.approx(2.0)
+        assert cosine._phase == pytest.approx(4.0)
+
+    def test__init__default(self):
+        cosine = Cosine()
+
+        assert isinstance(cosine, DOF)
+        assert cosine._amp == 1.0
+        assert cosine._w == pytest.approx(1.0)
+        assert cosine._phase == pytest.approx(0.0)
+
+    def test_y(self, cosine, t):
+        y = cosine.y(t)
+
+        y_expect = 2.0 * np.cos(3.0 * t + 0.5)
+
+        np.testing.assert_allclose(y, y_expect)
+
+    def test_dydt(self, cosine, t):
+        dydt = cosine.dydt(t)
+
+        dydt_expect = -2.0 * 3.0 * np.sin(3.0 * t + 0.5)
+
+        np.testing.assert_allclose(dydt, dydt_expect)
+
+    def test_d2ydt2(self, cosine, t):
+        d2ydt2 = cosine.d2ydt2(t)
+
+        d2ydt2_expect = -2.0 * 3.0**2 * np.cos(3.0 * t + 0.5)
+
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test__call__(self, cosine, t):
+        y, dydt, d2ydt2 = cosine(t)
+
+        y_expect = 2.0 * np.cos(3.0 * t + 0.5)
+        dydt_expect = -2.0 * 3.0 * np.sin(3.0 * t + 0.5)
+        d2ydt2_expect = -2.0 * 3.0**2 * np.cos(3.0 * t + 0.5)
+
+        np.testing.assert_allclose(y, y_expect)
+        np.testing.assert_allclose(dydt, dydt_expect)
+        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+
+    def test_equals_phase_shifted_sine(self, cosine, t):
+        sine = Sine(amp=2.0, omega=3.0, phase=0.5 + np.pi / 2.0)
+
+        for y, y_sine in zip(cosine(t), sine(t)):
+            np.testing.assert_allclose(y, y_sine, atol=1e-12)
 
 
 class Test_Sine:
@@ -880,6 +946,7 @@ class Test_public_api:
         assert dof.DOF is DOF
         assert dof.Beat is Beat
         assert dof.Constant is Constant
+        assert dof.Cosine is Cosine
         assert dof.Sine is Sine
         assert dof.SmootherStep is SmootherStep
         assert dof.add is add
@@ -891,6 +958,7 @@ class Test_public_api:
             "DOF",
             "Beat",
             "Constant",
+            "Cosine",
             "Sine",
             "SmootherStep",
             "add",
@@ -934,7 +1002,7 @@ class Test_from_psd:
         amp_expect = np.sqrt(2.0 * np.array([0.25, 0.75, 0.75, 0.25]))
 
         assert isinstance(dof, _Sum)
-        assert all(isinstance(s, Sine) for s in dof._dofs)
+        assert all(isinstance(s, Cosine) for s in dof._dofs)
         np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
         np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
         assert all(0.0 <= s._phase < 2.0 * np.pi for s in dof._dofs)
@@ -943,9 +1011,9 @@ class Test_from_psd:
         dof = from_psd([0.0, 2.0], [0.5, 0.5], nbins=1, seed=1)
 
         # Component at 1 Hz with variance equal to the area under the PSD
-        (sine,) = dof._dofs
-        assert sine._w == pytest.approx(2.0 * np.pi)
-        assert sine._amp == pytest.approx(np.sqrt(2.0))
+        (cosine,) = dof._dofs
+        assert cosine._w == pytest.approx(2.0 * np.pi)
+        assert cosine._amp == pytest.approx(np.sqrt(2.0))
 
     @pytest.mark.parametrize("nbins", [1, 7, 33])
     @pytest.mark.parametrize("jitter", [0.0, 1.0])
@@ -1100,7 +1168,8 @@ class Test_from_csd:
     @staticmethod
     def realized_csd(dofs):
         # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where
-        # z_ik = amp_ik * exp(1j * phase_ik) for component k of signal i.
+        # z_ik = amp_ik * exp(1j * phase_ik) is the complex amplitude of cosine
+        # component k of signal i.
         # Zero-amplitude components are dropped, so components are matched
         # across signals by frequency.
         omega = sorted({s._w for d in dofs for s in d._dofs})
@@ -1110,7 +1179,7 @@ class Test_from_csd:
                 z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
         return z.conj() @ z.T / 2.0
 
-    def test_returns_tuple_of_sums_of_sines(self, freq, psd):
+    def test_returns_tuple_of_sums_of_cosines(self, freq, psd):
         dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), nbins=5, seed=1)
 
         assert isinstance(dofs, tuple)
@@ -1118,7 +1187,7 @@ class Test_from_csd:
         for dof in dofs:
             assert isinstance(dof, _Sum)
             assert len(dof._dofs) == 10
-            assert all(isinstance(s, Sine) for s in dof._dofs)
+            assert all(isinstance(s, Cosine) for s in dof._dofs)
 
     @pytest.mark.parametrize(
         "f, freq_expect",
