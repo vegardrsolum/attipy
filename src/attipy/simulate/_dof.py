@@ -663,18 +663,18 @@ def from_csd(
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # S_k[i, j] weights the cosine of source j in signal i
+    # Complex amplitude, Z_k[i, j], of the cosine of source j in signal i
     s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
-    amp_kij = np.sqrt(2.0) * np.abs(s_kij)
-    phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
+    z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
     # Signal i is the sum of cosines over sub-bins j and frequency bins k
     dofs = []
     freq_kj_flat = freq_kj.ravel()
     for i in range(n):
-        amp_kj_flat = amp_kij[:, i, :].ravel()
-        phase_kj_flat = phase_kij[:, i, :].ravel()
-        dofs.append(_sum_of_cosines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
+        z_kj_flat = z_kij[:, i, :].ravel()
+        dofs.append(
+            _sum_of_cosines(np.abs(z_kj_flat), freq_kj_flat, np.angle(z_kj_flat))
+        )
 
     return tuple(dofs)
 
