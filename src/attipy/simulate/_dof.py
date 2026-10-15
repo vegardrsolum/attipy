@@ -585,7 +585,7 @@ def from_psd(
     area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
-    return _sum_of_cosines(amp_k, freq_k, phase_k)
+    return _sum_of_cosines(amp_k * np.exp(1j * phase_k), freq_k)
 
 
 def from_csd(
@@ -668,35 +668,28 @@ def from_csd(
     z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
     # Signal i is the sum of cosines over sub-bins j and frequency bins k
-    dofs = []
     freq_kj_flat = freq_kj.ravel()
-    for i in range(n):
-        z_kj_flat = z_kij[:, i, :].ravel()
-        dofs.append(
-            _sum_of_cosines(np.abs(z_kj_flat), freq_kj_flat, np.angle(z_kj_flat))
-        )
-
-    return tuple(dofs)
+    return tuple(
+        _sum_of_cosines(z_kij[:, i, :].ravel(), freq_kj_flat) for i in range(n)
+    )
 
 
 def _sum_of_cosines(
-    amps: NDArray[np.float64],
+    amps: NDArray[np.complex128],
     freqs: NDArray[np.float64],
-    phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Build a DOF signal as a sum of cosinusoids:
+    Build a DOF signal as a sum of cosinusoids with complex amplitudes:
 
-        sum_k amps[k] * cos(2 * pi * freqs[k] * t + phases[k])
+        Re(sum_k amps[k] * exp(1j * 2 * pi * freqs[k] * t))
+        = sum_k |amps[k]| * cos(2 * pi * freqs[k] * t + angle(amps[k]))
 
     Parameters
     ----------
     amps : ndarray, shape (k,)
-        Amplitudes. Components with zero amplitude are dropped.
+        Complex amplitudes. Components with zero amplitude are dropped.
     freqs : ndarray, shape (k,)
         Frequencies in Hz.
-    phases : ndarray, shape (k,)
-        Phases in radians.
 
     Returns
     -------
@@ -705,7 +698,7 @@ def _sum_of_cosines(
     """
     cosines = [
         Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
-        for amp, freq, phase in zip(amps, freqs, phases)
+        for amp, freq, phase in zip(np.abs(amps), freqs, np.angle(amps))
         if amp > 0.0
     ]
     if not cosines:

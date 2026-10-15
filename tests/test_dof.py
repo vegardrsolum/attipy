@@ -1005,7 +1005,7 @@ class Test_from_psd:
         assert all(isinstance(s, Cosine) for s in dof._dofs)
         np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
         np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
-        assert all(0.0 <= s._phase < 2.0 * np.pi for s in dof._dofs)
+        assert all(-np.pi < s._phase <= np.pi for s in dof._dofs)
 
     def test_single_component(self):
         dof = from_psd([0.0, 2.0], [0.5, 0.5], nbins=1, seed=1)
