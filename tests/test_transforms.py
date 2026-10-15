@@ -104,21 +104,29 @@ def test_quat_from_gibbs2(att):
 
 
 @pytest.mark.parametrize("att", _ATTITUDES)
-def test_dyawda(att):
+def test__yaw_gradient(att):
+    q = _quat_from_euler_zyx(np.array(att["euler_rad"]))
+    dyawda_out = _dyawda(q)
+
+    roll, pitch = att["euler_rad"][:2]
+    dyawda_expect = np.array([0.0, np.sin(roll), np.cos(roll)]) / np.cos(pitch)
+    np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-12)
+
+
+@pytest.mark.parametrize("att", _ATTITUDES)
+def test_dyawda_finite_difference(att):
     q = np.array(att["quaternion"])
 
-    result = _dyawda(q)
+    dyawda_out = _dyawda(q)
 
-    # Numerical gradient via centred finite differences on a small attitude error,
-    # da (scaled Gibbs vector), applied in the body frame: q_nb = q ⊗ dq(da)
     eps = 1e-6
-    numerical = np.empty(3)
+    dyawda_expect = np.empty(3)
     for i in range(3):
         da = np.zeros(3)
         da[i] = eps
         yaw_fwd = _yaw_from_quat(_quatprod(q, _quat_from_gibbs2(da)))
         yaw_bwd = _yaw_from_quat(_quatprod(q, _quat_from_gibbs2(-da)))
         dyaw = (yaw_fwd - yaw_bwd + np.pi) % (2.0 * np.pi) - np.pi
-        numerical[i] = dyaw / (2.0 * eps)
+        dyawda_expect[i] = dyaw / (2.0 * eps)
 
-    np.testing.assert_allclose(result, numerical, atol=1e-8)
+    np.testing.assert_allclose(dyawda_out, dyawda_expect, atol=1e-8)
