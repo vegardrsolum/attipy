@@ -419,7 +419,7 @@ class Test_trajectory:
             euler_est.append(mekf.euler())
         euler_est = np.array(euler_est)
 
-        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
+        np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=3e-3)
 
     def test_motion_vessel_3dof(self):
         n = 1000

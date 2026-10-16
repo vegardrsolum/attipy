@@ -202,6 +202,51 @@ class Constant(DOF):
         return y, dydt, d2ydt2
 
 
+class _Cosine(DOF):
+    """
+    Cosine DOF signal generator.
+
+    Defined as:
+
+        y = amp * cos(w * t + phase)
+
+    Parameters
+    ----------
+    amp : float, optional
+        Amplitude of the cosine signal. Defaults to 1.0.
+    omega : float, optional
+        Angular frequency, w, of the cosine signal, y(t), in rad/s. Defaults
+        to 1.0 rad/s.
+    phase : float, optional
+        Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
+    """
+
+    def __init__(
+        self,
+        *,
+        amp: float = 1.0,
+        omega: float = 1.0,
+        phase: float = 0.0,
+    ) -> None:
+        self._amp = amp
+        self._w = omega
+        self._phase = phase
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        amp = self._amp
+        w = self._w
+
+        arg = w * t + self._phase
+
+        y = amp * np.cos(arg)
+        dydt = -amp * w * np.sin(arg)
+        d2ydt2 = -(w**2) * y
+
+        return y, dydt, d2ydt2
+
+
 class Sine(DOF):
     """
     Sinusoidal DOF signal generator.
@@ -540,7 +585,7 @@ def from_psd(
     area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
-    return _sum_of_sines(amp_k, freq_k, phase_k)
+    return _sum_of_cosines(amp_k * np.exp(1j * phase_k), freq_k)
 
 
 def from_csd(
@@ -563,18 +608,20 @@ def from_csd(
         Frequencies in Hz, non-negative and strictly increasing, with m >= 2.
     csd : array_like, shape (m, n, n)
         One-sided cross-spectral density (CSD) matrix in y_i * y_j / Hz, where
-        ``csd[:, i, j]`` matches ``scipy.signal.csd(y_i, y_j)``. Must be
-        Hermitian and positive semidefinite at each frequency.
+        y_i is the output signal i. ``csd[:, i, j]`` is the CSD of y_i and y_j,
+        as returned by ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and
+        positive semidefinite at each frequency.
     nbins : int
-        Number of bins to divide the frequency range into. The auto- and cross-
-        spectra of the output DOF signals will match ``csd`` at a resolution of
-        one bin width. Each bin is split into n sub-bins with one sinusoid each,
-        so each output signal is a sum of ``nbins * n`` sinusoids.
+        Number of equal-width frequency bins between ``f[0]`` and ``f[-1]``.
+        Must be positive. The CSD of the output DOF signals matches ``csd`` at a
+        resolution of one bin width. Each bin is split into n sub-bins with one
+        sinusoid each, so each output signal is a sum of at most ``nbins * n``
+        sinusoids.
     jitter : float, optional
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
         anywhere within their sub-bins. Jitter breaks up periodicity. Defaults to
-        0.0.
+        0.0 (no jitter).
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
@@ -598,6 +645,8 @@ def from_csd(
         raise ValueError("'f' must be non-negative and strictly increasing.")
     if csd.ndim != 3 or csd.shape[0] != f.size or csd.shape[1] != csd.shape[2]:
         raise ValueError("'csd' must have shape (m, n, n), where m is the size of 'f'.")
+    if csd.shape[1] == 0:
+        raise ValueError("'csd' must describe at least one signal, i.e., n >= 1.")
     tol = 1e-10 * np.abs(csd).max()
     if not np.allclose(csd, csd.conj().swapaxes(1, 2), rtol=0.0, atol=tol):
         raise ValueError("'csd' must be Hermitian.")
@@ -611,61 +660,59 @@ def from_csd(
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
     theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
-    offset_kj = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
+    offset_kj = 0.5 + jitter * rng.uniform(-0.5, 0.5, (nbins, n))
 
     # Sub-bin j of bin k holds the component of source j
     sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
+    edges = sub_edges[::n]
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
-    # S_k[i, j] weights the sinusoid of source j in signal i
-    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
-    amp_kij = np.sqrt(2.0) * np.abs(s_kij)
-    phase_kij = theta_kj[:, np.newaxis, :] - np.angle(s_kij)
+    # Hermitian square root, S_k, of the CSD integrated over bin k. Unlike the
+    # Cholesky factor used by Deodatis (1996), it handles singular matrices (e.g.,
+    # fully coherent signals), and spreads every signal over all sub-bins, where
+    # a lower-triangular factor gives signal i energy only in sub-bins j <= i.
+    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, edges))
 
-    # Signal i is the sum of sinusoids over sub-bins j and frequency bins k
-    dofs = []
-    freq_kj_flat = freq_kj.ravel()
-    for i in range(n):
-        amp_kj_flat = amp_kij[:, i, :].ravel()
-        phase_kj_flat = phase_kij[:, i, :].ravel()
-        dofs.append(_sum_of_sines(amp_kj_flat, freq_kj_flat, phase_kj_flat))
+    # Phasor, Z_k[i, j], of the cosine of source j in signal i.
+    # A cosine with amplitude a has variance a**2 / 2, hence the factor sqrt(2).
+    z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
-    return tuple(dofs)
+    # Signal i is the sum of cosines over sub-bins j and frequency bins k
+    return tuple(
+        _sum_of_cosines(z_kij[:, i, :].ravel(), freq_kj.ravel()) for i in range(n)
+    )
 
 
-def _sum_of_sines(
-    amps: NDArray[np.float64],
+def _sum_of_cosines(
+    phasors: NDArray[np.complex128],
     freqs: NDArray[np.float64],
-    phases: NDArray[np.float64],
 ) -> DOF:
     """
-    Build a DOF signal as a sum of sinusoids:
-
-        sum_k amps[k] * sin(2 * pi * freqs[k] * t + phases[k])
+    Build a DOF signal as a sum of cosines.
 
     Parameters
     ----------
-    amps : ndarray, shape (k,)
-        Amplitudes. Components with zero amplitude are dropped.
+    phasors : ndarray, shape (k,)
+        Phasors, i.e., complex amplitudes whose modulus and argument are the
+        amplitude and phase of each cosine. Components with zero amplitude are
+        dropped.
     freqs : ndarray, shape (k,)
         Frequencies in Hz.
-    phases : ndarray, shape (k,)
-        Phases in radians.
 
     Returns
     -------
     DOF
-        Sum of the sinusoids, or a zero ``Constant`` if no components remain.
+        Sum of the cosines, or a zero ``Constant`` if no components remain.
     """
-    sines = [
-        Sine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
-        for amp, freq, phase in zip(amps, freqs, phases)
+    cosines = [
+        _Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
+        for amp, freq, phase in zip(np.abs(phasors), freqs, np.angle(phasors))
         if amp > 0.0
     ]
-    if not sines:
+    if not cosines:
         return Constant(0.0)
-    return _Sum(*sines)
+    return _Sum(*cosines)
 
 
 def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:
