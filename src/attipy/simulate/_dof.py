@@ -202,51 +202,6 @@ class Constant(DOF):
         return y, dydt, d2ydt2
 
 
-class _Cosine(DOF):
-    """
-    Cosine DOF signal generator.
-
-    Defined as:
-
-        y = amp * cos(w * t + phase)
-
-    Parameters
-    ----------
-    amp : float, optional
-        Amplitude of the cosine signal. Defaults to 1.0.
-    omega : float, optional
-        Angular frequency, w, of the cosine signal, y(t), in rad/s. Defaults
-        to 1.0 rad/s.
-    phase : float, optional
-        Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
-    """
-
-    def __init__(
-        self,
-        *,
-        amp: float = 1.0,
-        omega: float = 1.0,
-        phase: float = 0.0,
-    ) -> None:
-        self._amp = amp
-        self._w = omega
-        self._phase = phase
-
-    def _evaluate(
-        self, t: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
-        w = self._w
-
-        arg = w * t + self._phase
-
-        y = amp * np.cos(arg)
-        dydt = -amp * w * np.sin(arg)
-        d2ydt2 = -(w**2) * y
-
-        return y, dydt, d2ydt2
-
-
 class Sine(DOF):
     """
     Sinusoidal DOF signal generator.
@@ -439,6 +394,108 @@ class _Product(_Composite):
         return y, dydt, d2ydt2
 
 
+class _SumOfCosines(DOF):
+    """
+    Sum of cosines given by phasors.
+
+    Defined as:
+
+        y(t) = Re(sum_k z_k * exp(1j * w_k * t))
+             = sum_k |z_k| * cos(w_k * t + angle(z_k))
+
+    Evenly spaced time vectors are evaluated with a block method: writing
+    ``t[a * c + b] = t[0] + (a * c + b) * dt`` with block size ``c ~ sqrt(len(t))``,
+    each complex exponential factorizes into a block-start part (index a) and a
+    within-block part (index b). This needs only about ``2 * sqrt(len(t))``
+    complex exponentials per component, and turns the sum over components into
+    a matrix product. Other time vectors are evaluated directly.
+
+    Parameters
+    ----------
+    phasors : array_like, shape (k,)
+        Phasors, z_k, i.e., complex amplitudes whose modulus and argument are the
+        amplitude and phase of each cosine. Components with zero amplitude are
+        dropped.
+    omega : array_like, shape (k,)
+        Angular frequencies, w_k, in rad/s.
+    """
+
+    def __init__(self, phasors: ArrayLike, omega: ArrayLike) -> None:
+        phasors = np.asarray(phasors, dtype=np.complex128)
+        omega = np.asarray(omega, dtype=np.float64)
+        keep = phasors != 0.0
+        self._phasors = phasors[keep]
+        self._w = omega[keep]
+
+    def _evaluate(
+        self, t: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        # Phasors of y, dy/dt and d2y/dt2, shape (3, k)
+        z = self._phasors
+        w = self._w
+        q = np.stack([z, 1j * w * z, -(w**2) * z])
+
+        dt = _uniform_step(t)
+        if dt is None:
+            y = self._evaluate_direct(q, t)
+        else:
+            y = self._evaluate_blocks(q, t[0], dt, t.size)
+
+        return y[0], y[1], y[2]
+
+    def _evaluate_direct(
+        self, q: NDArray[np.complex128], t: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """
+        Real part of ``q @ exp(1j * outer(w, t))``, in chunks of t to limit memory.
+        """
+        y = np.empty((3, t.size))
+        chunk = max(1, 2**20 // max(self._w.size, 1))
+        for start in range(0, t.size, chunk):
+            stop = start + chunk
+            phase = np.outer(self._w, t[start:stop])
+            y[:, start:stop] = q.real @ np.cos(phase) - q.imag @ np.sin(phase)
+        return y
+
+    def _evaluate_blocks(
+        self, q: NDArray[np.complex128], t0: float, dt: float, n: int
+    ) -> NDArray[np.float64]:
+        """
+        Real part of ``q @ exp(1j * outer(w, t))``, for ``t = t0 + dt * arange(n)``.
+        """
+        w = self._w
+        c = int(np.ceil(np.sqrt(n)))  # block size
+        nblocks = -(-n // c)
+
+        # exp(1j * w * t[a * c + b]) = exp_a[a] * exp_b[b]
+        exp_a = np.exp(1j * np.outer(t0 + c * dt * np.arange(nblocks), w))
+        exp_b = np.exp(1j * np.outer(dt * np.arange(c), w))
+
+        # Real part of (q * exp_a[a]) @ exp_b.T for all blocks, a, as one matrix
+        # product, where row 3 * a + i of x holds q[i] * exp_a[a]
+        x = (q[np.newaxis, :, :] * exp_a[:, np.newaxis, :]).reshape(nblocks * 3, w.size)
+        y: NDArray[np.float64] = x.real @ exp_b.real.T - x.imag @ exp_b.imag.T
+
+        # Shape (nblocks * 3, c) to (3, n)
+        return y.reshape(nblocks, 3, c).transpose(1, 0, 2).reshape(3, -1)[:, :n]
+
+
+def _uniform_step(t: NDArray[np.float64]) -> float | None:
+    """
+    Step size of an evenly spaced time vector.
+
+    Returns None if ``t`` has fewer than two values, or deviates from an evenly
+    spaced grid by more than a few units of round-off.
+    """
+    if t.ndim != 1 or t.size < 2:
+        return None
+    dt = (t[-1] - t[0]) / (t.size - 1)
+    tol = 16.0 * np.finfo(np.float64).eps * max(abs(t[0]), abs(t[-1]))
+    if np.any(np.abs(t - (t[0] + dt * np.arange(t.size))) > tol):
+        return None
+    return float(dt)
+
+
 def add(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
     """
     Add two DOF signals together.
@@ -585,7 +642,7 @@ def from_psd(
     area_k = _bin_integrals(f, psd, edges)
     amp_k = np.sqrt(2.0 * area_k)
 
-    return _sum_of_cosines(amp_k * np.exp(1j * phase_k), freq_k)
+    return _SumOfCosines(amp_k * np.exp(1j * phase_k), 2.0 * np.pi * freq_k)
 
 
 def from_csd(
@@ -679,40 +736,10 @@ def from_csd(
     z_kij = np.sqrt(2.0) * s_kij.conj() * np.exp(1j * theta_kj[:, np.newaxis, :])
 
     # Signal i is the sum of cosines over sub-bins j and frequency bins k
+    omega_kj = 2.0 * np.pi * freq_kj
     return tuple(
-        _sum_of_cosines(z_kij[:, i, :].ravel(), freq_kj.ravel()) for i in range(n)
+        _SumOfCosines(z_kij[:, i, :].ravel(), omega_kj.ravel()) for i in range(n)
     )
-
-
-def _sum_of_cosines(
-    phasors: NDArray[np.complex128],
-    freqs: NDArray[np.float64],
-) -> DOF:
-    """
-    Build a DOF signal as a sum of cosines.
-
-    Parameters
-    ----------
-    phasors : ndarray, shape (k,)
-        Phasors, i.e., complex amplitudes whose modulus and argument are the
-        amplitude and phase of each cosine. Components with zero amplitude are
-        dropped.
-    freqs : ndarray, shape (k,)
-        Frequencies in Hz.
-
-    Returns
-    -------
-    DOF
-        Sum of the cosines, or a zero ``Constant`` if no components remain.
-    """
-    cosines = [
-        _Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
-        for amp, freq, phase in zip(np.abs(phasors), freqs, np.angle(phasors))
-        if amp > 0.0
-    ]
-    if not cosines:
-        return Constant(0.0)
-    return _Sum(*cosines)
 
 
 def _hermitian_sqrt(a: NDArray[np.complex128]) -> NDArray[np.complex128]:

@@ -9,9 +9,10 @@ from attipy.simulate._dof import (
     Sine,
     SmootherStep,
     _as_dof,
-    _Cosine,
     _Product,
     _Sum,
+    _SumOfCosines,
+    _uniform_step,
     add,
     from_csd,
     from_psd,
@@ -209,65 +210,6 @@ class Test_Constant:
         y_expect = 2.0 * np.ones_like(t)
         dydt_expect = np.zeros_like(t)
         d2ydt2_expect = np.zeros_like(t)
-
-        np.testing.assert_allclose(y, y_expect)
-        np.testing.assert_allclose(dydt, dydt_expect)
-        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
-
-
-class Test__Cosine:
-    @pytest.fixture
-    def cosine(self):
-        dof = _Cosine(amp=2.0, omega=3.0, phase=0.5)
-        return dof
-
-    def test__init__(self):
-        cosine = _Cosine(
-            amp=3.0,
-            omega=2.0,
-            phase=4.0,
-        )
-
-        assert isinstance(cosine, DOF)
-        assert cosine._amp == 3.0
-        assert cosine._w == pytest.approx(2.0)
-        assert cosine._phase == pytest.approx(4.0)
-
-    def test__init__default(self):
-        cosine = _Cosine()
-
-        assert isinstance(cosine, DOF)
-        assert cosine._amp == 1.0
-        assert cosine._w == pytest.approx(1.0)
-        assert cosine._phase == pytest.approx(0.0)
-
-    def test_y(self, cosine, t):
-        y = cosine.y(t)
-
-        y_expect = 2.0 * np.cos(3.0 * t + 0.5)
-
-        np.testing.assert_allclose(y, y_expect)
-
-    def test_dydt(self, cosine, t):
-        dydt = cosine.dydt(t)
-
-        dydt_expect = -2.0 * 3.0 * np.sin(3.0 * t + 0.5)
-
-        np.testing.assert_allclose(dydt, dydt_expect)
-
-    def test_d2ydt2(self, cosine, t):
-        d2ydt2 = cosine.d2ydt2(t)
-
-        d2ydt2_expect = -2.0 * 3.0**2 * np.cos(3.0 * t + 0.5)
-
-        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
-
-    def test__call__(self, cosine, t):
-        y, dydt, d2ydt2 = cosine(t)
-
-        y_expect = 2.0 * np.cos(3.0 * t + 0.5)
-        dydt_expect = -2.0 * 3.0 * np.sin(3.0 * t + 0.5)
-        d2ydt2_expect = -2.0 * 3.0**2 * np.cos(3.0 * t + 0.5)
 
         np.testing.assert_allclose(y, y_expect)
         np.testing.assert_allclose(dydt, dydt_expect)
@@ -792,6 +734,110 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2[1:-1], d2ydt2_fd, atol=1e-6)
 
 
+class Test__SumOfCosines:
+    @pytest.fixture
+    def phasors(self):
+        return np.array([2.0 * np.exp(0.5j), 0.5j, -1.0])
+
+    @pytest.fixture
+    def omega(self):
+        return np.array([3.0, 0.7, 1.9])
+
+    @pytest.fixture
+    def dof(self, phasors, omega):
+        return _SumOfCosines(phasors, omega)
+
+    @staticmethod
+    def expect(phasors, omega, t):
+        # Sum of |z_k| * cos(w_k * t + angle(z_k)) and its time derivatives
+        arg = np.outer(t, omega) + np.angle(phasors)
+        amp = np.abs(phasors)
+        y = np.cos(arg) @ amp
+        dydt = -np.sin(arg) @ (amp * omega)
+        d2ydt2 = -np.cos(arg) @ (amp * omega**2)
+        return y, dydt, d2ydt2
+
+    def test__init__(self, phasors, omega):
+        dof = _SumOfCosines(phasors, omega)
+
+        assert isinstance(dof, DOF)
+        np.testing.assert_allclose(dof._phasors, phasors)
+        np.testing.assert_allclose(dof._w, omega)
+
+    def test__init__drops_zero_phasors(self):
+        dof = _SumOfCosines([1.0, 0.0, 2.0j], [1.0, 2.0, 3.0])
+
+        np.testing.assert_allclose(dof._phasors, [1.0, 2.0j])
+        np.testing.assert_allclose(dof._w, [1.0, 3.0])
+
+    def test_single_cosine(self, t):
+        y, dydt, d2ydt2 = _SumOfCosines([2.0 * np.exp(0.5j)], [3.0])(t)
+
+        np.testing.assert_allclose(y, 2.0 * np.cos(3.0 * t + 0.5), atol=1e-12)
+        np.testing.assert_allclose(dydt, -6.0 * np.sin(3.0 * t + 0.5), atol=1e-12)
+        np.testing.assert_allclose(d2ydt2, -18.0 * np.cos(3.0 * t + 0.5), atol=1e-12)
+
+    @pytest.mark.parametrize(
+        "t",
+        [
+            np.linspace(0.0, 10.0, 100),  # evenly spaced
+            np.arange(10_001) * 0.01,  # last block partially filled
+            1e3 + np.arange(997) * 0.05,  # offset start, prime length
+            np.arange(500)[::-1] * 0.1,  # decreasing
+            np.full(10, 2.0),  # constant
+            np.array([0.0, 0.1]),  # two values
+            np.array([3.0]),  # single value
+            np.array([0.0, 0.1, 0.3, 0.35, 2.0]),  # unevenly spaced
+            np.cumsum(np.full(10_000, 0.1)),  # round-off drift; unevenly spaced
+        ],
+    )
+    def test__call__(self, dof, phasors, omega, t):
+        for result, expect in zip(dof(t), self.expect(phasors, omega, t)):
+            np.testing.assert_allclose(result, expect, rtol=0.0, atol=1e-9)
+
+    def test_y_dydt_d2ydt2(self, dof, phasors, omega, t):
+        y_expect, dydt_expect, d2ydt2_expect = self.expect(phasors, omega, t)
+
+        np.testing.assert_allclose(dof.y(t), y_expect, atol=1e-12)
+        np.testing.assert_allclose(dof.dydt(t), dydt_expect, atol=1e-12)
+        np.testing.assert_allclose(dof.d2ydt2(t), d2ydt2_expect, atol=1e-12)
+
+    def test_empty_time(self, dof):
+        for result in dof(np.array([])):
+            assert result.shape == (0,)
+
+    def test_no_components(self, t):
+        for result in _SumOfCosines([], [])(t):
+            np.testing.assert_allclose(result, np.zeros_like(t))
+
+
+class Test__uniform_step:
+    @pytest.mark.parametrize(
+        "t",
+        [
+            np.arange(1000) / 10.0,
+            np.linspace(-5.0, 5.0, 101),
+            1e5 + np.arange(100) * 0.01,
+            np.arange(10)[::-1] * 1.0,
+            np.array([0.0, 0.1]),
+        ],
+    )
+    def test_evenly_spaced(self, t):
+        assert _uniform_step(t) == pytest.approx(t[1] - t[0])
+
+    @pytest.mark.parametrize(
+        "t",
+        [
+            np.array([]),
+            np.array([1.0]),
+            np.array([0.0, 0.1, 0.3]),
+            np.cumsum(np.full(10_000, 0.1)),
+        ],
+    )
+    def test_not_evenly_spaced(self, t):
+        assert _uniform_step(t) is None
+
+
 class Test_add:
     @pytest.fixture
     def beat(self):
@@ -993,26 +1039,24 @@ class Test_from_psd:
         freq_expect = np.array([0.25, 0.75, 1.25, 1.75])
         amp_expect = np.sqrt(2.0 * np.array([0.25, 0.75, 0.75, 0.25]))
 
-        assert isinstance(dof, _Sum)
-        assert all(isinstance(s, _Cosine) for s in dof._dofs)
-        np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
-        np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
-        assert all(-np.pi < s._phase <= np.pi for s in dof._dofs)
+        assert isinstance(dof, _SumOfCosines)
+        np.testing.assert_allclose(dof._w, 2.0 * np.pi * freq_expect)
+        np.testing.assert_allclose(np.abs(dof._phasors), amp_expect)
+        assert np.all(np.abs(np.angle(dof._phasors)) <= np.pi)
 
     def test_single_component(self):
         dof = from_psd([0.0, 2.0], [0.5, 0.5], nbins=1, seed=1)
 
         # Component at 1 Hz with variance equal to the area under the PSD
-        (cosine,) = dof._dofs
-        assert cosine._w == pytest.approx(2.0 * np.pi)
-        assert cosine._amp == pytest.approx(np.sqrt(2.0))
+        np.testing.assert_allclose(dof._w, [2.0 * np.pi])
+        np.testing.assert_allclose(np.abs(dof._phasors), [np.sqrt(2.0)])
 
     @pytest.mark.parametrize("nbins", [1, 7, 33])
     @pytest.mark.parametrize("jitter", [0.0, 1.0])
     def test_variance_equals_psd_area(self, freq, psd, nbins, jitter):
         dof = from_psd(freq, psd, nbins=nbins, jitter=jitter, seed=1)
 
-        var = sum(s._amp**2 / 2.0 for s in dof._dofs)
+        var = np.sum(np.abs(dof._phasors) ** 2) / 2.0
         assert var == pytest.approx(np.trapezoid(psd, freq))
 
     def test_narrow_peak_between_bin_centers(self):
@@ -1024,8 +1068,8 @@ class Test_from_psd:
 
         # The peak is split equally between the two neighbouring bins, and the
         # empty bins are dropped
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        var_k = np.array([s._amp**2 / 2.0 for s in dof._dofs])
+        freq_k = dof._w / (2.0 * np.pi)
+        var_k = np.abs(dof._phasors) ** 2 / 2.0
         area = np.trapezoid(psd, freq)
         np.testing.assert_allclose(freq_k, [0.125, 0.375])
         np.testing.assert_allclose(var_k, [area / 2.0, area / 2.0])
@@ -1037,9 +1081,9 @@ class Test_from_psd:
 
         dof = from_psd(freq, psd, nbins=4, seed=1)
 
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
+        freq_k = dof._w / (2.0 * np.pi)
         np.testing.assert_allclose(freq_k, [0.75, 1.25])
-        assert all(s._amp > 0.0 for s in dof._dofs)
+        assert np.all(np.abs(dof._phasors) > 0.0)
 
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
@@ -1049,8 +1093,8 @@ class Test_from_psd:
         df = 0.25
         edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
-        freq_jitter = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        freq_ref = np.array([s._w for s in dof_ref._dofs]) / (2.0 * np.pi)
+        freq_jitter = dof._w / (2.0 * np.pi)
+        freq_ref = dof_ref._w / (2.0 * np.pi)
 
         # Frequencies are moved within their respective bins.
         assert not np.allclose(freq_jitter, freq_ref)
@@ -1059,25 +1103,21 @@ class Test_from_psd:
         assert np.all(freq_jitter <= edges[1:])
 
         # Amplitudes and phases are not affected by jitter
-        np.testing.assert_allclose(
-            [s._amp for s in dof._dofs], [s._amp for s in dof_ref._dofs]
-        )
-        np.testing.assert_allclose(
-            [s._phase for s in dof._dofs], [s._phase for s in dof_ref._dofs]
-        )
+        np.testing.assert_allclose(np.abs(dof._phasors), np.abs(dof_ref._phasors))
+        np.testing.assert_allclose(np.angle(dof._phasors), np.angle(dof_ref._phasors))
 
     def test_seed(self, freq, psd):
-        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
-        phase3 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=2)._dofs]
+        phase1 = np.angle(from_psd(freq, psd, nbins=20, seed=1)._phasors)
+        phase2 = np.angle(from_psd(freq, psd, nbins=20, seed=1)._phasors)
+        phase3 = np.angle(from_psd(freq, psd, nbins=20, seed=2)._phasors)
 
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
 
     def test_seed_generator(self, freq, psd):
         rng = np.random.default_rng(1)
-        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=rng)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
+        phase1 = np.angle(from_psd(freq, psd, nbins=20, seed=rng)._phasors)
+        phase2 = np.angle(from_psd(freq, psd, nbins=20, seed=1)._phasors)
 
         np.testing.assert_allclose(phase1, phase2)
 
@@ -1098,7 +1138,7 @@ class Test_from_psd:
         freq = np.array([0.0, 1.0, 2.0])
         psd = np.array([0.0, 0.0, 0.0])
         dof = from_psd(freq, psd, nbins=3)
-        assert isinstance(dof, Constant)
+        assert dof._phasors.size == 0
         t = np.linspace(0.0, 1.0, 100)
         y = dof.y(t)
         np.testing.assert_allclose(y, 0.0)
@@ -1159,16 +1199,14 @@ class Test_from_csd:
 
     @staticmethod
     def realized_csd(dofs):
-        # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where
-        # z_ik = amp_ik * exp(1j * phase_ik) is the phasor of cosine
-        # component k of signal i.
-        # Zero-amplitude components are dropped, so components are matched
-        # across signals by frequency.
-        omega = sorted({s._w for d in dofs for s in d._dofs})
-        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
+        # CSD integrated over frequency, sum_k conj(z_ik) * z_jk / 2, where z_ik
+        # is the phasor of cosine component k of signal i. Zero-amplitude
+        # components are dropped, so components are matched across signals by
+        # frequency.
+        omega = np.unique(np.concatenate([d._w for d in dofs]))
+        z = np.zeros((len(dofs), omega.size), dtype=np.complex128)
         for i, d in enumerate(dofs):
-            for s in d._dofs:
-                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
+            z[i, np.searchsorted(omega, d._w)] = d._phasors
         return z.conj() @ z.T / 2.0
 
     def test_returns_tuple_of_sums_of_cosines(self, freq, psd):
@@ -1177,9 +1215,8 @@ class Test_from_csd:
         assert isinstance(dofs, tuple)
         assert len(dofs) == 2
         for dof in dofs:
-            assert isinstance(dof, _Sum)
-            assert len(dof._dofs) == 10
-            assert all(isinstance(s, _Cosine) for s in dof._dofs)
+            assert isinstance(dof, _SumOfCosines)
+            assert dof._phasors.size == 10
 
     @pytest.mark.parametrize(
         "f, freq_expect",
@@ -1195,7 +1232,7 @@ class Test_from_csd:
         dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), nbins=2, seed=1)
 
         for dof, freq_expect_i in zip(dofs, freq_expect):
-            freq = [s._w / (2.0 * np.pi) for s in dof._dofs]
+            freq = dof._w / (2.0 * np.pi)
             np.testing.assert_allclose(freq, freq_expect_i)
 
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
@@ -1220,17 +1257,17 @@ class Test_from_csd:
         csd = np.array([0.0, 2.0, 0.0]).reshape(-1, 1, 1)
         (y,) = from_csd([0.0, 1.0, 2.0], csd, nbins=3, seed=1)
 
-        var = [s._amp**2 / 2.0 for s in y._dofs]
+        var = np.abs(y._phasors) ** 2 / 2.0
         np.testing.assert_allclose(var, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
 
     def test_fully_coherent(self, freq, psd):
         # y_1 is y_0 scaled by 2 and phase shifted by +90 degrees
         y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), nbins=5, seed=1)
 
-        amp0 = np.array([s._amp for s in y0._dofs])
-        amp1 = np.array([s._amp for s in y1._dofs])
-        phase0 = np.array([s._phase for s in y0._dofs])
-        phase1 = np.array([s._phase for s in y1._dofs])
+        amp0 = np.abs(y0._phasors)
+        amp1 = np.abs(y1._phasors)
+        phase0 = np.angle(y0._phasors)
+        phase1 = np.angle(y1._phasors)
 
         # Phases of components with negligible amplitude are meaningless
         active = amp0 > 1e-6 * amp0.max()
@@ -1245,7 +1282,7 @@ class Test_from_csd:
         dofs = from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), nbins=5, seed=1)
 
         for dof in dofs:
-            amp = np.array([s._amp for s in dof._dofs]).reshape(5, 2)
+            amp = np.abs(dof._phasors).reshape(5, 2)
             np.testing.assert_allclose(amp[:, 0], amp[:, 1])
 
     def test_zero_csd(self, freq):
@@ -1253,7 +1290,7 @@ class Test_from_csd:
 
         t = np.linspace(0.0, 1.0, 100)
         for dof in dofs:
-            assert isinstance(dof, Constant)
+            assert dof._phasors.size == 0
             np.testing.assert_allclose(dof.y(t), 0.0)
 
     def test_roundoff_negative_eigenvalue(self):
@@ -1261,7 +1298,7 @@ class Test_from_csd:
         csd = np.tile([[1.0, 1.0 + 1e-14], [1.0 + 1e-14, 1.0]], (3, 1, 1))
         dofs = from_csd([0.0, 1.0, 2.0], csd, nbins=2, seed=1)
 
-        var = [sum(s._amp**2 / 2.0 for s in dof._dofs) for dof in dofs]
+        var = [np.sum(np.abs(dof._phasors) ** 2) / 2.0 for dof in dofs]
         np.testing.assert_allclose(var, [2.0, 2.0])
 
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
@@ -1272,8 +1309,8 @@ class Test_from_csd:
 
         df_sub = 0.25
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
-        freq0 = np.array([s._w for s in y0._dofs]) / (2.0 * np.pi)
-        freq1 = np.array([s._w for s in y1._dofs]) / (2.0 * np.pi)
+        freq0 = y0._w / (2.0 * np.pi)
+        freq1 = y1._w / (2.0 * np.pi)
 
         # Frequencies are moved within their sub-bins, equally for all signals
         np.testing.assert_allclose(freq0, freq1)
@@ -1281,18 +1318,14 @@ class Test_from_csd:
         assert np.all(np.abs(freq0 - freq_center) <= 0.5 * jitter * df_sub)
 
         # Amplitudes and phases are the same as without jitter
-        np.testing.assert_allclose(
-            [s._amp for s in y0._dofs], [s._amp for s in y0_ref._dofs]
-        )
-        np.testing.assert_allclose(
-            [s._phase for s in y0._dofs], [s._phase for s in y0_ref._dofs]
-        )
+        np.testing.assert_allclose(np.abs(y0._phasors), np.abs(y0_ref._phasors))
+        np.testing.assert_allclose(np.angle(y0._phasors), np.angle(y0_ref._phasors))
 
     def test_seed(self, freq, psd):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        phase1 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
-        phase2 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
-        phase3 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=2)[0]._dofs]
+        phase1 = np.angle(from_csd(freq, csd, nbins=10, seed=1)[0]._phasors)
+        phase2 = np.angle(from_csd(freq, csd, nbins=10, seed=1)[0]._phasors)
+        phase3 = np.angle(from_csd(freq, csd, nbins=10, seed=2)[0]._phasors)
 
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
@@ -1324,7 +1357,7 @@ class Test_from_csd:
     def test_numpy_integer_nbins(self, freq, psd):
         (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=np.int64(10), seed=1)
 
-        assert len(y._dofs) == 10
+        assert y._phasors.size == 10
 
     @pytest.mark.parametrize(
         "freq, match",

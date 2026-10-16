@@ -101,11 +101,10 @@ class Test_motion_presets:
         motion = _MOTION_PRESETS["vessel-6dof"]()
         dofs = [getattr(motion, name) for name in self.NAMES]
 
-        omega = sorted({s._w for d in dofs for s in d._dofs})
-        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
+        omega = np.unique(np.concatenate([d._w for d in dofs]))
+        z = np.zeros((len(dofs), omega.size), dtype=np.complex128)
         for i, d in enumerate(dofs):
-            for s in d._dofs:
-                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
+            z[i, np.searchsorted(omega, d._w)] = d._phasors
 
         np.testing.assert_allclose(
             z.conj() @ z.T / 2.0, np.trapezoid(csd, f, axis=0), atol=1e-12
