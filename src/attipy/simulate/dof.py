@@ -10,7 +10,6 @@ from ._dof import (
     SmootherStep,
     add,
     from_csd,
-    from_psd,
     multiply,
     ramp_up,
 )
@@ -23,7 +22,6 @@ __all__ = [
     "SmootherStep",
     "add",
     "from_csd",
-    "from_psd",
     "multiply",
     "ramp_up",
 ]
