@@ -608,8 +608,9 @@ def from_csd(
         Frequencies in Hz, non-negative and strictly increasing, with m >= 2.
     csd : array_like, shape (m, n, n)
         One-sided cross-spectral density (CSD) matrix in y_i * y_j / Hz, where
-        ``csd[:, i, j]`` matches ``scipy.signal.csd(y_i, y_j)``. Must be
-        Hermitian and positive semidefinite at each frequency.
+        y_i is the output signal i. ``csd[:, i, j]`` is the CSD of y_i and y_j,
+        as returned by ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and
+        positive semidefinite at each frequency.
     nbins : int
         Number of bins to divide the frequency range into. The auto- and cross-
         spectra of the output DOF signals will match ``csd`` at a resolution of
