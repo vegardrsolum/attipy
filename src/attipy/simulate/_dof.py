@@ -144,35 +144,14 @@ class Beat(DOF):
         omega_beat: float = 0.01,
         phase: float = 0.0,
     ) -> None:
-        self._amp = amp
-        self._w_main = omega
-        self._w_beat = omega_beat
-        self._phase = phase
+        carrier = _Cosine(omega=omega, phase=phase)
+        envelope = Sine(amp=amp, omega=omega_beat / 2.0)
+        self._dof = _Product(envelope, carrier)
 
     def _evaluate(
         self, t: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        amp = self._amp
-        w_main = self._w_main
-        w_beat = self._w_beat
-        phase = self._phase
-
-        arg_main = w_main * t + phase
-        arg_beat = w_beat / 2.0 * t
-
-        main = np.cos(arg_main)
-        dmain = -w_main * np.sin(arg_main)
-        d2main = -(w_main**2) * main
-
-        beat = np.sin(arg_beat)
-        dbeat = w_beat / 2.0 * np.cos(arg_beat)
-        d2beat = -((w_beat / 2.0) ** 2) * beat
-
-        y = amp * beat * main
-        dydt = amp * (dbeat * main + beat * dmain)
-        d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
-
-        return y, dydt, d2ydt2
+        return self._dof._evaluate(t)
 
 
 class Constant(DOF):
