@@ -621,7 +621,7 @@ def from_csd(
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
         anywhere within their sub-bins. Jitter breaks up periodicity. Defaults to
-        0.0.
+        0.0 (no jitter).
     seed : int, optional
         Seed used to generate random phases and jitter. Defaults to None; fresh
         unpredictable entropy will be pulled from the OS.
