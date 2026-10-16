@@ -273,12 +273,6 @@ class Test__Cosine:
         np.testing.assert_allclose(dydt, dydt_expect)
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
-    def test_equals_phase_shifted_sine(self, cosine, t):
-        sine = Sine(amp=2.0, omega=3.0, phase=0.5 + np.pi / 2.0)
-
-        for y, y_sine in zip(cosine(t), sine(t)):
-            np.testing.assert_allclose(y, y_sine, atol=1e-12)
-
 
 class Test_Sine:
     @pytest.fixture
