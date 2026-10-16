@@ -660,10 +660,11 @@ def from_csd(
     n = csd.shape[1]
     rng = np.random.default_rng(seed)
     theta_kj = rng.uniform(0.0, 2.0 * np.pi, (nbins, n))
-    offset_kj = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, (nbins, n))
+    offset_kj = 0.5 + jitter * rng.uniform(-0.5, 0.5, (nbins, n))
 
     # Sub-bin j of bin k holds the component of source j
     sub_edges = np.linspace(f[0], f[-1], nbins * n + 1)
+    edges = sub_edges[::n]
     d_sub = sub_edges[1] - sub_edges[0]
     freq_kj = sub_edges[:-1].reshape(nbins, n) + d_sub * offset_kj
 
@@ -671,7 +672,7 @@ def from_csd(
     # Cholesky factor used by Deodatis (1996), it handles singular matrices (e.g.,
     # fully coherent signals), and spreads every signal over all sub-bins, where
     # a lower-triangular factor gives signal i energy only in sub-bins j <= i.
-    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, sub_edges[::n]))
+    s_kij = _hermitian_sqrt(_bin_integrals(f, csd, edges))
 
     # Phasor, Z_k[i, j], of the cosine of source j in signal i.
     # A cosine with amplitude a has variance a**2 / 2, hence the factor sqrt(2).
