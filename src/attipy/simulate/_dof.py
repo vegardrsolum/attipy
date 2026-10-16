@@ -612,10 +612,11 @@ def from_csd(
         as returned by ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and
         positive semidefinite at each frequency.
     nbins : int
-        Number of bins to divide the frequency range into. The auto- and cross-
-        spectra of the output DOF signals will match ``csd`` at a resolution of
-        one bin width. Each bin is split into n sub-bins with one sinusoid each,
-        so each output signal is a sum of ``nbins * n`` sinusoids.
+        Number of equal-width frequency bins between ``f[0]`` and ``f[-1]``.
+        Must be positive. The CSD of the output DOF signals matches ``csd`` at a
+        resolution of one bin width. Each bin is split into n sub-bins with one
+        sinusoid each, so each output signal is a sum of at most ``nbins * n``
+        sinusoids.
     jitter : float, optional
         Random frequency offset of each component within its sub-bin. Must be in
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
