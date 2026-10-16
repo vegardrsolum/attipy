@@ -14,7 +14,6 @@ from attipy.simulate._dof import (
     _Sum,
     add,
     from_csd,
-    from_psd,
     multiply,
     ramp_up,
 )
@@ -908,7 +907,6 @@ class Test_public_api:
         assert dof.SmootherStep is SmootherStep
         assert dof.add is add
         assert dof.from_csd is from_csd
-        assert dof.from_psd is from_psd
         assert dof.multiply is multiply
         assert dof.ramp_up is ramp_up
         assert set(dof.__all__) == {
@@ -919,7 +917,6 @@ class Test_public_api:
             "SmootherStep",
             "add",
             "from_csd",
-            "from_psd",
             "multiply",
             "ramp_up",
         }
@@ -935,163 +932,6 @@ class Test_public_api:
         np.testing.assert_allclose(
             motion.yaw.y(t), ramp_up(Sine(amp=0.1), duration=5.0).y(t)
         )
-
-
-class Test_from_psd:
-    @pytest.fixture
-    def freq(self):
-        return np.linspace(0.0, 1.0, 101)
-
-    @pytest.fixture
-    def psd(self, freq):
-        return np.exp(-(((freq - 0.2) / 0.05) ** 2))
-
-    def test_components(self):
-        # Triangular PSD with peak 2.0 at 1 Hz, and area 2.0
-        freq = [0.0, 1.0, 2.0]
-        psd = [0.0, 2.0, 0.0]
-
-        dof = from_psd(freq, psd, nbins=4, seed=1)
-
-        # Bins [0, 0.5], [0.5, 1], [1, 1.5], [1.5, 2] with areas 0.25, 0.75, 0.75, 0.25
-        freq_expect = np.array([0.25, 0.75, 1.25, 1.75])
-        amp_expect = np.sqrt(2.0 * np.array([0.25, 0.75, 0.75, 0.25]))
-
-        assert isinstance(dof, _Sum)
-        assert all(isinstance(s, _Cosine) for s in dof._dofs)
-        np.testing.assert_allclose([s._w for s in dof._dofs], 2.0 * np.pi * freq_expect)
-        np.testing.assert_allclose([s._amp for s in dof._dofs], amp_expect)
-        assert all(-np.pi < s._phase <= np.pi for s in dof._dofs)
-
-    def test_single_component(self):
-        dof = from_psd([0.0, 2.0], [0.5, 0.5], nbins=1, seed=1)
-
-        # Component at 1 Hz with variance equal to the area under the PSD
-        (cosine,) = dof._dofs
-        assert cosine._w == pytest.approx(2.0 * np.pi)
-        assert cosine._amp == pytest.approx(np.sqrt(2.0))
-
-    @pytest.mark.parametrize("nbins", [1, 7, 33])
-    @pytest.mark.parametrize("jitter", [0.0, 1.0])
-    def test_variance_equals_psd_area(self, freq, psd, nbins, jitter):
-        dof = from_psd(freq, psd, nbins=nbins, jitter=jitter, seed=1)
-
-        var = sum(s._amp**2 / 2.0 for s in dof._dofs)
-        assert var == pytest.approx(np.trapezoid(psd, freq))
-
-    def test_narrow_peak_between_bin_centers(self):
-        # Narrow peak at 0.25 Hz, exactly between the bin centers 0.125 and 0.375 Hz
-        freq = np.linspace(0.0, 1.0, 1001)
-        psd = np.where(np.abs(freq - 0.25) <= 0.005, 1.0, 0.0)
-
-        dof = from_psd(freq, psd, nbins=4, seed=1)
-
-        # The peak is split equally between the two neighbouring bins, and the
-        # empty bins are dropped
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        var_k = np.array([s._amp**2 / 2.0 for s in dof._dofs])
-        area = np.trapezoid(psd, freq)
-        np.testing.assert_allclose(freq_k, [0.125, 0.375])
-        np.testing.assert_allclose(var_k, [area / 2.0, area / 2.0])
-
-    def test_drops_zero_amplitude_components(self):
-        # PSD is zero in the bins [0, 0.5] and [1.5, 2]
-        freq = [0.0, 0.5, 1.0, 1.5, 2.0]
-        psd = [0.0, 0.0, 2.0, 0.0, 0.0]
-
-        dof = from_psd(freq, psd, nbins=4, seed=1)
-
-        freq_k = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        np.testing.assert_allclose(freq_k, [0.75, 1.25])
-        assert all(s._amp > 0.0 for s in dof._dofs)
-
-    @pytest.mark.parametrize("jitter", [0.5, 1.0])
-    def test_jitter(self, freq, psd, jitter):
-        dof = from_psd(freq, psd, nbins=4, jitter=jitter, seed=1)
-        dof_ref = from_psd(freq, psd, nbins=4, jitter=0.0, seed=1)
-
-        df = 0.25
-        edges = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
-        freq_center = np.array([0.125, 0.375, 0.625, 0.875])
-        freq_jitter = np.array([s._w for s in dof._dofs]) / (2.0 * np.pi)
-        freq_ref = np.array([s._w for s in dof_ref._dofs]) / (2.0 * np.pi)
-
-        # Frequencies are moved within their respective bins.
-        assert not np.allclose(freq_jitter, freq_ref)
-        assert np.all(np.abs(freq_jitter - freq_center) <= 0.5 * jitter * df)
-        assert np.all(freq_jitter >= edges[:-1])
-        assert np.all(freq_jitter <= edges[1:])
-
-        # Amplitudes and phases are not affected by jitter
-        np.testing.assert_allclose(
-            [s._amp for s in dof._dofs], [s._amp for s in dof_ref._dofs]
-        )
-        np.testing.assert_allclose(
-            [s._phase for s in dof._dofs], [s._phase for s in dof_ref._dofs]
-        )
-
-    def test_seed(self, freq, psd):
-        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
-        phase3 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=2)._dofs]
-
-        np.testing.assert_allclose(phase1, phase2)
-        assert not np.allclose(phase1, phase3)
-
-    def test_seed_generator(self, freq, psd):
-        rng = np.random.default_rng(1)
-        phase1 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=rng)._dofs]
-        phase2 = [s._phase for s in from_psd(freq, psd, nbins=20, seed=1)._dofs]
-
-        np.testing.assert_allclose(phase1, phase2)
-
-    def test_welch(self, freq, psd):
-        from scipy.signal import welch
-
-        dof = from_psd(freq, psd, nbins=500, seed=1)
-
-        fs = 2.0
-        t = np.arange(0.0, 20_000.0, 1.0 / fs)
-        freq_out, psd_out = welch(dof.y(t), fs=fs, nperseg=1024)
-
-        np.testing.assert_allclose(
-            psd_out, np.interp(freq_out, freq, psd), atol=0.05 * psd.max()
-        )
-
-    def test_zero_psd(self):
-        freq = np.array([0.0, 1.0, 2.0])
-        psd = np.array([0.0, 0.0, 0.0])
-        dof = from_psd(freq, psd, nbins=3)
-        assert isinstance(dof, Constant)
-        t = np.linspace(0.0, 1.0, 100)
-        y = dof.y(t)
-        np.testing.assert_allclose(y, 0.0)
-
-    @pytest.mark.parametrize(
-        "freq, psd",
-        [
-            ([0.0], [1.0]),  # too few values
-            ([[0.0, 1.0]], [[1.0, 1.0]]),  # not 1D
-            ([0.0, 1.0], [1.0, 1.0, 1.0]),  # shape mismatch
-            ([-1.0, 1.0], [1.0, 1.0]),  # negative frequency
-            ([0.0, 1.0, 1.0], [1.0, 1.0, 1.0]),  # not strictly increasing
-            ([1.0, 0.0], [1.0, 1.0]),  # decreasing
-            ([0.0, 1.0], [1.0, -1.0]),  # negative psd
-        ],
-    )
-    def test_raises_input(self, freq, psd):
-        with pytest.raises(ValueError):
-            from_psd(freq, psd, nbins=10)
-
-    @pytest.mark.parametrize("nbins", [0, -1, 1.5])
-    def test_raises_nbins(self, freq, psd, nbins):
-        with pytest.raises(ValueError):
-            from_psd(freq, psd, nbins=nbins)
-
-    @pytest.mark.parametrize("jitter", [-0.1, 1.1])
-    def test_raises_jitter(self, freq, psd, jitter):
-        with pytest.raises(ValueError):
-            from_psd(freq, psd, nbins=10, jitter=jitter)
 
 
 class Test_from_csd:
@@ -1187,6 +1027,32 @@ class Test_from_csd:
         var = [s._amp**2 / 2.0 for s in y._dofs]
         np.testing.assert_allclose(var, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
 
+    def test_narrow_peak_between_bin_centers(self):
+        # Narrow peak at 0.25 Hz, exactly between the bin centers 0.125 and 0.375 Hz
+        freq = np.linspace(0.0, 1.0, 1001)
+        psd = np.where(np.abs(freq - 0.25) <= 0.005, 1.0, 0.0)
+
+        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
+
+        # The peak is split equally between the two neighbouring bins, and the
+        # empty bins are dropped
+        freq_k = np.array([s._w for s in y._dofs]) / (2.0 * np.pi)
+        var_k = np.array([s._amp**2 / 2.0 for s in y._dofs])
+        area = np.trapezoid(psd, freq)
+        np.testing.assert_allclose(freq_k, [0.125, 0.375])
+        np.testing.assert_allclose(var_k, [area / 2.0, area / 2.0])
+
+    def test_drops_zero_amplitude_components(self):
+        # PSD is zero in the bins [0, 0.5] and [1.5, 2]
+        freq = [0.0, 0.5, 1.0, 1.5, 2.0]
+        psd = np.array([0.0, 0.0, 2.0, 0.0, 0.0])
+
+        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
+
+        freq_k = np.array([s._w for s in y._dofs]) / (2.0 * np.pi)
+        np.testing.assert_allclose(freq_k, [0.75, 1.25])
+        assert all(s._amp > 0.0 for s in y._dofs)
+
     def test_fully_coherent(self, freq, psd):
         # y_1 is y_0 scaled by 2 and phase shifted by +90 degrees
         y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), nbins=5, seed=1)
@@ -1261,6 +1127,14 @@ class Test_from_csd:
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
 
+    def test_seed_generator(self, freq, psd):
+        csd = self.csd_2x2(psd, 2.0, 0.5)
+        rng = np.random.default_rng(1)
+        phase1 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=rng)[0]._dofs]
+        phase2 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+
+        np.testing.assert_allclose(phase1, phase2)
+
     def test_scipy_csd(self, freq, psd):
         from scipy.signal import csd as scipy_csd
 
@@ -1277,13 +1151,6 @@ class Test_from_csd:
                 np.testing.assert_allclose(
                     csd_out, csd_expect, atol=0.1 * np.abs(csd[:, i, j]).max()
                 )
-
-    def test_psd_equivalence(self, freq, psd):
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=10, jitter=1.0, seed=1)
-        y_psd = from_psd(freq, psd, nbins=10, jitter=1.0, seed=1)
-
-        t = np.linspace(0.0, 100.0, 1001)
-        np.testing.assert_allclose(y.y(t), y_psd.y(t), atol=1e-12)
 
     def test_numpy_integer_nbins(self, freq, psd):
         (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=np.int64(10), seed=1)
@@ -1313,6 +1180,7 @@ class Test_from_csd:
             (np.ones((3, 0, 0)), "at least one signal"),  # empty
             (np.tile([[1.0, 1.0j], [1.0j, 1.0]], (3, 1, 1)), "Hermitian"),
             (np.tile([[1.0, 2.0], [2.0, 1.0]], (3, 1, 1)), "positive semidefinite"),
+            (np.array([1.0, -1.0, 1.0]).reshape(-1, 1, 1), "positive semidefinite"),
             (np.full((3, 1, 1), np.nan), "infs or NaNs"),
         ],
     )
