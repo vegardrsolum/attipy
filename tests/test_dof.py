@@ -63,8 +63,25 @@ class Test_DOF:
 class Test_Beat:
     @pytest.fixture
     def beat(self):
-        dof = Beat(amp=2.0, omega=1.0, omega_beat=0.1)
-        return dof
+        return Beat(amp=2.0, omega=1.0, omega_beat=0.1, phase=0.5)
+
+    @pytest.fixture
+    def expect(self, t):
+        return self.beat_expect(t, amp=2.0, w_main=1.0, w_beat=0.1, phase=0.5)
+
+    @staticmethod
+    def beat_expect(t, amp, w_main, w_beat, phase):
+        main = np.cos(w_main * t + phase)
+        beat = np.sin(w_beat / 2.0 * t)
+        dmain = -w_main * np.sin(w_main * t + phase)
+        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
+        d2main = -(w_main**2) * np.cos(w_main * t + phase)
+        d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
+
+        y = amp * beat * main
+        dydt = amp * (dbeat * main + beat * dmain)
+        d2ydt2 = amp * (d2beat * main + 2.0 * dbeat * dmain + beat * d2main)
+        return y, dydt, d2ydt2
 
     def test__init__(self):
         beat = Beat(
@@ -75,93 +92,40 @@ class Test_Beat:
         )
 
         assert isinstance(beat, DOF)
-        assert beat._amp == 3.0
-        assert beat._w_main == pytest.approx(2.0)
-        assert beat._w_beat == pytest.approx(0.2)
-        assert beat._phase == pytest.approx(4.0)
+        assert isinstance(beat._dof, _Product)
+        sine, cosine = beat._dof._dofs
+        assert isinstance(sine, Sine)
+        assert sine._amp == 3.0
+        assert sine._w == pytest.approx(0.1)
+        assert sine._phase == 0.0
+        assert isinstance(cosine, _Cosine)
+        assert cosine._amp == 1.0
+        assert cosine._w == pytest.approx(2.0)
+        assert cosine._phase == pytest.approx(4.0)
 
-    def test__init__default(self):
-        beat_dof = Beat()
+    def test__init__default(self, t):
+        beat = Beat()
 
-        assert isinstance(beat_dof, DOF)
-        assert beat_dof._amp == 1.0
-        assert beat_dof._w_main == pytest.approx(0.1)
-        assert beat_dof._w_beat == pytest.approx(0.01)
-        assert beat_dof._phase == pytest.approx(0.0)
+        assert isinstance(beat, DOF)
+        expect = self.beat_expect(t, amp=1.0, w_main=0.1, w_beat=0.01, phase=0.0)
+        for actual, expected in zip(beat(t), expect):
+            np.testing.assert_allclose(actual, expected)
 
-    def test_y(self, beat, t):
-        y = beat.y(t)
+    def test_y(self, beat, expect, t):
+        np.testing.assert_allclose(beat.y(t), expect[0])
 
-        amp = beat._amp
-        w_main = beat._w_main
-        w_beat = beat._w_beat
-        phase = beat._phase
+    def test_dydt(self, beat, expect, t):
+        np.testing.assert_allclose(beat.dydt(t), expect[1])
 
-        main = np.cos(w_main * t + phase)
-        beat_ = np.sin(w_beat / 2.0 * t)
+    def test_d2ydt2(self, beat, expect, t):
+        np.testing.assert_allclose(beat.d2ydt2(t), expect[2])
 
-        y_expect = amp * beat_ * main
-
-        np.testing.assert_allclose(y, y_expect)
-
-    def test_dydt(self, beat, t):
-        dydt = beat.dydt(t)
-
-        amp = beat._amp
-        w_main = beat._w_main
-        w_beat = beat._w_beat
-        phase = beat._phase
-
-        main = np.cos(w_main * t + phase)
-        beat_ = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
-
-        dydt_expect = amp * (dbeat * main + beat_ * dmain)
-
-        np.testing.assert_allclose(dydt, dydt_expect)
-
-    def test_d2ydt2(self, beat, t):
-        d2ydt2 = beat.d2ydt2(t)
-
-        amp = beat._amp
-        w_main = beat._w_main
-        w_beat = beat._w_beat
-        phase = beat._phase
-
-        main = np.cos(w_main * t + phase)
-        beat_ = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
-        d2main = -(w_main**2) * np.cos(w_main * t + phase)
-        d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
-
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
-
-        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
-
-    def test__call__(self, beat, t):
+    def test__call__(self, beat, expect, t):
         y, dydt, d2ydt2 = beat(t)
 
-        amp = beat._amp
-        w_main = beat._w_main
-        w_beat = beat._w_beat
-        phase = beat._phase
-
-        main = np.cos(w_main * t + phase)
-        beat_ = np.sin(w_beat / 2.0 * t)
-        dmain = -w_main * np.sin(w_main * t + phase)
-        dbeat = (w_beat / 2.0) * np.cos(w_beat / 2.0 * t)
-        d2main = -(w_main**2) * np.cos(w_main * t + phase)
-        d2beat = -(w_beat**2 / 4.0) * np.sin(w_beat / 2.0 * t)
-
-        y_expect = amp * beat_ * main
-        dydt_expect = amp * (dbeat * main + beat_ * dmain)
-        d2ydt2_expect = amp * (d2beat * main + 2.0 * dbeat * dmain + beat_ * d2main)
-
-        np.testing.assert_allclose(y, y_expect)
-        np.testing.assert_allclose(dydt, dydt_expect)
-        np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
+        np.testing.assert_allclose(y, expect[0])
+        np.testing.assert_allclose(dydt, expect[1])
+        np.testing.assert_allclose(d2ydt2, expect[2])
 
 
 class Test_Constant:
