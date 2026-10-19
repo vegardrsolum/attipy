@@ -7,10 +7,10 @@ from attipy.simulate._dof import (
     Beat,
     Constant,
     Sine,
-    SmootherStep,
     _as_dof,
     _Cosine,
     _Product,
+    _SmootherStep,
     _Sum,
     add,
     from_csd,
@@ -296,10 +296,10 @@ class Test_Sine:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_SmootherStep:
+class Test__SmootherStep:
     @pytest.fixture
     def step(self):
-        return SmootherStep(duration=4.0, start=2.0)
+        return _SmootherStep(duration=4.0, start=2.0)
 
     @pytest.fixture
     def expect(self, t):
@@ -310,14 +310,14 @@ class Test_SmootherStep:
         return w, dw, d2w
 
     def test__init__(self):
-        step = SmootherStep(duration=4.0, start=2.0)
+        step = _SmootherStep(duration=4.0, start=2.0)
 
         assert isinstance(step, DOF)
         assert step._duration == 4.0
         assert step._start == 2.0
 
     def test__init__default(self):
-        step = SmootherStep()
+        step = _SmootherStep()
 
         assert step._duration == 100.0
         assert step._start == 0.0
@@ -325,10 +325,10 @@ class Test_SmootherStep:
     @pytest.mark.parametrize("duration", [0.0, -1.0])
     def test__init__raises_duration(self, duration):
         with pytest.raises(ValueError):
-            SmootherStep(duration=duration)
+            _SmootherStep(duration=duration)
 
     def test_negative_start(self):
-        step = SmootherStep(duration=4.0, start=-2.0)
+        step = _SmootherStep(duration=4.0, start=-2.0)
         w, _, _ = step(np.array([-4.0, 0.0, 2.0]))  # before, mid, end
 
         np.testing.assert_allclose(w, [0.0, 0.5, 1.0])
@@ -388,7 +388,7 @@ class Test_ramp_up:
         assert isinstance(rampup, DOF)
         assert isinstance(rampup, _Product)
         assert len(rampup._dofs) == 2
-        assert isinstance(rampup._dofs[0], SmootherStep)
+        assert isinstance(rampup._dofs[0], _SmootherStep)
         assert rampup._dofs[1] is beat
 
     def test_keywords(self, beat):
@@ -904,7 +904,6 @@ class Test_public_api:
         assert dof.Beat is Beat
         assert dof.Constant is Constant
         assert dof.Sine is Sine
-        assert dof.SmootherStep is SmootherStep
         assert dof.add is add
         assert dof.from_csd is from_csd
         assert dof.multiply is multiply
@@ -914,7 +913,6 @@ class Test_public_api:
             "Beat",
             "Constant",
             "Sine",
-            "SmootherStep",
             "add",
             "from_csd",
             "multiply",

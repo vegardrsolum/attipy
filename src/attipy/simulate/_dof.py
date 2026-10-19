@@ -271,7 +271,7 @@ class Sine(DOF):
         return y, dydt, d2ydt2
 
 
-class SmootherStep(DOF):
+class _SmootherStep(DOF):
     """
     Smootherstep DOF signal generator.
 
@@ -479,7 +479,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
     vanishing first and second derivatives at both ends of the ramp-up period,
     so that the ramped signal and its two first time derivatives are continuous.
 
-    This is equivalent to ``multiply(SmootherStep(duration=duration, start=start), dof)``.
+    Passing a real number, ``value``, gives a smooth step from 0 to ``value``.
 
     Parameters
     ----------
@@ -498,7 +498,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
     DOF
         DOF signal generator for the ramped-up signal.
     """
-    return multiply(SmootherStep(duration=duration, start=start), dof)
+    return multiply(_SmootherStep(duration=duration, start=start), dof)
 
 
 def from_csd(
