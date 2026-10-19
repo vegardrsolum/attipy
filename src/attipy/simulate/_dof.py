@@ -120,18 +120,18 @@ class Beat(DOF):
 
     Defined as:
 
-        y = amp * sin(w_beat / 2.0 * t) * cos(w * t + phase)
+        y = amp * sin(omega_beat / 2.0 * t) * cos(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the beat signal. Defaults to 1.0.
     omega : float, optional
-        Main angular frequency, w, of the sinusoidal signal, y(t), in rad/s.
+        Main angular frequency of the sinusoidal signal, y(t), in rad/s.
         Defaults to 0.1 rad/s.
     omega_beat : float, optional
-        Beating angular frequency, w_beat, controlling the variation in amplitude,
-        in rad/s. Defaults to 0.01 rad/s.
+        Beating angular frequency, controlling the variation in amplitude, in
+        rad/s. Defaults to 0.01 rad/s.
     phase : float, optional
         Phase offset of the beat signal in radians. Defaults to 0.0 radians.
     """
@@ -187,15 +187,15 @@ class _Cosine(DOF):
 
     Defined as:
 
-        y = amp * cos(w * t + phase)
+        y = amp * cos(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the cosine signal. Defaults to 1.0.
     omega : float, optional
-        Angular frequency, w, of the cosine signal, y(t), in rad/s. Defaults
-        to 1.0 rad/s.
+        Angular frequency of the cosine signal, y(t), in rad/s. Defaults to 1.0
+        rad/s.
     phase : float, optional
         Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
     """
@@ -232,15 +232,15 @@ class Sine(DOF):
 
     Defined as:
 
-        y = amp * sin(w * t + phase)
+        y = amp * sin(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the sinusoidal signal. Defaults to 1.0.
     omega : float, optional
-        Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
-        to 1.0 rad/s.
+        Angular frequency of the sinusoidal signal, y(t), in rad/s. Defaults to
+        1.0 rad/s.
     phase : float, optional
         Phase offset of the sinusoidal signal in radians. Defaults to 0.0 radians.
     """
