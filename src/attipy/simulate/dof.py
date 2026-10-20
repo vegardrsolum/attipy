@@ -7,10 +7,8 @@ from ._dof import (
     Beat,
     Constant,
     Sine,
-    SmootherStep,
     add,
     from_csd,
-    from_psd,
     multiply,
     ramp_up,
 )
@@ -20,10 +18,8 @@ __all__ = [
     "Beat",
     "Constant",
     "Sine",
-    "SmootherStep",
     "add",
     "from_csd",
-    "from_psd",
     "multiply",
     "ramp_up",
 ]

@@ -89,9 +89,8 @@ def _beat_3dof() -> Motion:
     Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
     translational degrees of freedom (x, y, z) are set to zero.
     """
-    motion = _beat_6dof()
     motion = replace(
-        motion,
+        _beat_6dof(),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
@@ -119,12 +118,13 @@ def _vessel_3dof() -> Motion:
     Uses a forward-starboard-down (FSD) reference frame, corresponding to the
     north-east-down (NED) navigation frame.
     """
-    return replace(
+    motion = replace(
         _vessel_6dof(),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
     )
+    return motion
 
 
 _MOTION_PRESETS = {
@@ -136,18 +136,19 @@ _MOTION_PRESETS = {
 }
 
 
-def _z_down_to_z_up(motion: Motion) -> Motion:
+def _z_down_to_z_up(motion_down: Motion) -> Motion:
     """
     Converts a motion from a z-down to a z-up frame by a 180 degree rotation
     about the x-axis, which negates y, z, pitch and yaw.
     """
-    return replace(
-        motion,
-        y=multiply(-1.0, motion.y),
-        z=multiply(-1.0, motion.z),
-        pitch=multiply(-1.0, motion.pitch),
-        yaw=multiply(-1.0, motion.yaw),
+    motion_up = replace(
+        motion_down,
+        y=multiply(-1.0, motion_down.y),
+        z=multiply(-1.0, motion_down.z),
+        pitch=multiply(-1.0, motion_down.pitch),
+        yaw=multiply(-1.0, motion_down.yaw),
     )
+    return motion_up
 
 
 def _specific_force_body(

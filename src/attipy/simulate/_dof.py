@@ -120,18 +120,18 @@ class Beat(DOF):
 
     Defined as:
 
-        y = amp * sin(w_beat / 2.0 * t) * cos(w * t + phase)
+        y = amp * sin(omega_beat / 2.0 * t) * cos(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the beat signal. Defaults to 1.0.
     omega : float, optional
-        Main angular frequency, w, of the sinusoidal signal, y(t), in rad/s.
+        Main angular frequency of the sinusoidal signal, y(t), in rad/s.
         Defaults to 0.1 rad/s.
     omega_beat : float, optional
-        Beating angular frequency, w_beat, controlling the variation in amplitude,
-        in rad/s. Defaults to 0.01 rad/s.
+        Beating angular frequency, controlling the variation in amplitude, in
+        rad/s. Defaults to 0.01 rad/s.
     phase : float, optional
         Phase offset of the beat signal in radians. Defaults to 0.0 radians.
     """
@@ -187,15 +187,15 @@ class _Cosine(DOF):
 
     Defined as:
 
-        y = amp * cos(w * t + phase)
+        y = amp * cos(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the cosine signal. Defaults to 1.0.
     omega : float, optional
-        Angular frequency, w, of the cosine signal, y(t), in rad/s. Defaults
-        to 1.0 rad/s.
+        Angular frequency of the cosine signal, y(t), in rad/s. Defaults to 1.0
+        rad/s.
     phase : float, optional
         Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
     """
@@ -232,15 +232,15 @@ class Sine(DOF):
 
     Defined as:
 
-        y = amp * sin(w * t + phase)
+        y = amp * sin(omega * t + phase)
 
     Parameters
     ----------
     amp : float, optional
         Amplitude of the sinusoidal signal. Defaults to 1.0.
     omega : float, optional
-        Angular frequency, w, of the sinusoidal signal, y(t), in rad/s. Defaults
-        to 1.0 rad/s.
+        Angular frequency of the sinusoidal signal, y(t), in rad/s. Defaults to
+        1.0 rad/s.
     phase : float, optional
         Phase offset of the sinusoidal signal in radians. Defaults to 0.0 radians.
     """
@@ -271,7 +271,7 @@ class Sine(DOF):
         return y, dydt, d2ydt2
 
 
-class SmootherStep(DOF):
+class _SmootherStep(DOF):
     """
     Smootherstep DOF signal generator.
 
@@ -479,7 +479,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
     vanishing first and second derivatives at both ends of the ramp-up period,
     so that the ramped signal and its two first time derivatives are continuous.
 
-    This is equivalent to ``multiply(SmootherStep(duration=duration, start=start), dof)``.
+    Passing a real number, ``value``, gives a smooth step from 0 to ``value``.
 
     Parameters
     ----------
@@ -498,73 +498,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
     DOF
         DOF signal generator for the ramped-up signal.
     """
-    return multiply(SmootherStep(duration=duration, start=start), dof)
-
-
-def from_psd(
-    f: ArrayLike,
-    psd: ArrayLike,
-    /,
-    *,
-    nbins: int,
-    jitter: float = 0.0,
-    seed: int | None = None,
-) -> DOF:
-    """
-    DOF signal realization of a one-sided power spectral density (PSD).
-
-    Parameters
-    ----------
-    f : array_like, shape (m,)
-        Frequencies in Hz. Must be non-negative and strictly increasing, with at
-        least two values.
-    psd : array_like, shape (m,)
-        One-sided power spectral density in y**2 / Hz. Must be non-negative.
-    nbins : int
-        Number of frequency bins, and thereby sinusoidal components. Must be
-        positive.
-    jitter : float, optional
-        Random offset of each component frequency from its bin center, as a
-        fraction of the bin width. Must be in the range [0, 1], where 0.0 places
-        the component at the bin center and 1.0 anywhere within the bin. Jitter
-        breaks up the periodicity of evenly spaced components. Defaults to 0.0.
-    seed : int, optional
-        Seed used to generate random phases and jitter. Defaults to None; fresh
-        unpredictable entropy will be pulled from the OS.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the realization of the PSD.
-    """
-    f = np.asarray_chkfinite(f, dtype=np.float64)
-    psd = np.asarray_chkfinite(psd, dtype=np.float64)
-
-    if f.ndim != 1 or f.size < 2:
-        raise ValueError("'f' must be a 1D array with at least two values.")
-    if psd.shape != f.shape:
-        raise ValueError("'psd' must have the same shape as 'f'.")
-    if f[0] < 0.0 or np.any(np.diff(f) <= 0.0):
-        raise ValueError("'f' must be non-negative and strictly increasing.")
-    if np.any(psd < 0.0):
-        raise ValueError("'psd' must be non-negative.")
-    if not isinstance(nbins, numbers.Integral) or nbins < 1:
-        raise ValueError("'nbins' must be a positive integer.")
-    if not 0.0 <= jitter <= 1.0:
-        raise ValueError("'jitter' must be in [0, 1].")
-
-    rng = np.random.default_rng(seed)
-    phase_k = rng.uniform(0.0, 2.0 * np.pi, nbins)
-    offset_k = rng.uniform(0.5 - 0.5 * jitter, 0.5 + 0.5 * jitter, nbins)
-
-    edges = np.linspace(f[0], f[-1], nbins + 1)
-    df = edges[1] - edges[0]
-    freq_k = edges[:-1] + df * offset_k
-
-    area_k = _bin_integrals(f, psd, edges)
-    amp_k = np.sqrt(2.0 * area_k)
-
-    return _sum_of_cosines(amp_k * np.exp(1j * phase_k), freq_k)
+    return multiply(_SmootherStep(duration=duration, start=start), dof)
 
 
 def from_csd(
@@ -574,7 +508,7 @@ def from_csd(
     *,
     nbins: int,
     jitter: float = 0.0,
-    seed: int | None = None,
+    seed: int | np.random.Generator | None = None,
 ) -> tuple[DOF, ...]:
     """
     Correlated DOF signal realizations of a cross-spectral density (CSD) matrix.
@@ -589,7 +523,8 @@ def from_csd(
         One-sided cross-spectral density (CSD) matrix in y_i * y_j / Hz, where
         y_i is the output signal i. ``csd[:, i, j]`` is the CSD of y_i and y_j,
         as returned by ``scipy.signal.csd(y_i, y_j)``. Must be Hermitian and
-        positive semidefinite at each frequency.
+        positive semidefinite at each frequency. For a single signal, pass its
+        one-sided power spectral density (PSD) as ``psd.reshape(-1, 1, 1)``.
     nbins : int
         Number of equal-width frequency bins between ``f[0]`` and ``f[-1]``.
         Must be positive. The CSD of the output DOF signals matches ``csd`` at a
@@ -601,9 +536,10 @@ def from_csd(
         the range [0, 1], where 0.0 places components at sub-bin centers and 1.0
         anywhere within their sub-bins. Jitter breaks up periodicity. Defaults to
         0.0 (no jitter).
-    seed : int, optional
-        Seed used to generate random phases and jitter. Defaults to None; fresh
-        unpredictable entropy will be pulled from the OS.
+    seed : int or numpy.random.Generator, optional
+        Seed, or random number generator, used to generate random phases and
+        jitter. Defaults to None; fresh unpredictable entropy will be pulled from
+        the OS.
 
     Returns
     -------
