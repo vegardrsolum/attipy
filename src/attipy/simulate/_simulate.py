@@ -89,9 +89,8 @@ def _beat_3dof() -> Motion:
     Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
     translational degrees of freedom (x, y, z) are set to zero.
     """
-    motion = _beat_6dof()
     motion = replace(
-        motion,
+        _beat_6dof(),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
@@ -119,12 +118,13 @@ def _vessel_3dof() -> Motion:
     Uses a forward-starboard-down (FSD) reference frame, corresponding to the
     north-east-down (NED) navigation frame.
     """
-    return replace(
+    motion = replace(
         _vessel_6dof(),
         x=Constant(0.0),
         y=Constant(0.0),
         z=Constant(0.0),
     )
+    return motion
 
 
 _MOTION_PRESETS = {
