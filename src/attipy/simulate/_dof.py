@@ -124,14 +124,13 @@ class Beat(DOF):
 
     Parameters
     ----------
+    omega : float
+        Main angular frequency of the sinusoidal signal, y(t), in rad/s.
+    omega_beat : float
+        Beating angular frequency, controlling the variation in amplitude, in
+        rad/s.
     amp : float, optional
         Amplitude of the beat signal. Defaults to 1.0.
-    omega : float, optional
-        Main angular frequency of the sinusoidal signal, y(t), in rad/s.
-        Defaults to 0.1 rad/s.
-    omega_beat : float, optional
-        Beating angular frequency, controlling the variation in amplitude, in
-        rad/s. Defaults to 0.01 rad/s.
     phase : float, optional
         Phase offset of the beat signal in radians. Defaults to 0.0 radians.
     """
@@ -139,9 +138,9 @@ class Beat(DOF):
     def __init__(
         self,
         *,
+        omega: float,
+        omega_beat: float,
         amp: float = 1.0,
-        omega: float = 0.1,
-        omega_beat: float = 0.01,
         phase: float = 0.0,
     ) -> None:
         carrier = _Cosine(omega=omega, phase=phase)
@@ -191,11 +190,10 @@ class _Cosine(DOF):
 
     Parameters
     ----------
+    omega : float
+        Angular frequency of the cosine signal, y(t), in rad/s.
     amp : float, optional
         Amplitude of the cosine signal. Defaults to 1.0.
-    omega : float, optional
-        Angular frequency of the cosine signal, y(t), in rad/s. Defaults to 1.0
-        rad/s.
     phase : float, optional
         Phase offset of the cosine signal in radians. Defaults to 0.0 radians.
     """
@@ -203,8 +201,8 @@ class _Cosine(DOF):
     def __init__(
         self,
         *,
+        omega: float,
         amp: float = 1.0,
-        omega: float = 1.0,
         phase: float = 0.0,
     ) -> None:
         self._amp = amp
@@ -236,11 +234,10 @@ class Sine(DOF):
 
     Parameters
     ----------
+    omega : float
+        Angular frequency of the sinusoidal signal, y(t), in rad/s.
     amp : float, optional
         Amplitude of the sinusoidal signal. Defaults to 1.0.
-    omega : float, optional
-        Angular frequency of the sinusoidal signal, y(t), in rad/s. Defaults to
-        1.0 rad/s.
     phase : float, optional
         Phase offset of the sinusoidal signal in radians. Defaults to 0.0 radians.
     """
@@ -248,8 +245,8 @@ class Sine(DOF):
     def __init__(
         self,
         *,
+        omega: float,
         amp: float = 1.0,
-        omega: float = 1.0,
         phase: float = 0.0,
     ) -> None:
         self._amp = amp
