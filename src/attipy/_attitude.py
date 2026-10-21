@@ -110,6 +110,26 @@ class Attitude:
     def __repr__(self) -> str:
         return f"{type(self).__name__}(q={self._q.tolist()!r})"
 
+    @classmethod
+    def _from_unit_quat(cls, q: NDArray[np.float64]) -> Self:
+        """
+        Fast initialization from a unit quaternion, skipping input validation and
+        normalization.
+
+        Parameters
+        ----------
+        q : ndarray, shape (4,)
+            Unit quaternion (qw, qx, qy, qz).
+
+        Returns
+        -------
+        Attitude
+            Attitude instance.
+        """
+        att = cls.__new__(cls)
+        att._q = _canonical(q)
+        return att
+
     def as_quaternion(self) -> NDArray[np.float64]:
         """
         Represent the attitude as a unit quaternion.
