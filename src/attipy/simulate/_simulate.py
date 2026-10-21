@@ -294,7 +294,8 @@ def trajectory(
         - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
         - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
 
-        Defaults to 'beat-6dof'.
+        Predefined motions are converted to ``nav_frame``; a custom ``Motion`` must
+        already be expressed in it. Defaults to 'beat-6dof'.
 
     Returns
     -------
