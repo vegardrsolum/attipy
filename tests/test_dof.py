@@ -103,12 +103,17 @@ class Test_Beat:
         assert cosine._phase == pytest.approx(4.0)
 
     def test__init__default(self, t):
-        beat = Beat()
+        beat = Beat(omega=1.0, omega_beat=0.1)
 
         assert isinstance(beat, DOF)
-        expect = self.beat_expect(t, amp=1.0, w_main=0.1, w_beat=0.01, phase=0.0)
+        expect = self.beat_expect(t, amp=1.0, w_main=1.0, w_beat=0.1, phase=0.0)
         for actual, expected in zip(beat(t), expect):
             np.testing.assert_allclose(actual, expected)
+
+    @pytest.mark.parametrize("kwargs", [{}, {"omega": 1.0}, {"omega_beat": 0.1}])
+    def test__init__raises_missing_omega(self, kwargs):
+        with pytest.raises(TypeError):
+            Beat(**kwargs)
 
     def test_y(self, beat, expect, t):
         np.testing.assert_allclose(beat.y(t), expect[0])
@@ -197,12 +202,16 @@ class Test__Cosine:
         assert cosine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        cosine = _Cosine()
+        cosine = _Cosine(omega=2.0)
 
         assert isinstance(cosine, DOF)
         assert cosine._amp == 1.0
-        assert cosine._w == pytest.approx(1.0)
+        assert cosine._w == pytest.approx(2.0)
         assert cosine._phase == pytest.approx(0.0)
+
+    def test__init__raises_missing_omega(self):
+        with pytest.raises(TypeError):
+            _Cosine()
 
     def test_y(self, cosine, t):
         y = cosine.y(t)
@@ -256,12 +265,16 @@ class Test_Sine:
         assert sine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        sine = Sine()
+        sine = Sine(omega=2.0)
 
         assert isinstance(sine, DOF)
         assert sine._amp == 1.0
-        assert sine._w == pytest.approx(1.0)
+        assert sine._w == pytest.approx(2.0)
         assert sine._phase == pytest.approx(0.0)
+
+    def test__init__raises_missing_omega(self):
+        with pytest.raises(TypeError):
+            Sine()
 
     def test_y(self, sine, t):
         y = sine.y(t)
@@ -479,7 +492,7 @@ class Test_ramp_up:
 
 class Test__as_dof:
     def test_dof(self):
-        dof = Beat()
+        dof = Beat(omega=1.0, omega_beat=0.1)
         assert _as_dof(dof) is dof
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
@@ -921,14 +934,18 @@ class Test_public_api:
 
     def test_usage(self):
         t = np.linspace(0.0, 10.0, 100)
+        beat = ap.simulate.dof.Beat(amp=2.0, omega=1.0, omega_beat=0.1)
+        sine = ap.simulate.dof.Sine(amp=0.1, omega=1.5)
         motion = ap.simulate.Motion(
-            x=ap.simulate.dof.add(ap.simulate.dof.Beat(amp=2.0), 0.5),
-            yaw=ap.simulate.dof.ramp_up(ap.simulate.dof.Sine(amp=0.1), duration=5.0),
+            x=ap.simulate.dof.add(beat, 0.5),
+            yaw=ap.simulate.dof.ramp_up(sine, duration=5.0),
         )
 
-        np.testing.assert_allclose(motion.x.y(t), 2.0 * Beat().y(t) + 0.5)
         np.testing.assert_allclose(
-            motion.yaw.y(t), ramp_up(Sine(amp=0.1), duration=5.0).y(t)
+            motion.x.y(t), 2.0 * Beat(omega=1.0, omega_beat=0.1).y(t) + 0.5
+        )
+        np.testing.assert_allclose(
+            motion.yaw.y(t), ramp_up(Sine(amp=0.1, omega=1.5), duration=5.0).y(t)
         )
 
 
