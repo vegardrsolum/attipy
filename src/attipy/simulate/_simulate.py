@@ -295,7 +295,8 @@ def trajectory(
         - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
 
         Predefined motions are adapted to ``nav_frame``; custom ``Motion`` instances
-        are used as-is. Defaults to 'beat-6dof'.
+        are used as-is, and must therefore represent motion relative to ``nav_frame``.
+        Defaults to 'beat-6dof'.
 
     Returns
     -------
