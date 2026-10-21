@@ -38,6 +38,20 @@ class Test_Attitude:
         q[:] = [0.0, 1.0, 0.0, 0.0]
         np.testing.assert_allclose(att._q, [1.0, 0.0, 0.0, 0.0])
 
+    @pytest.mark.parametrize("att", _ATTITUDES)
+    def test__from_unit_quat(self, att):
+        q = np.array(att["quaternion"])
+        result = Attitude._from_unit_quat(-q)
+        assert isinstance(result, Attitude)
+        np.testing.assert_allclose(result._q, q)  # canonical sign
+
+    def test__from_unit_quat_copies_input(self):
+        q = np.array([1.0, 0.0, 0.0, 0.0])
+        att = Attitude._from_unit_quat(q)
+        assert not np.shares_memory(att._q, q)
+        q[:] = [0.0, 1.0, 0.0, 0.0]
+        np.testing.assert_allclose(att._q, [1.0, 0.0, 0.0, 0.0])
+
     def test__repr__(self):
         q = [0.5, -0.5, 0.5, 0.5]  # exactly unit norm, so unchanged by normalization
         att = Attitude(q)

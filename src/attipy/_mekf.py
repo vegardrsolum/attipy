@@ -257,7 +257,7 @@ class MEKF:
         """
         Attitude estimate.
         """
-        return Attitude(self._q_nb)
+        return Attitude._from_unit_quat(self._q_nb)
 
     @property
     def gyro_bias(self) -> NDArray[np.float64]:
