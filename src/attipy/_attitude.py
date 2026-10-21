@@ -114,13 +114,12 @@ class Attitude:
     def _from_unit_quat(cls, q: NDArray[np.float64]) -> Self:
         """
         Fast initialization from a unit quaternion, skipping input validation and
-        normalization. For internal use only; the caller must ensure that q is a
-        float64 array of shape (4,) with unit norm.
+        normalization.
 
         Parameters
         ----------
         q : ndarray, shape (4,)
-            Unit quaternion (qw, qx, qy, qz). Copied, not referenced.
+            Unit quaternion (qw, qx, qy, qz).
 
         Returns
         -------
