@@ -9,7 +9,7 @@ from ._kalman_fast import (
     _kalman_update_sequential_fast,
     _project_cov_ahead_fast,
 )
-from ._quatops import _canonical, _correct_quat_with_gibbs2, _correct_quat_with_rotvec
+from ._quatops import _correct_quat_with_gibbs2, _correct_quat_with_rotvec
 from ._statespace import (
     _process_noise_cov,
     _state_transition_matrix,
@@ -252,43 +252,17 @@ class MEKF:
         """
         return self._P.copy()
 
-    def quaternion(self) -> NDArray[np.float64]:
+    @property
+    def attitude(self) -> Attitude:
         """
-        Attitude estimate represented as a unit quaternion.
-
-        Returns
-        -------
-        ndarray, shape (4,)
-            Unit quaternion (qw, qx, qy, qz).
+        Attitude estimate.
         """
-        return _canonical(self._q_nb)  # type: ignore[no-any-return]
+        return Attitude(self._q_nb)
 
-    def euler(self) -> NDArray[np.float64]:
-        """
-        Attitude estimate represented as Euler angles (see Notes).
-
-        Returns
-        -------
-        ndarray, shape (3,)
-            Euler angles (roll, pitch, yaw) in radians.
-
-        Notes
-        -----
-        The Euler angles describe three consecutive intrinsic and passive rotations
-        from the navigation frame, {n}, to the body frame, {b}, in the ZYX order:
-        first yaw about the navigation frame's Z-axis, then pitch about the intermediate
-        Y-axis, and finally roll about the resulting X-axis.
-        """
-        return _euler_zyx_from_quat(self._q_nb)  # type: ignore[no-any-return]
-
+    @property
     def gyro_bias(self) -> NDArray[np.float64]:
         """
-        Gyroscope bias estimate.
-
-        Returns
-        -------
-        ndarray, shape (3,)
-            Gyroscope bias (bx, by, bz) in rad/s.
+        Gyroscope bias estimate (bx, by, bz) in rad/s.
         """
         return self._bg_b.copy()
 
