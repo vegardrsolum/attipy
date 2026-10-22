@@ -176,9 +176,6 @@ class DOF(ABC):
         period, so that the ramped signal and its two first time derivatives are
         continuous.
 
-        Ramping up a ``ConstantDOF(value)`` gives a smooth step from 0 to
-        ``value``.
-
         Parameters
         ----------
         duration : float, optional
