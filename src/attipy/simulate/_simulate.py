@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from .._frames import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
-from ._dof import DOF, Beat, Constant, from_csd, multiply
+from ._dof import DOF, Beat, Constant, dofs_from_csd, multiply
 
 _PACKAGE_PATH = resources.files(__package__)
 
@@ -107,7 +107,7 @@ def _vessel_6dof() -> Motion:
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
-    x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
+    x, y, z, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
 

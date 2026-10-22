@@ -8,7 +8,7 @@ from ._dof import (
     Constant,
     Sine,
     add,
-    from_csd,
+    dofs_from_csd,
     multiply,
     ramp_up,
 )
@@ -19,7 +19,7 @@ __all__ = [
     "Constant",
     "Sine",
     "add",
-    "from_csd",
+    "dofs_from_csd",
     "multiply",
     "ramp_up",
 ]
