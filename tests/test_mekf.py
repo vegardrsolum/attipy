@@ -96,12 +96,12 @@ class Test_MEKF:
             ap.MEKF(10.0, nav_frame="invalid")
 
     @pytest.mark.parametrize("nav_frame", ["NED", "ENU"])
-    def test_level(self, nav_frame):
+    def test_align_tilt(self, nav_frame):
         att = ap.Attitude.from_euler(np.random.rand(3), degrees=False)  # random
         mekf = ap.MEKF(10.0, nav_frame=nav_frame)
         g_n = _gravity_nav(9.81, nav_frame=nav_frame)
         f_b = -att.as_matrix().T @ g_n
-        mekf.level(f_b)
+        mekf.align_tilt(f_b)
         np.testing.assert_allclose(
             mekf.attitude.as_euler()[:2], att.as_euler(degrees=False)[:2]
         )

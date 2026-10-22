@@ -49,7 +49,7 @@ yaw_meas = euler[:, 2] + yaw_std * rng.standard_normal(euler[:, 2].shape)
 
 # Initialize MEKF and perform initial tilt and yaw alignment
 mekf = ap.MEKF(fs)
-mekf.level(f_meas[0])
+mekf.align_tilt(f_meas[0])
 mekf.align_yaw(yaw_meas[0])
 
 # Estimate attitude using MEKF

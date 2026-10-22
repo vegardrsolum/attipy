@@ -216,7 +216,7 @@ class MEKF:
         self._dhdx_gref = np.zeros((3, 6))
         self._dhdx_yaw = np.zeros(6)
 
-    def level(self, f: ArrayLike) -> None:
+    def align_tilt(self, f: ArrayLike) -> None:
         """
         Set the tilt estimate (roll and pitch angles) based on an accelerometer
         measurement and the known direction of gravity (leveling). The yaw angle
