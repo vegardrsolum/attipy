@@ -113,8 +113,90 @@ class DOF(ABC):
         t = np.asarray_chkfinite(t)
         return self._evaluate(t)
 
+    # Make NumPy scalars and arrays defer to the reflected operators below
+    __array_ufunc__ = None
 
-class Beat(DOF):
+    def __add__(self, other: "DOF | float") -> "DOF":
+        """
+        Sum of two DOF signals, y(t) = y_1(t) + y_2(t). Real numbers are treated
+        as constant DOF signals.
+        """
+        if not isinstance(other, (DOF, numbers.Real)):
+            return NotImplemented
+        return _Sum(self, _as_dof(other))
+
+    def __radd__(self, other: float) -> "DOF":
+        if not isinstance(other, numbers.Real):
+            return NotImplemented
+        return _Sum(_as_dof(other), self)
+
+    def __mul__(self, other: "DOF | float") -> "DOF":
+        """
+        Product of two DOF signals, y(t) = y_1(t) * y_2(t). Real numbers are
+        treated as constant DOF signals. The time derivatives are found by the
+        product rule.
+        """
+        if not isinstance(other, (DOF, numbers.Real)):
+            return NotImplemented
+        return _Product(self, _as_dof(other))
+
+    def __rmul__(self, other: float) -> "DOF":
+        if not isinstance(other, numbers.Real):
+            return NotImplemented
+        return _Product(_as_dof(other), self)
+
+    def __neg__(self) -> "DOF":
+        return _Product(ConstantDOF(-1.0), self)
+
+    def __sub__(self, other: "DOF | float") -> "DOF":
+        if not isinstance(other, (DOF, numbers.Real)):
+            return NotImplemented
+        return self + (-_as_dof(other))
+
+    def __rsub__(self, other: float) -> "DOF":
+        if not isinstance(other, numbers.Real):
+            return NotImplemented
+        return _as_dof(other) + (-self)
+
+    def ramp_up(self, *, duration: float = 100.0, start: float = 0.0) -> "DOF":
+        """
+        Ramp up the DOF signal.
+
+        Scales the DOF signal, y(t), by a smooth ramp-up window, w(t):
+
+            y_rampup(t) = w(t) * y(t)
+
+        The window is zero before the ramp-up starts, increases smoothly from 0
+        to 1 during the ramp-up period, and stays at 1 afterwards:
+
+            w(t) = 6 * x**5 - 15 * x**4 + 10 * x**3
+
+        where ``x = (t - start) / duration`` clipped to [0, 1]. The window has
+        vanishing first and second derivatives at both ends of the ramp-up
+        period, so that the ramped signal and its two first time derivatives are
+        continuous.
+
+        Ramping up a ``ConstantDOF(value)`` gives a smooth step from 0 to
+        ``value``.
+
+        Parameters
+        ----------
+        duration : float, optional
+            Duration of the ramp-up period in seconds. Must be positive. Defaults
+            to 100.0 seconds.
+        start : float, optional
+            Time in seconds at which the ramp-up starts. The signal, and its two
+            first time derivatives, are zero before this time. Defaults to 0.0.
+
+        Returns
+        -------
+        DOF
+            DOF signal generator for the ramped-up signal.
+        """
+        return _Product(_SmootherStep(duration=duration, start=start), self)
+
+
+class BeatDOF(DOF):
     """
     Beating DOF signal generator.
 
@@ -144,7 +226,7 @@ class Beat(DOF):
         phase: float = 0.0,
     ) -> None:
         carrier = _Cosine(omega=omega, phase=phase)
-        envelope = Sine(amp=amp, omega=omega_beat / 2.0)
+        envelope = SineDOF(amp=amp, omega=omega_beat / 2.0)
         self._dof = _Product(envelope, carrier)
 
     def _evaluate(
@@ -153,7 +235,7 @@ class Beat(DOF):
         return self._dof._evaluate(t)
 
 
-class Constant(DOF):
+class ConstantDOF(DOF):
     """
     Constant DOF signal generator.
 
@@ -224,7 +306,7 @@ class _Cosine(DOF):
         return y, dydt, d2ydt2
 
 
-class Sine(DOF):
+class SineDOF(DOF):
     """
     Sinusoidal DOF signal generator.
 
@@ -316,12 +398,12 @@ def _as_dof(other: object, /) -> DOF:
     Convert an argument to a DOF signal generator.
 
     DOF instances are returned as they are, and real numbers are wrapped in a
-    ``Constant``. Any other argument raises a ``TypeError``.
+    ``ConstantDOF``. Any other argument raises a ``TypeError``.
     """
     if isinstance(other, DOF):
         return other
     if isinstance(other, numbers.Real):
-        return Constant(float(other))
+        return ConstantDOF(float(other))
     raise TypeError(
         f"Arguments must be DOF instances or real numbers, got {type(other).__name__}."
     )
@@ -415,90 +497,7 @@ class _Product(_Composite):
         return y, dydt, d2ydt2
 
 
-def add(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
-    """
-    Add two DOF signals together.
-
-    Defined as:
-
-        y(t) = y_1(t) + y_2(t)
-
-    Parameters
-    ----------
-    dof1, dof2 : DOF or float
-        DOFs to be added. Real numbers are treated as constant DOF signals.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the sum.
-    """
-    return _Sum(_as_dof(dof1), _as_dof(dof2))
-
-
-def multiply(dof1: DOF | float, dof2: DOF | float, /) -> DOF:
-    """
-    Multiply two DOF signals together.
-
-    Defined as:
-
-        y(t) = y_1(t) * y_2(t)
-
-    The time derivatives are found by the product rule.
-
-    Parameters
-    ----------
-    dof1, dof2 : DOF or float
-        DOFs to be multiplied. Real numbers are treated as constant DOF signals.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the product.
-    """
-    return _Product(_as_dof(dof1), _as_dof(dof2))
-
-
-def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0) -> DOF:
-    """
-    Ramp up a DOF signal.
-
-    Scales an underlying DOF signal, y(t), by a smooth ramp-up window, w(t):
-
-        y_rampup(t) = w(t) * y(t)
-
-    The window is zero before the ramp-up starts, increases smoothly from 0 to 1
-    during the ramp-up period, and stays at 1 afterwards:
-
-        w(t) = 6 * x**5 - 15 * x**4 + 10 * x**3
-
-    where ``x = (t - start) / duration`` clipped to [0, 1]. The window has
-    vanishing first and second derivatives at both ends of the ramp-up period,
-    so that the ramped signal and its two first time derivatives are continuous.
-
-    Passing a real number, ``value``, gives a smooth step from 0 to ``value``.
-
-    Parameters
-    ----------
-    dof : DOF or float
-        Underlying DOF signal generator to ramp up. A real number is treated as
-        a constant DOF signal.
-    duration : float, optional
-        Duration of the ramp-up period in seconds. Must be positive. Defaults to
-        100.0 seconds.
-    start : float, optional
-        Time in seconds at which the ramp-up starts. The signal, and its two
-        first time derivatives, are zero before this time. Defaults to 0.0.
-
-    Returns
-    -------
-    DOF
-        DOF signal generator for the ramped-up signal.
-    """
-    return multiply(_SmootherStep(duration=duration, start=start), dof)
-
-
-def from_csd(
+def dofs_from_csd(
     f: ArrayLike,
     csd: ArrayLike,
     /,
@@ -615,7 +614,7 @@ def _sum_of_cosines(
     Returns
     -------
     DOF
-        Sum of the cosines, or a zero ``Constant`` if no components remain.
+        Sum of the cosines, or a zero ``ConstantDOF`` if no components remain.
     """
     cosines = [
         _Cosine(amp=amp, omega=2.0 * np.pi * freq, phase=phase)
@@ -623,7 +622,7 @@ def _sum_of_cosines(
         if amp > 0.0
     ]
     if not cosines:
-        return Constant(0.0)
+        return ConstantDOF(0.0)
     return _Sum(*cosines)
 
 

@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from .._frames import _gravity_nav
 from .._transforms import _matrix_from_euler_zyx_batch
-from ._dof import DOF, Beat, Constant, from_csd, multiply
+from ._dof import DOF, BeatDOF, ConstantDOF, dofs_from_csd
 
 _PACKAGE_PATH = resources.files(__package__)
 
@@ -32,26 +32,26 @@ class Motion:
 
     Parameters
     ----------
-    x : dof.DOF, optional
-        Position along the x-axis in meters. Defaults to ``dof.Constant(0.0)``.
-    y : dof.DOF, optional
-        Position along the y-axis in meters. Defaults to ``dof.Constant(0.0)``.
-    z : dof.DOF, optional
-        Position along the z-axis in meters. Defaults to ``dof.Constant(0.0)``.
-    roll : dof.DOF, optional
-        Roll Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
-    pitch : dof.DOF, optional
-        Pitch Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
-    yaw : dof.DOF, optional
-        Yaw Euler angle in radians. Defaults to ``dof.Constant(0.0)``.
+    x : DOF, optional
+        Position along the x-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    y : DOF, optional
+        Position along the y-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    z : DOF, optional
+        Position along the z-axis in meters. Defaults to ``ConstantDOF(0.0)``.
+    roll : DOF, optional
+        Roll Euler angle in radians. Defaults to ``ConstantDOF(0.0)``.
+    pitch : DOF, optional
+        Pitch Euler angle in radians. Defaults to ``ConstantDOF(0.0)``.
+    yaw : DOF, optional
+        Yaw Euler angle in radians. Defaults to ``ConstantDOF(0.0)``.
     """
 
-    x: DOF = field(default_factory=Constant)
-    y: DOF = field(default_factory=Constant)
-    z: DOF = field(default_factory=Constant)
-    roll: DOF = field(default_factory=Constant)
-    pitch: DOF = field(default_factory=Constant)
-    yaw: DOF = field(default_factory=Constant)
+    x: DOF = field(default_factory=ConstantDOF)
+    y: DOF = field(default_factory=ConstantDOF)
+    z: DOF = field(default_factory=ConstantDOF)
+    roll: DOF = field(default_factory=ConstantDOF)
+    pitch: DOF = field(default_factory=ConstantDOF)
+    yaw: DOF = field(default_factory=ConstantDOF)
 
     def __post_init__(self) -> None:
         for f in fields(self):
@@ -74,12 +74,12 @@ def _beat_6dof() -> Motion:
     w_beat = 2.0 * np.pi * 0.01
     phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
     motion = Motion(
-        x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
-        y=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
-        z=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
-        roll=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
-        pitch=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
-        yaw=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
+        x=BeatDOF(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
+        y=BeatDOF(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
+        z=BeatDOF(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
+        roll=BeatDOF(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
+        pitch=BeatDOF(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
+        yaw=BeatDOF(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
     )
     return motion
 
@@ -91,9 +91,9 @@ def _beat_3dof() -> Motion:
     """
     motion = replace(
         _beat_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
+        x=ConstantDOF(0.0),
+        y=ConstantDOF(0.0),
+        z=ConstantDOF(0.0),
     )
     return motion
 
@@ -107,7 +107,7 @@ def _vessel_6dof() -> Motion:
     """
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
-    x, y, z, roll, pitch, yaw = from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
+    x, y, z, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
 
@@ -120,9 +120,9 @@ def _vessel_3dof() -> Motion:
     """
     motion = replace(
         _vessel_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
+        x=ConstantDOF(0.0),
+        y=ConstantDOF(0.0),
+        z=ConstantDOF(0.0),
     )
     return motion
 
@@ -143,10 +143,10 @@ def _z_down_to_z_up(motion_down: Motion) -> Motion:
     """
     motion_up = replace(
         motion_down,
-        y=multiply(-1.0, motion_down.y),
-        z=multiply(-1.0, motion_down.z),
-        pitch=multiply(-1.0, motion_down.pitch),
-        yaw=multiply(-1.0, motion_down.yaw),
+        y=-motion_down.y,
+        z=-motion_down.z,
+        pitch=-motion_down.pitch,
+        yaw=-motion_down.yaw,
     )
     return motion_up
 

@@ -4,18 +4,15 @@ import pytest
 import attipy as ap
 from attipy.simulate._dof import (
     DOF,
-    Beat,
-    Constant,
-    Sine,
+    BeatDOF,
+    ConstantDOF,
+    SineDOF,
     _as_dof,
     _Cosine,
     _Product,
     _SmootherStep,
     _Sum,
-    add,
-    from_csd,
-    multiply,
-    ramp_up,
+    dofs_from_csd,
 )
 
 
@@ -59,10 +56,10 @@ class Test_DOF:
         np.testing.assert_allclose(some_dof.d2ydt2(t), some_dof(t)[2])
 
 
-class Test_Beat:
+class Test_BeatDOF:
     @pytest.fixture
     def beat(self):
-        return Beat(amp=2.0, omega=1.0, omega_beat=0.1, phase=0.5)
+        return BeatDOF(amp=2.0, omega=1.0, omega_beat=0.1, phase=0.5)
 
     @pytest.fixture
     def expect(self, t):
@@ -83,7 +80,7 @@ class Test_Beat:
         return y, dydt, d2ydt2
 
     def test__init__(self):
-        beat = Beat(
+        beat = BeatDOF(
             amp=3.0,
             omega=2.0,
             omega_beat=0.2,
@@ -93,7 +90,7 @@ class Test_Beat:
         assert isinstance(beat, DOF)
         assert isinstance(beat._dof, _Product)
         sine, cosine = beat._dof._dofs
-        assert isinstance(sine, Sine)
+        assert isinstance(sine, SineDOF)
         assert sine._amp == 3.0
         assert sine._w == pytest.approx(0.1)
         assert sine._phase == 0.0
@@ -103,7 +100,7 @@ class Test_Beat:
         assert cosine._phase == pytest.approx(4.0)
 
     def test__init__default(self, t):
-        beat = Beat(omega=1.0, omega_beat=0.1)
+        beat = BeatDOF(omega=1.0, omega_beat=0.1)
 
         assert isinstance(beat, DOF)
         expect = self.beat_expect(t, amp=1.0, w_main=1.0, w_beat=0.1, phase=0.0)
@@ -113,7 +110,7 @@ class Test_Beat:
     @pytest.mark.parametrize("kwargs", [{}, {"omega": 1.0}, {"omega_beat": 0.1}])
     def test__init__raises_missing_omega(self, kwargs):
         with pytest.raises(TypeError):
-            Beat(**kwargs)
+            BeatDOF(**kwargs)
 
     def test_y(self, beat, expect, t):
         np.testing.assert_allclose(beat.y(t), expect[0])
@@ -132,20 +129,20 @@ class Test_Beat:
         np.testing.assert_allclose(d2ydt2, expect[2])
 
 
-class Test_Constant:
+class Test_ConstantDOF:
     @pytest.fixture
     def constant(self):
-        dof = Constant(value=2.0)
+        dof = ConstantDOF(value=2.0)
         return dof
 
     def test__init__(self):
-        constant = Constant(value=3.0)
+        constant = ConstantDOF(value=3.0)
 
         assert isinstance(constant, DOF)
         assert constant._value == 3.0
 
     def test__init__default(self):
-        constant = Constant()
+        constant = ConstantDOF()
 
         assert isinstance(constant, DOF)
         assert constant._value == 0.0
@@ -246,14 +243,14 @@ class Test__Cosine:
         np.testing.assert_allclose(d2ydt2, d2ydt2_expect)
 
 
-class Test_Sine:
+class Test_SineDOF:
     @pytest.fixture
     def sine(self):
-        dof = Sine(amp=2.0, omega=3.0, phase=0.5)
+        dof = SineDOF(amp=2.0, omega=3.0, phase=0.5)
         return dof
 
     def test__init__(self):
-        sine = Sine(
+        sine = SineDOF(
             amp=3.0,
             omega=2.0,
             phase=4.0,
@@ -265,7 +262,7 @@ class Test_Sine:
         assert sine._phase == pytest.approx(4.0)
 
     def test__init__default(self):
-        sine = Sine(omega=2.0)
+        sine = SineDOF(omega=2.0)
 
         assert isinstance(sine, DOF)
         assert sine._amp == 1.0
@@ -274,7 +271,7 @@ class Test_Sine:
 
     def test__init__raises_missing_omega(self):
         with pytest.raises(TypeError):
-            Sine()
+            SineDOF()
 
     def test_y(self, sine, t):
         y = sine.y(t)
@@ -380,14 +377,14 @@ class Test__SmootherStep:
         np.testing.assert_allclose(d2w[1:-1][valid], d2w_fd[valid], atol=1e-6)
 
 
-class Test_ramp_up:
+class Test_DOF_ramp_up:
     @pytest.fixture
     def beat(self):
-        return Beat(omega=1.0, omega_beat=0.1)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def rampup(self, beat):
-        return ramp_up(beat, duration=4.0, start=2.0)
+        return beat.ramp_up(duration=4.0, start=2.0)
 
     @pytest.fixture
     def window(self, t):
@@ -405,13 +402,13 @@ class Test_ramp_up:
         assert rampup._dofs[1] is beat
 
     def test_keywords(self, beat):
-        ramp = ramp_up(beat, duration=4.0, start=2.0)._dofs[0]
+        ramp = beat.ramp_up(duration=4.0, start=2.0)._dofs[0]
 
         assert ramp._duration == 4.0
         assert ramp._start == 2.0
 
     def test_default(self, beat):
-        ramp = ramp_up(beat)._dofs[0]
+        ramp = beat.ramp_up()._dofs[0]
 
         assert ramp._duration == 100.0
         assert ramp._start == 0.0
@@ -465,10 +462,9 @@ class Test_ramp_up:
         np.testing.assert_allclose(dydt[1:-1][valid], dydt_fd[valid], atol=1e-6)
         np.testing.assert_allclose(d2ydt2[1:-1][valid], d2ydt2_fd[valid], atol=1e-6)
 
-    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
-    def test_real(self, value, window, t):
+    def test_constant(self, window, t):
         w, dw, d2w = window
-        y, dydt, d2ydt2 = ramp_up(value, duration=4.0, start=2.0)(t)
+        y, dydt, d2ydt2 = ConstantDOF(2.0).ramp_up(duration=4.0, start=2.0)(t)
 
         np.testing.assert_allclose(y, 2.0 * w)
         np.testing.assert_allclose(dydt, 2.0 * dw)
@@ -477,29 +473,28 @@ class Test_ramp_up:
     @pytest.mark.parametrize("duration", [0.0, -1.0])
     def test_raises_duration(self, beat, duration):
         with pytest.raises(ValueError):
-            ramp_up(beat, duration=duration)
+            beat.ramp_up(duration=duration)
 
     def test_negative_start(self, beat):
-        ramp = ramp_up(beat, duration=4.0, start=-1.0)._dofs[0]
+        ramp = beat.ramp_up(duration=4.0, start=-1.0)._dofs[0]
 
         assert ramp._start == -1.0
 
-    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test_raises_type(self, other):
+    def test_raises_positional_args(self, beat):
         with pytest.raises(TypeError):
-            ramp_up(other)
+            beat.ramp_up(4.0)
 
 
 class Test__as_dof:
     def test_dof(self):
-        dof = Beat(omega=1.0, omega_beat=0.1)
+        dof = BeatDOF(omega=1.0, omega_beat=0.1)
         assert _as_dof(dof) is dof
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
     def test_real(self, value, t):
         dof = _as_dof(value)
 
-        assert isinstance(dof, Constant)
+        assert isinstance(dof, ConstantDOF)
         assert dof._value == 2.0
         assert type(dof._value) is float
         np.testing.assert_allclose(dof.y(t), 2.0)
@@ -513,15 +508,15 @@ class Test__as_dof:
 class Test__Sum:
     @pytest.fixture
     def beat(self):
-        return Beat(omega=1.0, omega_beat=0.1)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
-        return Constant(value=3.0)
+        return ConstantDOF(value=3.0)
 
     @pytest.fixture
     def sine(self):
-        return Sine(omega=1.5, phase=0.3)
+        return SineDOF(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_sum(self, beat, constant, sine):
@@ -625,15 +620,15 @@ class Test__Sum:
 class Test__Product:
     @pytest.fixture
     def beat(self):
-        return Beat(omega=1.0, omega_beat=0.1)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def constant(self):
-        return Constant(value=3.0)
+        return ConstantDOF(value=3.0)
 
     @pytest.fixture
     def sine(self):
-        return Sine(omega=1.5, phase=0.3)
+        return SineDOF(omega=1.5, phase=0.3)
 
     @pytest.fixture
     def dof_product(self, beat, constant, sine):
@@ -695,7 +690,7 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2, expect[2])
 
     def test_scale_by_constant(self, beat, t):
-        dof_product = _Product(Constant(2.0), beat)
+        dof_product = _Product(ConstantDOF(2.0), beat)
         y, dydt, d2ydt2 = dof_product(t)
 
         np.testing.assert_allclose(y, 2.0 * beat.y(t))
@@ -703,7 +698,7 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
 
     def test_multiply_by_zero(self, beat, t):
-        dof_product = _Product(beat, Constant(0.0))
+        dof_product = _Product(beat, ConstantDOF(0.0))
         y, dydt, d2ydt2 = dof_product(t)
 
         np.testing.assert_allclose(y, 0.0)
@@ -768,41 +763,36 @@ class Test__Product:
         np.testing.assert_allclose(d2ydt2[1:-1], d2ydt2_fd, atol=1e-6)
 
 
-class Test_add:
+class Test_DOF_operators:
     @pytest.fixture
     def beat(self):
-        return Beat(omega=1.0, omega_beat=0.1)
+        return BeatDOF(omega=1.0, omega_beat=0.1)
 
     @pytest.fixture
     def sine(self):
-        return Sine(omega=1.5, phase=0.3)
+        return SineDOF(omega=1.5, phase=0.3)
 
-    def test_dofs(self, beat, sine, t):
-        dof_sum = add(beat, sine)
+    def test_add(self, beat, sine, t):
+        dof_sum = beat + sine
         y, dydt, d2ydt2 = dof_sum(t)
 
-        assert isinstance(dof_sum, DOF)
+        assert isinstance(dof_sum, _Sum)
         np.testing.assert_allclose(y, beat.y(t) + sine.y(t))
         np.testing.assert_allclose(dydt, beat.dydt(t) + sine.dydt(t))
         np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) + sine.d2ydt2(t))
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
-    def test_real(self, beat, value, t):
-        y, dydt, d2ydt2 = add(value, beat)(t)
+    def test_add_real(self, beat, value, t):
+        for dof_sum in (beat + value, value + beat):
+            y, dydt, d2ydt2 = dof_sum(t)
 
-        np.testing.assert_allclose(y, 2.0 + beat.y(t))
-        np.testing.assert_allclose(dydt, beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
+            assert isinstance(dof_sum, _Sum)
+            np.testing.assert_allclose(y, 2.0 + beat.y(t))
+            np.testing.assert_allclose(dydt, beat.dydt(t))
+            np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t))
 
-    def test_reals_only(self, t):
-        y, dydt, d2ydt2 = add(1.0, 2.0)(t)
-
-        np.testing.assert_allclose(y, 3.0)
-        np.testing.assert_allclose(dydt, 0.0)
-        np.testing.assert_allclose(d2ydt2, 0.0)
-
-    def test_nested(self, beat, sine, t):
-        dof_sum = add(add(beat, 1.0), sine)
+    def test_add_flattens_nested(self, beat, sine, t):
+        dof_sum = beat + 1.0 + sine
         y, dydt, d2ydt2 = dof_sum(t)
 
         assert len(dof_sum._dofs) == 3
@@ -810,72 +800,29 @@ class Test_add:
         np.testing.assert_allclose(dydt, beat.dydt(t) + sine.dydt(t))
         np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) + sine.d2ydt2(t))
 
-    def test_multiply_nested(self, beat, sine, t):
-        y, dydt, d2ydt2 = add(multiply(2.0, beat), sine)(t)
-
-        np.testing.assert_allclose(y, 2.0 * beat.y(t) + sine.y(t))
-        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t) + sine.dydt(t))
-        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t) + sine.d2ydt2(t))
-
-    @pytest.mark.parametrize("n", [0, 1, 3])
-    def test_raises_wrong_number_of_args(self, beat, n):
-        with pytest.raises(TypeError):
-            add(*[beat] * n)
-
-    def test_raises_keyword_args(self, beat, sine):
-        with pytest.raises(TypeError):
-            add(dof1=beat, dof2=sine)
-
-    @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test_raises_type(self, beat, other):
-        with pytest.raises(TypeError):
-            add(beat, other)
-
-
-class Test_multiply:
-    @pytest.fixture
-    def beat(self):
-        return Beat(omega=1.0, omega_beat=0.1)
-
-    @pytest.fixture
-    def sine(self):
-        return Sine(omega=1.5, phase=0.3)
-
-    def test_dofs(self, beat, sine, t):
-        dof_product = multiply(beat, sine)
+    def test_mul(self, beat, sine, t):
+        dof_product = beat * sine
         y, dydt, d2ydt2 = dof_product(t)
         a, da, d2a = beat(t)
         b, db, d2b = sine(t)
 
-        assert isinstance(dof_product, DOF)
+        assert isinstance(dof_product, _Product)
         np.testing.assert_allclose(y, a * b)
         np.testing.assert_allclose(dydt, da * b + a * db)
         np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + a * d2b)
 
     @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
-    def test_real(self, beat, value, t):
-        y, dydt, d2ydt2 = multiply(value, beat)(t)
+    def test_mul_real(self, beat, value, t):
+        for dof_product in (beat * value, value * beat):
+            y, dydt, d2ydt2 = dof_product(t)
 
-        np.testing.assert_allclose(y, 2.0 * beat.y(t))
-        np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
+            assert isinstance(dof_product, _Product)
+            np.testing.assert_allclose(y, 2.0 * beat.y(t))
+            np.testing.assert_allclose(dydt, 2.0 * beat.dydt(t))
+            np.testing.assert_allclose(d2ydt2, 2.0 * beat.d2ydt2(t))
 
-    def test_negate(self, beat, t):
-        y, dydt, d2ydt2 = multiply(-1.0, beat)(t)
-
-        np.testing.assert_allclose(y, -beat.y(t))
-        np.testing.assert_allclose(dydt, -beat.dydt(t))
-        np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
-
-    def test_reals_only(self, t):
-        y, dydt, d2ydt2 = multiply(2.0, 3.0)(t)
-
-        np.testing.assert_allclose(y, 6.0)
-        np.testing.assert_allclose(dydt, 0.0)
-        np.testing.assert_allclose(d2ydt2, 0.0)
-
-    def test_nested(self, beat, sine, t):
-        dof_product = multiply(multiply(2.0, beat), sine)
+    def test_mul_flattens_nested(self, beat, sine, t):
+        dof_product = 2.0 * beat * sine
         y, dydt, d2ydt2 = dof_product(t)
         a, da, d2a = beat(t)
         b, db, d2b = sine(t)
@@ -885,8 +832,29 @@ class Test_multiply:
         np.testing.assert_allclose(dydt, 2.0 * (da * b + a * db))
         np.testing.assert_allclose(d2ydt2, 2.0 * (d2a * b + 2.0 * da * db + a * d2b))
 
-    def test_add_nested(self, beat, sine, t):
-        y, dydt, d2ydt2 = multiply(add(beat, 1.0), sine)(t)
+    def test_neg(self, beat, t):
+        y, dydt, d2ydt2 = (-beat)(t)
+
+        np.testing.assert_allclose(y, -beat.y(t))
+        np.testing.assert_allclose(dydt, -beat.dydt(t))
+        np.testing.assert_allclose(d2ydt2, -beat.d2ydt2(t))
+
+    def test_sub(self, beat, sine, t):
+        y, dydt, d2ydt2 = (beat - sine)(t)
+
+        np.testing.assert_allclose(y, beat.y(t) - sine.y(t))
+        np.testing.assert_allclose(dydt, beat.dydt(t) - sine.dydt(t))
+        np.testing.assert_allclose(d2ydt2, beat.d2ydt2(t) - sine.d2ydt2(t))
+
+    @pytest.mark.parametrize("value", [2, 2.0, np.float64(2.0), np.int64(2)])
+    def test_sub_real(self, beat, value, t):
+        np.testing.assert_allclose((beat - value).y(t), beat.y(t) - 2.0)
+        np.testing.assert_allclose((value - beat).y(t), 2.0 - beat.y(t))
+        np.testing.assert_allclose((value - beat).dydt(t), -beat.dydt(t))
+        np.testing.assert_allclose((value - beat).d2ydt2(t), -beat.d2ydt2(t))
+
+    def test_mixed(self, beat, sine, t):
+        y, dydt, d2ydt2 = ((beat + 1.0) * sine)(t)
         a, da, d2a = beat(t)
         b, db, d2b = sine(t)
 
@@ -894,62 +862,60 @@ class Test_multiply:
         np.testing.assert_allclose(dydt, da * b + (a + 1.0) * db)
         np.testing.assert_allclose(d2ydt2, d2a * b + 2.0 * da * db + (a + 1.0) * d2b)
 
-    @pytest.mark.parametrize("n", [0, 1, 3])
-    def test_raises_wrong_number_of_args(self, beat, n):
-        with pytest.raises(TypeError):
-            multiply(*[beat] * n)
-
-    def test_raises_keyword_args(self, beat, sine):
-        with pytest.raises(TypeError):
-            multiply(dof1=beat, dof2=sine)
-
     @pytest.mark.parametrize("other", ["a", None, [1.0], np.array([1.0]), 1j])
-    def test_raises_type(self, beat, other):
+    @pytest.mark.parametrize(
+        "op",
+        [
+            lambda a, b: a + b,
+            lambda a, b: b + a,
+            lambda a, b: a * b,
+            lambda a, b: b * a,
+            lambda a, b: a - b,
+            lambda a, b: b - a,
+        ],
+    )
+    def test_raises_type(self, beat, other, op):
         with pytest.raises(TypeError):
-            multiply(beat, other)
+            op(beat, other)
 
 
 class Test_public_api:
-    def test_dof_submodule(self):
-        dof = ap.simulate.dof
+    def test_simulate_namespace(self):
+        sim = ap.simulate
 
-        assert dof.DOF is DOF
-        assert dof.Beat is Beat
-        assert dof.Constant is Constant
-        assert dof.Sine is Sine
-        assert dof.add is add
-        assert dof.from_csd is from_csd
-        assert dof.multiply is multiply
-        assert dof.ramp_up is ramp_up
-        assert set(dof.__all__) == {
+        assert sim.DOF is DOF
+        assert sim.BeatDOF is BeatDOF
+        assert sim.ConstantDOF is ConstantDOF
+        assert sim.SineDOF is SineDOF
+        assert sim.dofs_from_csd is dofs_from_csd
+        assert set(sim.__all__) == {
             "DOF",
-            "Beat",
-            "Constant",
-            "Sine",
-            "add",
-            "from_csd",
-            "multiply",
-            "ramp_up",
+            "BeatDOF",
+            "ConstantDOF",
+            "Motion",
+            "SineDOF",
+            "dofs_from_csd",
+            "trajectory",
         }
+
+    def test_no_dof_submodule(self):
+        assert not hasattr(ap.simulate, "dof")
 
     def test_usage(self):
         t = np.linspace(0.0, 10.0, 100)
-        beat = ap.simulate.dof.Beat(amp=2.0, omega=1.0, omega_beat=0.1)
-        sine = ap.simulate.dof.Sine(amp=0.1, omega=1.5)
-        motion = ap.simulate.Motion(
-            x=ap.simulate.dof.add(beat, 0.5),
-            yaw=ap.simulate.dof.ramp_up(sine, duration=5.0),
-        )
+        beat = ap.simulate.BeatDOF(amp=2.0, omega=1.0, omega_beat=0.1)
+        sine = ap.simulate.SineDOF(amp=0.1, omega=1.5)
+        motion = ap.simulate.Motion(x=beat + 0.5, yaw=sine.ramp_up(duration=5.0))
 
         np.testing.assert_allclose(
-            motion.x.y(t), 2.0 * Beat(omega=1.0, omega_beat=0.1).y(t) + 0.5
+            motion.x.y(t), 2.0 * BeatDOF(omega=1.0, omega_beat=0.1).y(t) + 0.5
         )
         np.testing.assert_allclose(
-            motion.yaw.y(t), ramp_up(Sine(amp=0.1, omega=1.5), duration=5.0).y(t)
+            motion.yaw.y(t), SineDOF(amp=0.1, omega=1.5).ramp_up(duration=5.0).y(t)
         )
 
 
-class Test_from_csd:
+class Test_dofs_from_csd:
     @pytest.fixture
     def freq(self):
         return np.linspace(0.0, 1.0, 101)
@@ -991,7 +957,7 @@ class Test_from_csd:
         return z.conj() @ z.T / 2.0
 
     def test_returns_tuple_of_sums_of_cosines(self, freq, psd):
-        dofs = from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), nbins=5, seed=1)
+        dofs = dofs_from_csd(freq, self.csd_2x2(psd, 2.0, 0.5), nbins=5, seed=1)
 
         assert isinstance(dofs, tuple)
         assert len(dofs) == 2
@@ -1011,7 +977,7 @@ class Test_from_csd:
         # Two bins with two sub-bins each; components at the sub-bin centers.
         # For uncorrelated signals, signal i only has energy in sub-bin i of
         # each bin, and the zero-amplitude components are dropped.
-        dofs = from_csd(f, np.tile(np.eye(2), (2, 1, 1)), nbins=2, seed=1)
+        dofs = dofs_from_csd(f, np.tile(np.eye(2), (2, 1, 1)), nbins=2, seed=1)
 
         for dof, freq_expect_i in zip(dofs, freq_expect):
             freq = [s._w / (2.0 * np.pi) for s in dof._dofs]
@@ -1020,7 +986,7 @@ class Test_from_csd:
     @pytest.mark.parametrize("coherence", [0.0, 0.5, 1.0])
     def test_csd_equals_integral_2x2(self, freq, psd, coherence):
         csd = self.csd_2x2(psd, 2.0j, coherence)
-        dofs = from_csd(freq, csd, nbins=7, seed=1)
+        dofs = dofs_from_csd(freq, csd, nbins=7, seed=1)
 
         np.testing.assert_allclose(
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
@@ -1028,7 +994,7 @@ class Test_from_csd:
 
     def test_csd_equals_integral_3x3(self, freq, psd):
         csd = self.csd_3x3(psd)
-        dofs = from_csd(freq, csd, nbins=7, seed=1)
+        dofs = dofs_from_csd(freq, csd, nbins=7, seed=1)
 
         np.testing.assert_allclose(
             self.realized_csd(dofs), np.trapezoid(csd, freq, axis=0), atol=1e-12
@@ -1037,7 +1003,7 @@ class Test_from_csd:
     def test_bin_integrals(self):
         # Triangle with area 2.0, split into bins [0, 2/3], [2/3, 4/3], [4/3, 2]
         csd = np.array([0.0, 2.0, 0.0]).reshape(-1, 1, 1)
-        (y,) = from_csd([0.0, 1.0, 2.0], csd, nbins=3, seed=1)
+        (y,) = dofs_from_csd([0.0, 1.0, 2.0], csd, nbins=3, seed=1)
 
         var = [s._amp**2 / 2.0 for s in y._dofs]
         np.testing.assert_allclose(var, [4.0 / 9.0, 10.0 / 9.0, 4.0 / 9.0])
@@ -1047,7 +1013,7 @@ class Test_from_csd:
         freq = np.linspace(0.0, 1.0, 1001)
         psd = np.where(np.abs(freq - 0.25) <= 0.005, 1.0, 0.0)
 
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
+        (y,) = dofs_from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
 
         # The peak is split equally between the two neighbouring bins, and the
         # empty bins are dropped
@@ -1062,7 +1028,7 @@ class Test_from_csd:
         freq = [0.0, 0.5, 1.0, 1.5, 2.0]
         psd = np.array([0.0, 0.0, 2.0, 0.0, 0.0])
 
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
+        (y,) = dofs_from_csd(freq, psd.reshape(-1, 1, 1), nbins=4, seed=1)
 
         freq_k = np.array([s._w for s in y._dofs]) / (2.0 * np.pi)
         np.testing.assert_allclose(freq_k, [0.75, 1.25])
@@ -1070,7 +1036,7 @@ class Test_from_csd:
 
     def test_fully_coherent(self, freq, psd):
         # y_1 is y_0 scaled by 2 and phase shifted by +90 degrees
-        y0, y1 = from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), nbins=5, seed=1)
+        y0, y1 = dofs_from_csd(freq, self.csd_2x2(psd, 2.0j, 1.0), nbins=5, seed=1)
 
         amp0 = np.array([s._amp for s in y0._dofs])
         amp1 = np.array([s._amp for s in y1._dofs])
@@ -1087,24 +1053,24 @@ class Test_from_csd:
     def test_energy_spread_over_sub_bins(self, freq, psd):
         # Hermitian square root of a fully coherent CSD with equal PSDs splits
         # each bin's energy equally between its two sub-bins
-        dofs = from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), nbins=5, seed=1)
+        dofs = dofs_from_csd(freq, self.csd_2x2(psd, 1.0, 1.0), nbins=5, seed=1)
 
         for dof in dofs:
             amp = np.array([s._amp for s in dof._dofs]).reshape(5, 2)
             np.testing.assert_allclose(amp[:, 0], amp[:, 1])
 
     def test_zero_csd(self, freq):
-        dofs = from_csd(freq, np.zeros((freq.size, 2, 2)), nbins=5, seed=1)
+        dofs = dofs_from_csd(freq, np.zeros((freq.size, 2, 2)), nbins=5, seed=1)
 
         t = np.linspace(0.0, 1.0, 100)
         for dof in dofs:
-            assert isinstance(dof, Constant)
+            assert isinstance(dof, ConstantDOF)
             np.testing.assert_allclose(dof.y(t), 0.0)
 
     def test_roundoff_negative_eigenvalue(self):
         # Eigenvalues 2.0 and -1e-14 are accepted as positive semidefinite
         csd = np.tile([[1.0, 1.0 + 1e-14], [1.0 + 1e-14, 1.0]], (3, 1, 1))
-        dofs = from_csd([0.0, 1.0, 2.0], csd, nbins=2, seed=1)
+        dofs = dofs_from_csd([0.0, 1.0, 2.0], csd, nbins=2, seed=1)
 
         var = [sum(s._amp**2 / 2.0 for s in dof._dofs) for dof in dofs]
         np.testing.assert_allclose(var, [2.0, 2.0])
@@ -1112,8 +1078,8 @@ class Test_from_csd:
     @pytest.mark.parametrize("jitter", [0.5, 1.0])
     def test_jitter(self, freq, psd, jitter):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        y0, y1 = from_csd(freq, csd, nbins=2, jitter=jitter, seed=1)
-        y0_ref, _ = from_csd(freq, csd, nbins=2, seed=1)
+        y0, y1 = dofs_from_csd(freq, csd, nbins=2, jitter=jitter, seed=1)
+        y0_ref, _ = dofs_from_csd(freq, csd, nbins=2, seed=1)
 
         df_sub = 0.25
         freq_center = np.array([0.125, 0.375, 0.625, 0.875])
@@ -1135,9 +1101,9 @@ class Test_from_csd:
 
     def test_seed(self, freq, psd):
         csd = self.csd_2x2(psd, 2.0, 0.5)
-        phase1 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
-        phase2 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
-        phase3 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=2)[0]._dofs]
+        phase1 = [s._phase for s in dofs_from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+        phase2 = [s._phase for s in dofs_from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+        phase3 = [s._phase for s in dofs_from_csd(freq, csd, nbins=10, seed=2)[0]._dofs]
 
         np.testing.assert_allclose(phase1, phase2)
         assert not np.allclose(phase1, phase3)
@@ -1145,8 +1111,10 @@ class Test_from_csd:
     def test_seed_generator(self, freq, psd):
         csd = self.csd_2x2(psd, 2.0, 0.5)
         rng = np.random.default_rng(1)
-        phase1 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=rng)[0]._dofs]
-        phase2 = [s._phase for s in from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
+        phase1 = [
+            s._phase for s in dofs_from_csd(freq, csd, nbins=10, seed=rng)[0]._dofs
+        ]
+        phase2 = [s._phase for s in dofs_from_csd(freq, csd, nbins=10, seed=1)[0]._dofs]
 
         np.testing.assert_allclose(phase1, phase2)
 
@@ -1154,7 +1122,7 @@ class Test_from_csd:
         from scipy.signal import csd as scipy_csd
 
         csd = self.csd_2x2(psd, 2.0j, 0.5)
-        y0, y1 = from_csd(freq, csd, nbins=250, jitter=1.0, seed=1)
+        y0, y1 = dofs_from_csd(freq, csd, nbins=250, jitter=1.0, seed=1)
 
         fs = 2.0
         t = np.arange(0.0, 20_000.0, 1.0 / fs)
@@ -1168,7 +1136,7 @@ class Test_from_csd:
                 )
 
     def test_numpy_integer_nbins(self, freq, psd):
-        (y,) = from_csd(freq, psd.reshape(-1, 1, 1), nbins=np.int64(10), seed=1)
+        (y,) = dofs_from_csd(freq, psd.reshape(-1, 1, 1), nbins=np.int64(10), seed=1)
 
         assert len(y._dofs) == 10
 
@@ -1184,7 +1152,7 @@ class Test_from_csd:
     )
     def test_raises_freq(self, freq, match):
         with pytest.raises(ValueError, match=match):
-            from_csd(freq, np.ones((2, 1, 1)), nbins=10)
+            dofs_from_csd(freq, np.ones((2, 1, 1)), nbins=10)
 
     @pytest.mark.parametrize(
         "csd, match",
@@ -1201,14 +1169,14 @@ class Test_from_csd:
     )
     def test_raises_csd(self, csd, match):
         with pytest.raises(ValueError, match=match):
-            from_csd([0.0, 1.0, 2.0], csd, nbins=10)
+            dofs_from_csd([0.0, 1.0, 2.0], csd, nbins=10)
 
     @pytest.mark.parametrize("nbins", [0, -1, 1.5])
     def test_raises_nbins(self, freq, psd, nbins):
         with pytest.raises(ValueError, match="positive integer"):
-            from_csd(freq, psd.reshape(-1, 1, 1), nbins=nbins)
+            dofs_from_csd(freq, psd.reshape(-1, 1, 1), nbins=nbins)
 
     @pytest.mark.parametrize("jitter", [-0.1, 1.1, np.nan])
     def test_raises_jitter(self, freq, psd, jitter):
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
-            from_csd(freq, psd.reshape(-1, 1, 1), nbins=10, jitter=jitter)
+            dofs_from_csd(freq, psd.reshape(-1, 1, 1), nbins=10, jitter=jitter)
