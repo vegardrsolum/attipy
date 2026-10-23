@@ -99,6 +99,19 @@ class Motion:
             roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
             pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
             yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+        elif preset.lower() == "vessel-6dof":
+            csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
+            f, csd = _load_csd(str(csd_path))
+            x, y, z, roll, pitch, yaw = dofs_from_csd(
+                f, csd, nbins=50, jitter=1.0, seed=1
+            )
+        elif preset.lower() == "vessel-3dof":
+            csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
+            f, csd = _load_csd(str(csd_path))
+            *_, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
+            x = Constant(0.0)
+            y = Constant(0.0)
+            z = Constant(0.0)
         else:
             raise ValueError(f"Unknown motion preset '{preset}'.")
 
