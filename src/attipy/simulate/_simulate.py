@@ -320,7 +320,7 @@ def trajectory(
     g_n = _gravity_nav(g, nav_frame)
 
     if not isinstance(motion, Motion):
-        motion = Motion.from_preset(motion)
+        motion = Motion.from_preset(motion, nav_frame=nav_frame)
 
     # Time
     dt = 1.0 / fs
