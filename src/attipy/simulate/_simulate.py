@@ -63,12 +63,19 @@ class Motion:
         """
         Create a Motion instance from a preset configuration.
 
+        The available presets are:
+        - 'stationary': No motion; all degrees of freedom remain constant at the origin.
+        - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
+        - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+        - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
+        - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
+
         Parameters
         ----------
         preset : str
             Name of the preset motion.
         nav_frame : {'NED', 'ENU'}
-            Navigation frame in which the motion is defined relative to. Should
+            Navigation frame in which the motion will be defined relative to. Should
             be 'NED' (North-East-Down) or 'ENU' (East-North-Up). Defaults to 'NED'.
         """
 
