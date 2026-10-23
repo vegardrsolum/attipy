@@ -282,17 +282,10 @@ def trajectory(
         (East-North-Up). Defaults to 'NED'.
     motion : str or Motion, optional
         Specifies the type of motion to generate. Either a custom ``Motion``
-        instance, or a string specifying one of the predefined types of motion:
-
-        - 'stationary': No motion; all degrees of freedom remain constant at the origin.
-        - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
-        - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
-        - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
-        - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
-
-        Predefined motions are adapted to ``nav_frame``; custom ``Motion`` instances
-        are used as-is, and must therefore represent motion relative to ``nav_frame``.
-        Defaults to 'beat-6dof'.
+        instance, or a string naming one of the predefined types of motion (see
+        ``Motion.from_preset``). Presets are adapted to ``nav_frame``, while
+        ``Motion`` instances are used as-is and must therefore be defined relative
+        to ``nav_frame``. Defaults to 'beat-6dof'.
 
     Returns
     -------
