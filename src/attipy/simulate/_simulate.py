@@ -59,9 +59,26 @@ class Motion:
                 raise TypeError(f"'{f.name}' must be a DOF instance.")
 
     @classmethod
-    def from_preset(cls, preset: str) -> "Motion":
+    def from_preset(cls, preset: str, nav_frame: str = "NED") -> "Motion":
+        """
+        Create a Motion instance from a preset configuration.
+
+        Parameters
+        ----------
+        preset : str
+            Name of the preset motion.
+        nav_frame : {'NED', 'ENU'}
+            Navigation frame in which the motion is defined relative to. Should
+            be 'NED' (North-East-Down) or 'ENU' (East-North-Up). Defaults to 'NED'.
+        """
+
         if preset.lower() == "stationary":
-            return cls()
+            x = Constant(0.0)
+            y = Constant(0.0)
+            z = Constant(0.0)
+            roll = Constant(0.0)
+            pitch = Constant(0.0)
+            yaw = Constant(0.0)
         elif preset.lower() == "beat-6dof":
             w_main = 2.0 * np.pi * 0.1
             w_beat = 2.0 * np.pi * 0.01
@@ -72,16 +89,28 @@ class Motion:
             roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
             pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
             yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
-            return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
         elif preset.lower() == "beat-3dof":
             w_main = 2.0 * np.pi * 0.1
             w_beat = 2.0 * np.pi * 0.01
             phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
+            x = Constant(0.0)
+            y = Constant(0.0)
+            z = Constant(0.0)
             roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
             pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
             yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
-            return cls(roll=roll, pitch=pitch, yaw=yaw)
-        raise ValueError(f"Unknown motion preset '{preset}'.")
+        else:
+            raise ValueError(f"Unknown motion preset '{preset}'.")
+
+        if nav_frame.lower() == "enu":
+            y = multiply(-1, y)
+            z = multiply(-1, z)
+            pitch = multiply(-1, pitch)
+            yaw = multiply(-1, yaw)
+        elif nav_frame.lower() != "ned":
+            raise ValueError(f"Unknown navigation frame '{nav_frame}'.")
+
+        return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
 
 def _stationary() -> Motion:
