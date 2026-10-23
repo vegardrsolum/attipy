@@ -498,7 +498,7 @@ def ramp_up(dof: DOF | float, /, *, duration: float = 100.0, start: float = 0.0)
     return multiply(_SmootherStep(duration=duration, start=start), dof)
 
 
-def from_csd(
+def dofs_from_csd(
     f: ArrayLike,
     csd: ArrayLike,
     /,
