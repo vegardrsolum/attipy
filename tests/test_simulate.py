@@ -5,17 +5,16 @@ import attipy as ap
 from attipy._transforms import _matrix_from_euler_zyx
 from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
-    _MOTION_PRESETS,
     _PACKAGE_PATH,
     Motion,
     _angular_velocity_body,
     _load_csd,
     _sample_motion,
     _specific_force_body,
-    _z_down_to_z_up,
 )
 
 VESSEL_CSD_PATH = str(_PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz"))
+PRESETS = ("stationary", "beat-6dof", "beat-3dof", "vessel-6dof", "vessel-3dof")
 
 
 class Test_load_csd:
@@ -48,90 +47,6 @@ class Test_load_csd:
         assert np.all(np.diff(f) > 0.0)
         np.testing.assert_allclose(csd, np.conj(np.swapaxes(csd, 1, 2)))
         assert np.all(np.linalg.eigvalsh(csd) > -1e-12)
-
-
-class Test_motion_presets:
-    NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
-
-    def test_keys(self):
-        assert set(_MOTION_PRESETS) == {
-            "stationary",
-            "beat-6dof",
-            "beat-3dof",
-            "vessel-6dof",
-            "vessel-3dof",
-        }
-
-    @pytest.mark.parametrize("name", list(_MOTION_PRESETS))
-    def test_returns_new_motion(self, name):
-        make_motion = _MOTION_PRESETS[name]
-        motion = make_motion()
-
-        assert isinstance(motion, Motion)
-        assert make_motion() is not motion
-
-    @pytest.mark.parametrize("name", ["beat-3dof", "vessel-3dof"])
-    def test_3dof_matches_6dof_rotations(self, name):
-        t = np.linspace(0.0, 100.0, 1001)
-        motion_3dof = _MOTION_PRESETS[name]()
-        motion_6dof = _MOTION_PRESETS[name.replace("3dof", "6dof")]()
-
-        for dof_name in ("x", "y", "z"):
-            np.testing.assert_allclose(getattr(motion_3dof, dof_name).y(t), 0.0)
-
-        for dof_name in ("roll", "pitch", "yaw"):
-            for out, out_expect in zip(
-                getattr(motion_3dof, dof_name)(t), getattr(motion_6dof, dof_name)(t)
-            ):
-                np.testing.assert_allclose(out, out_expect)
-
-    def test_vessel_6dof_deterministic(self):
-        t = np.linspace(0.0, 100.0, 1001)
-        motion_a = _MOTION_PRESETS["vessel-6dof"]()
-        motion_b = _MOTION_PRESETS["vessel-6dof"]()
-
-        for name in self.NAMES:
-            for out_a, out_b in zip(
-                getattr(motion_a, name)(t), getattr(motion_b, name)(t)
-            ):
-                np.testing.assert_array_equal(out_a, out_b)
-
-    def test_vessel_6dof_matches_csd(self):
-        f, csd = _load_csd(VESSEL_CSD_PATH)
-        motion = _MOTION_PRESETS["vessel-6dof"]()
-        dofs = [getattr(motion, name) for name in self.NAMES]
-
-        omega = sorted({s._w for d in dofs for s in d._dofs})
-        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
-        for i, d in enumerate(dofs):
-            for s in d._dofs:
-                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
-
-        np.testing.assert_allclose(
-            z.conj() @ z.T / 2.0, np.trapezoid(csd, f, axis=0), atol=1e-12
-        )
-
-
-class Test_z_down_to_z_up:
-    def test_signs(self):
-        t = np.linspace(0.0, 10.0, 101)
-        names = ("x", "y", "z", "roll", "pitch", "yaw")
-        signs = (1.0, -1.0, -1.0, 1.0, -1.0, -1.0)
-        motion = Motion(
-            **{
-                name: Beat(amp=i + 1.0, omega=0.5 + 0.1 * i, omega_beat=0.05, phase=i)
-                for i, name in enumerate(names)
-            }
-        )
-
-        motion_z_up = _z_down_to_z_up(motion)
-
-        assert isinstance(motion_z_up, Motion)
-        for name, sign in zip(names, signs):
-            for out, out_expect in zip(
-                getattr(motion_z_up, name)(t), getattr(motion, name)(t)
-            ):
-                np.testing.assert_allclose(out, sign * out_expect)
 
 
 class Test_Motion:
@@ -175,6 +90,102 @@ class Test_Motion:
     def test_not_iterable(self):
         with pytest.raises(TypeError):
             iter(Motion())
+
+    @pytest.mark.parametrize("preset", PRESETS)
+    def test_from_preset_returns_new_motion(self, preset):
+        motion = Motion.from_preset(preset)
+
+        assert isinstance(motion, Motion)
+        assert Motion.from_preset(preset) is not motion
+
+    @pytest.mark.parametrize("preset", ["beat-3dof", "vessel-3dof"])
+    def test_from_preset_3dof_matches_6dof_rotations(self, preset):
+        t = np.linspace(0.0, 100.0, 1001)
+        motion_3dof = Motion.from_preset(preset)
+        motion_6dof = Motion.from_preset(preset.replace("3dof", "6dof"))
+
+        for dof_name in ("x", "y", "z"):
+            np.testing.assert_allclose(getattr(motion_3dof, dof_name).y(t), 0.0)
+
+        for dof_name in ("roll", "pitch", "yaw"):
+            for out, out_expect in zip(
+                getattr(motion_3dof, dof_name)(t), getattr(motion_6dof, dof_name)(t)
+            ):
+                np.testing.assert_allclose(out, out_expect)
+
+    def test_from_preset_vessel_6dof_deterministic(self):
+        t = np.linspace(0.0, 100.0, 1001)
+        motion_a = Motion.from_preset("vessel-6dof")
+        motion_b = Motion.from_preset("vessel-6dof")
+
+        for name in self.NAMES:
+            for out_a, out_b in zip(
+                getattr(motion_a, name)(t), getattr(motion_b, name)(t)
+            ):
+                np.testing.assert_array_equal(out_a, out_b)
+
+    def test_from_preset_vessel_6dof_matches_csd(self):
+        f, csd = _load_csd(VESSEL_CSD_PATH)
+        motion = Motion.from_preset("vessel-6dof")
+        dofs = [getattr(motion, name) for name in self.NAMES]
+
+        omega = sorted({s._w for d in dofs for s in d._dofs})
+        z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
+        for i, d in enumerate(dofs):
+            for s in d._dofs:
+                z[i, omega.index(s._w)] = s._amp * np.exp(1j * s._phase)
+
+        np.testing.assert_allclose(
+            z.conj() @ z.T / 2.0, np.trapezoid(csd, f, axis=0), atol=1e-12
+        )
+
+    @pytest.mark.parametrize("preset", PRESETS)
+    def test_from_preset_nav_frame_enu(self, preset):
+        # ENU is a 180 degree rotation about x, which negates y, z, pitch and yaw
+        t = np.linspace(0.0, 10.0, 101)
+        signs = (1.0, -1.0, -1.0, 1.0, -1.0, -1.0)
+        motion_ned = Motion.from_preset(preset, nav_frame="NED")
+        motion_enu = Motion.from_preset(preset, nav_frame="ENU")
+
+        for name, sign in zip(self.NAMES, signs):
+            for out, out_expect in zip(
+                getattr(motion_enu, name)(t), getattr(motion_ned, name)(t)
+            ):
+                np.testing.assert_allclose(out, sign * out_expect)
+
+    def test_from_preset_nav_frame_default_ned(self):
+        t = np.linspace(0.0, 10.0, 101)
+        motion = Motion.from_preset("beat-6dof")
+        motion_ned = Motion.from_preset("beat-6dof", nav_frame="NED")
+
+        for name in self.NAMES:
+            for out, out_expect in zip(
+                getattr(motion, name)(t), getattr(motion_ned, name)(t)
+            ):
+                np.testing.assert_array_equal(out, out_expect)
+
+    @pytest.mark.parametrize(
+        "preset, nav_frame", [("BEAT-6DOF", "ned"), ("Vessel-3dof", "Enu")]
+    )
+    def test_from_preset_case_insensitive(self, preset, nav_frame):
+        t = np.linspace(0.0, 10.0, 101)
+        motion = Motion.from_preset(preset, nav_frame=nav_frame)
+        motion_expect = Motion.from_preset(preset.lower(), nav_frame=nav_frame.upper())
+
+        for name in self.NAMES:
+            for out, out_expect in zip(
+                getattr(motion, name)(t), getattr(motion_expect, name)(t)
+            ):
+                np.testing.assert_array_equal(out, out_expect)
+
+    def test_from_preset_raises(self):
+        with pytest.raises(ValueError, match="Unknown motion preset"):
+            Motion.from_preset("invalid")
+
+    @pytest.mark.parametrize("nav_frame", ["invalid", "NEU"])
+    def test_from_preset_nav_frame_raises(self, nav_frame):
+        with pytest.raises(ValueError, match="Unknown navigation frame"):
+            Motion.from_preset("beat-6dof", nav_frame=nav_frame)
 
 
 class Test_specific_force_body:
@@ -439,7 +450,7 @@ class Test_trajectory:
         # No translation -> specific force is gravity only
         np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
 
-    @pytest.mark.parametrize("motion", list(_MOTION_PRESETS))
+    @pytest.mark.parametrize("motion", PRESETS)
     def test_motion_preset_enu(self, motion):
         kwargs = {"n": 100, "motion": motion}
         t_ned, *out_ned = ap.simulate.trajectory(nav_frame="NED", **kwargs)
@@ -483,10 +494,9 @@ class Test_trajectory:
         for arr, arr_expect in zip(out, out_expect):
             np.testing.assert_allclose(arr, arr_expect)
 
-    @pytest.mark.parametrize("motion", ["invalid", None, 1.0, np.array([1, 2])])
-    def test_motion_raises(self, motion):
-        with pytest.raises(ValueError, match="Unknown motion type"):
-            ap.simulate.trajectory(motion=motion)
+    def test_motion_raises(self):
+        with pytest.raises(ValueError, match="Unknown motion preset"):
+            ap.simulate.trajectory(motion="invalid")
 
     def test_fs_raises(self):
         with pytest.raises(ValueError):

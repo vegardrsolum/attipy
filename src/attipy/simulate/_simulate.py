@@ -109,6 +109,7 @@ class Motion:
 
         return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
+
 def _stationary() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     x = Constant(0.0)
     y = Constant(0.0)
@@ -145,6 +146,7 @@ def _vessel_6dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
     return x, y, z, roll, pitch, yaw
+
 
 def _vessel_3dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     x = Constant(0.0)
