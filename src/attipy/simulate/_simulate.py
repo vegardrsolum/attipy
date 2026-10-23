@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, fields, replace
+from dataclasses import dataclass, field, fields
 from importlib import resources
 
 import numpy as np
@@ -73,45 +73,15 @@ class Motion:
         """
 
         if preset.lower() == "stationary":
-            x = Constant(0.0)
-            y = Constant(0.0)
-            z = Constant(0.0)
-            roll = Constant(0.0)
-            pitch = Constant(0.0)
-            yaw = Constant(0.0)
+            x, y, z, roll, pitch, yaw = _stationary()
         elif preset.lower() == "beat-6dof":
-            w_main = 2.0 * np.pi * 0.1
-            w_beat = 2.0 * np.pi * 0.01
-            phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
-            x = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0])
-            y = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1])
-            z = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2])
-            roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
-            pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
-            yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+            x, y, z, roll, pitch, yaw = _beat_6dof()
         elif preset.lower() == "beat-3dof":
-            w_main = 2.0 * np.pi * 0.1
-            w_beat = 2.0 * np.pi * 0.01
-            phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
-            x = Constant(0.0)
-            y = Constant(0.0)
-            z = Constant(0.0)
-            roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
-            pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
-            yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+            x, y, z, roll, pitch, yaw = _beat_3dof()
         elif preset.lower() == "vessel-6dof":
-            csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
-            f, csd = _load_csd(str(csd_path))
-            x, y, z, roll, pitch, yaw = dofs_from_csd(
-                f, csd, nbins=50, jitter=1.0, seed=1
-            )
+            x, y, z, roll, pitch, yaw = _vessel_6dof()
         elif preset.lower() == "vessel-3dof":
-            csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
-            f, csd = _load_csd(str(csd_path))
-            *_, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
-            x = Constant(0.0)
-            y = Constant(0.0)
-            z = Constant(0.0)
+            x, y, z, roll, pitch, yaw = _vessel_3dof()
         else:
             raise ValueError(f"Unknown motion preset '{preset}'.")
 
@@ -125,97 +95,49 @@ class Motion:
 
         return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
+def _stationary() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll = Constant(0.0)
+    pitch = Constant(0.0)
+    yaw = Constant(0.0)
+    return x, y, z, roll, pitch, yaw
 
-def _stationary() -> Motion:
-    """
-    Stationary/standstill motion with all DOFs set to zero.
-    """
-    return Motion()
 
-
-def _beat_6dof() -> Motion:
-    """
-    Beat motion in all six degrees of freedom.
-    """
+def _beat_6dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     w_main = 2.0 * np.pi * 0.1
     w_beat = 2.0 * np.pi * 0.01
     phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
-    motion = Motion(
-        x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
-        y=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
-        z=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
-        roll=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
-        pitch=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
-        yaw=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
-    )
-    return motion
+    x = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0])
+    y = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1])
+    z = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2])
+    roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
+    pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
+    yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+    return x, y, z, roll, pitch, yaw
 
 
-def _beat_3dof() -> Motion:
-    """
-    Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
-    translational degrees of freedom (x, y, z) are set to zero.
-    """
-    motion = replace(
-        _beat_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
-    )
-    return motion
+def _beat_3dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll, pitch, yaw = _beat_6dof()[3:]
+    return x, y, z, roll, pitch, yaw
 
 
-def _vessel_6dof() -> Motion:
-    """
-    Wave-induced vessel response in all six degrees of freedom.
-
-    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
-    north-east-down (NED) navigation frame.
-    """
+def _vessel_6dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
-    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
+    return x, y, z, roll, pitch, yaw
 
-
-def _vessel_3dof() -> Motion:
-    """
-    Wave-induced vessel response in the rotational degrees of freedom.
-
-    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
-    north-east-down (NED) navigation frame.
-    """
-    motion = replace(
-        _vessel_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
-    )
-    return motion
-
-
-_MOTION_PRESETS = {
-    "stationary": _stationary,
-    "beat-6dof": _beat_6dof,
-    "beat-3dof": _beat_3dof,
-    "vessel-6dof": _vessel_6dof,
-    "vessel-3dof": _vessel_3dof,
-}
-
-
-def _z_down_to_z_up(motion_down: Motion) -> Motion:
-    """
-    Converts a motion from a z-down to a z-up frame by a 180 degree rotation
-    about the x-axis, which negates y, z, pitch and yaw.
-    """
-    motion_up = replace(
-        motion_down,
-        y=multiply(-1.0, motion_down.y),
-        z=multiply(-1.0, motion_down.z),
-        pitch=multiply(-1.0, motion_down.pitch),
-        yaw=multiply(-1.0, motion_down.yaw),
-    )
-    return motion_up
+def _vessel_3dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll, pitch, yaw = _vessel_6dof()[3:]
+    return x, y, z, roll, pitch, yaw
 
 
 def _specific_force_body(
@@ -391,13 +313,7 @@ def trajectory(
     g_n = _gravity_nav(g, nav_frame)
 
     if not isinstance(motion, Motion):
-        try:
-            make_motion = _MOTION_PRESETS[motion.lower()]
-        except (KeyError, AttributeError):
-            raise ValueError(f"Unknown motion type: {motion!r}.") from None
-        motion = make_motion()
-        if nav_frame.lower() == "enu":
-            motion = _z_down_to_z_up(motion)
+        motion = Motion.from_preset(motion)
 
     # Time
     dt = 1.0 / fs
