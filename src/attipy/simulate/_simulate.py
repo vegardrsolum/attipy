@@ -62,6 +62,25 @@ class Motion:
     def from_preset(cls, preset: str) -> "Motion":
         if preset.lower() == "stationary":
             return cls()
+        elif preset.lower() == "beat-6dof":
+            w_main = 2.0 * np.pi * 0.1
+            w_beat = 2.0 * np.pi * 0.01
+            phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
+            x = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0])
+            y = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1])
+            z = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2])
+            roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
+            pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
+            yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+            return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
+        elif preset.lower() == "beat-3dof":
+            w_main = 2.0 * np.pi * 0.1
+            w_beat = 2.0 * np.pi * 0.01
+            phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
+            roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
+            pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
+            yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+            return cls(roll=roll, pitch=pitch, yaw=yaw)
         raise ValueError(f"Unknown motion preset '{preset}'.")
 
 
