@@ -58,6 +58,12 @@ class Motion:
             if not isinstance(getattr(self, f.name), DOF):
                 raise TypeError(f"'{f.name}' must be a DOF instance.")
 
+    @classmethod
+    def from_preset(cls, preset: str) -> "Motion":
+        if preset.lower() == "stationary":
+            return cls()
+        raise ValueError(f"Unknown motion preset '{preset}'.")
+
 
 def _stationary() -> Motion:
     """
