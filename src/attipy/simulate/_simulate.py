@@ -103,10 +103,10 @@ class Motion:
             raise ValueError(f"Unknown motion preset '{preset}'.")
 
         if nav_frame.lower() == "enu":
-            y = multiply(-1, y)
-            z = multiply(-1, z)
-            pitch = multiply(-1, pitch)
-            yaw = multiply(-1, yaw)
+            y = multiply(-1.0, y)
+            z = multiply(-1.0, z)
+            pitch = multiply(-1.0, pitch)
+            yaw = multiply(-1.0, yaw)
         elif nav_frame.lower() != "ned":
             raise ValueError(f"Unknown navigation frame '{nav_frame}'.")
 
