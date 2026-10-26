@@ -86,6 +86,9 @@ class Motion:
             Motion instance corresponding to the specified preset and navigation frame.
         """
 
+        if not isinstance(preset, str):
+            raise TypeError("'preset' must be a string.")
+
         if preset.lower() == "stationary":
             x, y, z, roll, pitch, yaw = _stationary()
         elif preset.lower() == "beat-6dof":

@@ -182,6 +182,11 @@ class Test_Motion:
         with pytest.raises(ValueError, match="Unknown motion preset"):
             Motion.from_preset("invalid")
 
+    @pytest.mark.parametrize("preset", [None, 1.0, np.array([1, 2])])
+    def test_from_preset_non_str_raises(self, preset):
+        with pytest.raises(TypeError, match="'preset' must be a string"):
+            Motion.from_preset(preset)
+
     @pytest.mark.parametrize("nav_frame", ["invalid", "NEU"])
     def test_from_preset_nav_frame_raises(self, nav_frame):
         with pytest.raises(ValueError, match="Unknown navigation frame"):
@@ -497,6 +502,11 @@ class Test_trajectory:
     def test_motion_raises(self):
         with pytest.raises(ValueError, match="Unknown motion preset"):
             ap.simulate.trajectory(motion="invalid")
+
+    @pytest.mark.parametrize("motion", [None, 1.0, np.array([1, 2])])
+    def test_motion_non_str_raises(self, motion):
+        with pytest.raises(TypeError, match="'preset' must be a string"):
+            ap.simulate.trajectory(motion=motion)
 
     def test_fs_raises(self):
         with pytest.raises(ValueError):
