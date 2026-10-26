@@ -61,12 +61,12 @@ class Motion:
     @classmethod
     def from_preset(cls, preset: str, nav_frame: str = "NED") -> "Motion":
         """
-        Create a predefined motion.
+        Create a Motion instance from a preset.
 
         Parameters
         ----------
         preset : str
-            Name of the preset motion (case-insensitive). One of:
+            Preset name (case-insensitive). One of:
 
             - 'stationary': No motion; all degrees of freedom remain constant at
               the origin.
@@ -77,13 +77,13 @@ class Motion:
             - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw
               only.
         nav_frame : {'NED', 'ENU'}, optional
-            Navigation frame that the motion is defined relative to. Either 'NED'
-            (North-East-Down) or 'ENU' (East-North-Up). Defaults to 'NED'.
+            Navigation frame in which the motion is defined relative to. Either
+            'NED' (North-East-Down) or 'ENU' (East-North-Up). Defaults to 'NED'.
 
         Returns
         -------
         Motion
-            The preset motion, defined relative to ``nav_frame``.
+            Motion instance corresponding to the specified preset and navigation frame.
         """
 
         if preset.lower() == "stationary":
