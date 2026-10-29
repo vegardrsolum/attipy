@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import attipy as ap
-from attipy._transforms import _matrix_from_euler_zyx
+from attipy._transforms import _matrix_from_euler_zyx, _matrix_from_euler_zyx_batch
 from attipy.simulate._dof import DOF, Beat, Constant
 from attipy.simulate._simulate import (
     _PACKAGE_PATH,
@@ -219,6 +219,43 @@ class Test_specific_force_body:
             ]
         )
         np.testing.assert_allclose(f_b, expected)
+
+
+class Test_angular_velocity_body:
+    @pytest.mark.parametrize(
+        "euler, euler_dot, w_expect",
+        [
+            ([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
+            ([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]),
+            ([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0]),
+            ([0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0]),  # yaw-invariant
+            ([np.pi / 2, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]),
+            ([np.pi / 2, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]),
+            ([0.0, np.pi / 2, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0]),
+        ],
+    )
+    def test_single_axis(self, euler, euler_dot, w_expect):
+        w_b = _angular_velocity_body(np.array([euler]), np.array([euler_dot]))
+
+        np.testing.assert_allclose(w_b, [w_expect], atol=1e-12)
+
+    def test_matches_rotation_matrix_derivative(self):
+        # Poisson's kinematic equation: dR_nb/dt = R_nb @ S(w_b)
+        rng = np.random.default_rng(0)
+        euler = rng.uniform(-np.pi / 2 + 0.1, np.pi / 2 - 0.1, size=(100, 3))
+        euler_dot = rng.standard_normal((100, 3))
+        h = 1e-6
+
+        w_b = _angular_velocity_body(euler, euler_dot)
+
+        R = _matrix_from_euler_zyx_batch(euler)
+        R_dot = (
+            _matrix_from_euler_zyx_batch(euler + h * euler_dot)
+            - _matrix_from_euler_zyx_batch(euler - h * euler_dot)
+        ) / (2.0 * h)
+        S = np.einsum("nji,njk->nik", R, R_dot)
+        expected = np.column_stack([S[:, 2, 1], S[:, 0, 2], S[:, 1, 0]])
+        np.testing.assert_allclose(w_b, expected, atol=1e-8)
 
 
 class Test_sample_motion:
