@@ -59,7 +59,7 @@ class Motion:
                 raise TypeError(f"'{f.name}' must be a DOF instance.")
 
     @classmethod
-    def from_preset(cls, preset: str, nav_frame: str = "NED") -> "Motion":
+    def from_preset(cls, preset: str, *, nav_frame: str = "NED") -> "Motion":
         """
         Create a Motion instance from a preset.
 
@@ -108,7 +108,7 @@ class Motion:
             pitch = multiply(-1.0, pitch)
             yaw = multiply(-1.0, yaw)
         elif nav_frame.lower() != "ned":
-            raise ValueError(f"Unknown navigation frame '{nav_frame}'.")
+            raise ValueError(f"Unknown navigation frame: '{nav_frame}'.")
 
         return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
