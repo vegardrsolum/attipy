@@ -15,6 +15,29 @@ from attipy.simulate._simulate import (
 
 VESSEL_CSD_PATH = str(_PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz"))
 PRESETS = ("stationary", "beat-6dof", "beat-3dof", "vessel-6dof", "vessel-3dof")
+NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
+
+
+def _eval_motion(motion, t):
+    """
+    Evaluate all DOFs of a motion. Returns an ndarray of shape (6, 3, n), with
+    the DOFs ordered as in ``NAMES``, and (y, dydt, d2ydt2) along the second axis.
+    """
+    return np.array([getattr(motion, name)(t) for name in NAMES])
+
+
+def _strapdown_euler(fs, euler0, f_b, w_b):
+    """
+    Integrate attitude from IMU signals using the MEKF without aiding. Returns
+    the Euler angles, shape (n, 3).
+    """
+    q0 = ap.Attitude.from_euler(euler0, degrees=False).as_quaternion()
+    mekf = ap.MEKF(fs, q0=q0)
+    euler_est = [euler0]
+    for f_i, w_i in zip(f_b[1:], w_b[1:]):
+        mekf.update(f_i / fs, w_i / fs, gref=False)
+        euler_est.append(mekf.attitude.as_euler())
+    return np.array(euler_est)
 
 
 class Test_load_csd:
@@ -50,23 +73,20 @@ class Test_load_csd:
 
 
 class Test_Motion:
-    NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
-
     def test__init__(self):
-        dofs = {name: Constant(float(i)) for i, name in enumerate(self.NAMES)}
+        dofs = {name: Constant(float(i)) for i, name in enumerate(NAMES)}
         motion = Motion(**dofs)
 
-        for name in self.NAMES:
+        for name in NAMES:
             assert getattr(motion, name) is dofs[name]
 
     def test__init__default(self):
         t = np.linspace(0.0, 10.0, 100)
         motion = Motion()
 
-        for name in self.NAMES:
-            dof = getattr(motion, name)
-            assert isinstance(dof, Constant)
-            np.testing.assert_allclose(dof.y(t), np.zeros_like(t))
+        for name in NAMES:
+            assert isinstance(getattr(motion, name), Constant)
+        np.testing.assert_allclose(_eval_motion(motion, t), 0.0)
 
     def test__init__defaults_not_shared(self):
         assert Motion().x is not Motion().x
@@ -101,33 +121,23 @@ class Test_Motion:
     @pytest.mark.parametrize("preset", ["beat-3dof", "vessel-3dof"])
     def test_from_preset_3dof_matches_6dof_rotations(self, preset):
         t = np.linspace(0.0, 100.0, 1001)
-        motion_3dof = Motion.from_preset(preset)
-        motion_6dof = Motion.from_preset(preset.replace("3dof", "6dof"))
+        out_3dof = _eval_motion(Motion.from_preset(preset), t)
+        out_6dof = _eval_motion(Motion.from_preset(preset.replace("3dof", "6dof")), t)
 
-        for dof_name in ("x", "y", "z"):
-            np.testing.assert_allclose(getattr(motion_3dof, dof_name).y(t), 0.0)
-
-        for dof_name in ("roll", "pitch", "yaw"):
-            for out, out_expect in zip(
-                getattr(motion_3dof, dof_name)(t), getattr(motion_6dof, dof_name)(t)
-            ):
-                np.testing.assert_allclose(out, out_expect)
+        np.testing.assert_allclose(out_3dof[:3], 0.0)
+        np.testing.assert_allclose(out_3dof[3:], out_6dof[3:])
 
     def test_from_preset_vessel_6dof_deterministic(self):
         t = np.linspace(0.0, 100.0, 1001)
-        motion_a = Motion.from_preset("vessel-6dof")
-        motion_b = Motion.from_preset("vessel-6dof")
+        out_a = _eval_motion(Motion.from_preset("vessel-6dof"), t)
+        out_b = _eval_motion(Motion.from_preset("vessel-6dof"), t)
 
-        for name in self.NAMES:
-            for out_a, out_b in zip(
-                getattr(motion_a, name)(t), getattr(motion_b, name)(t)
-            ):
-                np.testing.assert_array_equal(out_a, out_b)
+        np.testing.assert_array_equal(out_a, out_b)
 
     def test_from_preset_vessel_6dof_matches_csd(self):
         f, csd = _load_csd(VESSEL_CSD_PATH)
         motion = Motion.from_preset("vessel-6dof")
-        dofs = [getattr(motion, name) for name in self.NAMES]
+        dofs = [getattr(motion, name) for name in NAMES]
 
         omega = sorted({s._w for d in dofs for s in d._dofs})
         z = np.zeros((len(dofs), len(omega)), dtype=np.complex128)
@@ -143,40 +153,30 @@ class Test_Motion:
     def test_from_preset_nav_frame_enu(self, preset):
         # ENU is a 180 degree rotation about x, which negates y, z, pitch and yaw
         t = np.linspace(0.0, 10.0, 101)
-        signs = (1.0, -1.0, -1.0, 1.0, -1.0, -1.0)
-        motion_ned = Motion.from_preset(preset, nav_frame="NED")
-        motion_enu = Motion.from_preset(preset, nav_frame="ENU")
+        signs = np.array([1.0, -1.0, -1.0, 1.0, -1.0, -1.0])[:, None, None]
+        out_ned = _eval_motion(Motion.from_preset(preset, nav_frame="NED"), t)
+        out_enu = _eval_motion(Motion.from_preset(preset, nav_frame="ENU"), t)
 
-        for name, sign in zip(self.NAMES, signs):
-            for out, out_expect in zip(
-                getattr(motion_enu, name)(t), getattr(motion_ned, name)(t)
-            ):
-                np.testing.assert_allclose(out, sign * out_expect)
+        np.testing.assert_allclose(out_enu, signs * out_ned)
 
     def test_from_preset_nav_frame_default_ned(self):
         t = np.linspace(0.0, 10.0, 101)
-        motion = Motion.from_preset("beat-6dof")
-        motion_ned = Motion.from_preset("beat-6dof", nav_frame="NED")
+        out = _eval_motion(Motion.from_preset("beat-6dof"), t)
+        out_expect = _eval_motion(Motion.from_preset("beat-6dof", nav_frame="NED"), t)
 
-        for name in self.NAMES:
-            for out, out_expect in zip(
-                getattr(motion, name)(t), getattr(motion_ned, name)(t)
-            ):
-                np.testing.assert_array_equal(out, out_expect)
+        np.testing.assert_array_equal(out, out_expect)
 
     @pytest.mark.parametrize(
         "preset, nav_frame", [("BEAT-6DOF", "ned"), ("Vessel-3dof", "Enu")]
     )
     def test_from_preset_case_insensitive(self, preset, nav_frame):
         t = np.linspace(0.0, 10.0, 101)
-        motion = Motion.from_preset(preset, nav_frame=nav_frame)
-        motion_expect = Motion.from_preset(preset.lower(), nav_frame=nav_frame.upper())
+        out = _eval_motion(Motion.from_preset(preset, nav_frame=nav_frame), t)
+        out_expect = _eval_motion(
+            Motion.from_preset(preset.lower(), nav_frame=nav_frame.upper()), t
+        )
 
-        for name in self.NAMES:
-            for out, out_expect in zip(
-                getattr(motion, name)(t), getattr(motion_expect, name)(t)
-            ):
-                np.testing.assert_array_equal(out, out_expect)
+        np.testing.assert_array_equal(out, out_expect)
 
     def test_from_preset_raises(self):
         with pytest.raises(ValueError, match="Unknown motion preset"):
@@ -273,9 +273,8 @@ class Test_sample_motion:
                 )
 
         t = np.zeros(4)
-        names = ("x", "y", "z", "roll", "pitch", "yaw")
         values = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-        dofs = Motion(**{name: SomeDOF(v) for name, v in zip(names, values)})
+        dofs = Motion(**{name: SomeDOF(v) for name, v in zip(NAMES, values)})
 
         pos, vel, acc, euler, euler_dot = _sample_motion(dofs, t)
 
@@ -293,9 +292,9 @@ class Test_trajectory:
         # Expected DOF signals
         phases = np.linspace(0, 2.0 * np.pi, 6, endpoint=False)
         beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        px, vx, _ = Beat(amp=1.0, phase=phases[0], **beat_kwargs)(t)
-        py, vy, _ = Beat(amp=1.0, phase=phases[1], **beat_kwargs)(t)
-        pz, vz, _ = Beat(amp=1.0, phase=phases[2], **beat_kwargs)(t)
+        px, vx, ax = Beat(amp=1.0, phase=phases[0], **beat_kwargs)(t)
+        py, vy, ay = Beat(amp=1.0, phase=phases[1], **beat_kwargs)(t)
+        pz, vz, az = Beat(amp=1.0, phase=phases[2], **beat_kwargs)(t)
         r, *_ = Beat(amp=0.1, phase=phases[3], **beat_kwargs)(t)
         p, *_ = Beat(amp=0.1, phase=phases[4], **beat_kwargs)(t)
         y, *_ = Beat(amp=0.1, phase=phases[5], **beat_kwargs)(t)
@@ -308,38 +307,26 @@ class Test_trajectory:
 
         # Position
         assert p_n.shape == (10_000, 3)
-        np.testing.assert_allclose(p_n[:, 0], px)
-        np.testing.assert_allclose(p_n[:, 1], py)
-        np.testing.assert_allclose(p_n[:, 2], pz)
+        np.testing.assert_allclose(p_n, np.column_stack([px, py, pz]))
 
         # Velocity
         assert v_n.shape == (10_000, 3)
-        np.testing.assert_allclose(v_n[:, 0], vx)
-        np.testing.assert_allclose(v_n[:, 1], vy)
-        np.testing.assert_allclose(v_n[:, 2], vz)
+        np.testing.assert_allclose(v_n, np.column_stack([vx, vy, vz]))
 
         # Euler angles
         assert euler_nb.shape == (10_000, 3)
-        np.testing.assert_allclose(euler_nb[:, 0], r)
-        np.testing.assert_allclose(euler_nb[:, 1], p)
-        np.testing.assert_allclose(euler_nb[:, 2], y)
+        np.testing.assert_allclose(euler_nb, np.column_stack([r, p, y]))
 
-        # Specific force
+        # Specific force rotated to the navigation frame, plus gravity, recovers
+        # the acceleration
         assert f_b.shape == (10_000, 3)
+        R_nb = _matrix_from_euler_zyx_batch(euler_nb)
+        a_n = np.einsum("nij,nj->ni", R_nb, f_b) + [0.0, 0.0, 9.80665]
+        np.testing.assert_allclose(a_n, np.column_stack([ax, ay, az]), atol=1e-12)
 
-        # Angular rate
+        # Angular rate validated by strapdown integration of attitude
         assert w_b.shape == (10_000, 3)
-
-        # Validate f and w by strapdown integration using MEKF (no aiding)
-        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs_expect, q0=q0)
-        euler_est = [euler_nb[0]]
-        for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i / fs_expect, w_i / fs_expect, gref=False)
-            euler_est.append(mekf.attitude.as_euler())
-        euler_est = np.array(euler_est)
-
-        # TODO: check also pos and vel when strapdown estimator is available
+        euler_est = _strapdown_euler(fs_expect, euler_nb[0], f_b, w_b)
         np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=2e-3)
 
     def test_fs_n(self):
@@ -355,24 +342,15 @@ class Test_trajectory:
         assert w_b.shape == (n, 3)
         np.testing.assert_allclose(t[1:] - t[:-1], 1 / fs)
 
-    def test_nav_frame(self):
-
-        # NED
-        *_, f_ned, _ = ap.simulate.trajectory(nav_frame="NED")
-        assert -10.0 < f_ned.mean(axis=0)[2] < -9.5
-
-        # ENU
-        *_, f_enu, _ = ap.simulate.trajectory(nav_frame="ENU")
-        assert 9.5 < f_enu.mean(axis=0)[2] < 10.0
-
     def test_nav_frame_raise(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown navigation frame"):
             ap.simulate.trajectory(nav_frame="invalid")
 
     def test_g(self):
-        g = 5.0
-        *_, f, _ = ap.simulate.trajectory(g=g)
-        assert -6.0 < f.mean(axis=0)[2] < -4
+        n = 100
+        *_, f_b, _ = ap.simulate.trajectory(n=n, g=5.0, motion="stationary")
+
+        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, -5.0], (n, 1)))
 
     def test_motion_default_is_beating(self):
         beating = ap.simulate.trajectory(n=100, motion="beat-6dof")
@@ -402,27 +380,22 @@ class Test_trajectory:
 
         np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, 9.80665], (n, 1)))
 
-    def test_motion_beat_3dof(self):
-        n = 100
-        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion="beat-3dof"
+    @pytest.mark.parametrize("motion", ["beat-3dof", "vessel-3dof"])
+    def test_motion_3dof(self, motion):
+        n = 1000
+        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(n=n, motion=motion)
+        *_, euler_6dof, _, w_6dof = ap.simulate.trajectory(
+            n=n, motion=motion.replace("3dof", "6dof")
         )
-
-        # Expected attitude DOF signals
-        beat_kwargs = {"omega": 2 * np.pi * 0.1, "omega_beat": 2 * np.pi * 0.01}
-        r, *_ = Beat(amp=0.1, phase=np.pi, **beat_kwargs)(t)
-        p, *_ = Beat(amp=0.1, phase=4 * np.pi / 3, **beat_kwargs)(t)
-        y, *_ = Beat(amp=0.1, phase=5 * np.pi / 3, **beat_kwargs)(t)
 
         # No translation
         np.testing.assert_allclose(p_n, np.zeros((n, 3)))
         np.testing.assert_allclose(v_n, np.zeros((n, 3)))
 
-        # Beating attitude
-        np.testing.assert_allclose(euler_nb[:, 0], r)
-        np.testing.assert_allclose(euler_nb[:, 1], p)
-        np.testing.assert_allclose(euler_nb[:, 2], y)
-        assert np.any(np.abs(w_b) > 0.0)
+        # Same rotations as 6DOF
+        np.testing.assert_allclose(euler_nb, euler_6dof)
+        np.testing.assert_allclose(w_b, w_6dof)
+        assert np.all(np.std(w_b, axis=0) > 0.0)
 
         # No translation -> specific force is gravity only
         np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
@@ -455,7 +428,7 @@ class Test_trajectory:
     def test_motion_vessel_6dof(self):
         fs = 10.0
         n = 1000
-        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
+        t, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
             fs=fs, n=n, motion="vessel-6dof"
         )
 
@@ -463,34 +436,16 @@ class Test_trajectory:
             assert arr.shape == (n, 3)
             assert np.all(np.std(arr, axis=0) > 0.0)
 
-        # Validate f and w by strapdown integration using MEKF (no aiding)
-        q0 = ap.Attitude.from_euler(euler_nb[0], degrees=False).as_quaternion()
-        mekf = ap.MEKF(fs, q0=q0)
-        euler_est = [euler_nb[0]]
-        for f_i, w_i in zip(f_b[1:], w_b[1:]):
-            mekf.update(f_i / fs, w_i / fs, gref=False)
-            euler_est.append(mekf.attitude.as_euler())
-        euler_est = np.array(euler_est)
+        # Specific force rotated to the navigation frame, plus gravity, recovers
+        # the acceleration
+        _, _, a_expect, _, _ = _sample_motion(Motion.from_preset("vessel-6dof"), t)
+        R_nb = _matrix_from_euler_zyx_batch(euler_nb)
+        a_n = np.einsum("nij,nj->ni", R_nb, f_b) + [0.0, 0.0, 9.80665]
+        np.testing.assert_allclose(a_n, a_expect, atol=1e-12)
 
+        # Angular rate validated by strapdown integration of attitude
+        euler_est = _strapdown_euler(fs, euler_nb[0], f_b, w_b)
         np.testing.assert_allclose(euler_est[:100], euler_nb[:100], atol=3e-3)
-
-    def test_motion_vessel_3dof(self):
-        n = 1000
-        _, p_n, v_n, euler_nb, f_b, w_b = ap.simulate.trajectory(
-            n=n, motion="vessel-3dof"
-        )
-        *_, euler_6dof, _, w_6dof = ap.simulate.trajectory(n=n, motion="vessel-6dof")
-
-        # No translation
-        np.testing.assert_allclose(p_n, np.zeros((n, 3)))
-        np.testing.assert_allclose(v_n, np.zeros((n, 3)))
-
-        # Same rotations as 6DOF
-        np.testing.assert_allclose(euler_nb, euler_6dof)
-        np.testing.assert_allclose(w_b, w_6dof)
-
-        # No translation -> specific force is gravity only
-        np.testing.assert_allclose(np.linalg.norm(f_b, axis=1), 9.80665)
 
     @pytest.mark.parametrize("motion", PRESETS)
     def test_motion_preset_enu(self, motion):
@@ -526,16 +481,6 @@ class Test_trajectory:
         g_b = R_nb.T @ np.array([0.0, 0.0, 9.80665])
         np.testing.assert_allclose(f_b, f_ned + 2.0 * g_b, atol=1e-12)
 
-    @pytest.mark.parametrize(
-        "motion", ["BEAT-6DOF", "Beat-3dof", "Stationary", "Vessel-6DOF", "VESSEL-3dof"]
-    )
-    def test_motion_case_insensitive(self, motion):
-        out = ap.simulate.trajectory(n=10, motion=motion)
-        out_expect = ap.simulate.trajectory(n=10, motion=motion.lower())
-
-        for arr, arr_expect in zip(out, out_expect):
-            np.testing.assert_allclose(arr, arr_expect)
-
     def test_motion_raises(self):
         with pytest.raises(ValueError, match="Unknown motion preset"):
             ap.simulate.trajectory(motion="invalid")
@@ -545,22 +490,22 @@ class Test_trajectory:
         with pytest.raises(TypeError, match="'preset' must be a string"):
             ap.simulate.trajectory(motion=motion)
 
-    def test_fs_raises(self):
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(fs=0.0)
+    @pytest.mark.parametrize("fs", [0.0, -10.0])
+    def test_fs_raises(self, fs):
+        with pytest.raises(ValueError, match="'fs' must be positive"):
+            ap.simulate.trajectory(fs=fs)
 
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(fs=-10.0)
-
-    def test_n_raises(self):
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(n=0)
-
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(n=-5)
-
-        with pytest.raises(ValueError):
-            ap.simulate.trajectory(n=10.7)
+    @pytest.mark.parametrize(
+        "n, match",
+        [
+            (0, "'n' must be positive"),
+            (-5, "'n' must be positive"),
+            (10.7, "'n' must be a whole number"),
+        ],
+    )
+    def test_n_raises(self, n, match):
+        with pytest.raises(ValueError, match=match):
+            ap.simulate.trajectory(n=n)
 
     def test_n_accepts_whole_valued_float(self):
         t, *_ = ap.simulate.trajectory(n=100.0)
