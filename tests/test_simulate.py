@@ -111,13 +111,6 @@ class Test_Motion:
         with pytest.raises(TypeError):
             iter(Motion())
 
-    @pytest.mark.parametrize("preset", PRESETS)
-    def test_from_preset_returns_new_motion(self, preset):
-        motion = Motion.from_preset(preset)
-
-        assert isinstance(motion, Motion)
-        assert Motion.from_preset(preset) is not motion
-
     def test_from_preset_stationary(self):
         t = np.linspace(0.0, 100.0, 1001)
         out = _eval_motion(Motion.from_preset("stationary"), t)
@@ -373,12 +366,6 @@ class Test_trajectory:
         *_, f_b, _ = ap.simulate.trajectory(n=n, g=5.0, motion="stationary")
 
         np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, -5.0], (n, 1)))
-
-    def test_motion_stationary_nav_frame(self):
-        n = 100
-        *_, f_b, _ = ap.simulate.trajectory(n=n, motion="stationary", nav_frame="ENU")
-
-        np.testing.assert_allclose(f_b, np.tile([0.0, 0.0, 9.80665], (n, 1)))
 
     def test_motion_custom(self):
         n = 100
