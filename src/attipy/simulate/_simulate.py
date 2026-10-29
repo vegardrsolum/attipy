@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, fields, replace
+from dataclasses import dataclass, field, fields
 from importlib import resources
 
 import numpy as np
@@ -58,97 +58,105 @@ class Motion:
             if not isinstance(getattr(self, f.name), DOF):
                 raise TypeError(f"'{f.name}' must be a DOF instance.")
 
+    @classmethod
+    def from_preset(cls, preset: str, *, nav_frame: str = "NED") -> "Motion":
+        """
+        Create a Motion instance from a preset.
 
-def _stationary() -> Motion:
-    """
-    Stationary/standstill motion with all DOFs set to zero.
-    """
-    return Motion()
+        Parameters
+        ----------
+        preset : str
+            Preset name (case-insensitive). One of:
+
+            - 'stationary': No motion; all degrees of freedom remain constant at
+              the origin.
+            - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
+            - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
+            - 'vessel-6dof': Wave-induced vessel response in all six degrees of
+              freedom.
+            - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw
+              only.
+        nav_frame : {'NED', 'ENU'}, optional
+            Navigation frame in which the motion is defined relative to. Either
+            'NED' (North-East-Down) or 'ENU' (East-North-Up). Defaults to 'NED'.
+
+        Returns
+        -------
+        Motion
+            Motion instance corresponding to the specified preset and navigation frame.
+        """
+
+        if not isinstance(preset, str):
+            raise TypeError("'preset' must be a string.")
+
+        if preset.lower() == "stationary":
+            x, y, z, roll, pitch, yaw = _stationary()
+        elif preset.lower() == "beat-6dof":
+            x, y, z, roll, pitch, yaw = _beat_6dof()
+        elif preset.lower() == "beat-3dof":
+            x, y, z, roll, pitch, yaw = _beat_3dof()
+        elif preset.lower() == "vessel-6dof":
+            x, y, z, roll, pitch, yaw = _vessel_6dof()
+        elif preset.lower() == "vessel-3dof":
+            x, y, z, roll, pitch, yaw = _vessel_3dof()
+        else:
+            raise ValueError(f"Unknown motion preset '{preset}'.")
+
+        if nav_frame.lower() == "enu":
+            y = multiply(-1.0, y)
+            z = multiply(-1.0, z)
+            pitch = multiply(-1.0, pitch)
+            yaw = multiply(-1.0, yaw)
+        elif nav_frame.lower() != "ned":
+            raise ValueError(f"Unknown navigation frame: '{nav_frame}'.")
+
+        return cls(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
 
 
-def _beat_6dof() -> Motion:
-    """
-    Beat motion in all six degrees of freedom.
-    """
+def _stationary() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll = Constant(0.0)
+    pitch = Constant(0.0)
+    yaw = Constant(0.0)
+    return x, y, z, roll, pitch, yaw
+
+
+def _beat_6dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     w_main = 2.0 * np.pi * 0.1
     w_beat = 2.0 * np.pi * 0.01
     phases = np.linspace(0, 2 * np.pi, 6, endpoint=False)
-    motion = Motion(
-        x=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0]),
-        y=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1]),
-        z=Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2]),
-        roll=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3]),
-        pitch=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4]),
-        yaw=Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5]),
-    )
-    return motion
+    x = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[0])
+    y = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[1])
+    z = Beat(amp=1.0, omega=w_main, omega_beat=w_beat, phase=phases[2])
+    roll = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[3])
+    pitch = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[4])
+    yaw = Beat(amp=0.1, omega=w_main, omega_beat=w_beat, phase=phases[5])
+    return x, y, z, roll, pitch, yaw
 
 
-def _beat_3dof() -> Motion:
-    """
-    Beat motion in the rotational degrees of freedom (roll, pitch, yaw). The
-    translational degrees of freedom (x, y, z) are set to zero.
-    """
-    motion = replace(
-        _beat_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
-    )
-    return motion
+def _beat_3dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll, pitch, yaw = _beat_6dof()[3:]
+    return x, y, z, roll, pitch, yaw
 
 
-def _vessel_6dof() -> Motion:
-    """
-    Wave-induced vessel response in all six degrees of freedom.
-
-    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
-    north-east-down (NED) navigation frame.
-    """
+def _vessel_6dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
     csd_path = _PACKAGE_PATH.joinpath("_data", "supply_vessel_csd.npz")
     f, csd = _load_csd(str(csd_path))
     x, y, z, roll, pitch, yaw = dofs_from_csd(f, csd, nbins=50, jitter=1.0, seed=1)
-    return Motion(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw)
+    return x, y, z, roll, pitch, yaw
 
 
-def _vessel_3dof() -> Motion:
-    """
-    Wave-induced vessel response in the rotational degrees of freedom.
-
-    Uses a forward-starboard-down (FSD) reference frame, corresponding to the
-    north-east-down (NED) navigation frame.
-    """
-    motion = replace(
-        _vessel_6dof(),
-        x=Constant(0.0),
-        y=Constant(0.0),
-        z=Constant(0.0),
-    )
-    return motion
-
-
-_MOTION_PRESETS = {
-    "stationary": _stationary,
-    "beat-6dof": _beat_6dof,
-    "beat-3dof": _beat_3dof,
-    "vessel-6dof": _vessel_6dof,
-    "vessel-3dof": _vessel_3dof,
-}
-
-
-def _z_down_to_z_up(motion_down: Motion) -> Motion:
-    """
-    Converts a motion from a z-down to a z-up frame by a 180 degree rotation
-    about the x-axis, which negates y, z, pitch and yaw.
-    """
-    motion_up = replace(
-        motion_down,
-        y=multiply(-1.0, motion_down.y),
-        z=multiply(-1.0, motion_down.z),
-        pitch=multiply(-1.0, motion_down.pitch),
-        yaw=multiply(-1.0, motion_down.yaw),
-    )
-    return motion_up
+def _vessel_3dof() -> tuple[DOF, DOF, DOF, DOF, DOF, DOF]:
+    x = Constant(0.0)
+    y = Constant(0.0)
+    z = Constant(0.0)
+    roll, pitch, yaw = _vessel_6dof()[3:]
+    return x, y, z, roll, pitch, yaw
 
 
 def _specific_force_body(
@@ -286,17 +294,10 @@ def trajectory(
         (East-North-Up). Defaults to 'NED'.
     motion : str or Motion, optional
         Specifies the type of motion to generate. Either a custom ``Motion``
-        instance, or a string specifying one of the predefined types of motion:
-
-        - 'stationary': No motion; all degrees of freedom remain constant at the origin.
-        - 'beat-6dof': Beating sinusoidal motion in all six degrees of freedom.
-        - 'beat-3dof': Beating sinusoidal motion in roll, pitch and yaw only.
-        - 'vessel-6dof': Wave-induced vessel response in all six degrees of freedom.
-        - 'vessel-3dof': Wave-induced vessel response in roll, pitch and yaw only.
-
-        Predefined motions are adapted to ``nav_frame``; custom ``Motion`` instances
-        are used as-is, and must therefore represent motion relative to ``nav_frame``.
-        Defaults to 'beat-6dof'.
+        instance, or a string naming one of the predefined types of motion (see
+        ``Motion.from_preset``). Presets are adapted to ``nav_frame``, while
+        ``Motion`` instances are used as-is and must therefore be defined relative
+        to ``nav_frame``. Defaults to 'beat-6dof'.
 
     Returns
     -------
@@ -324,13 +325,7 @@ def trajectory(
     g_n = _gravity_nav(g, nav_frame)
 
     if not isinstance(motion, Motion):
-        try:
-            make_motion = _MOTION_PRESETS[motion.lower()]
-        except (KeyError, AttributeError):
-            raise ValueError(f"Unknown motion type: {motion!r}.") from None
-        motion = make_motion()
-        if nav_frame.lower() == "enu":
-            motion = _z_down_to_z_up(motion)
+        motion = Motion.from_preset(motion, nav_frame=nav_frame)
 
     # Time
     dt = 1.0 / fs
